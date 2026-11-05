@@ -48,7 +48,33 @@ tbody tr:hover{background:#fdfbf6}
 .more-menu button{background:#f5f0e6;color:#49463f;border-color:#e7decd}
 .foot{background:#fffdf8;color:#6f614b}
 }
-</style></head><body><div class="layout"><aside class="side"><div class="brand">Goldleaf<small>JEWELLERY LEDGER</small></div><nav id="nav" class="nav" aria-label="Main navigation"></nav><div id="cloudState" class="foot">Local storage · this device</div></aside><main id="app" class="main"></main></div><div id="toast"></div>
+.customer-photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.customer-photo{width:82px;height:82px;object-fit:cover;border-radius:50%;border:2px solid #e2d4b7;background:#f3eee4}.customer-camera{display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#f8f5ee}.customer-camera video{width:min(100%,420px);max-height:280px;object-fit:cover;border-radius:10px;background:#292f31}.customer-camera .right{display:flex;gap:8px}.cards{grid-template-columns:repeat(auto-fit,minmax(155px,1fr))}.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.theme-toggle,.install-app{min-height:40px;padding:9px 12px;border-radius:10px}.theme-toggle{background:#f2ecdf;border-color:#e3d6bd;color:#6e5635}.install-app{background:#fffefa;border-color:#dfd8cc;color:#42413b}
+html[data-theme="dark"]{color-scheme:dark;--ink:#eeeae1;--green:#293235;--green-2:#c1a16c;--mint:#343632;--gold:#d1b078;--paper:#171a19;--line:#373c39;--muted:#b7b5ad;--white:#232725;--shadow:0 12px 30px rgba(0,0,0,.22)}
+html[data-theme="dark"] body,html[data-theme="dark"] .main{background:var(--paper);color:var(--ink)}
+html[data-theme="dark"] .side{background:linear-gradient(180deg,#202625 0%,#171c1b 100%);color:#f2efe8;border-color:#363d3a}
+html[data-theme="dark"] .brand,html[data-theme="dark"] .top h1,html[data-theme="dark"] .card b{color:var(--ink)}
+html[data-theme="dark"] .brand small,html[data-theme="dark"] .eyebrow{color:#cfb781}
+html[data-theme="dark"] .nav button,html[data-theme="dark"] .nav>button{color:#d6d3ca}
+html[data-theme="dark"] .nav button:hover,html[data-theme="dark"] .nav button.active{background:#343a37;color:#f4dfb7}
+html[data-theme="dark"] .foot,html[data-theme="dark"] .cloud-inline{background:#232927;color:#d7d1c4;border-color:#414743}
+html[data-theme="dark"] .panel,html[data-theme="dark"] .card{background:var(--white);border-color:#373d3a;color:var(--ink)}
+html[data-theme="dark"] .cards .card:last-child{background:#332e25;border-color:#514630;border-top-color:#d1b078}
+html[data-theme="dark"] .cards .card:last-child label{color:#d7d1c4}
+html[data-theme="dark"] .cards .card:last-child b{color:#f0d9aa}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea,html[data-theme="dark"] button{background:#292e2c;color:#f0eee8;border-color:#454b48}
+html[data-theme="dark"] input[readonly]{background:#202523;color:#c3c3ba}
+html[data-theme="dark"] .primary{background:#c3a06c;border-color:#c3a06c;color:#1e211f}
+html[data-theme="dark"] .theme-toggle{background:#373126;color:#f1ddb3;border-color:#65543a}
+html[data-theme="dark"] .install-app{background:#292e2c;color:#eeeae1;border-color:#454b48}
+html[data-theme="dark"] .pill,html[data-theme="dark"] .hint,html[data-theme="dark"] .more-menu button{background:#302e28;color:#e6d8bb;border-color:#494235}
+html[data-theme="dark"] .more-menu{background:#232725;border-color:#454b48}
+html[data-theme="dark"] th{background:#2c322f;color:#d9d3c8}
+html[data-theme="dark"] td{border-color:#383e3b}
+html[data-theme="dark"] tbody tr{background:#232725;border-color:#3a403d}
+html[data-theme="dark"] tbody tr:hover{background:#2a302d}
+html[data-theme="dark"] .customer-camera{background:#222725;border-color:#424a46}
+@media(max-width:760px){.header-actions{width:100%;justify-content:flex-start}.header-actions button{font-size:11px;padding:8px 10px;min-height:38px}}html[data-theme="dark"] .panel h2,html[data-theme="dark"] .panel h3,html[data-theme="dark"] .panel label,html[data-theme="dark"] .panel b,html[data-theme="dark"] .panel p{color:#f0eee8!important}
+html[data-theme="dark"] .panel .muted,html[data-theme="dark"] .panel .hint{color:#c1beb5!important}</style><meta name="theme-color" content="#f8f6f1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Goldleaf"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="manifest" href="./manifest.webmanifest"></head><body><div class="layout"><aside class="side"><div class="brand">Goldleaf<small>JEWELLERY LEDGER</small></div><nav id="nav" class="nav" aria-label="Main navigation"></nav><div id="cloudState" class="foot">Local storage · this device</div></aside><main id="app" class="main"></main></div><div id="toast"></div>
 <script>
 const navs=['Dashboard','Party Register','Sales Entry','Payments','Party Ledger','Party Summary','Settings'],navIcons=['⌂','♙','＋','↙','▤','◷','⚙'];const dbkey='goldleaf-ledger-v1';const init=()=>({parties:[],sales:[],payments:[],products:['Ring','Chain','Bangle','Earrings','Pendant','Other'],purities:[24,22,20,18,14],cloud:{url:'https://wnfxbzzewibxppfssqyq.supabase.co',key:'sb_publishable_ttfbhy42ax6cBol29sSKAw_bp2SufL1'}});let db=JSON.parse(localStorage.getItem(dbkey)||'null')||init(),page='Dashboard',edit=null,filter={party:'',mode:'All Dates',date:new Date().toISOString().slice(0,10),from:'',to:'',month:new Date().toISOString().slice(0,7)},client=null,session=null;
 const $=s=>document.querySelector(s),n=x=>Number(x)||0,fmt=x=>n(x).toFixed(3),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));function save(){localStorage.setItem(dbkey,JSON.stringify(db));if(session)pushCloud()}function say(x){$('#toast').textContent=x;setTimeout(()=>$('#toast').textContent='',3000)}function go(x){page=x;edit=null;render()}function toggleMore(){let m=$('#moreMenu');if(m){let open=m.classList.toggle('open');$('#nav .more-button')?.setAttribute('aria-expanded',String(open))}}function person(id){return db.parties.find(x=>x.id===id)}function saleVal(x){return n(x.weight)*n(x.purity)/24*(1+n(x.wastage)/100)}function payVal(x){return x.kind==='Cash'?n(x.amount)/n(x.rate):n(x.weight)*n(x.purity)/100}function bal(id){return n(person(id)?.opening)+db.sales.filter(x=>x.partyId===id).reduce((a,x)=>a+saleVal(x),0)-db.payments.filter(x=>x.partyId===id).reduce((a,x)=>a+payVal(x),0)}function options(v='',all='Select party'){return `<option value="">${all}</option>`+db.parties.map(p=>`<option value="${p.id}" ${p.id===v?'selected':''}>${esc(p.name)}</option>`).join('')}
@@ -59,11 +85,279 @@ function paymentsView(){let x=db.payments.find(p=>p.id===edit);return header('Re
 function controls(){return `<div class="filters"><div class="field"><label>Party</label><select onchange="filter.party=this.value;render()">${options(filter.party,'All parties')}</select></div><div class="field"><label>Period</label><select onchange="filter.mode=this.value;render()">${['All Dates','Single Date','Date Range','Monthly'].map(x=>`<option ${x===filter.mode?'selected':''}>${x}</option>`).join('')}</select></div>${filter.mode==='Single Date'?`<div class="field"><label>Date</label><input type="date" value="${filter.date}" onchange="filter.date=this.value;render()"></div>`:''}${filter.mode==='Date Range'?`<div class="field"><label>From</label><input type="date" value="${filter.from}" onchange="filter.from=this.value;render()"></div><div class="field"><label>To</label><input type="date" value="${filter.to}" onchange="filter.to=this.value;render()"></div>`:''}${filter.mode==='Monthly'?`<div class="field"><label>Month</label><input type="month" value="${filter.month}" onchange="filter.month=this.value;render()"></div>`:''}</div>`}function inPeriod(x){let d=x.slice(0,10);return filter.mode==='Single Date'?d===filter.date:filter.mode==='Date Range'?(!filter.from||d>=filter.from)&&(!filter.to||d<=filter.to):filter.mode==='Monthly'?d.slice(0,7)===filter.month:true}function beforePeriod(x){let d=x.slice(0,10),start=filter.mode==='Single Date'?filter.date:filter.mode==='Date Range'?filter.from:filter.mode==='Monthly'?filter.month+'-01':'';return !!start&&d<start}function tx(id){return [...db.sales.filter(x=>(!id||x.partyId===id)&&inPeriod(x.when)).map(x=>({...x,type:'Sale',desc:x.product,amount:saleVal(x)})),...db.payments.filter(x=>(!id||x.partyId===id)&&inPeriod(x.when)).map(x=>({...x,type:'Payment',desc:x.kind,amount:-payVal(x)}))].sort((a,b)=>a.when.localeCompare(b.when))}
 function summaryView(){return header('Opening, closing, owing and transaction filters.')+`<section class="panel"><h2>Summary filters</h2>${controls()}</section>${summaryContent()}`}function summaryContent(){let ps=filter.party?[person(filter.party)].filter(Boolean):db.parties;if(!ps.length)return '<section class="panel empty">Add or select a party to see the summary.</section>';let data=ps.map(p=>{let prev=[...db.sales.filter(x=>x.partyId===p.id&&beforePeriod(x.when)).map(x=>saleVal(x)),...db.payments.filter(x=>x.partyId===p.id&&beforePeriod(x.when)).map(x=>-payVal(x))].reduce((a,b)=>a+b,0),rows=tx(p.id),opening=n(p.opening)+prev,sales=rows.filter(x=>x.type==='Sale').reduce((a,x)=>a+x.amount,0),paid=-rows.filter(x=>x.type==='Payment').reduce((a,x)=>a+x.amount,0);return {p,opening,sales,paid,closing:opening+sales-paid}}),sum=k=>data.reduce((a,x)=>a+x[k],0);return `<section class="panel"><div class="cards">${card('OPENING',fmt(sum('opening'))+' g')}${card('SALES',fmt(sum('sales'))+' g')}${card('PAYMENTS',fmt(sum('paid'))+' g')}${card('OVERALL OWING',fmt(sum('closing'))+' g')}</div>${table(['Party','Place','Opening g','Sales g','Payments g','Closing g','Ledger'],data.map(x=>[esc(x.p.name),esc(x.p.place),fmt(x.opening),fmt(x.sales),fmt(x.paid),fmt(x.closing),`<button onclick="filter.party='${x.p.id}';go('Party Ledger')">View</button>`]))}</section>`}
 function ledgerView(){let p=person(filter.party);if(!p)return header('Choose a party to inspect its transaction history.')+`<section class="panel"><h2>Ledger filters</h2>${controls()}<div class="empty">Select a party above.</div></section>`;let rows=tx(p.id),before=[...db.sales.filter(x=>x.partyId===p.id&&beforePeriod(x.when)).map(x=>saleVal(x)),...db.payments.filter(x=>x.partyId===p.id&&beforePeriod(x.when)).map(x=>-payVal(x))].reduce((a,b)=>a+b,0);let run=n(p.opening)+before;return header('Full transaction history and running pure gold balance.')+`<section class="panel"><h2>Ledger filters</h2>${controls()}<p>Period opening: <b>${fmt(run)} g</b></p>${table(['Date','Type','Details','Sale debit g','Payment credit g','Running balance g'],rows.map(x=>{run+=x.amount;return [x.when.replace('T',' '),x.type,esc(x.desc),x.type==='Sale'?fmt(x.amount):'—',x.type==='Payment'?fmt(-x.amount):'—',fmt(run)]}))}<p>Closing: <b>${fmt(run)} g</b></p></section>`}
-function settingsView(){return header('Manage cloud access, your product lists, and ledger backups.')+`<section class="panel"><h2>Cloud account</h2><p class="hint">Sign in to sync this ledger across devices. This app is already connected to its cloud database; each account can access only its own ledger. Use your email and password below, or create an account.</p><div class="right"><button class="primary" onclick="authForm()">${session?'Sign out':'Sign in / create account'}</button></div><div id="auth" class="hidden"><div class="grid"><div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" required></div><div class="field"><label>Password</label><input id="password" type="password" minlength="8" autocomplete="current-password" required></div></div><p class="hint">First time here? Choose Create account. Verify your email if prompted, then sign in.</p><div class="right"><button onclick="auth('signup')">Create account</button><button class="primary" onclick="auth('login')">Sign in</button></div></div><p id="cloudMsg" class="hint"></p><details class="setup-details"><summary>Advanced connection settings</summary><p class="hint">Only change these when connecting your own Supabase project.</p><div class="grid"><div class="field wide"><label>Project URL</label><input id="url" value="${esc(db.cloud.url)}" placeholder="https://project.supabase.co"></div><div class="field wide"><label>Anon / publishable key</label><input id="key" value="${esc(db.cloud.key)}"></div></div><div class="right"><button onclick="saveCloud()">Save connection</button></div></details></section><section class="panel"><h2>Products</h2><div class="row">${db.products.map((x,i)=>`<span class="pill">${esc(x)} <button onclick="remove('products',${i})">×</button></span>`).join('')}</div><form class="row" onsubmit="add(event,'products')"><input name="value" required placeholder="New product"><button>Add product</button></form></section><section class="panel"><h2>Purities (karats)</h2><div class="row">${db.purities.map((x,i)=>`<span class="pill">${x}K <button onclick="remove('purities',${i})">×</button></span>`).join('')}</div><form class="row" onsubmit="add(event,'purities')"><input name="value" type="number" min="1" max="24" step=".1" required placeholder="Karat"><button>Add purity</button></form></section><section class="panel"><h2>Backup & setup</h2><p class="hint">Keep a copy of your records or restore from a saved backup.</p><div class="backup-actions"><button onclick="backup()">Download backup</button> <label class="pill">Restore backup<input type="file" hidden accept="application/json" onchange="restore(this)"></label></div><details class="setup-details"><summary>Setup for a different Supabase project</summary><p class="hint">Only needed if you host a separate copy of this app. Run this once in that project’s SQL Editor, then enter its project URL and publishable key above. Never use a service-role key in the browser.</p><pre class="hint">create table public.jewellery_ledgers (user_id uuid primary key references auth.users(id) on delete cascade, payload jsonb not null, updated_at timestamptz default now());
+function settingsView(){return header('Manage cloud access, your product lists, and ledger backups.')+`<section class="panel"><h2>Cloud account</h2><p class="hint">Sign in to sync this ledger across devices. This app is already connected to its cloud database; each account can access only its own ledger. Customer profiles, photos, Aadhaar and PAN sync to this account. Use your email and password below, or create an account.</p><div class="right"><button class="primary" onclick="authForm()">${session?'Sign out':'Sign in / create account'}</button></div><div id="auth" class="hidden"><div class="grid"><div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" required></div><div class="field"><label>Password</label><input id="password" type="password" minlength="8" autocomplete="current-password" required></div></div><p class="hint">First time here? Choose Create account. Verify your email if prompted, then sign in.</p><div class="right"><button onclick="auth('signup')">Create account</button><button class="primary" onclick="auth('login')">Sign in</button></div></div><p id="cloudMsg" class="hint"></p><details class="setup-details"><summary>Advanced connection settings</summary><p class="hint">Only change these when connecting your own Supabase project.</p><div class="grid"><div class="field wide"><label>Project URL</label><input id="url" value="${esc(db.cloud.url)}" placeholder="https://project.supabase.co"></div><div class="field wide"><label>Anon / publishable key</label><input id="key" value="${esc(db.cloud.key)}"></div></div><div class="right"><button onclick="saveCloud()">Save connection</button></div></details></section><section class="panel"><h2>Products</h2><div class="row">${db.products.map((x,i)=>`<span class="pill">${esc(x)} <button onclick="remove('products',${i})">×</button></span>`).join('')}</div><form class="row" onsubmit="add(event,'products')"><input name="value" required placeholder="New product"><button>Add product</button></form></section><section class="panel"><h2>Purities (karats)</h2><div class="row">${db.purities.map((x,i)=>`<span class="pill">${x}K <button onclick="remove('purities',${i})">×</button></span>`).join('')}</div><form class="row" onsubmit="add(event,'purities')"><input name="value" type="number" min="1" max="24" step=".1" required placeholder="Karat"><button>Add purity</button></form></section><section class="panel"><h2>Backup & setup</h2><p class="hint">Keep a copy of your records or restore from a saved backup.</p><div class="backup-actions"><button onclick="backup()">Download backup</button> <label class="pill">Restore backup<input type="file" hidden accept="application/json" onchange="restore(this)"></label></div><details class="setup-details"><summary>Setup for a different Supabase project</summary><p class="hint">Only needed if you host a separate copy of this app. Run this once in that project’s SQL Editor, then enter its project URL and publishable key above. Never use a service-role key in the browser.</p><pre class="hint">create table public.jewellery_ledgers (user_id uuid primary key references auth.users(id) on delete cascade, payload jsonb not null, updated_at timestamptz default now());
 alter table public.jewellery_ledgers enable row level security;
 create policy "own select" on public.jewellery_ledgers for select to authenticated using (auth.uid()=user_id);
 create policy "own insert" on public.jewellery_ledgers for insert to authenticated with check (auth.uid()=user_id);
 create policy "own update" on public.jewellery_ledgers for update to authenticated using (auth.uid()=user_id) with check (auth.uid()=user_id);</pre></details></section>`}function add(e,k){e.preventDefault();let v=new FormData(e.target).get('value');if(k==='purities')v=n(v);if(!db[k].some(x=>String(x).toLowerCase()===String(v).toLowerCase()))db[k].push(v);save();render()}function remove(k,i){if(confirm('Remove from future selections? Existing entries stay unchanged.')){db[k].splice(i,1);save();render()}}
 function backup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));a.download='goldleaf-backup.json';a.click()}function restore(i){let f=i.files[0],r=new FileReader();r.onload=()=>{if(confirm('Replace current data with this backup?')){db=JSON.parse(r.result);save();render()}};r.readAsText(f)}
-function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:$('#key').value.trim()};save();client=window.supabase?.createClient(db.cloud.url,db.cloud.key);$('#cloudMsg').textContent=client?'Connection saved. Sign in to sync.':'Enter a valid project URL and key.'}function authForm(){if(session){client.auth.signOut();session=null;setCloudStatus('Local storage · this device');render()}else{$('#auth').classList.toggle('hidden')}}async function auth(mode){try{saveCloud();let res=mode==='signup'?await client.auth.signUp({email:$('#email').value,password:$('#password').value}):await client.auth.signInWithPassword({email:$('#email').value,password:$('#password').value});if(res.error)throw res.error;session=res.data.session;if(session){$('#cloudMsg').textContent='Signed in. Loading account data…';await pullCloud();render()}else $('#cloudMsg').textContent='Account created. Verify your email if prompted.'}catch(e){$('#cloudMsg').textContent=e.message}}async function pullCloud(){if(!session||!client)return;try{let {data,error}=await client.from('jewellery_ledgers').select('payload').eq('user_id',session.user.id).maybeSingle();if(error)throw error;if(data?.payload){db=data.payload;localStorage.setItem(dbkey,JSON.stringify(db))}else await pushCloud();setCloudStatus('Cloud sync · '+session.user.email)}catch(e){let m=$('#cloudMsg');if(m)m.textContent=e.message}}async function pushCloud(){if(!session||!client)return;try{let {error}=await client.from('jewellery_ledgers').upsert({user_id:session.user.id,payload:db,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;setCloudStatus('Cloud sync · '+session.user.email)}catch(e){let m=$('#cloudMsg');if(m)m.textContent=e.message}}render();
+function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:$('#key').value.trim()};save();client=window.supabase?.createClient(db.cloud.url,db.cloud.key);$('#cloudMsg').textContent=client?'Connection saved. Sign in to sync.':'Enter a valid project URL and key.'}function authForm(){if(session){client.auth.signOut();session=null;setCloudStatus('Local storage · this device');render()}else{$('#auth').classList.toggle('hidden')}}async function auth(mode){try{saveCloud();let res=mode==='signup'?await client.auth.signUp({email:$('#email').value,password:$('#password').value}):await client.auth.signInWithPassword({email:$('#email').value,password:$('#password').value});if(res.error)throw res.error;session=res.data.session;if(session){$('#cloudMsg').textContent='Signed in. Loading account data…';await pullCloud();render()}else $('#cloudMsg').textContent='Account created. Verify your email if prompted.'}catch(e){$('#cloudMsg').textContent=e.message}}async function pullCloud(){if(!session||!client)return;try{let {data,error}=await client.from('jewellery_ledgers').select('payload').eq('user_id',session.user.id).maybeSingle();if(error)throw error;if(data?.payload){db=data.payload;localStorage.setItem(dbkey,JSON.stringify(db))}else await pushCloud();setCloudStatus('Cloud sync · '+session.user.email)}catch(e){let m=$('#cloudMsg');if(m)m.textContent=e.message}}async function pushCloud(){if(!session||!client)return;try{let {error}=await client.from('jewellery_ledgers').upsert({user_id:session.user.id,payload:db,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;setCloudStatus('Cloud sync · '+session.user.email)}catch(e){let m=$('#cloudMsg');if(m)m.textContent=e.message}}function ensureExtendedData(){
+  if(!Array.isArray(db.parties))db.parties=[];
+  if(!Array.isArray(db.customers))db.customers=[];
+  if(!Array.isArray(db.sales))db.sales=[];
+  if(!Array.isArray(db.payments))db.payments=[];
+  db.parties.forEach(p=>{p.city=p.city||p.place||'';p.phone=p.phone||p.mobile||'';p.whatsapp=p.whatsapp||''});
+  if(!('customer' in filter))filter.customer='';
+}
+ensureExtendedData();
+let customerCameraStream=null;
+const APP_NAV_ITEMS=['Dashboard','Party Register','Sales Entry','Payments','Customer Register','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Settings'];
+const APP_NAV_ICONS=['⌂','♙','＋','↙','♧','▤','◷','▤','◷','⚙'];
+function ownerType(x){return x?.accountType==='customer'?'customer':'party'}
+function account(id,type='party'){return (type==='customer'?db.customers:db.parties).find(x=>x.id===id)}
+function accountName(id,type='party'){return account(id,type)?.name||''}
+function accountCity(id,type='party'){let x=account(id,type);return x?.city||x?.place||''}
+function accountOpening(x,type='party'){return n(type==='customer'?x?.openingAmount:x?.opening)}
+function accountOptions(type='party',selected='',allLabel='Select account'){
+  const records=type==='customer'?db.customers:db.parties;
+  return '<option value="">'+esc(allLabel)+'</option>'+records.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+'</option>').join('');
+}
+function accountSaleValue(x){return ownerType(x)==='customer'?n(x.amount):saleVal(x)}
+function accountPaymentValue(x){return ownerType(x)==='customer'?n(x.amount):payVal(x)}
+function bal(id,type='party'){
+  const entity=account(id,type);if(!entity)return 0;
+  return accountOpening(entity,type)
+    +db.sales.filter(x=>x.partyId===id&&ownerType(x)===type).reduce((a,x)=>a+accountSaleValue(x),0)
+    -db.payments.filter(x=>x.partyId===id&&ownerType(x)===type).reduce((a,x)=>a+accountPaymentValue(x),0);
+}
+function render(){
+  ensureExtendedData();
+  $('#nav').innerHTML=APP_NAV_ITEMS.map((x,i)=>'<button class="'+(x===page?'active':'')+'" onclick="go(\''+x+'\')" aria-label="'+x+'"><span class="nav-icon">'+APP_NAV_ICONS[i]+'</span><span>'+x+'</span></button>').join('')
+    +'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button>'
+    +'<div id="moreMenu" class="more-menu">'+APP_NAV_ITEMS.slice(4).map((x,i)=>'<button onclick="go(\''+x+'\')"><span class="nav-icon">'+APP_NAV_ICONS[i+4]+'</span><span>'+x+'</span></button>').join('')+'</div>';
+  const routes={'Dashboard':dash,'Party Register':partyView,'Sales Entry':salesView,'Payments':paymentsView,'Customer Register':customerView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Settings':settingsView};
+  $('#app').innerHTML=(routes[page]||dash)();
+}
+function partyView(){
+  let p=db.parties.find(x=>x.id===edit);
+  return header('Party accounts use pure grams. Customer profiles and rupee ledgers are separate.')
+    +'<section class="panel"><h2>'+(p?'Edit party':'Register a party')+'</h2><form onsubmit="saveParty(event)"><input name="id" type="hidden" value="'+(p?.id||'')+'"><div class="grid">'
+    +'<div class="field"><label>Party name *</label><input name="name" required value="'+esc(p?.name||'')+'"></div>'
+    +'<div class="field"><label>City</label><input name="city" value="'+esc(p?.city||p?.place||'')+'"></div>'
+    +'<div class="field"><label>Phone</label><input name="phone" type="tel" value="'+esc(p?.phone||p?.mobile||'')+'"></div>'
+    +'<div class="field"><label>WhatsApp</label><input name="whatsapp" type="tel" value="'+esc(p?.whatsapp||'')+'"></div>'
+    +'<div class="field"><label>Email</label><input name="email" type="email" value="'+esc(p?.email||'')+'"></div>'
+    +'<div class="field"><label>Opening balance · pure g</label><input name="opening" type="number" step=".001" value="'+(p?.opening||0)+'"></div>'
+    +'<div class="field wide"><label>Address</label><textarea name="address" rows="2">'+esc(p?.address||'')+'</textarea></div></div><div class="right">'+(p?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(p?'Save changes':'Add party')+'</button></div></form></section>'
+    +'<section class="panel"><div class="section-heading"><div><h2>Party register</h2><div class="muted">Party balances are kept in pure grams.</div></div><button onclick="go(\'Customer Register\')">＋ Register customer</button></div>'
+    +(db.parties.length?table(['Party','City','Phone','WhatsApp','Opening g','Owing g',''],db.parties.map(x=>[esc(x.name),esc(x.city||x.place),esc(x.phone||x.mobile),esc(x.whatsapp),fmt(x.opening),fmt(bal(x.id,'party')),'<button onclick="edit=\''+x.id+'\';render()">Edit</button>'])):'<div class="empty">Add a party. Party names appear in party transaction selectors.</div>')+'</section>';
+}
+function saveParty(e){
+  e.preventDefault();let f=new FormData(e.target),id=f.get('id'),name=f.get('name').trim();
+  if(db.parties.some(p=>p.name.toLowerCase()===name.toLowerCase()&&p.id!==id))return say('Party name already exists.');
+  if(id&&!confirm('Save changes to this party?'))return;
+  let city=f.get('city').trim(),phone=f.get('phone').trim();
+  let x={id:id||crypto.randomUUID(),name,city,place:city,phone,mobile:phone,whatsapp:f.get('whatsapp').trim(),email:f.get('email').trim(),address:f.get('address').trim(),opening:n(f.get('opening'))};
+  if(id)db.parties[db.parties.findIndex(p=>p.id===id)]=x;else db.parties.push(x);
+  edit=null;save();render();say('Party saved; available in party selectors.');
+}
+function customerView(){
+  let c=db.customers.find(x=>x.id===edit);
+  return header('Customer contact and identity details. Customer balances are tracked separately in rupees.')
+   +'<section class="panel"><h2>'+(c?'Edit customer':'Register a customer')+'</h2><form onsubmit="saveCustomer(event)"><input name="id" type="hidden" value="'+(c?.id||'')+'"><div class="grid">'
+   +'<div class="field"><label>Customer name *</label><input name="name" required value="'+esc(c?.name||'')+'"></div>'
+   +'<div class="field"><label>City</label><input name="city" value="'+esc(c?.city||'')+'"></div>'
+   +'<div class="field"><label>Phone</label><input name="phone" type="tel" autocomplete="tel" value="'+esc(c?.phone||'')+'"></div>'
+   +'<div class="field"><label>WhatsApp</label><input name="whatsapp" type="tel" value="'+esc(c?.whatsapp||'')+'"></div>'
+   +'<div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" value="'+esc(c?.email||'')+'"></div>'
+   +'<div class="field"><label>Date of birth</label><input name="dob" type="date" value="'+esc(c?.dob||'')+'"></div>'
+   +'<div class="field wide"><label>Address</label><textarea name="address" rows="2">'+esc(c?.address||'')+'</textarea></div>'
+   +'<div class="field"><label>Aadhaar number</label><input name="aadhaar" type="text" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="12 digits" value="'+esc(c?.aadhaar||'')+'"></div>'
+   +'<div class="field"><label>PAN</label><input name="pan" type="text" maxlength="10" autocapitalize="characters" autocomplete="off" placeholder="ABCDE1234F" value="'+esc(c?.pan||'')+'"></div>'
+   +'<div class="field"><label>Opening balance · ₹</label><input name="openingAmount" type="number" step=".01" value="'+(c?.openingAmount||0)+'"></div>'
+   +'<div class="field wide"><label>Customer photo</label><div class="customer-photo-row"><img id="customerPhotoPreview" class="customer-photo '+(c?.photo?'':'hidden')+'" src="'+esc(c?.photo||'')+'" alt="Customer photo"><input id="customerPhotoValue" name="photo" type="hidden" value="'+esc(c?.photo||'')+'"><input id="customerPhotoFile" type="file" accept="image/*" capture="user" aria-label="Upload or take customer photo" onchange="readCustomerPhoto(this)"><button type="button" onclick="openCustomerCamera()">Use webcam</button></div><div id="customerCameraPanel" class="customer-camera hidden"><video id="customerVideo" autoplay playsinline muted></video><div class="right"><button type="button" class="primary" onclick="captureCustomerPhoto()">Take photo</button><button type="button" onclick="closeCustomerCamera()">Close camera</button></div></div></div>'
+   +'<div class="field wide"><label>Notes</label><textarea name="notes" rows="2" placeholder="Optional customer notes">'+esc(c?.notes||'')+'</textarea></div></div><div class="right">'+(c?'<button type="button" onclick="closeCustomerCamera();edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(c?'Save changes':'Add customer')+'</button></div></form></section>'
+   +'<section class="panel"><h2>Customer register</h2><div class="muted">Customer profiles and customer rupee balances are separate from party gram balances.</div>'
+   +(db.customers.length?table(['Photo','Customer','City','Phone','WhatsApp','Opening ₹','Owing ₹',''],db.customers.map(x=>[(x.photo?'<img src="'+x.photo+'" style="width:36px;height:36px;object-fit:cover;border-radius:50%" alt="">':'—'),esc(x.name),esc(x.city),esc(x.phone),esc(x.whatsapp),'₹ '+n(x.openingAmount).toFixed(2),'₹ '+n(bal(x.id,'customer')).toFixed(2),'<button onclick="edit=\''+x.id+'\';render()">Edit</button>'])):'<div class="empty">Add your first customer profile.</div>')+'</section>';
+}
+function saveCustomer(e){
+  e.preventDefault();let f=new FormData(e.target),id=f.get('id'),name=f.get('name').trim(),aadhaar=String(f.get('aadhaar')||'').trim().replace(/[\s-]/g,''),pan=String(f.get('pan')||'').trim().toUpperCase();
+  if(db.customers.some(c=>c.name.toLowerCase()===name.toLowerCase()&&c.id!==id))return say('Customer name already exists.');
+  if(aadhaar&&!/^\d{12}$/.test(aadhaar))return say('Enter Aadhaar as 12 digits.');
+  if(pan&&!/^[A-Z]{5}\d{4}[A-Z]$/.test(pan))return say('Enter PAN in the format ABCDE1234F.');
+  if(id&&!confirm('Save changes to this customer profile?'))return;
+  let old=db.customers.find(c=>c.id===id);
+  let x={id:id||crypto.randomUUID(),name,city:f.get('city').trim(),phone:f.get('phone').trim(),whatsapp:f.get('whatsapp').trim(),email:f.get('email').trim(),dob:f.get('dob'),address:f.get('address').trim(),aadhaar,pan,openingAmount:n(f.get('openingAmount')),photo:f.get('photo')||old?.photo||'',notes:f.get('notes').trim()};
+  if(id)db.customers[db.customers.findIndex(c=>c.id===id)]=x;else db.customers.push(x);
+  closeCustomerCamera();edit=null;save();render();say('Customer saved.');
+}
+function setCustomerPhoto(data){let input=$('#customerPhotoValue'),preview=$('#customerPhotoPreview');if(input)input.value=data;if(preview){preview.src=data;preview.classList.remove('hidden')}}
+function compressCustomerPhoto(source){
+  let image=new Image();image.onload=()=>{let scale=Math.min(1,1100/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);setCustomerPhoto(canvas.toDataURL('image/jpeg',.82))};image.onerror=()=>say('This image could not be opened.');image.src=source;
+}
+function readCustomerPhoto(input){let file=input.files&&input.files[0];if(!file)return;let reader=new FileReader();reader.onload=()=>compressCustomerPhoto(reader.result);reader.readAsDataURL(file)}
+async function openCustomerCamera(){
+  if(!navigator.mediaDevices?.getUserMedia)return say('Camera access is not available in this browser.');
+  try{customerCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});let video=$('#customerVideo');video.srcObject=customerCameraStream;$('#customerCameraPanel').classList.remove('hidden');await video.play()}catch(e){say('Camera access was not granted. You can upload a photo instead.')}
+}
+function closeCustomerCamera(){if(customerCameraStream){customerCameraStream.getTracks().forEach(t=>t.stop());customerCameraStream=null}let video=$('#customerVideo'),panel=$('#customerCameraPanel');if(video)video.srcObject=null;if(panel)panel.classList.add('hidden')}
+function captureCustomerPhoto(){let video=$('#customerVideo');if(!video||!video.videoWidth)return say('Wait for the camera preview, then take the photo.');let canvas=document.createElement('canvas'),scale=Math.min(1,1100/Math.max(video.videoWidth,video.videoHeight));canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);setCustomerPhoto(canvas.toDataURL('image/jpeg',.82));closeCustomerCamera();say('Customer photo captured.')}
+function accountSelect(type,id=''){return '<select name="partyId" required onchange="syncSaleAccount(this.form)">'+accountOptions(type,id,'Select '+(type==='customer'?'customer':'party'))+'</select>'}
+function changeSaleAccount(form){let type=form.elements.accountType.value;form.elements.partyId.innerHTML=accountOptions(type,'','Select '+(type==='customer'?'customer':'party'));syncSaleAccount(form);toggleSaleFields(form)}
+function syncSaleAccount(form){let id=form.elements.partyId.value,type=form.elements.accountType.value;form.elements.place.value=accountCity(id,type)}
+function toggleSaleFields(form){
+  let customer=form.elements.accountType.value==='customer';
+  form.querySelectorAll('.party-sale-fields').forEach(x=>x.classList.toggle('hidden',customer));
+  form.querySelectorAll('.customer-sale-fields').forEach(x=>x.classList.toggle('hidden',!customer));
+  form.elements.weight.required=!customer;form.elements.purity.required=!customer;form.elements.amount.required=customer;
+  calcSale(form);
+}
+function salesView(){
+  let x=db.sales.find(p=>p.id===edit),type=ownerType(x||{});
+  return header('Party sales use pure grams. Customer sales use rupees and appear only in the customer ledger.')
+   +'<section class="panel"><h2>'+(x?'Edit sale':'New sale')+'</h2>'+((db.parties.length||db.customers.length)?'<form onsubmit="saveSale(event)"><input name="id" type="hidden" value="'+(x?.id||'')+'"><div class="grid">'
+   +'<div class="field"><label>Account type *</label><select name="accountType" onchange="changeSaleAccount(this.form)"><option value="party" '+(type==='party'?'selected':'')+'>Party · grams</option><option value="customer" '+(type==='customer'?'selected':'')+'>Customer · ₹</option></select></div>'
+   +'<div class="field"><label>'+(type==='customer'?'Customer':'Party')+' *</label>'+accountSelect(type,x?.partyId||'')+'</div>'
+   +'<div class="field"><label>City · automatic</label><input name="place" value="'+esc(accountCity(x?.partyId,type))+'" readonly></div>'
+   +'<div class="field"><label>Date/time</label><input name="when" type="datetime-local" required value="'+(x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div>'
+   +'<div class="field"><label>Product</label><select name="product">'+db.products.map(a=>'<option '+(a===x?.product?'selected':'')+'>'+esc(a)+'</option>').join('')+'</select></div>'
+   +'<div class="field"><label>Pieces</label><input name="pieces" type="number" min="1" value="'+(x?.pieces||1)+'"></div>'
+   +'<div class="field party-sale-fields '+(type==='customer'?'hidden':'')+'"><label>Weight (g)</label><input name="weight" type="number" min=".001" step=".001" '+(type==='party'?'required':'')+' value="'+(x?.weight||'')+'" oninput="calcSale(this.form)"></div>'
+   +'<div class="field party-sale-fields '+(type==='customer'?'hidden':'')+'"><label>Purity</label><select name="purity">'+db.purities.map(a=>'<option value="'+a+'" '+(Number(a)===Number(x?.purity||22)?'selected':'')+'>'+a+'K</option>').join('')+'</select></div>'
+   +'<div class="field party-sale-fields '+(type==='customer'?'hidden':'')+'"><label>Wastage %</label><input name="wastage" type="number" min="0" step=".01" value="'+(x?.wastage||0)+'" oninput="calcSale(this.form)"></div>'
+   +'<div class="field customer-sale-fields '+(type==='customer'?'':'hidden')+'"><label>Sale amount · ₹</label><input name="amount" type="number" min=".01" step=".01" '+(type==='customer'?'required':'')+' value="'+(x?.amount||'')+'" oninput="calcSale(this.form)"></div>'
+   +'<div class="field"><label>Sale total</label><b id="saleCalc">'+(type==='customer'?'₹ '+n(x?.amount).toFixed(2):fmt(x?saleVal(x):0)+' g')+'</b></div>'
+   +'<div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save sale')+'</button></div></form>':'<div class="empty">Register a party or customer before recording a sale.</div>')+'</section>'
+   +'<section class="panel"><h2>Sales history</h2>'+table(['Date','Account','Product','Weight / amount','Pieces','Purity','Payable',''],[...db.sales].sort((a,b)=>b.when.localeCompare(a.when)).map(s=>{let t=ownerType(s),value=t==='customer'?'₹ '+n(s.amount).toFixed(2):fmt(s.weight)+' g',purity=t==='customer'?'—':s.purity+'K',payable=t==='customer'?'₹ '+accountSaleValue(s).toFixed(2):fmt(accountSaleValue(s))+' g';return [s.when.replace('T',' '),(t==='customer'?'Customer · ':'Party · ')+esc(accountName(s.partyId,t)),(s.photo?'<img src="'+s.photo+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;vertical-align:middle"> ':'')+esc(s.product),value,s.pieces,purity,payable,'<button onclick="edit=\''+s.id+'\';render()">Edit</button>']}))+'</section>';
+}
+function calcSale(form){let customer=form.elements.accountType?.value==='customer';$('#saleCalc').textContent=customer?'₹ '+n(form.elements.amount.value).toFixed(2):fmt(n(form.elements.weight.value)*n(form.elements.purity.value)/24*(1+n(form.elements.wastage.value)/100))+' g'}
+function saveSale(e){
+  e.preventDefault();let form=e.target,f=new FormData(form),id=f.get('id'),type=f.get('accountType')||'party';
+  if(id&&!confirm('Save changes to this sale?'))return;
+  let old=db.sales.find(s=>s.id===id),commit=photo=>{
+    let x={id:id||crypto.randomUUID(),partyId:f.get('partyId'),accountType:type,when:f.get('when'),product:f.get('product'),weight:n(f.get('weight')),amount:n(f.get('amount')),pieces:n(f.get('pieces')),purity:n(f.get('purity')),wastage:n(f.get('wastage')),photo:photo||old?.photo||''};
+    if(type==='customer'&&x.amount<=0)return say('Enter a customer sale amount greater than zero.');
+    if(type==='party'&&(x.weight<=0||x.purity<=0))return say('Enter a valid sale weight and purity.');
+    if(id)db.sales[db.sales.findIndex(s=>s.id===id)]=x;else db.sales.push(x);
+    edit=null;save();render();say('Sale saved.');
+  };
+  let file=form.querySelector('input[name="photo"][type="file"]').files[0];
+  if(file){let r=new FileReader();r.onload=()=>commit(r.result);r.readAsDataURL(file)}else commit('');
+}
+function changePayAccount(form){
+  let type=form.elements.accountType.value;
+  form.elements.partyId.innerHTML=accountOptions(type,'','Select '+(type==='customer'?'customer':'party'));
+  if(type==='customer')form.elements.kind.value='Cash';
+  togglePay(form);
+}
+function paymentsView(){
+  let x=db.payments.find(p=>p.id===edit),type=ownerType(x||{}),isCustomer=type==='customer';
+  return header('Party payments credit pure grams. Customer payments are rupee amounts in a separate ledger.')
+   +'<section class="panel"><h2>'+(x?'Edit payment':'New payment')+'</h2>'+((db.parties.length||db.customers.length)?'<form onsubmit="savePay(event)"><input name="id" type="hidden" value="'+(x?.id||'')+'"><div class="grid">'
+   +'<div class="field"><label>Account type *</label><select name="accountType" onchange="changePayAccount(this.form)"><option value="party" '+(type==='party'?'selected':'')+'>Party · grams</option><option value="customer" '+(isCustomer?'selected':'')+'>Customer · ₹</option></select></div>'
+   +'<div class="field"><label>'+(isCustomer?'Customer':'Party')+' *</label><select name="partyId" required>'+accountOptions(type,x?.partyId||'','Select '+(isCustomer?'customer':'party'))+'</select></div>'
+   +'<div class="field"><label>Date/time</label><input name="when" type="datetime-local" required value="'+(x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div>'
+   +'<div class="field kind-field '+(isCustomer?'hidden':'')+'"><label>Kind</label><select name="kind" onchange="togglePay(this.form)"><option '+(x?.kind==='Metal Bar'?'selected':'')+'>Metal Bar</option><option '+(x?.kind==='Old Scrap'?'selected':'')+'>Old Scrap</option><option '+(isCustomer||x?.kind==='Cash'?'selected':'')+'>Cash</option></select></div>'
+   +'<div class="field metal '+(isCustomer||x?.kind==='Cash'?'hidden':'')+'"><label>Gross weight g</label><input name="weight" type="number" min=".001" step=".001" value="'+(x?.weight||'')+'"></div>'
+   +'<div class="field metal '+(isCustomer||x?.kind==='Cash'?'hidden':'')+'"><label>Testing purity · %</label><input name="purity" type="number" min="1" max="100" step="0.01" value="'+(x?.purity||'')+'"></div>'
+   +'<div class="field cash '+(isCustomer||x?.kind==='Cash'?'':'hidden')+'"><label id="paymentAmountLabel">'+(isCustomer?'Payment amount · ₹':'Cash amount · ₹')+'</label><input name="amount" type="number" min=".01" step=".01" value="'+(x?.amount||'')+'"></div>'
+   +'<div class="field cash-rate '+(isCustomer||x?.kind!=='Cash'?'hidden':'')+'"><label>24K rate per gram</label><input name="rate" type="number" min=".01" step=".01" value="'+(x?.rate||'')+'"></div>'
+   +'<div class="field"><label>'+(isCustomer?'Customer credit':'Pure credit')+(isCustomer?' · ₹':' · g')+'</label><b id="payCalc">'+(isCustomer?'₹ '+n(x?.amount).toFixed(2):fmt(x?payVal(x):0)+' g')+'</b></div></div><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save payment')+'</button></div></form>':'<div class="empty">Register a party or customer before recording a payment.</div>')+'</section>'
+   +'<section class="panel"><h2>Payment history</h2>'+table(['Date','Account','Kind','Gross / amount','Purity / rate','Credit',''],[...db.payments].sort((a,b)=>b.when.localeCompare(a.when)).map(p=>{let t=ownerType(p),gross=t==='customer'?'₹ '+n(p.amount).toFixed(2):p.kind==='Cash'?'₹ '+p.amount:fmt(p.weight)+' g',detail=t==='customer'?'—':p.kind==='Cash'?'₹ '+p.rate+'/g':p.purity+'%',credit=t==='customer'?'₹ '+accountPaymentValue(p).toFixed(2):fmt(accountPaymentValue(p))+' g';return [p.when.replace('T',' '),(t==='customer'?'Customer · ':'Party · ')+esc(accountName(p.partyId,t)),t==='customer'?'Cash':p.kind,gross,detail,credit,'<button onclick="edit=\''+p.id+'\';render()">Edit</button>']}))+'</section>';
+}
+function togglePay(form){
+  let customer=form.elements.accountType.value==='customer',cash=customer||form.elements.kind.value==='Cash';
+  form.querySelectorAll('.kind-field').forEach(x=>x.classList.toggle('hidden',customer));
+  form.querySelectorAll('.metal').forEach(x=>x.classList.toggle('hidden',cash));
+  form.querySelectorAll('.cash').forEach(x=>x.classList.toggle('hidden',!cash));
+  form.querySelectorAll('.cash-rate').forEach(x=>x.classList.toggle('hidden',customer||form.elements.kind.value!=='Cash'));
+  form.elements.amount.required=cash;form.elements.rate.required=!customer&&form.elements.kind.value==='Cash';
+  form.elements.weight.required=!cash;form.elements.purity.required=!cash;
+  if(customer)form.elements.kind.value='Cash';
+  let label=$('#paymentAmountLabel');if(label)label.textContent=customer?'Payment amount · ₹':'Cash amount · ₹';
+  let calc=$('#payCalc');if(calc)calc.textContent=customer?'₹ '+n(form.elements.amount.value).toFixed(2):form.elements.kind.value==='Cash'?fmt(n(form.elements.amount.value)/n(form.elements.rate.value))+' g':fmt(n(form.elements.weight.value)*n(form.elements.purity.value)/100)+' g';
+}
+function savePay(e){
+  e.preventDefault();let f=new FormData(e.target),id=f.get('id'),type=f.get('accountType')||'party';
+  if(id&&!confirm('Save changes to this payment?'))return;
+  let x={id:id||crypto.randomUUID(),partyId:f.get('partyId'),accountType:type,when:f.get('when'),kind:type==='customer'?'Cash':f.get('kind'),weight:n(f.get('weight')),purity:n(f.get('purity')),amount:n(f.get('amount')),rate:n(f.get('rate'))};
+  if(type==='customer'&&x.amount<=0)return say('Enter a customer payment amount greater than zero.');
+  if(type==='party'&&x.kind==='Cash'&&(!x.amount||!x.rate))return say('Enter a cash amount and a 24K rate greater than zero.');
+  if(type==='party'&&x.kind!=='Cash'&&(x.weight<=0||x.purity<1||x.purity>100))return say('Enter a weight and testing purity from 1 to 100.');
+  if(id)db.payments[db.payments.findIndex(p=>p.id===id)]=x;else db.payments.push(x);
+  edit=null;save();render();say('Payment saved.');
+}
+function controls(type='party'){
+  const key=type==='customer'?'customer':'party',label=type==='customer'?'Customer':'Party';
+  return '<div class="filters"><div class="field"><label>'+label+'</label><select onchange="filter.'+key+'=this.value;render()">'+accountOptions(type,filter[key]||'','All '+(type==='customer'?'customers':'parties'))+'</select></div><div class="field"><label>Period</label><select onchange="filter.mode=this.value;render()">'+['All Dates','Single Date','Date Range','Monthly'].map(x=>'<option '+(x===filter.mode?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+    +(filter.mode==='Single Date'?'<div class="field"><label>Date</label><input type="date" value="'+filter.date+'" onchange="filter.date=this.value;render()"></div>':'')
+    +(filter.mode==='Date Range'?'<div class="field"><label>From</label><input type="date" value="'+filter.from+'" onchange="filter.from=this.value;render()"></div><div class="field"><label>To</label><input type="date" value="'+filter.to+'" onchange="filter.to=this.value;render()"></div>':'')
+    +(filter.mode==='Monthly'?'<div class="field"><label>Month</label><input type="month" value="'+filter.month+'" onchange="filter.month=this.value;render()"></div>':'')+'</div>';
+}
+function tx(id,type='party'){
+  return [...db.sales.filter(x=>x.partyId===id&&ownerType(x)===type&&inPeriod(x.when)).map(x=>({...x,type:'Sale',desc:x.product,amount:accountSaleValue(x)})),
+    ...db.payments.filter(x=>x.partyId===id&&ownerType(x)===type&&inPeriod(x.when)).map(x=>({...x,type:'Payment',desc:x.kind,amount:-accountPaymentValue(x)}))].sort((a,b)=>a.when.localeCompare(b.when));
+}
+function openingBefore(id,type){
+  return db.sales.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountSaleValue(x),0)
+    -db.payments.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountPaymentValue(x),0);
+}
+function summaryView(){return summaryPage('party')}
+function customerSummaryView(){return summaryPage('customer')}
+function summaryPage(type){
+  const label=type==='customer'?'customer':'party';
+  return header('Opening, sales, payments and closing balance for '+label+' accounts.')+'<section class="panel"><h2>'+label.charAt(0).toUpperCase()+label.slice(1)+' summary filters</h2>'+controls(type)+'</section>'+summaryContent(type);
+}
+function summaryContent(type='party'){
+  const key=type==='customer'?'customer':'party',list=type==='customer'?db.customers:db.parties;
+  let selected=filter[key],entities=selected?[account(selected,type)].filter(Boolean):list;
+  if(!entities.length)return '<section class="panel empty">Register or select a '+(type==='customer'?'customer':'party')+' to see this separate summary.</section>';
+  const data=entities.map(x=>{
+    let opening=accountOpening(x,type)+openingBefore(x.id,type),rows=tx(x.id,type);
+    let sales=rows.filter(r=>r.type==='Sale').reduce((a,r)=>a+r.amount,0),payments=-rows.filter(r=>r.type==='Payment').reduce((a,r)=>a+r.amount,0);
+    return {x,opening,sales,payments,closing:opening+sales-payments};
+  }),sum=k=>data.reduce((a,x)=>a+x[k],0),money=type==='customer';
+  const show=v=>money?'₹ '+n(v).toFixed(2):fmt(v)+' g';
+  return '<section class="panel"><div class="cards">'+card('OPENING',show(sum('opening')))+card('SALES',show(sum('sales')))+card('PAYMENTS',show(sum('payments')))+card(money?'CUSTOMER OWING':'OVERALL OWING',show(sum('closing')))+' </div>'
+    +table([type==='customer'?'Customer':'Party','City',money?'Opening ₹':'Opening g',money?'Sales ₹':'Sales g',money?'Payments ₹':'Payments g',money?'Closing ₹':'Closing g','Ledger'],data.map(r=>[esc(r.x.name),esc(r.x.city||r.x.place),show(r.opening),show(r.sales),show(r.payments),show(r.closing),'<button onclick="filter.'+key+'=\''+r.x.id+'\';go(\''+(money?'Customer Ledger':'Party Ledger')+'\')">View</button>']))+'</section>';
+}
+function ledgerView(){return ledgerPage('party')}
+function customerLedgerView(){return ledgerPage('customer')}
+function ledgerPage(type){
+  const key=type==='customer'?'customer':'party',entity=account(filter[key],type),money=type==='customer',label=money?'customer':'party';
+  if(!entity)return header('Choose a '+label+' to inspect its separate transaction history.')+'<section class="panel"><h2>'+label.charAt(0).toUpperCase()+label.slice(1)+' ledger filters</h2>'+controls(type)+'<div class="empty">Select a '+label+' above.</div></section>';
+  let rows=tx(entity.id,type),run=accountOpening(entity,type)+openingBefore(entity.id,type),opening=run,show=v=>money?'₹ '+n(v).toFixed(2):fmt(v)+' g';
+  let tableRows=rows.map(x=>{run+=x.amount;return [x.when.replace('T',' '),x.type,esc(x.desc),x.type==='Sale'?show(x.amount):'—',x.type==='Payment'?show(-x.amount):'—',show(run)]});
+  return header('Separate '+label+' ledger · balances shown in '+(money?'rupees.':'pure grams.'))+'<section class="panel"><h2>'+label.charAt(0).toUpperCase()+label.slice(1)+' ledger</h2>'+controls(type)+'<p>Period opening: <b>'+show(opening)+'</b></p>'+table(['Date','Type','Details',money?'Sale ₹':'Sale debit g',money?'Payment ₹':'Payment credit g',money?'Balance ₹':'Balance g'],tableRows)+'<p>Closing: <b>'+show(run)+'</b></p></section>';
+}
+async function pullCloud(){
+  if(!session||!client)return;
+  try{let {data,error}=await client.from('jewellery_ledgers').select('payload').eq('user_id',session.user.id).maybeSingle();if(error)throw error;
+    if(data?.payload){db=data.payload;ensureExtendedData();localStorage.setItem(dbkey,JSON.stringify(db))}else await pushCloud();
+    setCloudStatus('Cloud sync · '+session.user.email);render();
+  }catch(e){let m=$('#cloudMsg');if(m)m.textContent=e.message}
+}let appTheme=localStorage.getItem('goldleaf-theme')||'light';
+document.documentElement.dataset.theme=appTheme;
+let deferredInstallPrompt=null;
+function toggleTheme(){appTheme=appTheme==='dark'?'light':'dark';document.documentElement.dataset.theme=appTheme;localStorage.setItem('goldleaf-theme',appTheme);render()}
+function installCaption(){return (navigator.standalone||window.matchMedia('(display-mode: standalone)').matches)?'App installed':deferredInstallPrompt||!/iphone|ipad|ipod/i.test(navigator.userAgent)?'Install app':'Add to Home'}
+function updateInstallButton(){let b=$('#installButton');if(b)b.textContent='＋ '+installCaption()}
+async function installApp(){
+  if(navigator.standalone||window.matchMedia('(display-mode: standalone)').matches)return say('Goldleaf is already on your Home Screen.');
+  if(deferredInstallPrompt){deferredInstallPrompt.prompt();let result=await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;updateInstallButton();return say(result.outcome==='accepted'?'Goldleaf is being added to your Home Screen.':'Install cancelled.')}
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent))return say('In Safari, tap Share, then Add to Home Screen.');
+  say('Open your browser menu and choose Install app or Add to Home Screen.');
+}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed.')});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(()=>{}));
+function header(sub,buttons=''){
+  let themeText=appTheme==='dark'?'☀ Light':'☾ Dark';
+  return '<header class="top"><div><div class="eyebrow">GOLDLEAF · '+page.toUpperCase()+'</div><h1>'+page+'</h1><div class="muted">'+sub+'</div><span class="cloud-inline" id="cloudInline">'+cloudLabel()+'</span></div><div class="header-actions"><button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">'+themeText+'</button><button id="installButton" class="install-app" onclick="installApp()">'+('＋ '+installCaption())+'</button>'+buttons+'</div></header>';
+}function history(){
+  let all=[...db.sales.map(x=>({...x,type:'Sale',value:accountSaleValue(x),detail:x.product})),...db.payments.map(x=>({...x,type:'Payment',value:-accountPaymentValue(x),detail:x.kind}))]
+    .sort((a,b)=>b.when.localeCompare(a.when)).slice(0,10);
+  return all.length?table(['Date','Account','Type','Details','Value'],all.map(x=>{let t=ownerType(x);return [x.when.replace('T',' '),(t==='customer'?'Customer · ':'Party · ')+esc(accountName(x.partyId,t)),x.type,esc(x.detail),t==='customer'?'₹ '+Math.abs(x.value).toFixed(2):fmt(Math.abs(x.value))+' g']})):'<div class="empty">No transactions yet.</div>';
+}
+function dash(){
+  let sales=db.sales.filter(x=>ownerType(x)==='party').reduce((a,x)=>a+saleVal(x),0);
+  let paid=db.payments.filter(x=>ownerType(x)==='party').reduce((a,x)=>a+payVal(x),0);
+  let partyOwing=db.parties.reduce((a,x)=>a+bal(x.id,'party'),0);
+  let customerOwing=db.customers.reduce((a,x)=>a+bal(x.id,'customer'),0);
+  return header('Party balances in grams and customer balances in rupees, kept in separate ledgers.','<button class="primary" onclick="go(\'Sales Entry\')">＋ New sale</button>')
+    +'<div class="cards">'+card('PARTIES',db.parties.length)+card('CUSTOMERS',db.customers.length)+card('PARTY OWING',fmt(partyOwing)+' g')+card('CUSTOMER OWING','₹ '+customerOwing.toFixed(2))+card('PARTY SALES',fmt(sales)+' g')+card('PARTY PAYMENTS',fmt(paid)+' g')+'</div>'
+    +'<section class="panel quick-panel"><div><h2>Quick actions</h2><div class="muted">Start a common task in one tap.</div></div><div class="quick-actions"><button onclick="go(\'Party Register\')">♙ &nbsp; Add party</button><button onclick="go(\'Customer Register\')">♧ &nbsp; Add customer</button><button onclick="go(\'Sales Entry\')">＋ &nbsp; Record sale</button><button onclick="go(\'Payments\')">↙ &nbsp; Add payment</button></div></section>'
+    +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
+    +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
+}render();
 </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script></body></html>
