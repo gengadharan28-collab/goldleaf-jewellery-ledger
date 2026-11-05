@@ -1,30 +1,31 @@
 # Goldleaf Jewellery Ledger
 
-Open the hosted app at **https://gengadharan28-collab.github.io/goldleaf-jewellery-ledger/**. The app is responsive for phone and desktop.
+Open the live app at **https://gengadharan28-collab.github.io/goldleaf-jewellery-ledger/**. It works on phones and desktop browsers.
 
-## Data and cloud storage
+## Start using the cloud app
 
-Without cloud credentials, entries are saved in this browser's `localStorage` under `goldleaf-ledger-v1`. This stays on this browser and does not sync to other devices. Use **Settings → Download backup** regularly; a JSON backup can also be restored there.
+1. Open **Settings → Cloud account**.
+2. Choose **Sign in / create account** and enter your email and a password.
+3. For a new account, choose **Create account** and verify your email if prompted. Then sign in.
+4. Check the status on the left side of the desktop app or above the mobile menu. **Cloud sync** means the ledger is saved to your account and can be opened from another device.
 
-To enable cross-device storage:
+The app is already connected to its Supabase database. Each signed-in account can access only its own ledger through row-level security. The app page and its source are public; party and transaction data are not. No service-role key is exposed in the browser.
 
-1. Create a Supabase project.
-2. In Supabase SQL Editor, run the SQL shown in **Settings → One-time database setup**. Row-level security limits each account to its own ledger row.
-3. In **Settings → Cloud account**, enter the project URL and the public anon/publishable key. Never use a service-role key in the browser.
-4. Create an account or sign in. Existing cloud data loads into the app; a new account starts with the current browser ledger. Later changes sync to that account.
+Before sign-in, entries stay in that browser only. When a new account signs in for the first time, the app copies that browser's current ledger to the account. Later changes sync to the same account. Download a backup from **Settings → Backup & setup** when needed.
 
-Supabase handles the login and database. Local data and cloud data are distinct until sign-in; make a backup before the first cloud setup if the records matter.
+## Features
 
-## Workbook logic represented
+- Party Register with party name, place, mobile, and opening pure-gold balance. New parties appear in every party selector.
+- Sales Entry with automatic place fill, date/time, product, weight, pieces, karat, wastage, payable pure grams, and product photo.
+- Payments for Metal Bar, Old Scrap, or Cash. Metal testing purity is entered manually as a percentage from 1 to 100, including decimals.
+- Party Ledger and Party Summary with all-date, single-date, date-range, and monthly filters.
+- Editable product and karat lists.
 
-- Parties: name, place, mobile, opening pure-gold balance. Registering a party immediately adds it to every party selector.
-- Sales: payable pure grams = weight × purity ÷ 24 × (1 + wastage% ÷ 100).
-- Metal bar / old scrap: enter testing purity manually as a percentage from 1 to 100 (decimals allowed); payment credit = gross weight × testing purity ÷ 100.
-- Cash: payment credit = cash amount ÷ 24K rate per gram.
-- Positive closing balance means the party owes gold; opening balance plus sales less payments gives the current balance.
-- Single date, inclusive date range, month, and all-date filters are available in Party Summary and Party Ledger.
+Sales payable = weight × purity ÷ 24 × (1 + wastage% ÷ 100). Metal payment credit = gross weight × testing purity ÷ 100. Cash payment credit = cash amount ÷ 24K rate per gram. A positive closing balance means the party owes gold.
 
-The referenced conversation did not include the Excel workbook itself. These formula rules follow the requested fields and common 24K pure-gold conversion; please compare them with the workbook if it becomes available.
+## Workbook match
+
+The referenced conversation did not include the Excel workbook file. These calculations follow the requested fields and conversation details; compare with the workbook itself if you want exact sheet and formula matching.
 
 ## Local preview
 
