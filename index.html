@@ -101,8 +101,8 @@ function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:
 }
 ensureExtendedData();
 let customerCameraStream=null;
-const APP_NAV_ITEMS=['Dashboard','Register','Sales Entry','Payments','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Rate Book','Update History','Settings'];
-const APP_NAV_ICONS=['⌂','♙','＋','↙','▤','◷','▤','◷','◈','◷','⚙'];
+const APP_NAV_ITEMS=['Dashboard','Register','Sales Entry','Payments','Ledger','Summary','Rate Book','Update History','Settings'];
+const APP_NAV_ICONS=['⌂','♙','＋','↙','▤','◷','◈','◷','⚙'];
 function ownerType(x){return x?.accountType==='customer'?'customer':'party'}
 function account(id,type='party'){return (type==='customer'?db.customers:db.parties).find(x=>x.id===id)}
 function accountName(id,type='party'){return account(id,type)?.name||''}
@@ -125,7 +125,7 @@ function render(){
   $('#nav').innerHTML=APP_NAV_ITEMS.map((x,i)=>'<button class="'+(x===page?'active':'')+'" onclick="go(\''+x+'\')" aria-label="'+x+'"><span class="nav-icon">'+APP_NAV_ICONS[i]+'</span><span>'+x+'</span></button>').join('')
     +'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button>'
     +'<div id="moreMenu" class="more-menu">'+APP_NAV_ITEMS.slice(4).map((x,i)=>'<button onclick="go(\''+x+'\')"><span class="nav-icon">'+APP_NAV_ICONS[i+4]+'</span><span>'+x+'</span></button>').join('')+'</div>';
-  const routes={'Dashboard':dash,'Register':registerView,'Sales Entry':salesView,'Payments':paymentsView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
+  const routes={'Dashboard':dash,'Register':registerView,'Sales Entry':salesView,'Payments':paymentsView,'Ledger':ledgerView,'Summary':summaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
   $('#app').innerHTML=(routes[page]||dash)();
 }
 let registerType='party';
@@ -302,7 +302,16 @@ function openingBefore(id,type){
   return db.sales.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountSaleValue(x),0)
     -db.payments.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountPaymentValue(x),0);
 }
-function summaryView(){return summaryPage('party')}
+let summaryType='party',ledgerType='party';
+function setSummaryType(type){summaryType=type==='customer'?'customer':'party';render()}
+function setLedgerType(type){ledgerType=type==='customer'?'customer':'party';render()}
+function accountTypeTabs(type,setter,label){
+  return '<nav class="register-tabs" aria-label="'+label+' account type"><button type="button" class="register-tab '+(type==='party'?'active':'')+'" aria-pressed="'+(type==='party')+'" onclick="'+setter+'(\'party\')">Party</button><button type="button" class="register-tab '+(type==='customer'?'active':'')+'" aria-pressed="'+(type==='customer')+'" onclick="'+setter+'(\'customer\')">Customer</button></nav>';
+}
+function summaryView(){
+  const existing=summaryPage(summaryType),end=existing.indexOf('</header>');
+  return end<0?existing:existing.slice(0,end+9)+accountTypeTabs(summaryType,'setSummaryType','Summary')+existing.slice(end+9);
+}
 function customerSummaryView(){return summaryPage('customer')}
 function summaryPage(type){
   const label=type==='customer'?'customer':'party';
@@ -321,7 +330,10 @@ function summaryContent(type='party'){
   return '<section class="panel"><div class="cards">'+card('OPENING',show(sum('opening')))+card('SALES',show(sum('sales')))+card('PAYMENTS',show(sum('payments')))+card(money?'CUSTOMER OWING':'OVERALL OWING',show(sum('closing')))+' </div>'
     +table([type==='customer'?'Customer':'Party','City',money?'Opening ₹':'Opening g',money?'Sales ₹':'Sales g',money?'Payments ₹':'Payments g',money?'Closing ₹':'Closing g','Ledger'],data.map(r=>[esc(r.x.name),esc(r.x.city||r.x.place),show(r.opening),show(r.sales),show(r.payments),show(r.closing),'<button onclick="filter.'+key+'=\''+r.x.id+'\';go(\''+(money?'Customer Ledger':'Party Ledger')+'\')">View</button>']))+'</section>';
 }
-function ledgerView(){return ledgerPage('party')}
+function ledgerView(){
+  const existing=ledgerPage(ledgerType),end=existing.indexOf('</header>');
+  return end<0?existing:existing.slice(0,end+9)+accountTypeTabs(ledgerType,'setLedgerType','Ledger')+existing.slice(end+9);
+}
 function customerLedgerView(){return ledgerPage('customer')}
 function ledgerPage(type){
   const key=type==='customer'?'customer':'party',entity=account(filter[key],type),money=type==='customer',label=money?'customer':'party';
@@ -370,11 +382,15 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.3.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.4.0';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
   else if(target==='Customer Register'){registerType='customer';target='Register'}
+  else if(target==='Party Ledger'){ledgerType='party';target='Ledger'}
+  else if(target==='Customer Ledger'){ledgerType='customer';target='Ledger'}
+  else if(target==='Party Summary'){summaryType='party';target='Summary'}
+  else if(target==='Customer Summary'){summaryType='customer';target='Summary'}
   return goldleafPreviousGo(target);
 };
 const goldleafPreviousEnsure=window.ensureExtendedData;
@@ -563,7 +579,10 @@ function openRateBookFromReminder(){
 function updateHistoryView(){
   return header('A separate record of website updates and features.')
   +'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v'+GOLDLEAF_VERSION+'</b> · 5 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section>'
-  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.3.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.4.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<li>Combined Party and Customer summaries on one Summary page with separate tabs.</li>'
+  +'<li>Combined Party and Customer ledgers on one Ledger page with separate tabs.</li>'
+  +'</ul></article><article class="release-note"><h3>v1.3.0 · 5 Nov 2026</h3><ul>'
   +'<li>Combined Party Register and Customer Register on one Register page with Party and Customer tabs.</li>'
   +'</ul></article><article class="release-note"><h3>v1.2.0 · 5 Nov 2026</h3><ul>'
   +'<li>Added customer sale entry tabs with live weight, purity, wastage, making-charge, discount and final-amount calculations.</li>'
