@@ -7,7 +7,7 @@ Open the live app at **https://gengadharan28-collab.github.io/goldleaf-jewellery
 1. Open **Settings → Cloud account**.
 2. Choose **Sign in / create account** and enter your email and a password.
 3. For a new account, choose **Create account** and verify your email if prompted. Then sign in.
-4. Check the status on the left side of the desktop app or above the mobile menu. **Cloud sync** means the ledger is saved to your account and can be opened from another device.
+4. Check the status in the desktop sidebar or beneath the page heading on a phone. **Cloud sync** means the ledger is saved to your account and can be opened from another device.
 
 The app is already connected to its Supabase database. Each signed-in account can access only its own ledger through row-level security. The app page and its source are public; party and transaction data are not. No service-role key is exposed in the browser.
 
