@@ -101,8 +101,8 @@ function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:
 }
 ensureExtendedData();
 let customerCameraStream=null;
-const APP_NAV_ITEMS=['Dashboard','Party Register','Sales Entry','Payments','Customer Register','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Settings'];
-const APP_NAV_ICONS=['⌂','♙','＋','↙','♧','▤','◷','▤','◷','⚙'];
+const APP_NAV_ITEMS=['Dashboard','Party Register','Sales Entry','Payments','Customer Register','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Rate Book','Update History','Settings'];
+const APP_NAV_ICONS=['⌂','♙','＋','↙','♧','▤','◷','▤','◷','◈','◷','⚙'];
 function ownerType(x){return x?.accountType==='customer'?'customer':'party'}
 function account(id,type='party'){return (type==='customer'?db.customers:db.parties).find(x=>x.id===id)}
 function accountName(id,type='party'){return account(id,type)?.name||''}
@@ -125,7 +125,7 @@ function render(){
   $('#nav').innerHTML=APP_NAV_ITEMS.map((x,i)=>'<button class="'+(x===page?'active':'')+'" onclick="go(\''+x+'\')" aria-label="'+x+'"><span class="nav-icon">'+APP_NAV_ICONS[i]+'</span><span>'+x+'</span></button>').join('')
     +'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button>'
     +'<div id="moreMenu" class="more-menu">'+APP_NAV_ITEMS.slice(4).map((x,i)=>'<button onclick="go(\''+x+'\')"><span class="nav-icon">'+APP_NAV_ICONS[i+4]+'</span><span>'+x+'</span></button>').join('')+'</div>';
-  const routes={'Dashboard':dash,'Party Register':partyView,'Sales Entry':salesView,'Payments':paymentsView,'Customer Register':customerView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Settings':settingsView};
+  const routes={'Dashboard':dash,'Party Register':partyView,'Sales Entry':salesView,'Payments':paymentsView,'Customer Register':customerView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
   $('#app').innerHTML=(routes[page]||dash)();
 }
 function partyView(){
@@ -360,4 +360,200 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.2.0';
+const goldleafPreviousEnsure=window.ensureExtendedData;
+window.ensureExtendedData=function(){
+  goldleafPreviousEnsure();
+  db.rates=Object.assign({gold24:0,oldGold:0,silver:0,oldSilver:0,updatedAt:''},db.rates||{});
+  if(!Array.isArray(db.rateHistory))db.rateHistory=[];
+}
+ensureExtendedData();
+const goldleafPreviousCalcSale=window.calcSale;
+const goldleafPreviousSaveSale=window.saveSale;
+const goldleafPreviousRender=window.render;
+const releaseStyle=document.createElement('style');
+releaseStyle.textContent=[
+'.sale-tabs{display:flex;gap:8px;margin:2px 0 18px}',
+'.sale-tab{background:#f6f5f0;color:#515850;border-color:#e5e0d5;font-weight:650}',
+'.sale-tab[aria-selected="true"]{background:var(--green);color:#fff;border-color:var(--green)}',
+'.sale-step-note{margin:0 0 16px;padding:11px 13px;background:#f5f7f3;border-radius:10px;color:#58665b;font-size:13px}',
+'.sale-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}',
+'.sale-breakdown>div{padding:12px;border:1px solid var(--line);border-radius:11px;background:#fafbf8}',
+'.sale-breakdown span{display:block;color:var(--muted);font-size:11px}',
+'.sale-breakdown b{display:block;margin-top:3px;font-size:17px}',
+'.sale-final{background:#f4ead7!important;border-color:#e6d4b1!important}',
+'.release-note{padding:14px 0;border-top:1px solid var(--line)}.release-note h3{margin:0;font-size:16px}.release-note ul{margin:8px 0 0;padding-left:20px;color:var(--muted);line-height:1.8}',
+'.app-version{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin:22px 0 8px;color:var(--muted);font-size:11px}',
+'.app-version button{min-height:30px;padding:4px 8px;background:transparent;border:0;color:var(--green);font-size:11px;font-weight:650}',
+'.rate-preview-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:12px}',
+'.rate-reminder-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:16px;background:rgba(13,24,18,.62)}',
+'.rate-reminder{width:min(520px,100%);padding:22px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.3)}',
+'.rate-reminder h2{margin:0 0 6px;font:600 24px/1.2 Georgia,serif}.rate-reminder .hint{margin:0 0 16px}',
+'.rate-reminder-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.rate-reminder-actions button{min-height:46px}',
+'html[data-theme="dark"] .sale-tab{background:#2a302d;color:#d8d5cc;border-color:#424844}',
+'html[data-theme="dark"] .sale-tab[aria-selected="true"]{background:#395342;color:#fff}',
+'html[data-theme="dark"] .sale-step-note,html[data-theme="dark"] .sale-breakdown>div{background:#242a27;color:#e7e4dc;border-color:#414844}',
+'html[data-theme="dark"] .sale-final{background:#3a3326!important;border-color:#62563d!important}',
+'html[data-theme="dark"] .rate-reminder{background:#202522;color:#f1eee7;border-color:#454c47}',
+'@media(max-width:760px){.sale-tabs{position:sticky;top:0;z-index:2;background:var(--paper);padding:4px 0}.sale-tab{flex:1;min-height:46px}.sale-breakdown{grid-template-columns:1fr 1fr}.rate-reminder{padding:18px}.rate-reminder-actions{display:grid;grid-template-columns:1fr 1fr}.app-version{justify-content:center;margin:16px 0 6px}}'
+].join('\n');
+document.head.append(releaseStyle);
+function rateMoney(value){return '₹ '+n(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function rate24Purity(purity){return n(db.rates.gold24)*n(purity)/24}
+function customerSaleTotals(x){
+  const weight=n(x.weight),purity=n(x.purity),rate24=n(x.rate24),wastage=n(x.wastage),pieces=n(x.pieces),makingPerPiece=n(x.makingPerPiece),discount=n(x.discount);
+  const pureGold=weight*purity/24,goldAmount=pureGold*rate24,wastageGold=pureGold*wastage/100,wastageAmount=wastageGold*rate24,makingTotal=pieces*makingPerPiece,subtotal=goldAmount+wastageAmount+makingTotal;
+  return {pureGold,goldAmount,wastageGold,wastageAmount,makingTotal,subtotal,discount,final:Math.max(0,subtotal-discount),purityRate:rate24*purity/24};
+}
+function updateCustomerSaleBreakdown(form){
+  if(!form||form.elements.accountType.value!=='customer')return;
+  const t=customerSaleTotals({weight:form.elements.weight.value,purity:form.elements.purity.value,rate24:form.elements.rate24.value,wastage:form.elements.wastage.value,pieces:form.elements.pieces.value,makingPerPiece:form.elements.makingPerPiece.value,discount:form.elements.discount.value});
+  const set=(id,value)=>{const e=form.querySelector('#'+id);if(e)e.textContent=value};
+  set('saleGoldAmount',rateMoney(t.goldAmount));set('saleWastageAmount',rateMoney(t.wastageAmount));set('saleMakingAmount',rateMoney(t.makingTotal));set('saleSubtotal',rateMoney(t.subtotal));set('saleFinalAmount',rateMoney(t.final));
+  form.elements.amount.value=t.final.toFixed(2);
+  const adjusted=form.querySelector('#salePurityRateInput');if(adjusted)adjusted.value=rateMoney(t.purityRate);
+}
+function showCustomerSaleTab(name){
+  const form=$('#customerSaleForm');if(!form)return;
+  form.querySelectorAll('[data-sale-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.saleTab===name)));
+  form.querySelectorAll('[data-sale-panel]').forEach(p=>p.classList.toggle('hidden',p.dataset.salePanel!==name));
+  if(name==='calculation')updateCustomerSaleBreakdown(form);
+}
+function toggleSaleFields(form){
+  const customer=form.elements.accountType.value==='customer';
+  form.querySelectorAll('.party-sale-fields').forEach(x=>x.classList.toggle('hidden',customer));
+  form.querySelectorAll('.customer-sale-fields').forEach(x=>x.classList.toggle('hidden',!customer));
+  form.elements.weight.required=true;form.elements.purity.required=true;form.elements.amount.required=customer;
+  form.elements.pieces.required=customer;form.elements.makingPerPiece.required=customer;form.elements.rate24.required=customer;
+  if(customer)updateCustomerSaleBreakdown(form);else showCustomerSaleTab('details');
+}
+function salesView(){
+  const x=db.sales.find(p=>p.id===edit),type=x?ownerType(x):'customer',customer=type==='customer',purity=Number(x&&x.purity||22);
+  const initial=customerSaleTotals({weight:x&&x.weight,purity:purity,rate24:x&&x.rate24||db.rates.gold24,wastage:x&&x.wastage,pieces:x&&x.pieces||1,makingPerPiece:x&&x.makingPerPiece,discount:x&&x.discount});
+  return header('Customer sales use a two-step price calculator. Party sales remain in pure grams.')
+  +'<section class="panel"><h2>'+(x?'Edit sale':'New sale')+'</h2>'+((db.parties.length||db.customers.length)?'<form id="customerSaleForm" onsubmit="saveSale(event)"><input name="id" type="hidden" value="'+(x&&x.id||'')+'">'
+  +'<div class="grid"><div class="field"><label>Sale account *</label><select name="accountType" onchange="changeSaleAccount(this.form)"><option value="customer" '+(customer?'selected':'')+'>Customer · ₹</option><option value="party" '+(!customer?'selected':'')+'>Party · grams</option></select></div>'
+  +'<div class="field"><label>'+(customer?'Customer':'Party')+' *</label>'+accountSelect(type,x&&x.partyId||'')+'</div>'
+  +'<div class="field"><label>City · automatic</label><input name="place" value="'+esc(accountCity(x&&x.partyId,type))+'" readonly></div></div>'
+  +'<div class="customer-sale-fields sale-tabs" role="tablist" aria-label="Customer sale steps"><button type="button" class="sale-tab" role="tab" data-sale-tab="details" aria-selected="true" onclick="showCustomerSaleTab(\'details\')">1 · Sale details</button><button type="button" class="sale-tab" role="tab" data-sale-tab="calculation" aria-selected="false" onclick="showCustomerSaleTab(\'calculation\')">2 · Amount & discount</button></div>'
+  +'<section class="customer-sale-pane" data-sale-panel="details"><p class="sale-step-note customer-sale-fields">Select the customer and item details, then open Amount & discount to review the total.</p><div class="grid">'
+  +'<div class="field"><label>Date/time</label><input name="when" type="datetime-local" required value="'+(x&&x.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div>'
+  +'<div class="field"><label>Product *</label><select name="product" required>'+db.products.map(a=>'<option '+(a===(x&&x.product)?'selected':'')+'>'+esc(a)+'</option>').join('')+'</select></div>'
+  +'<div class="field"><label>Total weight · g *</label><input name="weight" type="number" min=".001" step=".001" required value="'+(x&&x.weight||'')+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field"><label>Pieces *</label><input name="pieces" type="number" min="1" step="1" required value="'+(x&&x.pieces||1)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">'+db.purities.map(a=>'<option value="'+a+'" '+(Number(a)===purity?'selected':'')+'>'+a+'K</option>').join('')+'</select></div>'
+  +'<div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="'+(x&&x.wastage||0)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field customer-sale-fields"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="'+(x&&x.makingPerPiece!=null?x.makingPerPiece:0)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field customer-sale-fields"><label>Today&#39;s 24K gold rate · ₹/g *</label><input name="rate24" type="number" min=".01" step=".01" required value="'+(x&&x.rate24||db.rates.gold24||'')+'" oninput="calcSale(this.form)"><span class="muted">'+(db.rates.gold24?'From Rate Book; editable for this sale.':'Set the daily 24K rate in Rate Book.')+'</span></div>'
+  +'<div class="field customer-sale-fields"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="'+rateMoney(initial.purityRate)+'"></div>'
+  +'<div class="field party-sale-fields '+(customer?'hidden':'')+'"><label>Payable pure grams</label><b id="saleCalc">'+fmt(x?saleVal(x):0)+' g</b></div>'
+  +'<div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>'
+  +'<section class="customer-sale-pane customer-sale-fields hidden" data-sale-panel="calculation"><p class="sale-step-note">Gold value = weight × purity ÷ 24 × the 24K rate. Wastage adds the selected percentage. Making charges are per piece.</p>'
+  +'<div class="sale-breakdown"><div><span>Gold value</span><b id="saleGoldAmount">'+rateMoney(initial.goldAmount)+'</b></div><div><span>Wastage value</span><b id="saleWastageAmount">'+rateMoney(initial.wastageAmount)+'</b></div>'
+  +'<div><span>Making charges · pieces × per piece</span><b id="saleMakingAmount">'+rateMoney(initial.makingTotal)+'</b></div><div><span>Amount before discount</span><b id="saleSubtotal">'+rateMoney(initial.subtotal)+'</b></div>'
+  +'<div class="field"><label>Discount · ₹</label><input name="discount" type="number" min="0" step=".01" value="'+(x&&x.discount||0)+'" oninput="calcSale(this.form)"></div><div class="sale-final"><span>Final amount</span><b id="saleFinalAmount">'+rateMoney(x&&x.amount!=null?x.amount:initial.final)+'</b></div></div><input name="amount" type="hidden" value="'+(x&&x.amount!=null?Number(x.amount).toFixed(2):initial.final.toFixed(2))+'"><p class="muted">Final amount = gold value + wastage value + total making charges − discount.</p></section>'
+  +'<div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save sale')+'</button></div></form>':'<div class="empty">Register a party or customer before recording a sale.</div>')+'</section>'
+  +'<section class="panel"><h2>Sales history</h2>'+table(['Date','Account','Product','Weight','Pieces','Purity','Wastage','24K rate','Making / piece','Discount','Final amount',''],[...db.sales].sort((a,b)=>b.when.localeCompare(a.when)).map(s=>{const ct=ownerType(s)==='customer';return [s.when.replace('T',' '),(ct?'Customer · ':'Party · ')+esc(accountName(s.partyId,ct?'customer':'party')),esc(s.product),fmt(s.weight)+' g',s.pieces||1,s.purity?s.purity+'K':'—',n(s.wastage)+'%',ct?rateMoney(s.rate24)+'/g':'—',ct?rateMoney(s.makingPerPiece):'—',ct?rateMoney(s.discount):'—',ct?rateMoney(accountSaleValue(s)):fmt(accountSaleValue(s))+' g','<button onclick="edit=\''+s.id+'\';render()">Edit</button>']}))+'</section>';
+}
+window.calcSale=function(form){
+  if(form&&form.elements.accountType&&form.elements.accountType.value==='customer')return updateCustomerSaleBreakdown(form);
+  return goldleafPreviousCalcSale(form);
+};
+window.saveSale=function(e){
+  const form=e.target,type=form.elements.accountType&&form.elements.accountType.value||'party';
+  if(type!=='customer')return goldleafPreviousSaveSale(e);
+  e.preventDefault();const f=new FormData(form),id=f.get('id'),old=db.sales.find(s=>s.id===id);
+  if(id&&!confirm('Save changes to this customer sale?'))return;
+  const weight=n(f.get('weight')),purity=n(f.get('purity')),pieces=n(f.get('pieces')),rate24=n(f.get('rate24')),makingPerPiece=n(f.get('makingPerPiece')),wastage=n(f.get('wastage')),discount=n(f.get('discount'));
+  if(!f.get('partyId'))return say('Select a customer.');
+  if(weight<=0||pieces<1||purity<=0||rate24<=0)return say('Enter a valid weight, piece count, purity, and 24K gold rate.');
+  const totals=customerSaleTotals({weight:weight,purity:purity,rate24:rate24,wastage:wastage,pieces:pieces,makingPerPiece:makingPerPiece,discount:discount});
+  if(discount>totals.subtotal)return say('Discount cannot be greater than the amount before discount.');
+  const commit=photo=>{
+    const x=Object.assign({},old||{},{id:id||crypto.randomUUID(),partyId:f.get('partyId'),accountType:'customer',when:f.get('when'),product:f.get('product'),weight:weight,pieces:pieces,purity:purity,wastage:wastage,rate24:rate24,makingPerPiece:makingPerPiece,discount:discount,amount:Math.round(totals.final*100)/100,pureGoldGrams:totals.pureGold,wastageGrams:totals.wastageGold,goldAmount:totals.goldAmount,wastageAmount:totals.wastageAmount,makingTotal:totals.makingTotal,subtotal:totals.subtotal,photo:photo||(old&&old.photo)||''});
+    if(id)db.sales[db.sales.findIndex(s=>s.id===id)]=x;else db.sales.push(x);
+    edit=null;save();render();say('Customer sale saved in rupees.');
+  };
+  const photoField=form.querySelector('input[name="photo"][type="file"]'),file=photoField&&photoField.files[0];
+  if(file){const reader=new FileReader();reader.onload=()=>commit(reader.result);reader.readAsDataURL(file)}else commit('');
+};
+function rateMoneyInput(label,name,value,extra){
+  return '<div class="field"><label>'+label+'</label><input name="'+name+'" type="number" min=".01" step=".01" value="'+(n(value)||'')+'" '+(extra||'')+'></div>';
+}
+function rateBookView(){
+  ensureExtendedData();const r=db.rates;
+  const rows=db.rateHistory.slice(0,12).map(x=>[x.date+' '+x.time+' IST',esc(x.slot),rateMoney(x.rates.gold24),rateMoney(x.rates.oldGold),rateMoney(x.rates.silver),rateMoney(x.rates.oldSilver)]);
+  return header('Update daily gold and silver prices. Karat rates are calculated from the 24K rate.')
+  +'<section class="panel"><h2>Today’s rates</h2><form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
+  +rateMoneyInput('Gold · 24K base · ₹/g *','gold24',r.gold24,'oninput="updateRatePreview(this.form)" required')
+  +'<div class="field"><label>Gold · 22K · ₹/g</label><input data-rate-preview="22" readonly value="'+rateMoney(rate24Purity(22))+'"></div>'
+  +'<div class="field"><label>Gold · 18K · ₹/g</label><input data-rate-preview="18" readonly value="'+rateMoney(rate24Purity(18))+'"></div>'
+  +'<div class="field"><label>Gold · 14K · ₹/g</label><input data-rate-preview="14" readonly value="'+rateMoney(rate24Purity(14))+'"></div>'
+  +'<p class="rate-preview-note">24K rate × karat ÷ 24 gives the 22K, 18K and 14K rates.</p>'
+  +rateMoneyInput('Old gold · ₹/g *','oldGold',r.oldGold,'required')
+  +rateMoneyInput('Silver · ₹/g *','silver',r.silver,'required')
+  +rateMoneyInput('Old silver · ₹/g *','oldSilver',r.oldSilver,'required')
+  +'</div><p class="muted">Last saved: '+(r.updatedAt?new Date(r.updatedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'No rates saved yet.')+'</p><div class="right"><button class="primary">Save today’s rates</button></div></form></section>'
+  +'<section class="panel"><h2>Rate update history</h2>'+(rows.length?table(['Date and time','Update','24K gold','Old gold','Silver','Old silver'],rows):'<div class="empty">Rate changes will appear here after the first save.</div>')+'</section>';
+}
+function updateRatePreview(form){
+  const base=n(form.elements.gold24.value);
+  form.querySelectorAll('[data-rate-preview]').forEach(input=>input.value=(base*n(input.dataset.ratePreview)/24).toFixed(2));
+}
+function istDateTime(now){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(x=>[x.type,x.value]));
+  return {date:p.year+'-'+p.month+'-'+p.day,time:new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now)};
+}
+function saveRateValues(form,slot){
+  const f=new FormData(form),rates={gold24:n(f.get('gold24')),oldGold:n(f.get('oldGold')),silver:n(f.get('silver')),oldSilver:n(f.get('oldSilver'))};
+  if(Object.values(rates).some(x=>x<=0)){say('Enter each rate before saving.');return false}
+  const now=new Date(),when=istDateTime(now);db.rates=Object.assign({},rates,{updatedAt:now.toISOString()});
+  db.rateHistory.unshift({id:crypto.randomUUID(),date:when.date,time:when.time,slot:slot||'Manual',rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);
+  save();return true;
+}
+function saveRateBook(e){e.preventDefault();if(!saveRateValues(e.target,'Manual'))return;render();say('Daily rates saved.')}
+const rateReminderSlots=[{key:'11:00',label:'11:00 AM'},{key:'18:00',label:'6:00 PM'}];
+let activeRateReminder=null;
+function rateReminderKey(date,slot){return 'goldleaf-rate-reminder-'+date+'-'+slot}
+function rateReminderSnooze(date,slot){try{return Number(JSON.parse(localStorage.getItem(rateReminderKey(date,slot))||'{}').until)||0}catch(e){return 0}}
+function alreadyUpdatedForSlot(date,slot){
+  return db.rateHistory.some(h=>h.date===date&&(h.slot===slot||(h.slot==='Manual'&&h.time>=slot)));
+}
+function checkRateReminder(){
+  if(activeRateReminder||document.getElementById('rateReminderOverlay'))return;
+  const now=new Date(),parts=istDateTime(now),minutes=Number(parts.time.slice(0,2))*60+Number(parts.time.slice(3,5));
+  const due=rateReminderSlots.find(s=>minutes>=Number(s.key.slice(0,2))*60+Number(s.key.slice(3,5))&&Date.now()>=rateReminderSnooze(parts.date,s.key)&&!alreadyUpdatedForSlot(parts.date,s.key));
+  if(due)showRateReminder(due,parts.date);
+}
+function showRateReminder(slot,date){
+  activeRateReminder={date:date,slot:slot};
+  document.body.insertAdjacentHTML('beforeend','<div class="rate-reminder-backdrop" id="rateReminderOverlay"><section class="rate-reminder" role="dialog" aria-modal="true" aria-labelledby="rateReminderTitle"><h2 id="rateReminderTitle">Daily rate reminder</h2><p class="hint">It is '+slot.label+' in India. Please check today’s gold and silver prices when convenient.</p><div class="rate-reminder-actions"><button type="button" onclick="laterRateReminder()">Later</button><button type="button" class="primary" onclick="openRateBookFromReminder()">Update rates</button></div></section></div>');
+}
+function laterRateReminder(){
+  if(!activeRateReminder)return;
+  localStorage.setItem(rateReminderKey(activeRateReminder.date,activeRateReminder.slot.key),JSON.stringify({until:Date.now()+60*60*1000}));
+  $('#rateReminderOverlay')?.remove();activeRateReminder=null;
+}
+function openRateBookFromReminder(){
+  if(activeRateReminder)localStorage.setItem(rateReminderKey(activeRateReminder.date,activeRateReminder.slot.key),JSON.stringify({until:Date.now()+24*60*60*1000}));
+  $('#rateReminderOverlay')?.remove();activeRateReminder=null;go('Rate Book');
+}
+function updateHistoryView(){
+  return header('A separate record of website updates and features.')
+  +'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v'+GOLDLEAF_VERSION+'</b> · 5 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section>'
+  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.2.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<li>Added customer sale entry tabs with live weight, purity, wastage, making-charge, discount and final-amount calculations.</li>'
+  +'<li>Customer sale price uses the entered 24K rate adjusted by selected purity.</li>'
+  +'<li>Added a separate Rate Book for 24K, derived 22K/18K/14K, old gold, silver and old silver prices.</li>'
+  +'<li>Added gentle rate reminders at 11:00 AM and 6:00 PM India time and a rate update history.</li>'
+  +'</ul></article><article class="release-note"><h3>v1.1.0 · 5 Nov 2026</h3><ul><li>Added customer registration and separate customer rupee ledger and summary.</li><li>Added light/dark themes and mobile home-screen install support.</li></ul></article></section>';
+}
+function appVersionFooter(){return '<footer class="app-version">Goldleaf v'+GOLDLEAF_VERSION+' · <button type="button" onclick="go(\'Update History\')">View update history</button></footer>'}
+window.render=function(){
+  goldleafPreviousRender();
+  const app=$('#app');if(app)app.insertAdjacentHTML('beforeend',appVersionFooter());
+  checkRateReminder();
+};
+window.setInterval(checkRateReminder,30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
+render();
+</script></body></html>
