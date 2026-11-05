@@ -101,8 +101,8 @@ function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:
 }
 ensureExtendedData();
 let customerCameraStream=null;
-const APP_NAV_ITEMS=['Dashboard','Party Register','Sales Entry','Payments','Customer Register','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Rate Book','Update History','Settings'];
-const APP_NAV_ICONS=['⌂','♙','＋','↙','♧','▤','◷','▤','◷','◈','◷','⚙'];
+const APP_NAV_ITEMS=['Dashboard','Register','Sales Entry','Payments','Party Ledger','Party Summary','Customer Ledger','Customer Summary','Rate Book','Update History','Settings'];
+const APP_NAV_ICONS=['⌂','♙','＋','↙','▤','◷','▤','◷','◈','◷','⚙'];
 function ownerType(x){return x?.accountType==='customer'?'customer':'party'}
 function account(id,type='party'){return (type==='customer'?db.customers:db.parties).find(x=>x.id===id)}
 function accountName(id,type='party'){return account(id,type)?.name||''}
@@ -125,8 +125,18 @@ function render(){
   $('#nav').innerHTML=APP_NAV_ITEMS.map((x,i)=>'<button class="'+(x===page?'active':'')+'" onclick="go(\''+x+'\')" aria-label="'+x+'"><span class="nav-icon">'+APP_NAV_ICONS[i]+'</span><span>'+x+'</span></button>').join('')
     +'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button>'
     +'<div id="moreMenu" class="more-menu">'+APP_NAV_ITEMS.slice(4).map((x,i)=>'<button onclick="go(\''+x+'\')"><span class="nav-icon">'+APP_NAV_ICONS[i+4]+'</span><span>'+x+'</span></button>').join('')+'</div>';
-  const routes={'Dashboard':dash,'Party Register':partyView,'Sales Entry':salesView,'Payments':paymentsView,'Customer Register':customerView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
+  const routes={'Dashboard':dash,'Register':registerView,'Sales Entry':salesView,'Payments':paymentsView,'Party Ledger':ledgerView,'Party Summary':summaryView,'Customer Ledger':customerLedgerView,'Customer Summary':customerSummaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
   $('#app').innerHTML=(routes[page]||dash)();
+}
+let registerType='party';
+function setRegisterType(type){registerType=type==='customer'?'customer':'party';render()}
+function registerView(){
+  const existing=registerType==='customer'?customerView():partyView();
+  const end=existing.indexOf('</header>');
+  const content=end>=0?existing.slice(end+9):existing;
+  return header('Party and customer details in one place.')
+    +'<nav class="register-tabs" aria-label="Register type"><button type="button" class="register-tab '+(registerType==='party'?'active':'')+'" aria-pressed="'+(registerType==='party')+'" onclick="setRegisterType(\'party\')">Party</button><button type="button" class="register-tab '+(registerType==='customer'?'active':'')+'" aria-pressed="'+(registerType==='customer')+'" onclick="setRegisterType(\'customer\')">Customer</button></nav>'
+    +content;
 }
 function partyView(){
   let p=db.parties.find(x=>x.id===edit);
@@ -360,7 +370,13 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.2.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.3.0';
+const goldleafPreviousGo=window.go;
+window.go=function(target){
+  if(target==='Party Register'){registerType='party';target='Register'}
+  else if(target==='Customer Register'){registerType='customer';target='Register'}
+  return goldleafPreviousGo(target);
+};
 const goldleafPreviousEnsure=window.ensureExtendedData;
 window.ensureExtendedData=function(){
   goldleafPreviousEnsure();
@@ -386,12 +402,18 @@ releaseStyle.textContent=[
 '.app-version{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin:22px 0 8px;color:var(--muted);font-size:11px}',
 '.app-version button{min-height:30px;padding:4px 8px;background:transparent;border:0;color:var(--green);font-size:11px;font-weight:650}',
 '.rate-preview-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:12px}',
+'.register-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 15px;padding:7px;background:var(--white);border:1px solid var(--line);border-radius:13px}',
+'.register-tab{min-height:48px;background:transparent;border-color:transparent;color:var(--muted);font-weight:700}',
+'.register-tab.active{background:var(--green);border-color:var(--green);color:#fff}',
 '.rate-reminder-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:16px;background:rgba(13,24,18,.62)}',
 '.rate-reminder{width:min(520px,100%);padding:22px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.3)}',
 '.rate-reminder h2{margin:0 0 6px;font:600 24px/1.2 Georgia,serif}.rate-reminder .hint{margin:0 0 16px}',
 '.rate-reminder-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.rate-reminder-actions button{min-height:46px}',
 'html[data-theme="dark"] .sale-tab{background:#2a302d;color:#d8d5cc;border-color:#424844}',
 'html[data-theme="dark"] .sale-tab[aria-selected="true"]{background:#395342;color:#fff}',
+'html[data-theme="dark"] .register-tabs{background:#232725;border-color:#373d3a}',
+'html[data-theme="dark"] .register-tab{color:#d6d3ca}',
+'html[data-theme="dark"] .register-tab.active{background:#c3a06c;border-color:#c3a06c;color:#1e211f}',
 'html[data-theme="dark"] .sale-step-note,html[data-theme="dark"] .sale-breakdown>div{background:#242a27;color:#e7e4dc;border-color:#414844}',
 'html[data-theme="dark"] .sale-final{background:#3a3326!important;border-color:#62563d!important}',
 'html[data-theme="dark"] .rate-reminder{background:#202522;color:#f1eee7;border-color:#454c47}',
@@ -541,7 +563,9 @@ function openRateBookFromReminder(){
 function updateHistoryView(){
   return header('A separate record of website updates and features.')
   +'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v'+GOLDLEAF_VERSION+'</b> · 5 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section>'
-  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.2.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.3.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<li>Combined Party Register and Customer Register on one Register page with Party and Customer tabs.</li>'
+  +'</ul></article><article class="release-note"><h3>v1.2.0 · 5 Nov 2026</h3><ul>'
   +'<li>Added customer sale entry tabs with live weight, purity, wastage, making-charge, discount and final-amount calculations.</li>'
   +'<li>Customer sale price uses the entered 24K rate adjusted by selected purity.</li>'
   +'<li>Added a separate Rate Book for 24K, derived 22K/18K/14K, old gold, silver and old silver prices.</li>'
