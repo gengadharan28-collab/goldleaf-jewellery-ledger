@@ -1,45 +1,52 @@
 # Goldleaf Jewellery Ledger
 
-Open the live app at **https://gengadharan28-collab.github.io/goldleaf-jewellery-ledger/** on phone or desktop.
+Open the live app at **https://gengadharan28-collab.github.io/goldleaf-jewellery-ledger/**. It works on phones and desktop browsers.
 
 ## Install on a phone
 
-Use **Add to Home** in the app header. Android browsers that support app installation show an install prompt. On iPhone, open the site in Safari, tap **Share**, then **Add to Home Screen**.
+Use **Add to Home** in the app header. Android browsers that support app installation show their install prompt. On iPhone, open the site in Safari, tap **Share**, then **Add to Home Screen**. The installed app opens in a standalone window and can load its saved app shell offline.
 
 ## Cloud account
 
 1. Open **Settings → Cloud account**.
-2. Choose **Sign in / create account** and enter your email and password.
-3. For a new account, choose **Create account** and verify your email if prompted, then sign in.
-4. **Cloud sync** below the page heading means the ledger is saved to your signed-in account and can be opened from another device.
+2. Choose **Sign in / create account** and enter your email and a password.
+3. For a new account, choose **Create account** and verify your email if prompted. Then sign in.
+4. Check the status beneath the page heading on a phone or in the desktop sidebar. **Cloud sync** means the ledger is saved to your account and can be opened from another device.
 
-The app stores each signed-in user's ledger in Supabase. Row-level security limits access to that user's records. Before sign-in, entries stay in that browser. Customer contact details, photos, Aadhaar and PAN are part of the synced account ledger. Download a backup from **Settings → Backup & setup** when needed.
+The app uses its Supabase database. Each signed-in account can access only its own ledger through row-level security. Customer contact details, photos, Aadhaar and PAN are part of that account’s synced ledger. Before sign-in, entries stay in that browser only. Download a backup from **Settings → Backup & setup** when needed.
 
 ## Features
 
-- Dashboard workspace switcher for **Retail** and **Wholesale**. Retail shows **Customer Register, Customer Sales Entry, Customer Payment, Customer Ledger, Customer Summary**. Wholesale shows **Party Register, Party Sales Entry, Party Payments, Party Ledger, Party Summary**. Each workspace shows its own accounts and transactions.
-- Party and customer registration, photos and contact details; customer opening balance is in rupees, party opening balance is in pure grams.
-- One sales bill page per workspace with account selection, product, weight, pieces, purity, wastage, charges, discount, old gold exchange items and final balance. Each old gold item's testing purity is entered manually from 1 to 100.
-- Wholesale payments for Metal Bar, Old Scrap and Cash; customer payments in rupees.
-- Separate party gram ledgers/summaries and customer rupee ledgers/summaries, each with all-date, single-date, date-range and monthly filters.
-- Editable product and karat lists; Rate Book for 24K, calculated 22K/18K/14K, old gold, silver and old silver; rate reminders at 11:00 AM and 6:00 PM India time.
-- Light/dark theme, phone home-screen installation, and **Update History** with website version and release notes.
+- The **Dashboard** has separate **Retail** and **Wholesale** workspaces. Retail opens Customer Register, Customer Sales Entry, Customer Payment, Customer Ledger, and Customer Summary. Wholesale opens the corresponding Party pages. The selected workspace shows its own accounts and transactions.
+- Party registration includes contact details and opening pure-gold balance. Customer registration includes contact and identity fields, photo upload or webcam capture, notes, and opening balance in rupees.
+- Retail **Customer Sales Entry** is one continuous view: account details, new jewellery, calculation, discount, and balance are visible together. **Old Gold Exchange** is optional and opens from its button. Add old jewellery items with product, stated purity, weight, manually entered testing purity, rate per gram, and calculated amount.
+- Wholesale **Party Sales Entry** keeps the usual simple fields and payable pure-gram calculation. It does not show old-gold exchange or amount/discount sections.
+- **Payments** stay in the selected workspace. Wholesale Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Retail Customer payments are entered in rupees.
+- Party and Customer ledger and summary balances remain separate: wholesale Party balances use grams, retail Customer balances use rupees. Both offer all-date, single-date, date-range, and monthly filters.
+- Editable product and karat lists.
+- **Rate Book** for the 24K gold base rate, purity-adjusted 22K/18K/14K reference rates, old gold, silver, and old silver.
+- Gentle in-app rate reminders at **11:00 AM** and **6:00 PM India time**, with Later and Update rates actions. The reminder appears while the app is open or the next time it opens after a reminder time.
+- **Update History** page with the current website version and release notes.
+- Dark and light theme toggle. Theme choice stays on that device.
 
-## Calculation guide
+Party sales payable = weight × purity ÷ 24 × (1 + wastage% ÷ 100). Party metal payment credit = gross weight × testing purity ÷ 100. Party cash payment credit = cash amount ÷ 24K rate per gram.
 
-Party new sale payable = weight × purity ÷ 24 × (1 + wastage% ÷ 100). Party exchange credit = weight × manually entered testing purity% ÷ 100. The party ledger balance is kept in pure grams; the old gold rate and value are shown on the exchange entry.
-
-Customer gold value = weight × purity ÷ 24 × 24K rate. Wastage adds the selected percentage of gold value. Making charges = pieces × making charge per piece. New sale total = gold value + wastage + making charges − discount. Old gold exchange = weight × testing purity% ÷ 100 × old gold rate. Amount to collect = new sale total − old gold exchange; a negative amount is shown as customer credit.
+Customer sale base gold value = weight × purity ÷ 24 × 24K rate. Wastage value = base gold value × wastage%. Making charges = pieces × making charge per piece. New sale total = base gold value + wastage value + making charges − discount. Old gold exchange amount = old jewellery weight × manually entered testing purity% ÷ 100 × old gold rate per gram. Balance to collect = new sale total − old gold exchange amount. If exchange is greater, the app shows the remaining customer credit. The discount cannot exceed the new sale amount before discount.
 
 ## Website updates
 
-- **v1.6.0 · 5 Nov 2026:** Added separate Retail and Wholesale workspaces, with matching Party or Customer navigation and workspace-specific dashboard, register, sales, payments, ledgers and summaries.
-- **v1.5.0 · 5 Nov 2026:** Put sale details, calculation, discount, old gold exchange and final balance in one sales bill.
-- **v1.4.0 · 5 Nov 2026:** Combined Party/Customer Ledger pages and Summary pages with separate tabs.
-- **v1.3.0 · 5 Nov 2026:** Combined Party Register and Customer Register with separate tabs.
-- **v1.2.0 · 5 Nov 2026:** Added customer sales calculations, Rate Book, scheduled-time reminders and website Update History.
-- **v1.1.0 · 5 Nov 2026:** Added customer profiles, separate rupee customer ledger/summary, themes and phone installation.
+- **v1.7.0 · 5 Nov 2026:** Made Retail sales a single continuous view, tucked optional old-gold exchange behind a button, and restored the simple Wholesale party sales entry.
+- **v1.6.0 · 5 Nov 2026:** Added separate Retail and Wholesale workspaces, their matching navigation, dashboards, registers, sales, payments, ledgers, and summaries.
+- **v1.5.0 · 5 Nov 2026:** Added one-screen party/customer sales bills, discount and final balance, plus old gold exchange item details and testing-based valuation.
+- **v1.4.0 · 5 Nov 2026:** Combined Party/Customer Summary and Ledger pages with separate Party and Customer tabs.
+- **v1.3.0 · 5 Nov 2026:** Combined Party Register and Customer Register on one Register page with Party and Customer tabs.
+- **v1.2.0 · 5 Nov 2026:** Customer sale calculator tabs, purity-adjusted 24K rate, Rate Book, twice-daily rate reminders, rate update history, and website Update History.
+- **v1.1.0 · 5 Nov 2026:** Customer registration, separate rupee customer ledger and summary, themes, and home-screen installation.
 
 ## Workbook match
 
-The referenced conversation did not include the Excel workbook file. Calculations follow the fields and workflow described in that conversation; use the workbook itself if you need exact sheet-by-sheet formula matching.
+The referenced conversation did not include the Excel workbook file. These calculations follow the requested fields and conversation details; compare with the workbook itself if you want exact sheet and formula matching.
+
+## Local preview
+
+From this folder, run python -m http.server 8765, then visit http://127.0.0.1:8765/.
