@@ -17,8 +17,7 @@ The app uses its Supabase database. Each signed-in account can access only its o
 
 ## Features
 
-- **Party Register** for party name, city, phone, WhatsApp, email, address, and opening pure-gold balance.
-- **Customer Register** for name, city, phone, WhatsApp, email, date of birth, address, Aadhaar, PAN, photo upload or webcam capture, notes, and opening balance in rupees.
+- **Register** combines Party and Customer registration on one page. Choose a **Party** or **Customer** tab to switch forms. Party records include contact details and opening pure-gold balance; customer records include contact and identity fields, photo upload or webcam capture, notes, and opening balance in rupees.
 - **Sales Entry** can select a party or customer. Customer sales use two tabs: sale details and amount/discount. The customer is selected first, then product, grams, pieces, purity, wastage, making charge per piece, and 24K rate.
 - **Payments** can select a party or customer. Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Customer payments are entered in rupees.
 - Separate **Party Ledger / Party Summary** in grams and **Customer Ledger / Customer Summary** in rupees, with all-date, single-date, date-range, and monthly filters.
@@ -34,6 +33,7 @@ Customer sale base gold value = weight × purity ÷ 24 × 24K rate. Wastage valu
 
 ## Website updates
 
+- **v1.3.0 · 5 Nov 2026:** Combined Party Register and Customer Register on one Register page with Party and Customer tabs.
 - **v1.2.0 · 5 Nov 2026:** Customer sale calculator tabs, purity-adjusted 24K rate, Rate Book, twice-daily rate reminders, rate update history, and website Update History.
 - **v1.1.0 · 5 Nov 2026:** Customer registration, separate rupee customer ledger and summary, themes, and home-screen installation.
 
