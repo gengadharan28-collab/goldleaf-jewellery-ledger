@@ -128,8 +128,10 @@ function render(){
   const routes={'Dashboard':dash,'Register':registerView,'Sales Entry':salesView,'Payments':paymentsView,'Ledger':ledgerView,'Summary':summaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
   $('#app').innerHTML=(routes[page]||dash)();
 }
-let registerType='party';
-function setRegisterType(type){registerType=type==='customer'?'customer':'party';render()}
+let workspaceMode=localStorage.getItem('goldleaf-workspace-mode')==='retail'?'retail':'wholesale';
+let registerType=workspaceMode==='retail'?'customer':'party';
+function setWorkspaceMode(mode){workspaceMode=mode==='retail'?'retail':'wholesale';localStorage.setItem('goldleaf-workspace-mode',workspaceMode);let type=workspaceMode==='retail'?'customer':'party';registerType=type;summaryType=type;ledgerType=type;render()}
+function setRegisterType(type){registerType=type==='customer'?'customer':'party';workspaceMode=registerType==='customer'?'retail':'wholesale';localStorage.setItem('goldleaf-workspace-mode',workspaceMode);render()}
 function registerView(){
   const existing=registerType==='customer'?customerView():partyView();
   const end=existing.indexOf('</header>');
@@ -302,9 +304,9 @@ function openingBefore(id,type){
   return db.sales.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountSaleValue(x),0)
     -db.payments.filter(x=>x.partyId===id&&ownerType(x)===type&&beforePeriod(x.when)).reduce((a,x)=>a+accountPaymentValue(x),0);
 }
-let summaryType='party',ledgerType='party';
-function setSummaryType(type){summaryType=type==='customer'?'customer':'party';render()}
-function setLedgerType(type){ledgerType=type==='customer'?'customer':'party';render()}
+let summaryType=workspaceMode==='retail'?'customer':'party',ledgerType=workspaceMode==='retail'?'customer':'party';
+function setSummaryType(type){summaryType=type==='customer'?'customer':'party';workspaceMode=summaryType==='customer'?'retail':'wholesale';localStorage.setItem('goldleaf-workspace-mode',workspaceMode);render()}
+function setLedgerType(type){ledgerType=type==='customer'?'customer':'party';workspaceMode=ledgerType==='customer'?'retail':'wholesale';localStorage.setItem('goldleaf-workspace-mode',workspaceMode);render()}
 function accountTypeTabs(type,setter,label){
   return '<nav class="register-tabs" aria-label="'+label+' account type"><button type="button" class="register-tab '+(type==='party'?'active':'')+'" aria-pressed="'+(type==='party')+'" onclick="'+setter+'(\'party\')">Party</button><button type="button" class="register-tab '+(type==='customer'?'active':'')+'" aria-pressed="'+(type==='customer')+'" onclick="'+setter+'(\'customer\')">Customer</button></nav>';
 }
@@ -382,7 +384,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.4.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session)pullCloud();setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='1.6.0';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -579,7 +581,14 @@ function openRateBookFromReminder(){
 function updateHistoryView(){
   return header('A separate record of website updates and features.')
   +'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v'+GOLDLEAF_VERSION+'</b> · 5 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section>'
-  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.4.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v1.6.0 · 5 Nov 2026 · Current</h3><ul>'
+  +'<li>Added separate Retail and Wholesale workspaces with their own dashboard summaries and matching Customer or Party navigation.</li>'
+  +'<li>Scoped registration, sales, payments, ledgers, summaries and recent activity to the selected workspace.</li>'
+  +'</ul></article><article class="release-note"><h3>v1.5.0 · 5 Nov 2026</h3><ul>'
+  +'<li>Put party and customer sales into one bill screen with the sale details, calculation, discount and final balance visible together.</li>'
+  +'<li>Added old gold exchange line items with product, stated purity, manually entered testing purity, weight, rate and calculated amount.</li>'
+  +'<li>Calculated the remaining customer amount after discount and old gold credit; party exchange credits reduce the pure-gram balance.</li>'
+  +'</ul></article><article class="release-note"><h3>v1.4.0 · 5 Nov 2026</h3><ul>'
   +'<li>Combined Party and Customer summaries on one Summary page with separate tabs.</li>'
   +'<li>Combined Party and Customer ledgers on one Ledger page with separate tabs.</li>'
   +'</ul></article><article class="release-note"><h3>v1.3.0 · 5 Nov 2026</h3><ul>'
@@ -591,10 +600,177 @@ function updateHistoryView(){
   +'<li>Added gentle rate reminders at 11:00 AM and 6:00 PM India time and a rate update history.</li>'
   +'</ul></article><article class="release-note"><h3>v1.1.0 · 5 Nov 2026</h3><ul><li>Added customer registration and separate customer rupee ledger and summary.</li><li>Added light/dark themes and mobile home-screen install support.</li></ul></article></section>';
 }
+const salesBillStyle=document.createElement('style');
+salesBillStyle.textContent='.sale-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.sale-summary-grid>div,.exchange-line{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fffefa}.sale-summary-grid span{display:block;color:var(--muted);font-size:11px}.sale-summary-grid b{display:block;margin-top:3px;font-size:17px}.sale-summary-grid .sale-final{background:#303638;color:#f0d9aa;border-color:#303638}.sale-summary-grid .sale-final span,.sale-summary-grid .sale-final b{color:#f0d9aa}.exchange-line{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}.exchange-line .field{min-width:0}.exchange-line-total{align-self:end;min-height:42px;padding:10px 0;font-weight:700}.exchange-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.exchange-heading .muted{max-width:650px}.sale-account-type{max-width:100%}.hidden{display:none!important}html[data-theme="dark"] .sale-summary-grid>div,html[data-theme="dark"] .exchange-line{background:#242a27;color:#eee;border-color:#414844}html[data-theme="dark"] .sale-summary-grid .sale-final{background:#3a3326;border-color:#62563d}.exchange-total{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--mint);border-radius:10px;font-weight:700}@media(max-width:760px){.sale-summary-grid{grid-template-columns:1fr 1fr}.exchange-line{grid-template-columns:1fr 1fr}.exchange-heading{align-items:flex-start;flex-direction:column}}@media(max-width:520px){.sale-summary-grid,.exchange-line{grid-template-columns:1fr}.sale-summary-grid>div{padding:12px}.exchange-line .right{grid-column:1/-1}.sale-summary-grid .sale-final{grid-column:1/-1}}';
+document.head.append(salesBillStyle);
+
+function exchangeLineMarkup(item={},index=0){
+  return '<div class="exchange-line" data-exchange-line="'+index+'">'
+    +'<div class="field"><label>Old jewellery product *</label><input name="exchangeProduct" placeholder="For example, old chain" value="'+esc(item.product||'')+'" oninput="calcSale(this.form)"></div>'
+    +'<div class="field"><label>Old jewellery purity *</label><input name="exchangePurity" placeholder="For example, 22K / 75.7%" value="'+esc(item.purity||'')+'"></div>'
+    +'<div class="field"><label>Old jewellery weight · g *</label><input name="exchangeWeight" type="number" min=".001" step=".001" value="'+(item.weight||'')+'" oninput="calcSale(this.form)"></div>'
+    +'<div class="field"><label>Testing purity · % *</label><input name="exchangeTestingPurity" type="number" min="1" max="100" step=".01" placeholder="1 to 100" value="'+(item.testingPurity||'')+'" oninput="calcSale(this.form)"></div>'
+    +'<div class="field"><label>Old gold rate · ₹/g *</label><input name="exchangeRate" type="number" min=".01" step=".01" value="'+(item.rate||db.rates.oldGold||'')+'" oninput="calcSale(this.form)"></div>'
+    +'<div class="field"><label>Old gold amount</label><b class="exchange-line-total" data-exchange-line-total>₹ 0.00</b></div>'
+    +'<div class="right"><button type="button" onclick="removeExchangeLine(this)">Remove item</button></div></div>';
+}
+function addExchangeLine(){const form=$('#customerSaleForm'),list=form?.querySelector('#oldGoldLines');if(!list)return;list.insertAdjacentHTML('beforeend',exchangeLineMarkup({},list.querySelectorAll('.exchange-line').length));calcSale(form)}
+function removeExchangeLine(button){const form=button.closest('form'),line=button.closest('.exchange-line');line?.remove();calcSale(form)}
+function exchangeRows(form){
+  return [...form.querySelectorAll('.exchange-line')].map(line=>{
+    const get=name=>line.querySelector('[name="'+name+'"]')?.value?.trim()||'';
+    const item={product:get('exchangeProduct'),purity:get('exchangePurity'),weight:n(get('exchangeWeight')),testingPurity:n(get('exchangeTestingPurity')),rate:n(get('exchangeRate'))};
+    item.pureGrams=item.weight*item.testingPurity/100;item.amount=Math.round(item.pureGrams*item.rate*100)/100;
+    const amountLabel=line.querySelector('[data-exchange-line-total]');if(amountLabel)amountLabel.textContent=rateMoney(item.amount);
+    item.hasEntry=!!(item.product||item.purity||item.weight||item.testingPurity);
+    return item;
+  });
+}
+const previousSaleVal=window.saleVal;
+window.saleVal=function(x){return x?.partyNetGrams!=null?n(x.partyNetGrams):previousSaleVal(x)};
+function partySaleNetValue(x){return x?.partyNetGrams!=null?n(x.partyNetGrams):saleVal(x)}
+window.accountSaleValue=function(x){return ownerType(x)==='customer'?n(x.amount):partySaleNetValue(x)};
+window.changeSaleAccount=function(form){
+  const type=form.elements.accountType.value,select=form.elements.partyId;
+  select.innerHTML=accountOptions(type,'','Select '+(type==='customer'?'customer':'party'));
+  syncSaleAccount(form);
+  const label=form.querySelector('#saleAccountLabel');if(label)label.textContent=(type==='customer'?'Customer':'Party')+' *';
+  toggleSaleFields(form);
+};
+window.toggleSaleFields=function(form){
+  if(!form)return;
+  const customer=form.elements.accountType.value==='customer';
+  form.querySelectorAll('.party-sale-fields').forEach(e=>e.classList.toggle('hidden',customer));
+  form.querySelectorAll('.customer-sale-fields').forEach(e=>e.classList.toggle('hidden',!customer));
+  form.elements.weight.required=true;form.elements.purity.required=true;form.elements.amount.required=false;
+  form.elements.rate24.required=customer;
+  form.elements.pieces.required=customer;
+  calcSale(form);
+};
+window.calcSale=function(form){
+  if(!form)return;
+  const customer=form.elements.accountType.value==='customer',rows=exchangeRows(form),exchangeAmount=rows.reduce((a,x)=>a+x.amount,0),exchangePure=rows.reduce((a,x)=>a+x.pureGrams,0),discount=customer?n(form.elements.discount.value):n(form.elements.partyDiscountGrams.value);
+  const exchangeAmountLabel=form.querySelector('#exchangeAmountTotal');if(exchangeAmountLabel)exchangeAmountLabel.textContent=rateMoney(exchangeAmount);
+  const exchangePureLabel=form.querySelector('#exchangePureTotal');if(exchangePureLabel)exchangePureLabel.textContent=fmt(exchangePure)+' g';
+  if(customer){
+    const totals=customerSaleTotals({weight:form.elements.weight.value,purity:form.elements.purity.value,rate24:form.elements.rate24.value,wastage:form.elements.wastage.value,pieces:form.elements.pieces.value,makingPerPiece:form.elements.makingPerPiece.value,discount:discount});
+    const net=totals.final-exchangeAmount,set=(id,value)=>{const e=form.querySelector('#'+id);if(e)e.textContent=value};
+    set('saleGoldAmount',rateMoney(totals.goldAmount));set('saleWastageAmount',rateMoney(totals.wastageAmount));set('saleMakingAmount',rateMoney(totals.makingTotal));set('saleSubtotal',rateMoney(totals.subtotal));set('saleAfterDiscount',rateMoney(totals.final));set('saleExchangeAmount',rateMoney(exchangeAmount));set('saleBalanceAmount',rateMoney(Math.abs(net)));set('saleBalanceLabel',net<0?'Credit balance for customer':net===0?'Settled through exchange':'Balance to collect');
+    const amount=form.elements.amount;if(amount)amount.value=net.toFixed(2);
+    const adjusted=form.querySelector('#salePurityRateInput');if(adjusted)adjusted.value=rateMoney(totals.purityRate);
+  }else{
+    const gross=n(form.elements.weight.value)*n(form.elements.purity.value)/24*(1+n(form.elements.wastage.value)/100),net=gross-discount-exchangePure,set=(id,value)=>{const e=form.querySelector('#'+id);if(e)e.textContent=value};
+    set('partyGrossSale',fmt(gross)+' g');set('partyDiscountTotal',fmt(discount)+' g');set('partyExchangePure',fmt(exchangePure)+' g');set('partyNetLabel',net<0?'Gold balance in party favour':'Balance to collect');set('partyNetTotal',fmt(Math.abs(net))+' g');
+  }
+};
+function salesView(){
+  const x=db.sales.find(p=>p.id===edit),type=ownerType(x||{}),customer=type==='customer',purity=Number(x?.purity||22),items=x?.oldGoldItems?.length?x.oldGoldItems:[x?.exchangeProduct?{product:x.exchangeProduct,purity:x.exchangePurity,weight:x.exchangeWeight,testingPurity:x.exchangeTestingPurity,rate:x.exchangeRate}:{}];
+  const initial=customerSaleTotals({weight:x?.weight,purity:purity,rate24:x?.rate24||db.rates.gold24,wastage:x?.wastage,pieces:x?.pieces||1,makingPerPiece:x?.makingPerPiece,discount:x?.discount});
+  return header('One bill for Party or Customer sales, old gold exchange, discount and final balance.')
+  +'<section class="panel"><h2>'+(x?'Edit sale':'New sales bill')+'</h2>'+((db.parties.length||db.customers.length)?'<form id="customerSaleForm" onsubmit="saveSale(event)"><input name="id" type="hidden" value="'+(x?.id||'')+'"><input name="amount" type="hidden" value="'+(x?.amount||0)+'">'
+  +'<section class="panel"><h2>Account and bill details</h2><div class="grid">'
+  +'<div class="field"><label>Account type *</label><select class="sale-account-type" name="accountType" onchange="changeSaleAccount(this.form)"><option value="party" '+(!customer?'selected':'')+'>Party · pure grams</option><option value="customer" '+(customer?'selected':'')+'>Customer · ₹</option></select></div>'
+  +'<div class="field"><label id="saleAccountLabel">'+(customer?'Customer':'Party')+' *</label>'+accountSelect(type,x?.partyId||'')+'</div>'
+  +'<div class="field"><label>City · automatic</label><input name="place" value="'+esc(accountCity(x?.partyId,type))+'" readonly></div>'
+  +'<div class="field"><label>Date and time</label><input name="when" type="datetime-local" required value="'+(x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div></div></section>'
+  +'<section class="panel"><h2>New jewellery sale</h2><div class="grid">'
+  +'<div class="field"><label>Product *</label><select name="product" required>'+db.products.map(a=>'<option '+(a===(x?.product)?'selected':'')+'>'+esc(a)+'</option>').join('')+'</select></div>'
+  +'<div class="field"><label>Total weight · g *</label><input name="weight" type="number" min=".001" step=".001" required value="'+(x?.weight||'')+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field"><label>Pieces *</label><input name="pieces" type="number" min="1" step="1" required value="'+(x?.pieces||1)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">'+db.purities.map(a=>'<option value="'+a+'" '+(Number(a)===purity?'selected':'')+'>'+a+'K</option>').join('')+'</select></div>'
+  +'<div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="'+(x?.wastage||0)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="'+(x?.makingPerPiece??0)+'" oninput="calcSale(this.form)"></div>'
+  +'<div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Today’s 24K gold rate · ₹/g *</label><input name="rate24" type="number" min=".01" step=".01" value="'+(x?.rate24||db.rates.gold24||'')+'" oninput="calcSale(this.form)"><span class="muted">From Rate Book when available; editable for this bill.</span></div>'
+  +'<div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="'+rateMoney(initial.purityRate)+'"></div>'
+  +'<div class="field party-sale-fields '+(customer?'hidden':'')+'"><label>New sale pure grams</label><b id="partyGrossSale">'+fmt(x?saleVal(x):0)+' g</b></div>'
+  +'<div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>'
+  +'<section class="panel"><div class="exchange-heading"><div><h2>Old gold exchange</h2><div class="muted">Add each old jewellery item. Amount = weight × testing purity ÷ 100 × rate.</div></div><button type="button" onclick="addExchangeLine()">＋ Add old gold item</button></div><div id="oldGoldLines">'+items.map((item,i)=>exchangeLineMarkup(item,i)).join('')+'</div><div class="exchange-total"><span>Total old gold amount</span><b id="exchangeAmountTotal">'+rateMoney(x?.exchangeAmount||0)+'</b></div><p class="muted">Tested pure gold credit: <b id="exchangePureTotal">'+fmt(x?.exchangePureGrams||0)+' g</b>. The stated purity is saved for reference; enter the testing purity manually from 1% to 100%.</p></section>'
+  +'<section class="panel"><h2>Amount, discount and balance</h2>'
+  +'<div class="customer-sale-fields '+(customer?'':'hidden')+'"><div class="sale-summary-grid"><div><span>New gold value</span><b id="saleGoldAmount">'+rateMoney(initial.goldAmount)+'</b></div><div><span>Wastage value</span><b id="saleWastageAmount">'+rateMoney(initial.wastageAmount)+'</b></div><div><span>Making charges · pieces × per piece</span><b id="saleMakingAmount">'+rateMoney(initial.makingTotal)+'</b></div><div><span>Amount before discount</span><b id="saleSubtotal">'+rateMoney(initial.subtotal)+'</b></div><div class="field"><label>Discount · ₹</label><input name="discount" type="number" min="0" step=".01" value="'+(x?.discount||0)+'" oninput="calcSale(this.form)"></div><div><span>New sale after discount</span><b id="saleAfterDiscount">'+rateMoney(initial.final)+'</b></div><div><span>Old gold exchange</span><b id="saleExchangeAmount">'+rateMoney(x?.exchangeAmount||0)+'</b></div><div class="sale-final"><span id="saleBalanceLabel">Balance to collect</span><b id="saleBalanceAmount">'+rateMoney(Math.abs(n(x?.amount)))+'</b></div></div><p class="muted">New sale total = gold value + wastage + making charges − discount. Old gold exchange is subtracted after discount.</p></div>'
+  +'<div class="party-sale-fields '+(customer?'hidden':'')+'"><div class="grid"><div class="field"><label>Discount · pure grams</label><input name="partyDiscountGrams" type="number" min="0" step=".001" value="'+(x?.partyDiscountGrams||0)+'" oninput="calcSale(this.form)"></div><div class="field"><label>Old gold exchange credit</label><b id="partyExchangePure">'+fmt(x?.exchangePureGrams||0)+' g</b></div><div class="field"><label>Discount credit</label><b id="partyDiscountTotal">'+fmt(x?.partyDiscountGrams||0)+' g</b></div><div class="field"><label id="partyNetLabel">Balance to collect</label><b id="partyNetTotal">'+fmt(x?accountSaleValue(x):0)+' g</b></div></div><p class="muted">Party ledger stays in pure grams. The old gold rate and amount are recorded for the exchange receipt; tested pure grams reduce the balance.</p></div>'
+  +'</section><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save sales bill')+'</button></div></form>':'<div class="empty">Register a party or customer before recording a sale.</div>')+'</section>'
+  +'<section class="panel"><h2>Sales history</h2>'+table(['Date','Account','New jewellery','New sale','Old gold exchange','Balance after exchange',''],[...db.sales].sort((a,b)=>b.when.localeCompare(a.when)).map(s=>{const ct=ownerType(s)==='customer',exchange=n(s.exchangeAmount),newSale=ct?n(s.saleAmount??s.amount+exchange):saleVal(s),net=accountSaleValue(s),oldItems=(s.oldGoldItems||[]).map(i=>esc(i.product)).filter(Boolean).join(', ')||'—';return [s.when.replace('T',' '),(ct?'Customer · ':'Party · ')+esc(accountName(s.partyId,ct?'customer':'party')),esc(s.product)+(oldItems!=='—'?'<br><small>Exchange: '+oldItems+'</small>':''),ct?rateMoney(newSale):fmt(newSale)+' g',exchange?rateMoney(exchange)+(ct?'':' · '+fmt(s.exchangePureGrams||0)+' g'):'—',ct?(net<0?'Credit ₹ ': '₹ ')+Math.abs(net).toFixed(2):fmt(net)+' g','<button onclick="edit=\''+s.id+'\';render()">Edit</button>']}))+'</section>';
+}
+window.saveSale=function(e){
+  e.preventDefault();const form=e.target,f=new FormData(form),id=f.get('id'),old=db.sales.find(s=>s.id===id),type=f.get('accountType')||'party',customer=type==='customer';
+  if(id&&!confirm('Save changes to this sales bill?'))return;
+  if(!f.get('partyId')||!account(f.get('partyId'),type))return say('Select a registered '+(customer?'customer':'party')+'.');
+  const weight=n(f.get('weight')),purity=n(f.get('purity')),pieces=n(f.get('pieces')),wastage=n(f.get('wastage')),rate24=n(f.get('rate24')),makingPerPiece=n(f.get('makingPerPiece')),discount=customer?n(f.get('discount')):n(f.get('partyDiscountGrams'));
+  if(weight<=0||purity<=0||pieces<1||wastage<0)return say('Enter a valid product weight, pieces, purity and wastage.');
+  if(customer&&(rate24<=0||makingPerPiece<0||discount<0))return say('Enter a valid 24K rate, making charge and discount.');
+  const totals=customer?customerSaleTotals({weight:weight,purity:purity,rate24:rate24,wastage:wastage,pieces:pieces,makingPerPiece:makingPerPiece,discount:discount}):null;
+  if(customer&&discount>totals.subtotal)return say('Discount cannot be greater than the amount before discount.');
+  const lines=exchangeRows(form).filter(item=>item.hasEntry);
+  for(const item of lines){if(!item.product||!item.purity||item.weight<=0||item.testingPurity<1||item.testingPurity>100||item.rate<=0)return say('Complete each old gold item with product, purity, weight, testing purity from 1 to 100, and rate.');}
+  const exchangeAmount=Math.round(lines.reduce((a,item)=>a+item.amount,0)*100)/100,exchangePure=lines.reduce((a,item)=>a+item.pureGrams,0),saleAmount=customer?Math.round(totals.final*100)/100:0;
+  const partyGross=weight*purity/24*(1+wastage/100),partyNet=Math.round((partyGross-discount-exchangePure)*1000)/1000,netAmount=Math.round((saleAmount-exchangeAmount)*100)/100;
+  const commit=photo=>{
+    const x=Object.assign({},old||{},{id:id||crypto.randomUUID(),partyId:f.get('partyId'),accountType:type,when:f.get('when'),product:f.get('product'),weight:weight,pieces:pieces,purity:purity,wastage:wastage,rate24:customer?rate24:0,makingPerPiece:customer?makingPerPiece:0,discount:customer?discount:0,partyDiscountGrams:customer?0:discount,saleAmount:saleAmount,amount:customer?netAmount:0,partyNetGrams:customer?null:partyNet,exchangeAmount:exchangeAmount,exchangePureGrams:exchangePure,oldGoldItems:lines.map(item=>({product:item.product,purity:item.purity,weight:item.weight,testingPurity:item.testingPurity,rate:item.rate,amount:item.amount,pureGrams:item.pureGrams})),photo:photo||(old&&old.photo)||''});
+    if(customer)Object.assign(x,{pureGoldGrams:totals.pureGold,wastageGrams:totals.wastageGold,goldAmount:totals.goldAmount,wastageAmount:totals.wastageAmount,makingTotal:totals.makingTotal,subtotal:totals.subtotal});
+    if(id)db.sales[db.sales.findIndex(s=>s.id===id)]=x;else db.sales.push(x);
+    edit=null;save();render();say('Sales bill saved with old gold exchange and balance.');
+  };
+  const file=form.querySelector('input[name="photo"][type="file"]')?.files[0];
+  if(file){const reader=new FileReader();reader.onload=()=>commit(reader.result);reader.readAsDataURL(file)}else commit('');
+};
 function appVersionFooter(){return '<footer class="app-version">Goldleaf v'+GOLDLEAF_VERSION+' · <button type="button" onclick="go(\'Update History\')">View update history</button></footer>'}
+function moduleAccountType(){return workspaceMode==='retail'?'customer':'party'}
+function moduleAccountLabel(){return workspaceMode==='retail'?'Customer':'Party'}
+function moduleNavItems(){const accountLabel=moduleAccountLabel();return ['Dashboard',accountLabel+' Register',accountLabel+' Sales Entry',workspaceMode==='retail'?'Customer Payment':'Party Payments',accountLabel+' Ledger',accountLabel+' Summary','Rate Book','Update History','Settings']}
+function moduleRoute(label){if(label==='Dashboard'||label==='Rate Book'||label==='Update History'||label==='Settings')return label;return /Register$/.test(label)?'Register':/Sales Entry$/.test(label)?'Sales Entry':/Payments?$/.test(label)?'Payments':/Ledger$/.test(label)?'Ledger':/Summary$/.test(label)?'Summary':'Dashboard'}
+function navigateModule(label){return window.go(label)}
+function header(sub,buttons=''){
+  const type=moduleAccountType(),title=page==='Register'?moduleAccountLabel()+' Register':page==='Sales Entry'?moduleAccountLabel()+' Sales Entry':page==='Payments'?(type==='customer'?'Customer Payment':'Party Payments'):page==='Ledger'?moduleAccountLabel()+' Ledger':page==='Summary'?moduleAccountLabel()+' Summary':page;
+  const themeText=appTheme==='dark'?'☀ Light':'☾ Dark',switcher=page==='Dashboard'?'<nav class="business-mode" aria-label="Business workspace"><button type="button" class="'+(workspaceMode==='retail'?'active':'')+'" aria-pressed="'+(workspaceMode==='retail')+'" onclick="setWorkspaceMode(\'retail\')">Retail</button><button type="button" class="'+(workspaceMode==='wholesale'?'active':'')+'" aria-pressed="'+(workspaceMode==='wholesale')+'" onclick="setWorkspaceMode(\'wholesale\')">Wholesale</button></nav>':'';
+  return '<header class="top"><div><div class="eyebrow">GOLDLEAF · '+workspaceMode.toUpperCase()+' · '+title.toUpperCase()+'</div><h1>'+title+'</h1><div class="muted">'+sub+'</div><span class="cloud-inline" id="cloudInline">'+cloudLabel()+'</span></div><div class="header-actions">'+switcher+'<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">'+themeText+'</button><button id="installButton" class="install-app" onclick="installApp()">＋ '+installCaption()+'</button>'+buttons+'</div></header>';
+}
+const moduleBaseGo=window.go;
+window.go=function(target){
+  const aliases={'Party Register':['Register','wholesale'],'Customer Register':['Register','retail'],'Party Sales Entry':['Sales Entry','wholesale'],'Customer Sales Entry':['Sales Entry','retail'],'Party Payments':['Payments','wholesale'],'Customer Payment':['Payments','retail'],'Customer Payments':['Payments','retail'],'Party Ledger':['Ledger','wholesale'],'Customer Ledger':['Ledger','retail'],'Party Summary':['Summary','wholesale'],'Customer Summary':['Summary','retail']};
+  if(aliases[target]){const [route,mode]=aliases[target];workspaceMode=mode;localStorage.setItem('goldleaf-workspace-mode',mode);registerType=summaryType=ledgerType=moduleAccountType();target=route}
+  else if(['Register','Sales Entry','Payments','Ledger','Summary'].includes(target))registerType=summaryType=ledgerType=moduleAccountType();
+  return moduleBaseGo(target);
+};
+function renderModuleNavigation(){
+  const nav=$('#nav');if(!nav)return;const items=moduleNavItems(),icons=['⌂','♙','＋','↙','▤','◷','◈','◷','⚙'];
+  nav.innerHTML=items.map((label,index)=>'<button class="'+(moduleRoute(label)===page?'active':'')+'" onclick="navigateModule(\''+label+'\')" aria-label="'+label+'"><span class="nav-icon">'+icons[index]+'</span><span>'+label+'</span></button>').join('')+'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button><div id="moreMenu" class="more-menu">'+items.slice(4).map((label,index)=>'<button onclick="navigateModule(\''+label+'\')"><span class="nav-icon">'+icons[index+4]+'</span><span>'+label+'</span></button>').join('')+'</div>';
+}
+function registerView(){let content=moduleAccountType()==='customer'?customerView():partyView();return content.replace(/<button onclick="go\('Customer Register'\)">[^<]*<\/button>/,'')}
+function summaryView(){return summaryPage(moduleAccountType())}
+function ledgerView(){return ledgerPage(moduleAccountType())}
+function dash(){
+  const customer=workspaceMode==='retail',type=moduleAccountType(),records=customer?db.customers:db.parties,money=customer;
+  const sales=db.sales.filter(x=>ownerType(x)===type).reduce((a,x)=>a+accountSaleValue(x),0),payments=db.payments.filter(x=>ownerType(x)===type).reduce((a,x)=>a+accountPaymentValue(x),0),owing=records.reduce((a,x)=>a+bal(x.id,type),0),show=v=>money?'₹ '+n(v).toFixed(2):fmt(v)+' g';
+  return header(customer?'Retail customer accounts, sales and rupee balances.':'Wholesale party accounts, sales and pure-gold balances.')
+    +'<div class="cards">'+card(customer?'CUSTOMERS':'PARTIES',records.length)+card(customer?'CUSTOMER OWING':'WHOLESALE OWING',show(owing))+card(customer?'RETAIL SALES':'WHOLESALE SALES',show(sales))+card(customer?'CUSTOMER PAYMENTS':'PARTY PAYMENTS',show(payments))+'</div>'
+    +'<section class="panel quick-panel"><div><h2>Quick actions</h2><div class="muted">'+(customer?'Retail customer':'Wholesale party')+' tasks.</div></div><div class="quick-actions"><button onclick="navigateModule(\''+(customer?'Customer Register':'Party Register')+'\')">＋ Register '+(customer?'customer':'party')+'</button><button onclick="navigateModule(\''+(customer?'Customer Sales Entry':'Party Sales Entry')+'\')">＋ Sales entry</button><button onclick="navigateModule(\''+(customer?'Customer Payment':'Party Payments')+'\')">↙ Payment</button></div></section>'
+    +'<section class="panel"><h2>Recent '+(customer?'retail':'wholesale')+' transactions</h2>'+history()+'</section><section class="panel hint"><b>Balance guide</b><br>'+(customer?'Retail sales and payments are recorded in rupees.':'Wholesale sales and metal payments are calculated in pure grams.')+'</section>';
+}
+function history(){const type=moduleAccountType(),items=[...db.sales.filter(x=>ownerType(x)===type).map(x=>({...x,type:'Sale',value:accountSaleValue(x),detail:x.product})),...db.payments.filter(x=>ownerType(x)===type).map(x=>({...x,type:'Payment',value:-accountPaymentValue(x),detail:x.kind||'Cash'}))].sort((a,b)=>b.when.localeCompare(a.when)).slice(0,10);return items.length?table(['Date',moduleAccountLabel(),'Type','Details',type==='customer'?'Value':'Pure grams'],items.map(x=>[x.when.replace('T',' '),esc(accountName(x.partyId,type)),x.type,esc(x.detail),type==='customer'?'₹ '+Math.abs(x.value).toFixed(2):fmt(Math.abs(x.value))+' g'])):'<div class="empty">No transactions in this workspace yet.</div>'}
+function salesView(){
+  const x=db.sales.find(p=>p.id===edit),type=x?ownerType(x):moduleAccountType(),customer=type==='customer',records=customer?db.customers:db.parties,purity=Number(x?.purity||22),items=x?.oldGoldItems?.length?x.oldGoldItems:[x?.exchangeProduct?{product:x.exchangeProduct,purity:x.exchangePurity,weight:x.exchangeWeight,testingPurity:x.exchangeTestingPurity,rate:x.exchangeRate}:{}],initial=customerSaleTotals({weight:x?.weight,purity:purity,rate24:x?.rate24||db.rates.gold24,wastage:x?.wastage,pieces:x?.pieces||1,makingPerPiece:x?.makingPerPiece,discount:x?.discount});
+  return header(customer?'Retail customer bill with exchange, discount and final rupee balance.':'Wholesale party bill with exchange and final pure-gram balance.')
+  +'<section class="panel"><h2>'+(x?'Edit sales bill':moduleAccountLabel()+' sales bill')+'</h2>'+(records.length?'<form id="customerSaleForm" onsubmit="saveSale(event)"><input name="id" type="hidden" value="'+(x?.id||'')+'"><input name="accountType" type="hidden" value="'+type+'"><input name="amount" type="hidden" value="'+(x?.amount||0)+'">'
+  +'<section class="panel"><h2>Account and bill details</h2><div class="grid"><div class="field"><label>Business area</label><input readonly value="'+(customer?'Retail · Customer':'Wholesale · Party')+'"></div><div class="field"><label>'+(customer?'Customer':'Party')+' *</label>'+accountSelect(type,x?.partyId||'')+'</div><div class="field"><label>City · automatic</label><input name="place" value="'+esc(accountCity(x?.partyId,type))+'" readonly></div><div class="field"><label>Date and time</label><input name="when" type="datetime-local" required value="'+(x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div></div></section>'
+  +'<section class="panel"><h2>New jewellery sale</h2><div class="grid"><div class="field"><label>Product *</label><select name="product" required>'+db.products.map(a=>'<option '+(a===x?.product?'selected':'')+'>'+esc(a)+'</option>').join('')+'</select></div><div class="field"><label>Total weight · g *</label><input name="weight" type="number" min=".001" step=".001" required value="'+(x?.weight||'')+'" oninput="calcSale(this.form)"></div><div class="field"><label>Pieces *</label><input name="pieces" type="number" min="1" step="1" required value="'+(x?.pieces||1)+'" oninput="calcSale(this.form)"></div><div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">'+db.purities.map(a=>'<option value="'+a+'" '+(Number(a)===purity?'selected':'')+'>'+a+'K</option>').join('')+'</select></div><div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="'+(x?.wastage||0)+'" oninput="calcSale(this.form)"></div><div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="'+(x?.makingPerPiece??0)+'" oninput="calcSale(this.form)"></div><div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Today’s 24K gold rate · ₹/g *</label><input name="rate24" type="number" min=".01" step=".01" value="'+(x?.rate24||db.rates.gold24||'')+'" oninput="calcSale(this.form)"><span class="muted">From Rate Book when available; editable for this bill.</span></div><div class="field customer-sale-fields '+(customer?'':'hidden')+'"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="'+rateMoney(initial.purityRate)+'"></div><div class="field party-sale-fields '+(customer?'hidden':'')+'"><label>New sale pure grams</label><b id="partyGrossSale">'+fmt(x?saleVal(x):0)+' g</b></div><div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>'
+  +'<section class="panel"><div class="exchange-heading"><div><h2>Old gold exchange</h2><div class="muted">Add each old jewellery item. Amount = weight × testing purity ÷ 100 × rate.</div></div><button type="button" onclick="addExchangeLine()">＋ Add old gold item</button></div><div id="oldGoldLines">'+items.map((item,i)=>exchangeLineMarkup(item,i)).join('')+'</div><div class="exchange-total"><span>Total old gold amount</span><b id="exchangeAmountTotal">'+rateMoney(x?.exchangeAmount||0)+'</b></div><p class="muted">Tested pure gold credit: <b id="exchangePureTotal">'+fmt(x?.exchangePureGrams||0)+' g</b>. Enter testing purity manually from 1% to 100%.</p></section>'
+  +'<section class="panel"><h2>Amount, discount and balance</h2><div class="customer-sale-fields '+(customer?'':'hidden')+'"><div class="sale-summary-grid"><div><span>New gold value</span><b id="saleGoldAmount">'+rateMoney(initial.goldAmount)+'</b></div><div><span>Wastage value</span><b id="saleWastageAmount">'+rateMoney(initial.wastageAmount)+'</b></div><div><span>Making charges · pieces × per piece</span><b id="saleMakingAmount">'+rateMoney(initial.makingTotal)+'</b></div><div><span>Amount before discount</span><b id="saleSubtotal">'+rateMoney(initial.subtotal)+'</b></div><div class="field"><label>Discount · ₹</label><input name="discount" type="number" min="0" step=".01" value="'+(x?.discount||0)+'" oninput="calcSale(this.form)"></div><div><span>New sale after discount</span><b id="saleAfterDiscount">'+rateMoney(initial.final)+'</b></div><div><span>Old gold exchange</span><b id="saleExchangeAmount">'+rateMoney(x?.exchangeAmount||0)+'</b></div><div class="sale-final"><span id="saleBalanceLabel">Balance to collect</span><b id="saleBalanceAmount">'+rateMoney(Math.abs(n(x?.amount)))+'</b></div></div><p class="muted">New sale total = gold value + wastage + making charges − discount. Old gold exchange is subtracted after discount.</p></div><div class="party-sale-fields '+(customer?'hidden':'')+'"><div class="grid"><div class="field"><label>Discount · pure grams</label><input name="partyDiscountGrams" type="number" min="0" step=".001" value="'+(x?.partyDiscountGrams||0)+'" oninput="calcSale(this.form)"></div><div class="field"><label>Old gold exchange credit</label><b id="partyExchangePure">'+fmt(x?.exchangePureGrams||0)+' g</b></div><div class="field"><label>Discount credit</label><b id="partyDiscountTotal">'+fmt(x?.partyDiscountGrams||0)+' g</b></div><div class="field"><label id="partyNetLabel">Balance to collect</label><b id="partyNetTotal">'+fmt(x?accountSaleValue(x):0)+' g</b></div></div><p class="muted">Party ledger stays in pure grams. The old gold rate and amount are recorded for the exchange receipt; tested pure grams reduce the balance.</p></div></section><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save sales bill')+'</button></div></form>':'<div class="empty">Register a '+(customer?'customer':'party')+' before recording a sale in this workspace.</div>')+'</section>'
+  +'<section class="panel"><h2>'+moduleAccountLabel()+' sales history</h2>'+table(['Date',customer?'Customer':'Party','New jewellery','New sale','Old gold exchange','Balance after exchange',''],db.sales.filter(s=>ownerType(s)===type).sort((a,b)=>b.when.localeCompare(a.when)).map(s=>{const exchange=n(s.exchangeAmount),newSale=customer?n(s.saleAmount??s.amount+exchange):saleVal(s),net=accountSaleValue(s),oldItems=(s.oldGoldItems||[]).map(i=>esc(i.product)).filter(Boolean).join(', ')||'—';return [s.when.replace('T',' '),esc(accountName(s.partyId,type)),esc(s.product)+(oldItems!=='—'?'<br><small>Exchange: '+oldItems+'</small>':''),customer?rateMoney(newSale):fmt(newSale)+' g',exchange?rateMoney(exchange)+(customer?'':' · '+fmt(s.exchangePureGrams||0)+' g'):'—',customer?(net<0?'Credit ₹ ':'₹ ')+Math.abs(net).toFixed(2):fmt(net)+' g','<button onclick="edit=\''+s.id+'\';render()">Edit</button>']}))+'</section>';
+}
+function paymentsView(){
+  const type=moduleAccountType(),customer=type==='customer',x=db.payments.find(p=>p.id===edit&&ownerType(p)===type),records=db.payments.filter(p=>ownerType(p)===type).sort((a,b)=>b.when.localeCompare(a.when));
+  return header(customer?'Retail customer payments in rupees.':'Wholesale party payments in pure grams.')+'<section class="panel"><h2>'+(x?'Edit payment':customer?'Customer payment':'Party payment')+'</h2>'+((customer?db.customers:db.parties).length?'<form onsubmit="savePay(event)"><input name="id" type="hidden" value="'+(x?.id||'')+'"><input name="accountType" type="hidden" value="'+type+'"><div class="grid"><div class="field"><label>'+(customer?'Customer':'Party')+' *</label>'+accountSelect(type,x?.partyId||'')+'</div><div class="field"><label>Date and time</label><input name="when" type="datetime-local" required value="'+(x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16))+'"></div>'
+  +(customer?'<input name="kind" type="hidden" value="Cash"><div class="field"><label>Payment amount · ₹ *</label><input name="amount" type="number" min=".01" step=".01" required value="'+(x?.amount||'')+'" oninput="document.getElementById(\'payCalc\').textContent=\'₹ \'+Number(this.value||0).toFixed(2)"></div><div class="field"><label>Customer credit · ₹</label><b id="payCalc">₹ '+n(x?.amount).toFixed(2)+'</b></div>'
+  :'<div class="field"><label>Payment type</label><select name="kind" onchange="togglePay(this.form)"><option '+(x?.kind==='Metal Bar'?'selected':'')+'>Metal Bar</option><option '+(x?.kind==='Old Scrap'?'selected':'')+'>Old Scrap</option><option '+(x?.kind==='Cash'?'selected':'')+'>Cash</option></select></div><div class="field metal '+(x?.kind==='Cash'?'hidden':'')+'"><label>Gross weight · g *</label><input name="weight" type="number" min=".001" step=".001" value="'+(x?.weight||'')+'" oninput="togglePay(this.form)"></div><div class="field metal '+(x?.kind==='Cash'?'hidden':'')+'"><label>Testing purity · % *</label><input name="purity" type="number" min="1" max="100" step=".01" value="'+(x?.purity||'')+'" oninput="togglePay(this.form)"></div><div class="field cash '+(x?.kind==='Cash'?'':'hidden')+'"><label>Cash amount · ₹ *</label><input name="amount" type="number" min=".01" step=".01" value="'+(x?.amount||'')+'" oninput="togglePay(this.form)"></div><div class="field cash-rate '+(x?.kind==='Cash'?'':'hidden')+'"><label>24K rate · ₹/g *</label><input name="rate" type="number" min=".01" step=".01" value="'+(x?.rate||'')+'" oninput="togglePay(this.form)"></div><div class="field"><label>Pure credit · g</label><b id="payCalc">'+fmt(x?payVal(x):0)+' g</b></div>')
+  +'</div><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save payment')+'</button></div></form>':'<div class="empty">Register a '+(customer?'customer':'party')+' before recording a payment.</div>')+'</section>'
+  +'<section class="panel"><h2>'+moduleAccountLabel()+' payment history</h2>'+table(['Date',customer?'Customer':'Party','Type',customer?'Amount':'Weight / amount',customer?'Credit':'Testing / rate',customer?'Credit':'Pure credit'],records.map(p=>[p.when.replace('T',' '),esc(accountName(p.partyId,type)),customer?'Cash':p.kind,customer?'₹ '+n(p.amount).toFixed(2):p.kind==='Cash'?'₹ '+p.amount:fmt(p.weight)+' g',customer?'—':p.kind==='Cash'?'₹ '+p.rate+'/g':p.purity+'%',customer?'₹ '+accountPaymentValue(p).toFixed(2):fmt(accountPaymentValue(p))+' g']))+'</section>';
+}
+const businessModeStyle=document.createElement('style');businessModeStyle.textContent='.business-mode{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--mint)}.business-mode button{min-height:38px;padding:7px 15px;border:0;background:transparent;color:var(--muted);font-weight:700}.business-mode button.active{background:var(--green);color:white;box-shadow:0 2px 7px rgba(40,48,40,.15)}.nav>button span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis}.module-badge{font-weight:700}@media(max-width:760px){.business-mode{width:100%;order:3}.business-mode button{flex:1}}html[data-theme="dark"] .business-mode{background:#232725;border-color:#414743}html[data-theme="dark"] .business-mode button.active{background:#c3a06c;color:#1e211f}';document.head.append(businessModeStyle);
 window.render=function(){
   goldleafPreviousRender();
+  renderModuleNavigation();
   const app=$('#app');if(app)app.insertAdjacentHTML('beforeend',appVersionFooter());
+  const saleForm=$('#customerSaleForm');if(saleForm)toggleSaleFields(saleForm);
   checkRateReminder();
 };
 window.setInterval(checkRateReminder,30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
