@@ -19,7 +19,7 @@ The app uses its Supabase database. Each signed-in account can access only its o
 
 - The **Dashboard** has separate **Retail** and **Wholesale** workspaces. Retail opens Customer Register, Customer Sales Entry, Customer Payment, Customer Ledger, and Customer Summary. Wholesale opens the corresponding Party pages. The selected workspace shows its own accounts and transactions.
 - Party registration includes contact details and opening pure-gold balance. Customer registration includes contact and identity fields, photo upload or webcam capture, notes, and opening balance in rupees.
-- Retail **Customer Sales Entry** is one continuous view: account details, new jewellery, calculation, discount, and balance are visible together. **Old Gold Exchange** is optional and opens from its button. Add old jewellery items with product, stated purity, weight, manually entered testing purity, rate per gram, and calculated amount.
+- Retail **Customer Sales Entry** is fixed to one screen without page scrolling: account details, new jewellery, calculation, discount, and balance stay visible together. **Old Gold Exchange** opens only from its button. Customer sales history opens separately from **History**. Add old jewellery items with product, stated purity, weight, manually entered testing purity, rate per gram, and calculated amount.
 - Wholesale **Party Sales Entry** keeps the usual simple fields and payable pure-gram calculation. It does not show old-gold exchange or amount/discount sections.
 - **Payments** stay in the selected workspace. Wholesale Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Retail Customer payments are entered in rupees.
 - Party and Customer ledger and summary balances remain separate: wholesale Party balances use grams, retail Customer balances use rupees. Both offer all-date, single-date, date-range, and monthly filters.
@@ -35,6 +35,7 @@ Customer sale base gold value = weight × purity ÷ 24 × 24K rate. Wastage valu
 
 ## Website updates
 
+- **v1.8.0 · 5 Nov 2026:** Fixed Retail Customer Sales Entry to a no-scroll single screen, made Old Gold Exchange an optional button-opened panel, and moved sales history to a separate History view. Wholesale party sales remain the simple entry form.
 - **v1.7.0 · 5 Nov 2026:** Made Retail sales a single continuous view, tucked optional old-gold exchange behind a button, and restored the simple Wholesale party sales entry.
 - **v1.6.0 · 5 Nov 2026:** Added separate Retail and Wholesale workspaces, their matching navigation, dashboards, registers, sales, payments, ledgers, and summaries.
 - **v1.5.0 · 5 Nov 2026:** Added one-screen party/customer sales bills, discount and final balance, plus old gold exchange item details and testing-based valuation.
