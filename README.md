@@ -6,13 +6,15 @@ Open the live app at **https://gengadharan28-collab.github.io/goldleaf-jewellery
 
 Use **Add to Home** in the app header. Android browsers that support app installation show their install prompt. On iPhone, open the site in Safari, tap **Share**, then **Add to Home Screen**. The installed app opens in a standalone window and can load its saved app shell offline.
 
-## Cloud account
+## Cloud account and shop subscriptions
 
-1. In **Settings → Sign in / create account**, choose **Create account** the first time. Use an email you can access and a password of at least 8 characters; verify the email if prompted. This creates a Goldleaf login, so no separate Supabase account is needed.
-2. Sign in to this same Goldleaf account on both devices. Local and cloud records merge automatically on sign-in and whenever either device saves. Saves sync immediately; another open device checks for changes about every 10 seconds. A closed device syncs when reopened.
-3. Sync runs automatically. Check the connection status in **Settings**; it is hidden from the Dashboard to keep that page uncluttered.
+New visitors can create a Goldleaf login from the Dashboard. Shop name, 15-character GST number, full address and phone are compulsory. The password is chosen by the account owner and is never stored in the website source. New shops receive a 7-day trial, one owner seat and one user seat. Shop details and ledger records are saved in Supabase; each shop has its own ledger protected by row-level security.
 
-The app uses its Supabase database. Each signed-in account can access only its own ledger through row-level security. Customer contact details, photos, Aadhaar and PAN are part of that account’s synced ledger. Before sign-in, entries stay in that browser only. Sync always merges device-only and cloud records; it does not replace one device’s ledger with the other. Different accounts have separate ledgers. Download a backup from **Settings → Backup & setup** for an extra copy.
+The initial Super Admin login is **gengadharan28@gmail.com**. Sign up with that email and the password you choose, then run `supabase_multi_shop_setup.sql` once in the Supabase SQL Editor. The migration safely copies existing account ledgers into separate shop records, grants the initial admin role to that email, and installs the shop, trial, subscription, access and shared-rate rules. It contains no service-role key. Do not publish or run the app migration before saving a backup of the Supabase project.
+
+In **Settings → Super Admin**, the administrator can inspect registered shops, renew monthly or yearly plans, grant a 7-day demo, suspend or restore access, and set user/owner seat limits. Shops can invite team members up to those limits. Super Admin also controls the shared Rate Book; saved rate changes are read by every shop. The app refreshes cloud data while open and syncs saved records across signed-in devices.
+
+Sign in to the same shop account on a phone and computer to sync its records. Before sign-in, entries stay in that browser. Existing account ledgers are retained by the migration. Download a backup from **Settings → Backup & setup** before database changes.
 
 ## Features
 
@@ -24,7 +26,7 @@ The app uses its Supabase database. Each signed-in account can access only its o
 - **Payments** stay in the selected workspace. Wholesale Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Cash can be applied to the gold balance (converted at the 24K rate as before) or to the separate hallmark amount balance. Retail Customer payments are entered in rupees.
 - Party and Customer ledgers and summaries stay in their own workspaces: Wholesale shows Party pages only; all Customer pages stay inside Retail. Party Ledger has no Customer selector or Customer section. Party balances show pure gold grams and hallmark rupees separately. The Party ledger PDF highlights both balances and keeps gold weights, cash amounts, and hallmark charges in separate columns. Use **View PDF** to open print preview and save as PDF, or **Share** to share the report text. All-date, single-date, date-range and monthly filters are available.
 - Editable product and karat lists.
-- **Rate Book** for the 24K base, with Automatic or manual 22K/18K/14K rates, plus silver and old silver. Old gold exchange rate is entered on each exchange item.
+- **Shared Rate Book** for the 24K base, with Automatic or manual 22K/18K/14K rates, plus silver and old silver. Super Admin updates rates for every shop. Old gold exchange rate is entered on each exchange item.
 - Gentle in-app rate reminders at **11:00 AM** and **6:00 PM India time**, with Later and Update rates actions. The reminder appears while the app is open or the next time it opens after a reminder time.
 - **Update History** page with the current website version and release notes.
 - Dark and light theme toggle. Theme choice stays on that device.
@@ -34,6 +36,8 @@ Party sales payable = weight × purity ÷ 24 × (1 + wastage% ÷ 100). Party met
 Customer sale gold value = weight × selected-purity rate from Rate Book. Automatic 22K/18K/14K rates are 24K base × karat ÷ 24; manual mode uses each entered karat rate. Wastage value = gold value × wastage%. Making charges = pieces × making charge per piece. New sale total = gold value + wastage value + making charges − discount. Old gold exchange amount = old jewellery weight × manually entered testing purity% ÷ 100 × old gold rate per gram. Balance due = new sale total − old gold exchange amount − collected amount. If old gold exceeds the new sale amount, the app shows customer credit; bill collection cannot exceed the positive balance remaining after old gold exchange. Collected amount is recorded with its method and appears as a payment in the customer ledger, summary, dashboard totals, printout and payment history. The discount cannot exceed the new sale amount before discount.
 
 ## Website updates
+
+- **v2.3.0 · 6 Nov 2026:** Added required shop registration, secure Super Admin controls, 7-day trials, monthly/yearly/demo renewals, owner/user seats and invitations, shop-level cloud ledgers, and centrally shared rates.
 
 - **v2.0.9 · 6 Nov 2026:** Settings now accepts custom purity values from 1 to 100, including decimals.
 

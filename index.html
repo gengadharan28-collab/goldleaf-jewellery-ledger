@@ -99,7 +99,7 @@ function saveCloud(){db.cloud={url:$('#url').value.trim().replace(/\/$/,''),key:
   if(mode==='signup'&&password.length<8){message.textContent='Your Goldleaf account password must be at least 8 characters.';passwordField?.focus();return}
   try{
     saveCloud();if(!client)throw new Error('Cloud connection is unavailable. Contact the app owner.');
-    const result=mode==='signup'?await client.auth.signUp({email,password}):await client.auth.signInWithPassword({email,password});if(result.error)throw result.error;
+    const result=mode==='signup'?await client.auth.signUp({email,password,options:{data:{shop_name:$('#shopName')?.value.trim(),gst_number:$('#shopGst')?.value.trim(),address:$('#shopAddress')?.value.trim(),phone:$('#shopPhone')?.value.trim(),invite_token:window.goldleafInviteToken||null}}}):await client.auth.signInWithPassword({email,password});if(result.error)throw result.error;
     session=result.data.session;
     if(session){message.textContent='Signed in. Loading account data…';await pullCloud();render()}
     else message.textContent='Goldleaf account created. Check your inbox and spam folder for the verification email, then return here and sign in.'
@@ -410,7 +410,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.2.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.3.0';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -927,4 +927,4 @@ window.render=function(){
 };
 window.setInterval(checkRateReminder,30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.2.0-ledger-layout"></script></body></html>
+</script><script src="./app-v2.js?v=2.3.0-multishop-admin"></script></body></html>

@@ -366,6 +366,99 @@ const responsiveRetailStyle=document.createElement('style');responsiveRetailStyl
 html[data-theme="dark"] .v2-applied-rate{background:#262b28;border-color:#474e49}
 `;
 document.head.append(responsiveRetailStyle);
-window.goldleafV2Ready=true;window.dispatchEvent(new Event('goldleaf-v2-ready'));
+window.goldleafV2Ready=true;
+window.render();
+
+// Goldleaf multi-shop cloud access and super-admin controls.
+let goldleafContext=null,goldleafAdminShops=[];
+window.goldleafInviteToken=new URLSearchParams(location.search).get('invite')||'';
+const goldleafPreviousSettings=window.settingsView;
+window.settingsView=function(){
+  let html=goldleafPreviousSettings();
+  html=html.replace('</div><p class="hint">New to Goldleaf cloud?', '</div><div id="shopRegistrationFields" class="grid wide" hidden><div class="field"><label>Shop name *</label><input id="shopName" name="shop_name" autocomplete="organization" required></div><div class="field"><label>GST number *</label><input id="shopGst" name="gst_number" maxlength="15" pattern="[A-Za-z0-9]{15}" title="Enter the 15-character GST number" required></div><div class="field wide"><label>Shop address *</label><textarea id="shopAddress" name="address" rows="2" required></textarea></div><div class="field"><label>Phone number *</label><input id="shopPhone" name="phone" type="tel" inputmode="tel" minlength="10" required></div></div><p class="hint">New to Goldleaf cloud?');
+  if(window.goldleafInviteToken)html=html.replace('New to Goldleaf cloud? Enter your email and choose a password of at least 8 characters, then tap Create account. Verify your email if prompted.','You were invited to join a Goldleaf shop. Use the invited email address and choose a password to accept.');
+  html=html.replace("onclick=\"auth('signup')\">Create account",'onclick="startShopSignup()">Create account');
+  if(goldleafContext?.role==='owner')html=html.replace('<section class="panel"><h2>Products</h2>','<section class="panel"><h2>Team access</h2><p class="hint">Invite team members while a seat is available. The Super Admin controls your seat limits.</p><form class="grid" onsubmit="goldleafInviteTeamMember(event)"><div class="field"><label>Email *</label><input type="email" name="email" required></div><div class="field"><label>Access</label><select name="role"><option value="user">User</option><option value="owner">Owner</option></select></div><div class="right"><button class="primary">Create invite</button></div></form><input id="goldleafInviteLink" class="wide" readonly hidden aria-label="Team invitation link"></section><section class="panel"><h2>Products</h2>');
+  if(goldleafContext?.is_super_admin){html=html.replace('</section><section class="panel"><h2>Products</h2>','</section>'+goldleafSuperAdminPanel()+'<section class="panel"><h2>Products</h2>')}
+  return html;
+};
+window.startShopSignup=function(){
+  if(window.goldleafInviteToken){window.auth('signup');return}
+  const box=document.getElementById('shopRegistrationFields'),fields=['shopName','shopGst','shopAddress','shopPhone'].map(id=>document.getElementById(id));
+  if(!box)return;
+  box.hidden=false;fields.forEach(field=>field.required=true);
+  if(!box.dataset.ready){box.dataset.ready='1';const message=document.getElementById('cloudMsg');if(message)message.textContent='Enter the compulsory shop details, then tap Create account again.';fields[0]?.focus();return}
+  if(!fields.every(field=>field?.checkValidity())){const first=fields.find(field=>!field?.checkValidity());first?.reportValidity();return}
+  window.auth('signup');
+};
+window.goldleafSaveAdminShop=async function(form){
+  form.preventDefault();const f=form.target,values=new FormData(f),shopId=values.get('shop_id'),plan=values.get('plan'),status=values.get('status');
+  const {error}=await client.rpc('goldleaf_admin_update_shop',{p_shop_id:shopId,p_plan:plan,p_subscription_status:status,p_user_seats:Number(values.get('user_seats')),p_owner_seats:Number(values.get('owner_seats'))});
+  if(error){say('Could not update shop: '+error.message);return}
+  await goldleafLoadAdminShops();render();say('Shop access updated.');
+};
+window.goldleafInviteTeamMember=async function(event){event.preventDefault();const form=event.target,values=new FormData(form);const {data,error}=await client.rpc('goldleaf_create_member_invite',{p_email:String(values.get('email')).trim(),p_role:values.get('role')});if(error)return say('Could not create invite: '+error.message);const link=location.origin+location.pathname+'?invite='+encodeURIComponent(data);const output=document.getElementById('goldleafInviteLink');if(output){output.value=link;output.hidden=false}try{await navigator.clipboard.writeText(link);say('Invite link copied. It expires in 7 days.')}catch{say('Invite created. Copy the link shown below.')}};
+async function goldleafLoadAdminShops(){if(!session||!goldleafContext?.is_super_admin||!client)return;const {data,error}=await client.rpc('goldleaf_admin_list_shops');if(error){const m=document.getElementById('cloudMsg');if(m)m.textContent='Super Admin: '+error.message;return}goldleafAdminShops=Array.isArray(data)?data:[];}
+function goldleafSuperAdminPanel(){
+  const rows=goldleafAdminShops.map(shop=>'<form class="panel goldleaf-admin-shop" onsubmit="goldleafSaveAdminShop(event)"><input type="hidden" name="shop_id" value="'+esc(shop.id)+'"><div class="goldleaf-admin-head"><div><b>'+esc(shop.shop_name)+'</b><div class="muted">'+esc(shop.email)+' · GST '+esc(shop.gst_number)+'</div><div class="muted">'+esc(shop.address)+' · '+esc(shop.phone)+'</div><div class="muted">'+Number(shop.owner_count||0)+' / '+Number(shop.owner_seats||1)+' owner · '+Number(shop.member_count||0)+' / '+Number(shop.user_seats||1)+' user seats</div></div><span class="pill">'+esc(shop.subscription_status)+' · '+esc(shop.plan)+'</span></div><div class="grid"><div class="field"><label>Renewal</label><select name="plan"><option value="monthly" '+(shop.plan==='monthly'?'selected':'')+'>Monthly · 1 month</option><option value="yearly" '+(shop.plan==='yearly'?'selected':'')+'>Yearly · 1 year</option><option value="demo" '+(shop.plan==='demo'?'selected':'')+'>Demo · 7 days</option><option value="trial" '+(shop.plan==='trial'?'selected':'')+'>Free trial · 7 days</option></select></div><div class="field"><label>Access status</label><select name="status"><option value="active" '+(shop.subscription_status==='active'?'selected':'')+'>Active</option><option value="trial" '+(shop.subscription_status==='trial'?'selected':'')+'>Trial</option><option value="expired" '+(shop.subscription_status==='expired'?'selected':'')+'>Expired</option><option value="suspended" '+(shop.subscription_status==='suspended'?'selected':'')+'>Suspended</option></select></div><div class="field"><label>User seats</label><input name="user_seats" type="number" min="'+Number(shop.member_count||0)+'" value="'+Number(shop.user_seats||1)+'" required></div><div class="field"><label>Owner seats</label><input name="owner_seats" type="number" min="'+Math.max(1,Number(shop.owner_count||1))+'" value="'+Number(shop.owner_seats||1)+'" required></div></div><div class="right"><button class="primary">Save access</button></div></form>').join('');
+  return '<section class="panel goldleaf-admin"><h2>Super Admin</h2><p class="hint">Customer accounts, compulsory shop details, trial status, renewal and seat limits. New shops start with a 7-day trial, one owner seat and one user seat.</p><button type="button" onclick="goldleafLoadAdminShops().then(render)">Refresh shop list</button>'+(rows||'<div class="empty">No shop registrations are available yet.</div>')+'</section>';
+}
+const goldleafPreviousRateBookView=window.rateBookView,goldleafPreviousSaveRateBook=window.saveRateBook;
+window.rateBookView=function(){let html=goldleafPreviousRateBookView();if(!session)return html;const isAdmin=!!goldleafContext?.is_super_admin;html=html.replace('<section class="panel"><h2>Today’s rates</h2>','<section class="panel"><h2>Shared Rate Book</h2><p class="hint">'+(isAdmin?'Changes here are shared with every shop.':'Rates are controlled by Goldleaf Super Admin and update here automatically.')+'</p>');if(!isAdmin){html=html.replace(/<button class="primary">Save today’s rates<\/button>/g,'<span class="pill">Managed centrally</span>').replace(/<button class="primary">Save daily rates<\/button>/g,'<span class="pill">Managed centrally</span>').replace(/<input([^>]*name="(?:gold24|gold22|gold18|gold14|silver|oldSilver)"[^>]*)>/g,(all,attrs)=>'<input'+attrs+' readonly>')}return html;};
+window.saveRateBook=async function(event){
+  if(!session||!goldleafContext?.is_super_admin){event.preventDefault();say('Only the Super Admin can update shared rates.');return}
+  event.preventDefault();const form=event.target,f=new FormData(form),mode=f.get('karatMode')==='manual'?'manual':'automatic',gold24=n(f.get('gold24'));
+  const rates={gold24,gold22:mode==='manual'?n(f.get('gold22')):gold24*22/24,gold18:mode==='manual'?n(f.get('gold18')):gold24*18/24,gold14:mode==='manual'?n(f.get('gold14')):gold24*14/24,karatMode:mode,silver:n(f.get('silver')),oldSilver:n(f.get('oldSilver')),oldGold:0,updatedAt:new Date().toISOString()};
+  if(gold24<=0||rates.silver<=0||rates.oldSilver<=0||(mode==='manual'&&[rates.gold22,rates.gold18,rates.gold14].some(value=>value<=0)))return say('Enter valid shared gold and silver rates.');
+  const {error}=await client.rpc('goldleaf_admin_set_shared_rates',{p_rates:rates});if(error)return say('Could not update shared rates: '+error.message);
+  db.rates=rates;db.rateHistory.unshift({id:crypto.randomUUID(),date:istDateTime(new Date()).date,time:istDateTime(new Date()).time,slot:'Super Admin',rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);localStorage.setItem(dbkey,JSON.stringify(db));await pushCloud();render();say('Shared rates updated for all shops.');
+};
+window.pullCloud=async function(){
+  if(!session||!client)return;
+  if(v2CloudBusy)return;
+  v2CloudBusy=true;let needsPush=false;
+  try{
+    const contextResult=await client.rpc('goldleaf_my_context');if(contextResult.error)throw contextResult.error;goldleafContext=contextResult.data||null;
+    if(!goldleafContext?.shop_id&&!goldleafContext?.is_super_admin)throw new Error('This login is not connected to a shop yet. Contact the Goldleaf administrator.');
+    if(goldleafContext?.is_super_admin)await goldleafLoadAdminShops();
+    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;
+    const sharedRates=shared.data||{};
+    if(!goldleafContext.has_access){db.rates=sharedRates;render();setCloudStatus('Trial ended · contact Goldleaf Super Admin');return}
+    const {data,error}=await client.from('goldleaf_shop_ledgers').select('payload,updated_at').eq('shop_id',goldleafContext.shop_id).maybeSingle();if(error)throw error;
+    if(data?.payload){const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(data.payload,db,pending);ensureExtendedData();needsPush=JSON.stringify(db)!==JSON.stringify(data.payload);v2LastCloudUpdatedAt=data.updated_at||''}
+    else needsPush=true;
+    db.rates=sharedRates;localStorage.setItem(dbkey,JSON.stringify(db));
+    setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email));if(!v2HasFocusedEdit())render();
+    if(needsPush){v2CloudBusy=false;await window.pushCloud()}
+  }catch(error){setCloudStatus('Cloud setup needed');const message=document.getElementById('cloudMsg');if(message)message.textContent='Cloud account could not load: '+error.message}
+  finally{v2CloudBusy=false}
+};
+window.pushCloud=async function(){
+  if(!session||!client||!goldleafContext?.shop_id)return;
+  if(v2CloudBusy){v2CloudQueuedPush=true;return}
+  v2CloudBusy=true;localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');setCloudStatus('Syncing shop data…');
+  try{do{v2CloudQueuedPush=false;let written=false;for(let attempt=0;attempt<5&&!written;attempt++){
+    const {data:remote,error:readError}=await client.from('goldleaf_shop_ledgers').select('payload,updated_at').eq('shop_id',goldleafContext.shop_id).maybeSingle();if(readError)throw readError;
+    if(remote?.payload)db=v2MergeCloudLedgers(remote.payload,db,true);
+    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;db.rates=shared.data||db.rates;
+    const updated=new Date(Math.max(Date.now(),(Date.parse(remote?.updated_at||'')||0)+1)).toISOString(),payload={shop_id:goldleafContext.shop_id,payload:db,updated_at:updated};
+    if(remote){let request=client.from('goldleaf_shop_ledgers').update({payload:db,updated_at:updated}).eq('shop_id',goldleafContext.shop_id);if(remote.updated_at)request=request.eq('updated_at',remote.updated_at);const {data,error}=await request.select('updated_at').maybeSingle();if(error)throw error;if(!data)continue}
+    else{const {error}=await client.from('goldleaf_shop_ledgers').insert(payload);if(error){if(error.code==='23505')continue;throw error}}
+    written=true;v2LastCloudUpdatedAt=updated;
+  }if(!written)throw new Error('Shop records changed repeatedly. Save again in a moment.');localStorage.removeItem(V2_CLOUD_PENDING_KEY);localStorage.setItem(v2CloudMarker(),'1');setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email))}while(v2CloudQueuedPush)}
+  catch(error){setCloudStatus('Sync issue · saved on this device');const message=document.getElementById('cloudMsg');if(message)message.textContent='Shop data sync could not finish: '+error.message}
+  finally{v2CloudBusy=false}
+};
+const goldleafRenderWithTenant=window.render;
+window.render=function(){if(session&&goldleafContext&&!goldleafContext.has_access){const host=document.getElementById('app');if(host){const expiry=goldleafContext.expires_at?new Date(goldleafContext.expires_at).toLocaleDateString('en-IN'):'—';host.innerHTML='<header class="top"><div><div class="eyebrow">GOLDLEAF · SUBSCRIPTION</div><h1>Trial period ended</h1><div class="muted">Your shop data remains saved. Contact Goldleaf Super Admin to renew access.</div></div></header><section class="panel"><h2>'+esc(goldleafContext.shop_name||'Your shop')+'</h2><p>Access ended: <b>'+esc(expiry)+'</b></p><p>Contact: gengadharan28@gmail.com</p></section>';return}}return goldleafRenderWithTenant()};
+const goldleafBaseSettingsRender=window.settingsView;
+window.settingsView=function(){let html=goldleafBaseSettingsRender();if(goldleafContext?.is_super_admin&&!html.includes('class="goldleaf-admin"'))html=html.replace('</section><section class="panel"><h2>Products</h2>','</section>'+goldleafSuperAdminPanel()+'<section class="panel"><h2>Products</h2>');return html};
+const goldleafBaseDash=window.dash;
+window.dash=function(){let html=goldleafBaseDash();if(!session)html=html.replace('<section class="panel quick-panel">','<section class="panel"><h2>Start your Goldleaf shop</h2><p>Register with your shop name, GST number, address and phone. Sign up to start a free 7-day trial.</p><button class="primary" onclick="go(\'Settings\');setTimeout(()=>{document.getElementById(\'auth\')?.classList.remove(\'hidden\')},0)">Create account / Sign in</button></section><section class="panel quick-panel">');if(goldleafContext?.shop_name)html=html.replace('<div class="cards">','<section class="panel goldleaf-plan-card"><b>'+esc(goldleafContext.shop_name)+'</b> · '+esc(goldleafContext.plan)+' '+esc(goldleafContext.subscription_status)+' · expires '+esc(new Date(goldleafContext.expires_at).toLocaleDateString('en-IN'))+' · '+Number(goldleafContext.owner_seats||1)+' owner seat / '+Number(goldleafContext.user_seats||1)+' user seat(s)</section><div class="cards">');return html};
+const goldleafBaseHistory=window.updateHistoryView;
+window.updateHistoryView=function(){let html=goldleafBaseHistory();html=html.replace('Goldleaf v2.0.9','Goldleaf v2.3.0').replace('<h3>v2.0.9 · 6 Nov 2026 · Current</h3><ul><li>Settings now accepts custom purity values from 1 to 100, including decimal values.</li></ul>','<h3>v2.3.0 · 6 Nov 2026 · Current</h3><ul><li>Added public shop registration with compulsory GST and contact details, secure super-admin controls, 7-day trials, monthly/yearly/demo renewals and user/owner seat limits.</li><li>Added a shared Rate Book controlled by Super Admin and automatic shop account sync across devices.</li></ul><article class="release-note"><h3>v2.0.9 · 6 Nov 2026</h3><ul><li>Settings now accepts custom purity values from 1 to 100, including decimal values.</li></ul></article>');return html};
+const goldleafTenantStyle=document.createElement('style');goldleafTenantStyle.textContent='.goldleaf-admin-shop{margin:12px 0;padding:14px}.goldleaf-admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.goldleaf-admin-head .muted{font-size:12px;margin-top:3px}.goldleaf-plan-card{background:#f5efe3;border-color:#d8c59e}.goldleaf-admin{border-color:#b89559}html[data-theme="dark"] .goldleaf-plan-card{background:#302e28;border-color:#65543a}';document.head.append(goldleafTenantStyle);
+window.dispatchEvent(new Event('goldleaf-v2-ready'));
+if(session)window.pullCloud();
 window.render();
 
