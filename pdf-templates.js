@@ -1,4 +1,6 @@
 // Shop-owned PDF layouts, branding, and optional Retail GST.
+const pdfPreviousFocusedEdit=window.v2HasFocusedEdit;
+window.v2HasFocusedEdit=function(){return pdfPreviousFocusedEdit()||!!document.querySelector('.more-menu.open,#pdfTemplatePreview,#pdfSettingsForm[data-dirty="1"]');};
 const PDF_LAYOUTS={classic:{name:'Classic',description:'Traditional bordered bill · A4 portrait'},compact:{name:'Compact',description:'Short item columns · A5 bill / A4 ledger'},detailed:{name:'Detailed Columns',description:'Full calculation columns · A4 landscape'},modern:{name:'Modern',description:'Clean branded header · A4 portrait'}};
 let pdfProfile=null,pdfProfileShop='',pdfProfileLoading=false;
 const pdfMode=()=>workspaceMode==='retail'?'retail':'wholesale';
