@@ -41,6 +41,10 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.4.4 · 6 Nov 2026:** Added four bill/ledger PDF layouts selected in each Retail/Wholesale Settings page; editable shop headers and terms; automatic registered shop details; previews; optional Retail-only GST (off by default) with editable CGST/SGST or IGST. GST preferences and PDF headers sync with the shop. Historical bills keep their saved GST status. Retail GST is calculated on the new jewellery sale after discount, before exchange/collection credits. Wholesale PDF balances keep grams and hallmark rupees separate.
+
+Retail layout research: [Vyapar jewellery bill examples](https://vyaparapp.in/bill-book-format/jewellery), [Zoho custom invoice templates](https://help.zoho.com/portal/en/kb/zoho-invoice/power-dialer/articles/how-do-i-create-and-assign-a-custom-template-to-my-invoices). GST reference: [CBIC sectoral FAQs](https://cbic-gst.gov.in/hindi/sectoral-faq.html).
+
 - **v2.4.3 · 6 Nov 2026:** Moved shop subscription details from the top cards to one small running line at the bottom of shop dashboards. The line pauses on hover/focus and respects reduced motion settings.
 
 - **v2.4.2 · 6 Nov 2026:** Added a quick Sign out button at the top of the shop and Super Admin dashboards, including mobile; reduced all six Super Admin count cards to one compact row.
