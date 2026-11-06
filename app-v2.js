@@ -1,4 +1,4 @@
-// Goldleaf v2.1.0: wholesale purity is stored and calculated as a percentage.
+// Goldleaf v2.1.1: wholesale purity is stored and calculated as a percentage.
 const v2OriginalEnsure=window.ensureExtendedData;
 window.ensureExtendedData=function(){
   v2OriginalEnsure();
@@ -8,7 +8,7 @@ window.ensureExtendedData=function(){
 ensureExtendedData();
 
 // Recompute wholesale totals from the entered percentage, including older saved totals.
-window.saleVal=function(x){return n(x.weight)*n(x.purity)/100*(1+n(x.wastage)/100)};
+window.saleVal=function(x){return n(x.weight)*(n(x.purity)+n(x.wastage))/100};
 window.partySaleNetValue=function(x){return Math.round((saleVal(x)-n(x.partyDiscountGrams)-n(x.exchangePureGrams))*1000)/1000};
 window.accountSaleValue=function(x){return ownerType(x)==='customer'?n(x.amount):partySaleNetValue(x)};
 
@@ -79,7 +79,7 @@ function v2PartySaleView(){
     +'<div class="field v2-hallmark-total"><label>Total hallmark charge</label><b id="partyHallmarkTotal">'+v2Money(hallmarkTotal)+'</b><small>Pieces × charge per piece</small></div><div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div>'
     +'<div class="field v2-party-gold-total"><label>Payable pure gold</label><b id="partyGrossSale">'+fmt(x?accountSaleValue(x):0)+' g</b></div></div><div class="right">'+(x?'<button type="button" onclick="edit=null;render()">Cancel</button>':'')+'<button class="primary">'+(x?'Save changes':'Save sale')+'</button></div></form>':'<div class="empty">Register a party before recording a sale.</div>';
   const rows=db.sales.filter(item=>ownerType(item)==='party').sort((a,b)=>b.when.localeCompare(a.when)).map(item=>[item.when.replace('T',' '),esc(accountName(item.partyId,'party')),esc(item.product),fmt(item.weight)+' g',item.pieces||1,n(item.purity).toFixed(2)+'%',n(item.wastage)+'%',item.hallmarkType||'—',v2Money(v2HallmarkAmount(item)),fmt(accountSaleValue(item))+' g','<button onclick="edit=\''+item.id+'\';render()">Edit</button>']);
-  return header('Wholesale party sales. Enter purity as a percentage from 1 to 100; payable grams use weight × purity% ÷ 100, plus wastage.')+'<section class="panel"><h2>'+(x?'Edit party sale':'Party sales entry')+'</h2>'+form+'</section><section class="panel"><h2>Party sales history</h2>'+(rows.length?table(['Date','Party','Product','Weight','Pieces','Purity %','Wastage','Hallmark','Hallmark ₹','Payable g',''],rows):'<div class="empty">No party sales recorded yet.</div>')+'</section>';
+  return header('Wholesale party sales. Enter purity as a percentage from 1 to 100; payable grams use weight × (purity + wastage) ÷ 100.')+'<section class="panel"><h2>'+(x?'Edit party sale':'Party sales entry')+'</h2>'+form+'</section><section class="panel"><h2>Party sales history</h2>'+(rows.length?table(['Date','Party','Product','Weight','Pieces','Purity %','Wastage','Hallmark','Hallmark ₹','Payable g',''],rows):'<div class="empty">No party sales recorded yet.</div>')+'</section>';
 }
 window.refreshSalePrice=function(form){
   if(!form||form.elements.accountType.value!=='customer')return;
@@ -100,7 +100,7 @@ window.calcSale=function(form){
     if(form.elements.amount)form.elements.amount.value=net.toFixed(2);
     const purityLabel=form.querySelector('#salePurityRateLabel');if(purityLabel)purityLabel.textContent=rateMoney(totals.purityRate)+' / g · '+form.elements.purity.value+'K from Rate Book';
   }else{
-    const gross=n(form.elements.weight.value)*n(form.elements.purity.value)/100*(1+n(form.elements.wastage.value)/100),net=gross-discount-exchangePure,hallmark=Math.round(n(form.elements.pieces?.value)*n(form.elements.hallmarkChargePerPiece?.value)*100)/100,set=(id,value)=>{const node=form.querySelector('#'+id);if(node)node.textContent=value};
+    const gross=n(form.elements.weight.value)*(n(form.elements.purity.value)+n(form.elements.wastage.value))/100,net=gross-discount-exchangePure,hallmark=Math.round(n(form.elements.pieces?.value)*n(form.elements.hallmarkChargePerPiece?.value)*100)/100,set=(id,value)=>{const node=form.querySelector('#'+id);if(node)node.textContent=value};
     set('partyGrossSale',fmt(gross)+' g');set('partyDiscountTotal',fmt(discount)+' g');set('partyExchangePure',fmt(exchangePure)+' g');set('partyNetLabel',net<0?'Gold balance in party favour':'Balance to collect');set('partyNetTotal',fmt(Math.abs(net))+' g');set('partyHallmarkTotal',v2Money(hallmark));
   }
 };
@@ -138,7 +138,7 @@ window.saveSale=function(event){
   if(customer&&discount>totals.subtotal)return say('Discount cannot be greater than the amount before discount.');
   const lines=customer?exchangeRows(form).filter(item=>item.hasEntry):(old?.oldGoldItems||[]);
   if(customer)for(const item of lines)if(!item.product||!item.purity||item.weight<=0||item.testingPurity<1||item.testingPurity>100||item.rate<=0)return say('Complete each old gold item with product, weight, testing purity from 1 to 100, and rate.');
-  const exchangeAmount=customer?Math.round(lines.reduce((sum,item)=>sum+item.amount,0)*100)/100:n(old?.exchangeAmount),exchangePure=customer?lines.reduce((sum,item)=>sum+item.pureGrams,0):n(old?.exchangePureGrams),saleAmount=customer?Math.round(totals.final*100)/100:0,partyGross=weight*purity/100*(1+wastage/100),partyNet=Math.round((partyGross-discount-exchangePure)*1000)/1000,netAmount=Math.round((saleAmount-exchangeAmount)*100)/100;
+  const exchangeAmount=customer?Math.round(lines.reduce((sum,item)=>sum+item.amount,0)*100)/100:n(old?.exchangeAmount),exchangePure=customer?lines.reduce((sum,item)=>sum+item.pureGrams,0):n(old?.exchangePureGrams),saleAmount=customer?Math.round(totals.final*100)/100:0,partyGross=weight*(purity+wastage)/100,partyNet=Math.round((partyGross-discount-exchangePure)*1000)/1000,netAmount=Math.round((saleAmount-exchangeAmount)*100)/100;
   if(customer&&collectedAmount>Math.max(0,netAmount))return say('Collected amount cannot be greater than the balance after old gold exchange.');
   const commit=photo=>{const saved=Object.assign({},old||{},{id:id||crypto.randomUUID(),partyId:f.get('partyId'),accountType:type,when:f.get('when'),product:f.get('product'),weight,pieces,purity,wastage,rate24:customer?rate24:0,ratePerGram:customer?ratePerGram:0,makingPerPiece:customer?makingPerPiece:0,discount:customer?discount:0,collectedAmount:customer?Math.round(collectedAmount*100)/100:0,collectedMethod:collectionMethod,collectedReference:collectionReference,partyDiscountGrams:customer?0:discount,hallmarkType,hallmarkChargePerPiece,hallmarkChargeAmount,saleAmount,amount:customer?netAmount:0,partyNetGrams:customer?null:partyNet,exchangeAmount,exchangePureGrams:exchangePure,oldGoldItems:lines.map(item=>({product:item.product,purity:item.purity,weight:item.weight,testingPurity:item.testingPurity,rate:item.rate,amount:item.amount,pureGrams:item.pureGrams})),photo:photo||(old&&old.photo)||''});
     if(customer)Object.assign(saved,{pureGoldGrams:totals.pureGold,wastageGrams:totals.wastageGold,goldAmount:totals.goldAmount,wastageAmount:totals.wastageAmount,makingTotal:totals.makingTotal,subtotal:totals.subtotal});
