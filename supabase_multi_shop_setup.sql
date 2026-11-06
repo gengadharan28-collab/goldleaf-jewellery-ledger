@@ -32,7 +32,7 @@ create table if not exists public.goldleaf_shop_members (
 drop index if exists public.goldleaf_one_owner_per_shop;
 
 create table if not exists public.goldleaf_shop_invites (
-  token text primary key default encode(gen_random_bytes(24),'hex'),
+  token text primary key default (replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','')),
   shop_id uuid not null references public.goldleaf_shops(id) on delete cascade,
   invited_email text not null,
   role text not null check (role in ('owner','user')),
@@ -255,7 +255,7 @@ begin
   if s.subscription_status not in ('trial','active') or s.expires_at<=now() then raise exception 'Renew the shop plan before inviting team members.'; end if;
   if p_role='user' and (select count(*) from public.goldleaf_shop_members where shop_id=s.id and role='user') >= s.user_seats then raise exception 'No user seats are available. Contact the Super Admin.'; end if;
   if p_role='owner' and (select count(*) from public.goldleaf_shop_members where shop_id=s.id and role='owner') >= s.owner_seats then raise exception 'No owner seats are available. Contact the Super Admin.'; end if;
-  new_token:=encode(gen_random_bytes(24),'hex');
+  new_token:=(replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-',''));
   insert into public.goldleaf_shop_invites(token,shop_id,invited_email,role,created_by)
   values(new_token,s.id,lower(trim(p_email)),p_role,auth.uid());
   return new_token;

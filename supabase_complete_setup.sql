@@ -32,7 +32,7 @@ create table if not exists public.goldleaf_shop_members (
 drop index if exists public.goldleaf_one_owner_per_shop;
 
 create table if not exists public.goldleaf_shop_invites (
-  token text primary key default encode(gen_random_bytes(24),'hex'),
+  token text primary key default (replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','')),
   shop_id uuid not null references public.goldleaf_shops(id) on delete cascade,
   invited_email text not null,
   role text not null check (role in ('owner','user')),
@@ -255,7 +255,7 @@ begin
   if s.subscription_status not in ('trial','active') or s.expires_at<=now() then raise exception 'Renew the shop plan before inviting team members.'; end if;
   if p_role='user' and (select count(*) from public.goldleaf_shop_members where shop_id=s.id and role='user') >= s.user_seats then raise exception 'No user seats are available. Contact the Super Admin.'; end if;
   if p_role='owner' and (select count(*) from public.goldleaf_shop_members where shop_id=s.id and role='owner') >= s.owner_seats then raise exception 'No owner seats are available. Contact the Super Admin.'; end if;
-  new_token:=encode(gen_random_bytes(24),'hex');
+  new_token:=(replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-',''));
   insert into public.goldleaf_shop_invites(token,shop_id,invited_email,role,created_by)
   values(new_token,s.id,lower(trim(p_email)),p_role,auth.uid());
   return new_token;
@@ -295,7 +295,7 @@ insert into public.goldleaf_plans(code,name,price,description) values
 ('monthly','Monthly',null,'One month of access to the approved workspaces.'),
 ('yearly','Yearly',null,'One year of access to the approved workspaces.') on conflict do nothing;
 create table if not exists public.goldleaf_subscription_payments(id uuid primary key default gen_random_uuid(),shop_id uuid not null references public.goldleaf_shops,amount numeric not null check(amount>0),reference text not null,recorded_at timestamptz not null default now(),recorded_by uuid not null references auth.users);
-create table if not exists public.goldleaf_shop_onboarding(token text primary key default encode(gen_random_bytes(24),'hex'),email text not null,shop_name text not null,gst_number text not null,address text not null,phone text not null,plan text not null references public.goldleaf_plans,retail_enabled boolean not null default false,wholesale_enabled boolean not null default false,created_at timestamptz not null default now(),expires_at timestamptz not null default now()+interval '7 days',accepted_at timestamptz,accepted_by uuid references auth.users,created_by uuid not null references auth.users);
+create table if not exists public.goldleaf_shop_onboarding(token text primary key default (replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','')),email text not null,shop_name text not null,gst_number text not null,address text not null,phone text not null,plan text not null references public.goldleaf_plans,retail_enabled boolean not null default false,wholesale_enabled boolean not null default false,created_at timestamptz not null default now(),expires_at timestamptz not null default now()+interval '7 days',accepted_at timestamptz,accepted_by uuid references auth.users,created_by uuid not null references auth.users);
 alter table public.goldleaf_plans enable row level security;
 alter table public.goldleaf_subscription_payments enable row level security;
 alter table public.goldleaf_shop_onboarding enable row level security;
