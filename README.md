@@ -10,11 +10,15 @@ Use **Add to Home** in the app header. Android browsers that support app install
 
 New visitors can create a Goldleaf login from the Dashboard. Shop name, 15-character GST number, full address and phone are compulsory. The password is chosen by the account owner and is never stored in the website source. New shops receive a 7-day trial, one owner seat and one user seat. Shop details and ledger records are saved in Supabase; each shop has its own ledger protected by row-level security.
 
-The initial Super Admin login is **gengadharan28@gmail.com**. Sign up with that email and the password you choose, then run `supabase_multi_shop_setup.sql` once in the Supabase SQL Editor. The migration safely copies existing account ledgers into separate shop records, grants the initial admin role to that email, and installs the shop, trial, subscription, access and shared-rate rules. It contains no service-role key. Do not publish or run the app migration before saving a backup of the Supabase project.
+The initial Super Admin login is **gengadharan28@gmail.com**. Sign up with that email and the password you choose, then run `supabase_complete_setup.sql` once and `supabase_assign_admin.sql` to assign the administrator in the Supabase SQL Editor. The migration safely copies existing account ledgers into separate shop records, grants the initial admin role to that email, and installs the shop, trial, subscription, access and shared-rate rules. It contains no service-role key. Back up the Supabase project before applying database changes.
 
-In **Settings → Super Admin**, the administrator can inspect registered shops, renew monthly or yearly plans, grant a 7-day demo, suspend or restore access, and set user/owner seat limits. Shops can invite team members up to those limits. Super Admin also controls the shared Rate Book; saved rate changes are read by every shop. The app refreshes cloud data while open and syncs saved records across signed-in devices.
+In the dedicated **Super Admin dashboard**, the administrator can inspect registered shops, renew monthly or yearly plans, grant a 7-day demo, suspend or restore access, and set user/owner seat limits. Shops can invite team members up to those limits. Super Admin also controls the shared Rate Book; saved rate changes are read by every shop. The app refreshes cloud data while open and syncs saved records across signed-in devices.
 
 Sign in to the same shop account on a phone and computer to sync its records. Before sign-in, entries stay in that browser. Existing account ledgers are retained by the migration. Download a backup from **Settings → Backup & setup** before database changes.
+
+## Super Admin portal
+
+Open `?admin=1` to sign in directly. The admin portal has platform counts, Shops & access, Create shop invitations, Subscription plans, and Shared rates. Public `?signup=1` registration starts a 7-day trial with no workspace permission until Super Admin enables Retail, Wholesale, or both. Existing shop ledgers are retained. Payment counts reflect manually recorded received payments; changing a plan does not fabricate a payment. Owners choose their passwords when redeeming private shop invitation links. Shop dashboards show their plan, expiry and approved workspaces. Workspace permissions are enforced by database read/write functions as well as navigation. Local data is stored by shop to prevent a second account inheriting the previous account’s records.
 
 ## Features
 
@@ -31,11 +35,13 @@ Sign in to the same shop account on a phone and computer to sync its records. Be
 - **Update History** page with the current website version and release notes.
 - Dark and light theme toggle. Theme choice stays on that device.
 
-Party sales payable = weight × purity ÷ 24 × (1 + wastage% ÷ 100). Party metal payment credit = gross weight × testing purity ÷ 100. Party cash payment credit = cash amount ÷ 24K rate per gram.
+Party sales payable = weight × (purity% + wastage%) ÷ 100. Party metal payment credit = gross weight × testing purity ÷ 100. Party cash payment credit = cash amount ÷ 24K rate per gram.
 
 Customer sale gold value = weight × selected-purity rate from Rate Book. Automatic 22K/18K/14K rates are 24K base × karat ÷ 24; manual mode uses each entered karat rate. Wastage value = gold value × wastage%. Making charges = pieces × making charge per piece. New sale total = gold value + wastage value + making charges − discount. Old gold exchange amount = old jewellery weight × manually entered testing purity% ÷ 100 × old gold rate per gram. Balance due = new sale total − old gold exchange amount − collected amount. If old gold exceeds the new sale amount, the app shows customer credit; bill collection cannot exceed the positive balance remaining after old gold exchange. Collected amount is recorded with its method and appears as a payment in the customer ledger, summary, dashboard totals, printout and payment history. The discount cannot exceed the new sale amount before discount.
 
 ## Website updates
+
+- **v2.4.0 · 6 Nov 2026:** Added separate Super Admin portal, signup and paid-shop dashboard, admin-approved Retail/Wholesale permissions, private shop invitations, plan pricing and payment receipts, and shop-scoped local storage.
 
 - **v2.3.0 · 6 Nov 2026:** Added required shop registration, secure Super Admin controls, 7-day trials, monthly/yearly/demo renewals, owner/user seats and invitations, shop-level cloud ledgers, and centrally shared rates.
 

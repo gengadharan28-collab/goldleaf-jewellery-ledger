@@ -1,5 +1,5 @@
-const CACHE='goldleaf-shell-v23';
-const SHELL=['./','./app-v2.js?v=2.3.0-multishop-admin','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='goldleaf-shell-v24';
+const SHELL=['./','./app-v2.js?v=2.4.0-platform','./admin-panel.js?v=2.4.0','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{})).then(()=>self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('goldleaf-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

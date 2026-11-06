@@ -73,7 +73,7 @@ as $$ select exists(select 1 from public.goldleaf_shop_members where shop_id=tar
 create or replace function public.goldleaf_has_shop_access(target_shop uuid)
 returns boolean language sql stable security definer set search_path=public,auth
 as $$
-  select public.goldleaf_is_super_admin() or exists(
+  select exists(
     select 1 from public.goldleaf_shop_members m join public.goldleaf_shops s on s.id=m.shop_id
     where m.shop_id=target_shop and m.user_id=auth.uid()
       and s.subscription_status in ('trial','active') and s.expires_at>now()
@@ -137,12 +137,6 @@ select s.id,coalesce(l.payload,'{}'::jsonb),coalesce(l.updated_at,now())
 from public.goldleaf_shops s
 left join public.jewellery_ledgers l on l.user_id=s.created_by
 on conflict(shop_id) do nothing;
-
--- Grant the initial administrator role using the supplied email. This affects no
--- other accounts and only succeeds after that email has registered.
-insert into public.goldleaf_super_admins(user_id)
-select id from auth.users where lower(email)=lower('gengadharan28@gmail.com')
-on conflict(user_id) do nothing;
 
 -- Seed shared rates from the most recently changed legacy ledger, if one exists.
 update public.goldleaf_shared_rates g set rates=coalesce((
