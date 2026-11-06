@@ -410,7 +410,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+history()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.0.6';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.0.7';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -607,7 +607,7 @@ function openRateBookFromReminder(){
 function updateHistoryView(){
   return header('A separate record of website updates and features.')
   +'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v'+GOLDLEAF_VERSION+'</b> · 6 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section>'
-  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.0.6 · 6 Nov 2026 · Current</h3><ul><li>Removed Customer switching from Party Ledger. Customer pages stay inside Retail and Party pages stay inside Wholesale.</li></ul></article><article class="release-note"><h3>v2.0.5 · 6 Nov 2026</h3><ul><li>Added hallmark charges and separate Party gold and hallmark balances.</li></ul></article><article class="release-note"><h3>v1.9.0 · 5 Nov 2026</h3><ul>'
+  +'<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.0.7 · 6 Nov 2026 · Current</h3><ul><li>Prevented overlapping cloud checks and reduced background checks while keeping saves immediate.</li><li>Kept active entries open during remote updates and made hallmark charge typing update only its total.</li></ul></article><article class="release-note"><h3>v2.0.6 · 6 Nov 2026</h3><ul><li>Removed Customer switching from Party Ledger. Customer pages stay inside Retail and Party pages stay inside Wholesale.</li></ul></article><article class="release-note"><h3>v2.0.5 · 6 Nov 2026</h3><ul><li>Added hallmark charges and separate Party gold and hallmark balances.</li></ul></article><article class="release-note"><h3>v1.9.0 · 5 Nov 2026</h3><ul>'
   +'<li>Added a separate collected amount that automatically reduces the Retail customer balance and appears as a bill collection in the customer ledger and summary.</li>'
   +'<li>Improved Balance Due contrast and added Classic and Modern print templates for customer bills.</li>'
   +'</ul></article><article class="release-note"><h3>v1.8.0 · 5 Nov 2026</h3><ul>'
@@ -927,4 +927,4 @@ window.render=function(){
 };
 window.setInterval(checkRateReminder,30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.0.6-workspace-ledger"></script></body></html>
+</script><script src="./app-v2.js?v=2.0.7-sync-performance"></script></body></html>

@@ -9,7 +9,7 @@ Use **Add to Home** in the app header. Android browsers that support app install
 ## Cloud account
 
 1. In **Settings → Sign in / create account**, choose **Create account** the first time. Use an email you can access and a password of at least 8 characters; verify the email if prompted. This creates a Goldleaf login, so no separate Supabase account is needed.
-2. Sign in to this same Goldleaf account on both devices. Local and cloud records merge automatically on sign-in and whenever either device saves. The other open device refreshes within about 5 seconds; a closed device syncs when reopened.
+2. Sign in to this same Goldleaf account on both devices. Local and cloud records merge automatically on sign-in and whenever either device saves. Saves sync immediately; another open device checks for changes about every 10 seconds. A closed device syncs when reopened.
 3. Sync runs automatically. Check for **Cloud sync · your email**.
 
 The app uses its Supabase database. Each signed-in account can access only its own ledger through row-level security. Customer contact details, photos, Aadhaar and PAN are part of that account’s synced ledger. Before sign-in, entries stay in that browser only. Sync always merges device-only and cloud records; it does not replace one device’s ledger with the other. Different accounts have separate ledgers. Download a backup from **Settings → Backup & setup** for an extra copy.
@@ -35,6 +35,7 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.0.7 · 6 Nov 2026:** Reduced redundant cloud checks, prevented overlapping sync requests, and kept open forms from resetting during a remote update.
 - **v2.0.6 · 6 Nov 2026:** Removed Customer switching from Party Ledger and locked Party/Customer ledgers to their matching Wholesale/Retail workspaces.
 - **v2.0.5 · 6 Nov 2026:** Added per-piece HUID/Non-HUID charges, separate Party gold and hallmark balances, and workspace-specific Party/Customer ledgers.
 - **v2.0.4 · 6 Nov 2026:** Made syncing automatic and removed the manual sync button from Settings.
