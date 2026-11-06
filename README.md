@@ -10,7 +10,7 @@ Use **Add to Home** in the app header. Android browsers that support app install
 
 1. In **Settings → Sign in / create account**, choose **Create account** the first time. Use an email you can access and a password of at least 8 characters; verify the email if prompted. This creates a Goldleaf login, so no separate Supabase account is needed.
 2. Sign in to this same Goldleaf account on both devices. Local and cloud records merge automatically on sign-in and whenever either device saves. The other open device refreshes within about 5 seconds; a closed device syncs when reopened.
-3. Use **Settings → Sync and merge now** if you want to request a merge immediately. Check for **Cloud sync · your email**.
+3. Sync runs automatically. Check for **Cloud sync · your email**.
 
 The app uses its Supabase database. Each signed-in account can access only its own ledger through row-level security. Customer contact details, photos, Aadhaar and PAN are part of that account’s synced ledger. Before sign-in, entries stay in that browser only. Sync always merges device-only and cloud records; it does not replace one device’s ledger with the other. Different accounts have separate ledgers. Download a backup from **Settings → Backup & setup** for an extra copy.
 
@@ -35,6 +35,7 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.0.4 · 6 Nov 2026:** Made syncing automatic and removed the manual sync button from Settings.
 - **v2.0.3 · 6 Nov 2026:** Always merge device and cloud records on sign-in, saves and refresh; removed the two replace actions.
 
 - **v2.0.2 · 6 Nov 2026:** Added email/password validation before account creation and clearer sign-up errors, including the anonymous sign-in case.
