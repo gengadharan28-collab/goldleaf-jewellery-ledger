@@ -41,6 +41,8 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.4.3 · 6 Nov 2026:** Moved shop subscription details from the top cards to one small running line at the bottom of shop dashboards. The line pauses on hover/focus and respects reduced motion settings.
+
 - **v2.4.2 · 6 Nov 2026:** Added a quick Sign out button at the top of the shop and Super Admin dashboards, including mobile; reduced all six Super Admin count cards to one compact row.
 
 - **v2.4.1 · 6 Nov 2026:** Added cloud reset markers, stale-device write protection and automatic removal of older local entries when an approved shop reset is received. Apply `supabase_reset_protection.sql` after the main setup; this file installs guards and does not erase records.
