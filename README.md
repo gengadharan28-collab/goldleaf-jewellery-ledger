@@ -35,6 +35,9 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.0.9 · 6 Nov 2026:** Settings now accepts custom purity values from 1 to 100, including decimals.
+
+
 - **v2.0.8 · 6 Nov 2026:** Reworked Retail invoice entry for mobile with readable stacked sections and natural scrolling; removed cloud status from the Dashboard view.
 
 - **v2.0.7 · 6 Nov 2026:** Reduced redundant cloud checks, prevented overlapping sync requests, and kept open forms from resetting during a remote update.
