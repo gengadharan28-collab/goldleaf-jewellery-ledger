@@ -1,4 +1,4 @@
-// Goldleaf v2.0.7: lighter sync and a focused hallmark charge calculator.
+// Goldleaf v2.0.8: mobile Retail invoice layout and a cleaner Dashboard.
 const v2OriginalEnsure=window.ensureExtendedData;
 window.ensureExtendedData=function(){
   v2OriginalEnsure();
@@ -48,7 +48,7 @@ window.saveRateValues=function(form,slot){
   const now=new Date(),when=istDateTime(now);db.rates=rates;db.rateHistory.unshift({id:crypto.randomUUID(),date:when.date,time:when.time,slot:slot||'Manual',rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);save();return true;
 };
 window.saveRateBook=function(event){event.preventDefault();if(!saveRateValues(event.target,'Manual'))return;render();say('Rates saved.')};
-window.updateHistoryView=function(){return header('A separate record of website updates and features.')+'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v2.0.7</b> · 6 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section><section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.0.7 · 6 Nov 2026 · Current</h3><ul><li>Prevented overlapping cloud checks and reduced background checks while keeping saves immediate.</li><li>Kept active entries open during remote updates and made hallmark charge typing update only its total.</li></ul></article><article class="release-note"><h3>v2.0.6 · 6 Nov 2026</h3><ul><li>Removed Customer switching and Customer sections from Party Ledger.</li><li>Kept Party Ledger and Party pages in Wholesale; all Customer pages stay in Retail.</li></ul></article><article class="release-note"><h3>v2.0.5 · 6 Nov 2026</h3><ul><li>Added optional HUID and Non-HUID hallmark charges to Wholesale Party Sales, calculated as pieces × charge per piece.</li><li>Added separate gold-gram and hallmark-rupee balances to Party Ledger and its PDF, with cash allocation and high-contrast balance cards.</li><li>Kept Party pages in Wholesale and Customer pages in Retail.</li></ul></article><article class="release-note"><h3>v2.0.4 · 6 Nov 2026</h3><ul><li>Made phone and laptop sync automatic on sign-in, saves and background refresh.</li><li>Removed the manual sync button from Settings.</li></ul></article><article class="release-note"><h3>v2.0.3 · 6 Nov 2026</h3><ul><li>Made both devices merge their local and cloud records during sign-in, saves and refresh.</li><li>Removed replace actions to protect records on both devices.</li></ul></article><article class="release-note"><h3>v2.0.2 · 6 Nov 2026</h3><ul><li>Prevented empty email/password submissions from reaching cloud sign-up as anonymous login attempts.</li><li>Added clearer first-account, verification and sign-in error instructions.</li></ul></article><article class="release-note"><h3>v2.0.1 · 6 Nov 2026</h3><ul><li>Added phone-to-cloud and cloud-to-laptop replacement steps with confirmation.</li><li>Made saves merge with the latest cloud ledger safely and refreshed open devices every 5 seconds.</li></ul></article><article class="release-note"><h3>v2.0.0 · 6 Nov 2026</h3><ul><li>Added automatic or manual 22K, 18K and 14K prices; removed the Old Gold rate field from Rate Book.</li><li>Updated Retail bills to use the Rate Book without showing a 24K rate box, and added Cash, Cheque and GPay collection details.</li><li>Expanded Customer and Party ledgers with purchase, payment, old gold, grams, pending balance and running balance reports, plus PDF/print and share actions.</li><li>Added same-account sync guidance, first-sign-in merging, manual sync and background refresh while the app is open.</li></ul></article><article class="release-note"><h3>v1.9.0 · 5 Nov 2026</h3><ul><li>Added a separate collected amount that reduces Retail customer balance and appears as a bill collection in the customer ledger and summary.</li><li>Improved Balance Due contrast and added Classic and Modern print templates for customer bills.</li></ul></article><article class="release-note"><h3>v1.8.0 · 5 Nov 2026</h3><ul><li>Fixed Retail Customer Sales Entry to keep bill details and balance visible without page scrolling.</li><li>Old Gold Exchange opens only from its button, and customer sales history opens separately.</li></ul></article><article class="release-note"><h3>v1.7.0 · 5 Nov 2026</h3><ul><li>Made Retail customer sales a single continuous view with account details, jewellery, calculations, discount and balance together.</li><li>Moved Old Gold Exchange into an optional panel and restored the simpler Wholesale party sale form.</li></ul></article><article class="release-note"><h3>v1.6.0 · 5 Nov 2026</h3><ul><li>Added separate Retail and Wholesale workspaces with matching navigation, accounts, sales, payments, ledgers and summaries.</li></ul></article><article class="release-note"><h3>v1.5.0 · 5 Nov 2026</h3><ul><li>Added one-screen customer and party bills with discounts, final balances and itemized old gold exchange.</li></ul></article><article class="release-note"><h3>v1.4.0 · 5 Nov 2026</h3><ul><li>Combined Party and Customer summary and ledger pages with separate Party and Customer tabs.</li></ul></article><article class="release-note"><h3>v1.3.0 · 5 Nov 2026</h3><ul><li>Combined Party Register and Customer Register on one Register page with Party and Customer tabs.</li></ul></article><article class="release-note"><h3>v1.2.0 · 5 Nov 2026</h3><ul><li>Added customer sale calculations, Rate Book, rate reminders, and website update history.</li></ul></article><article class="release-note"><h3>v1.1.0 · 5 Nov 2026</h3><ul><li>Added customer registration, separate rupee ledger and summary, themes and home-screen install support.</li></ul></article></section>'};
+window.updateHistoryView=function(){return header('A separate record of website updates and features.')+'<section class="panel"><h2>Current version</h2><p><b>Goldleaf v2.0.8</b> · 6 Nov 2026</p><p class="hint">Review the changes included in each website update here.</p></section><section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.0.8 · 6 Nov 2026 · Current</h3><ul><li>Reworked Retail sales entry for mobile screens with larger controls, clear sections and natural scrolling.</li><li>Removed cloud-sync status from the Dashboard page view.</li></ul></article><article class="release-note"><h3>v2.0.7 · 6 Nov 2026</h3><ul><li>Prevented overlapping cloud checks and reduced background checks while keeping saves immediate.</li><li>Kept active entries open during remote updates and made hallmark charge typing update only its total.</li></ul></article><article class="release-note"><h3>v2.0.6 · 6 Nov 2026</h3><ul><li>Removed Customer switching and Customer sections from Party Ledger.</li><li>Kept Party Ledger and Party pages in Wholesale; all Customer pages stay in Retail.</li></ul></article><article class="release-note"><h3>v2.0.5 · 6 Nov 2026</h3><ul><li>Added optional HUID and Non-HUID hallmark charges to Wholesale Party Sales, calculated as pieces × charge per piece.</li><li>Added separate gold-gram and hallmark-rupee balances to Party Ledger and its PDF, with cash allocation and high-contrast balance cards.</li><li>Kept Party pages in Wholesale and Customer pages in Retail.</li></ul></article><article class="release-note"><h3>v2.0.4 · 6 Nov 2026</h3><ul><li>Made phone and laptop sync automatic on sign-in, saves and background refresh.</li><li>Removed the manual sync button from Settings.</li></ul></article><article class="release-note"><h3>v2.0.3 · 6 Nov 2026</h3><ul><li>Made both devices merge their local and cloud records during sign-in, saves and refresh.</li><li>Removed replace actions to protect records on both devices.</li></ul></article><article class="release-note"><h3>v2.0.2 · 6 Nov 2026</h3><ul><li>Prevented empty email/password submissions from reaching cloud sign-up as anonymous login attempts.</li><li>Added clearer first-account, verification and sign-in error instructions.</li></ul></article><article class="release-note"><h3>v2.0.1 · 6 Nov 2026</h3><ul><li>Added phone-to-cloud and cloud-to-laptop replacement steps with confirmation.</li><li>Made saves merge with the latest cloud ledger safely and refreshed open devices every 5 seconds.</li></ul></article><article class="release-note"><h3>v2.0.0 · 6 Nov 2026</h3><ul><li>Added automatic or manual 22K, 18K and 14K prices; removed the Old Gold rate field from Rate Book.</li><li>Updated Retail bills to use the Rate Book without showing a 24K rate box, and added Cash, Cheque and GPay collection details.</li><li>Expanded Customer and Party ledgers with purchase, payment, old gold, grams, pending balance and running balance reports, plus PDF/print and share actions.</li><li>Added same-account sync guidance, first-sign-in merging, manual sync and background refresh while the app is open.</li></ul></article><article class="release-note"><h3>v1.9.0 · 5 Nov 2026</h3><ul><li>Added a separate collected amount that reduces Retail customer balance and appears as a bill collection in the customer ledger and summary.</li><li>Improved Balance Due contrast and added Classic and Modern print templates for customer bills.</li></ul></article><article class="release-note"><h3>v1.8.0 · 5 Nov 2026</h3><ul><li>Fixed Retail Customer Sales Entry to keep bill details and balance visible without page scrolling.</li><li>Old Gold Exchange opens only from its button, and customer sales history opens separately.</li></ul></article><article class="release-note"><h3>v1.7.0 · 5 Nov 2026</h3><ul><li>Made Retail customer sales a single continuous view with account details, jewellery, calculations, discount and balance together.</li><li>Moved Old Gold Exchange into an optional panel and restored the simpler Wholesale party sale form.</li></ul></article><article class="release-note"><h3>v1.6.0 · 5 Nov 2026</h3><ul><li>Added separate Retail and Wholesale workspaces with matching navigation, accounts, sales, payments, ledgers and summaries.</li></ul></article><article class="release-note"><h3>v1.5.0 · 5 Nov 2026</h3><ul><li>Added one-screen customer and party bills with discounts, final balances and itemized old gold exchange.</li></ul></article><article class="release-note"><h3>v1.4.0 · 5 Nov 2026</h3><ul><li>Combined Party and Customer summary and ledger pages with separate Party and Customer tabs.</li></ul></article><article class="release-note"><h3>v1.3.0 · 5 Nov 2026</h3><ul><li>Combined Party Register and Customer Register on one Register page with Party and Customer tabs.</li></ul></article><article class="release-note"><h3>v1.2.0 · 5 Nov 2026</h3><ul><li>Added customer sale calculations, Rate Book, rate reminders, and website update history.</li></ul></article><article class="release-note"><h3>v1.1.0 · 5 Nov 2026</h3><ul><li>Added customer registration, separate rupee ledger and summary, themes and home-screen install support.</li></ul></article></section>'};
 
 const v2PreviousSalesView=window.salesView;
 function v2Historical24Rate(sale,purity){return n(sale?.ratePerGram)>0?n(sale.ratePerGram)*24/(Number(purity)||24):n(sale?.rate24)||v2RateForPurity(purity)*24/(Number(purity)||24)}
@@ -286,6 +286,72 @@ const v2Style=document.createElement('style');v2Style.textContent=`
 html[data-theme="dark"] .v2-party-gold-card{background:#0d2b20}html[data-theme="dark"] .v2-party-amount-card,html[data-theme="dark"] .v2-party-closing span{background:#382f20;color:#fff1cd}html[data-theme="dark"] .v2-hallmark-total{background:#262b28}html[data-theme="dark"] .v2-applied-rate{background:#262b28;border-color:#474e49}html[data-theme="dark"] .v2-applied-rate span{color:#d9c08f}html[data-theme="dark"] .rate-mode-switch button.active{background:#c3a06c;color:#1e211f}html[data-theme="dark"] .v2-bill-totals .v2-balance{background:#0d2b20;border-color:#e1c48c}
 `;
 document.head.append(v2Style);
+const responsiveRetailStyle=document.createElement('style');responsiveRetailStyle.textContent=`
+.dashboard-view #cloudState,.dashboard-view #cloudInline{display:none!important}
+@media(max-width:760px){
+ .compact-customer-sale,.compact-customer-sale html{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+ .compact-customer-sale .layout{display:block;height:auto;min-height:100dvh}
+ .compact-customer-sale .side{display:flex;height:auto;min-height:70px}
+ .compact-customer-sale #app.main{position:static;width:100%;height:auto;min-height:100dvh;max-width:none;margin:0;padding:20px 14px calc(112px + env(safe-area-inset-bottom));overflow:visible}
+ .compact-customer-sale .app-version{display:block}
+ .retail-sale-screen{height:auto;min-height:0;display:block;overflow:visible}
+ .retail-sale-top{display:grid;grid-template-columns:minmax(0,1fr);gap:11px;margin-bottom:12px}
+ .retail-title .eyebrow{display:block;font-size:9px}
+ .retail-title h1{font-size:24px;white-space:normal}
+ .retail-sale-tools{display:grid;width:100%;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+ .retail-sale-tools button{min-width:0;min-height:44px;padding:7px 5px;font-size:11px;white-space:normal}
+ .retail-sale-tools .theme-toggle{min-width:0}
+ .retail-sale-form{display:flex;flex-direction:column;gap:10px;min-height:0}
+ .retail-sale-columns,.v2-erp-form .retail-sale-columns{display:flex;flex-direction:column;gap:10px;min-height:0}
+ .retail-sale-left,.v2-erp-form .retail-sale-left{display:flex;flex-direction:column;gap:10px;min-height:0}
+ .retail-sale-card.panel{padding:14px;margin:0;border-radius:14px}
+ .retail-sale-card h2{font-size:17px;margin-bottom:10px}
+ .v2-section-head{gap:9px;margin-bottom:12px}
+ .v2-section-head>span{width:28px;height:28px;font-size:11px}
+ .v2-section-head>b{font-size:9px}
+ .retail-account-grid{grid-template-columns:minmax(0,1.35fr) minmax(90px,.65fr);gap:10px}
+ .retail-account-grid>.retail-sale-field:first-child{grid-column:1/-1}
+ .retail-when-field{grid-column:auto}
+ .retail-sale-field{gap:5px}
+ .retail-sale-field label,.retail-city-field label,.retail-discount-field label{font-size:12px;line-height:1.3}
+ .retail-sale-field input,.retail-sale-field select,.retail-discount-field input,.retail-city-field span{width:100%;height:48px;min-height:48px;padding:10px 12px;border-radius:10px;font-size:16px}
+ .retail-city-field span{display:flex}
+ .retail-sale-field input[type=file]{height:auto;min-height:48px;padding:9px;font-size:14px}
+ .retail-fields-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .retail-product-field,.retail-photo-field,.v2-applied-rate{grid-column:1/-1}
+ .v2-applied-rate{padding:10px 12px;border-radius:10px}
+ .v2-applied-rate span{font-size:14px}
+ .retail-exchange-row{align-items:flex-start;flex-wrap:wrap;gap:8px;margin-top:12px}
+ .retail-exchange-row .muted{font-size:12px}
+ .retail-exchange-row .exchange-toggle{min-height:46px;padding:9px 12px;font-size:13px}
+ .retail-summary-grid,.v2-erp-form .retail-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .retail-summary-grid>div{min-height:62px;padding:10px 11px;border-radius:11px}
+ .retail-summary-grid span{font-size:11px;line-height:1.3}
+ .retail-summary-grid b{font-size:15px;margin-top:4px}
+ .retail-summary-grid .v2-balance{grid-column:1/-1;min-height:82px;padding:13px 15px}
+ .retail-summary-grid .v2-balance span{font-size:13px}
+ .retail-summary-grid .v2-balance b{font-size:22px}
+ .v2-method,.v2-reference{grid-column:1/-1}
+ .v2-method select,.v2-reference input{height:48px;min-height:48px;padding:10px 12px;font-size:16px}
+ .v2-rate-note{margin-top:8px;font-size:12px;line-height:1.5}
+ .retail-sale-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:2px;padding:10px 0 4px}
+ .retail-sale-actions button{width:100%;min-height:52px;padding:12px 16px;font-size:15px}
+ .v2-history-card{display:none}
+ .retail-modal-backdrop{padding:10px}
+ .retail-modal{width:100%;max-height:calc(100dvh - 20px);padding:14px}
+ .retail-modal-scroll .exchange-line{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+}
+@media(max-width:400px){
+ .retail-sale-tools{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .retail-account-grid{grid-template-columns:minmax(0,1fr)}
+ .retail-account-grid>.retail-sale-field:first-child,.retail-when-field{grid-column:1}
+ .retail-city-field{grid-column:1}
+ .retail-title h1{font-size:22px}
+ .v2-section-head h2{font-size:16px!important}
+}
+html[data-theme="dark"] .v2-applied-rate{background:#262b28;border-color:#474e49}
+`;
+document.head.append(responsiveRetailStyle);
 window.goldleafV2Ready=true;window.dispatchEvent(new Event('goldleaf-v2-ready'));
 window.render();
 
