@@ -20,9 +20,9 @@ The app uses its Supabase database. Each signed-in account can access only its o
 - Party registration includes contact details and opening pure-gold balance. Customer registration includes contact and identity fields, photo upload or webcam capture, notes, and opening balance in rupees.
 - Retail **Customer Sales Entry** uses an ERP-style invoice screen: customer, date, product, weight, pieces, purity, wastage, making charges, discount and totals. It uses the selected purity price from Rate Book; the invoice has no 24K rate box. Collection can be Cash, Cheque or GPay, with an optional cheque / transaction reference. The collected amount reduces the bill balance and appears in the Customer Ledger, Summary and payment history. **Old Gold Exchange** opens only from its button. Add old jewellery items with product, stated purity, weight, manually entered testing purity, rate per gram and calculated amount.
 - Customer bills can be printed in two layouts: **Classic** and **Modern**. Choose **Print** in the bill header to select a template and open the browser print dialog; the printout includes the bill, old gold exchange, discount, collected amount, and balance due.
-- Wholesale **Party Sales Entry** keeps the usual simple fields and payable pure-gram calculation. It does not show old-gold exchange or amount/discount sections.
-- **Payments** stay in the selected workspace. Wholesale Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Retail Customer payments are entered in rupees.
-- Party and Customer ledgers and summaries remain separate: wholesale Party balances use grams; retail Customer balances use rupees. The detailed ledgers show purchases, weights, old gold, payment method and amounts, pending balance and running balance. Use **View PDF** to open print preview and save as PDF, or **Share** to share the report text. All-date, single-date, date-range and monthly filters are available.
+- Wholesale **Party Sales Entry** keeps the payable pure-gram calculation and adds optional HUID/Non-HUID hallmark charges. Enter a per-piece fee; the app multiplies it by sale pieces and shows the separate total in rupees.
+- **Payments** stay in the selected workspace. Wholesale Party payments support Metal Bar, Old Scrap, and Cash, with manual testing purity from 1 to 100. Cash can be applied to the gold balance (converted at the 24K rate as before) or to the separate hallmark amount balance. Retail Customer payments are entered in rupees.
+- Party and Customer ledgers and summaries stay in their own workspaces: Wholesale shows Party pages only; all Customer pages stay inside Retail. Party Ledger has no Customer selector or Customer section. Party balances show pure gold grams and hallmark rupees separately. The Party ledger PDF highlights both balances and keeps gold weights, cash amounts, and hallmark charges in separate columns. Use **View PDF** to open print preview and save as PDF, or **Share** to share the report text. All-date, single-date, date-range and monthly filters are available.
 - Editable product and karat lists.
 - **Rate Book** for the 24K base, with Automatic or manual 22K/18K/14K rates, plus silver and old silver. Old gold exchange rate is entered on each exchange item.
 - Gentle in-app rate reminders at **11:00 AM** and **6:00 PM India time**, with Later and Update rates actions. The reminder appears while the app is open or the next time it opens after a reminder time.
@@ -35,6 +35,8 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.0.6 · 6 Nov 2026:** Removed Customer switching from Party Ledger and locked Party/Customer ledgers to their matching Wholesale/Retail workspaces.
+- **v2.0.5 · 6 Nov 2026:** Added per-piece HUID/Non-HUID charges, separate Party gold and hallmark balances, and workspace-specific Party/Customer ledgers.
 - **v2.0.4 · 6 Nov 2026:** Made syncing automatic and removed the manual sync button from Settings.
 - **v2.0.3 · 6 Nov 2026:** Always merge device and cloud records on sign-in, saves and refresh; removed the two replace actions.
 
