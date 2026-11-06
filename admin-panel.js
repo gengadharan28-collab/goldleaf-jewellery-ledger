@@ -5,7 +5,7 @@ const platformBaseRender = window.render, platformBaseGo = window.go;
 const platformBaseSettings = window.settingsView, platformBaseHeader = window.header;
 const platformBaseSetMode = window.setWorkspaceMode;
 const platformPreviousHistory=window.updateHistoryView;
-window.updateHistoryView=function(){return platformPreviousHistory().replace('<section class="panel"><h2>Update history</h2>','<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.4.0 · 6 Nov 2026 · Current</h3><ul><li>Separate Super Admin dashboard with signup, paid-shop and subscription controls.</li><li>Approve Retail, Wholesale or both; create shop invitations; edit subscription plans and shared rates.</li><li>Workspace permissions are checked in the cloud. Local records stay with their shop.</li></ul></article>').replace('v2.3.0 · 6 Nov 2026 · Current','v2.3.0 · 6 Nov 2026').replace('v2.0.9 · 6 Nov 2026 · Current','v2.0.9 · 6 Nov 2026').replace('Goldleaf v2.3.0','Goldleaf v2.4.0');};
+window.updateHistoryView=function(){return platformPreviousHistory().replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.4.1 · 6 Nov 2026 · Current</h3><ul><li>Added reset protection so erased shop entries cannot return from an older device.</li></ul></article>').replace('<section class="panel"><h2>Update history</h2>','<section class="panel"><h2>Update history</h2><article class="release-note"><h3>v2.4.0 · 6 Nov 2026</h3><ul><li>Separate Super Admin dashboard with signup, paid-shop and subscription controls.</li><li>Approve Retail, Wholesale or both; create shop invitations; edit subscription plans and shared rates.</li><li>Workspace permissions are checked in the cloud. Local records stay with their shop.</li></ul></article>').replace('v2.3.0 · 6 Nov 2026 · Current','v2.3.0 · 6 Nov 2026').replace('v2.0.9 · 6 Nov 2026 · Current','v2.0.9 · 6 Nov 2026').replace('Goldleaf v2.3.0','Goldleaf v2.4.0');};
 const platformDate = value => value ? new Date(value).toLocaleDateString('en-IN') : '—';
 const platformModules = shop => [shop.retail_enabled && 'Retail', shop.wholesale_enabled && 'Wholesale'].filter(Boolean).join(' + ') || 'Awaiting approval';
 const platformLink = () => location.origin + location.pathname;
@@ -77,7 +77,7 @@ window.render=function(){
   if(session&&!goldleafContext){document.getElementById('nav').innerHTML='';document.getElementById('app').innerHTML=platformTop('Loading your account','Checking your shop and access permissions…')+'<section class="panel"><p role="status">'+esc(platformError||'Connecting to Goldleaf cloud…')+'</p><button onclick="platformRefresh()">Try again</button><button onclick="platformSignOut()">Sign out</button></section>';return;}
   if(session&&goldleafContext){
     if(platformLoadedUser!==session.user.id){platformLoadedUser=session.user.id;if(goldleafContext.is_super_admin)platformPage='Dashboard';else{platformPage='';if(goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled)workspaceMode='retail';else if(goldleafContext.wholesale_enabled)workspaceMode='wholesale';}if(!goldleafContext.is_super_admin)history.replaceState(null,'',platformLink());}
-    if(goldleafContext.is_super_admin&&platformPage){platformNav(platformPage);let html=platformPage==='Shops & access'?platformShops():platformPage==='Create shop'?platformCreateShop():platformPage==='Subscription plans'?platformPlansView():platformPage==='Shared rates'?platformTop('Shared rates','Save rates here to update every shop’s Rate Book.')+rateBookView().replace(/^[\s\S]*?<\/header>/,''):platformDashboard();document.getElementById('app').innerHTML=html+(platformError?'<section class="panel" role="alert">'+esc(platformError)+'</section>':'')+'<footer class="app-version">Goldleaf v2.4.0</footer>';return;}
+    if(goldleafContext.is_super_admin&&platformPage){platformNav(platformPage);let html=platformPage==='Shops & access'?platformShops():platformPage==='Create shop'?platformCreateShop():platformPage==='Subscription plans'?platformPlansView():platformPage==='Shared rates'?platformTop('Shared rates','Save rates here to update every shop’s Rate Book.')+rateBookView().replace(/^[\s\S]*?<\/header>/,''):platformDashboard();document.getElementById('app').innerHTML=html+(platformError?'<section class="panel" role="alert">'+esc(platformError)+'</section>':'')+'<footer class="app-version">Goldleaf v2.4.1</footer>';return;}
     if(!goldleafContext.is_super_admin&&(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled)){document.getElementById('nav').innerHTML='<button class="active">My subscription</button><button onclick="platformRefresh()">Refresh access</button><button onclick="platformSignOut()">Sign out</button>';document.getElementById('app').innerHTML=platformTop(goldleafContext.has_access?'Waiting for workspace approval':'Subscription needs renewal',goldleafContext.shop_name)+`<section class="panel"><h2>${esc(goldleafContext.plan)} plan</h2><p>Expires ${platformDate(goldleafContext.expires_at)}</p><p>${esc(goldleafContext.plan_description||'')}</p><p>${goldleafContext.has_access?'Your shop is registered. Super Admin will enable Retail, Wholesale, or both.':'Your records remain saved. Contact Super Admin to renew your plan.'}</p><a href="mailto:gengadharan28@gmail.com">Contact Super Admin</a></section>`;return;}
     if(!goldleafContext.is_super_admin&&!goldleafContext[workspaceMode+'_enabled'])workspaceMode=goldleafContext.retail_enabled?'retail':'wholesale';
   }
@@ -92,8 +92,14 @@ let platformLedgerShop='';
 const platformPreviousSave=window.save;
 const platformPreviousAuthForm=window.authForm;
 window.authForm=function(){if(session){goldleafContext=null;platformLoadedUser='';platformLedgerShop='';}return platformPreviousAuthForm();};
-window.save=function(){const result=platformPreviousSave();if(session&&platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));return result;};
+window.save=function(){if(db.recordsResetToken)for(const key of ['parties','customers','sales','payments'])for(const row of db[key]||[])row.recordsResetToken=db.recordsResetToken;const result=platformPreviousSave();if(session&&platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));return result;};
 function platformStoreLedger(){localStorage.setItem(dbkey,JSON.stringify(db));if(platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));}
+function platformAdoptCloudReset(payload){
+  if(!payload?.recordsResetToken||payload.recordsResetToken===db.recordsResetToken)return false;
+  db=Object.assign(init(),payload);ensureExtendedData();edit=null;
+  localStorage.removeItem('goldleaf-device-backup-before-shop-login');
+  localStorage.removeItem(V2_CLOUD_PENDING_KEY);platformStoreLedger();return true;
+}
 window.pullCloud=async function(){
   if(!session||!client||v2CloudBusy)return;
   v2CloudBusy=true;
@@ -106,15 +112,16 @@ window.pullCloud=async function(){
     if(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled){db.rates=shared.data||{};platformError='';render();return;}
     const response=await client.rpc('goldleaf_read_ledger');if(response.error)throw response.error;
     const remote=response.data||{},shop=goldleafContext.shop_id;
+    const resetApplied=platformAdoptCloudReset(remote.payload);
     if(platformLedgerShop!==shop){
-      localStorage.setItem('goldleaf-device-backup-before-shop-login',JSON.stringify(db));
+      if(!remote.payload?.recordsResetToken)localStorage.setItem('goldleaf-device-backup-before-shop-login',JSON.stringify(db));
       const local=JSON.parse(localStorage.getItem(platformStorageKey())||'null');
-      db=local?v2MergeCloudLedgers(remote.payload,local,true):Object.assign(init(),remote.payload||{});
+      db=local&&(!remote.payload?.recordsResetToken||local.recordsResetToken===remote.payload.recordsResetToken)?v2MergeCloudLedgers(remote.payload,local,true):Object.assign(init(),remote.payload||{});
       platformLedgerShop=shop;localStorage.removeItem(V2_CLOUD_PENDING_KEY);
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
     else db=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?v2MergeCloudLedgers(remote.payload,db,true):Object.assign(init(),remote.payload||{});
     ensureExtendedData();db.rates=shared.data||{};v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
-    setCloudStatus('Cloud · '+goldleafContext.shop_name);if(!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
+    setCloudStatus('Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
   }catch(error){platformError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
   finally{v2CloudBusy=false;}
 };
@@ -125,6 +132,7 @@ window.pushCloud=async function(){
     do{v2CloudQueuedPush=false;let written=false;
       for(let attempt=0;attempt<4&&!written;attempt++){
         const remote=await client.rpc('goldleaf_read_ledger');if(remote.error)throw remote.error;
+        if(platformAdoptCloudReset(remote.data?.payload)){say('Old shop entries were cleared. Please enter your new record again.');render();return;}
         db=v2MergeCloudLedgers(remote.data?.payload,db,true);
         const write=await client.rpc('goldleaf_save_ledger',{p_payload:db,p_expected:remote.data?.updated_at||null});if(write.error)throw write.error;
         if(write.data){written=true;v2LastCloudUpdatedAt=write.data;}

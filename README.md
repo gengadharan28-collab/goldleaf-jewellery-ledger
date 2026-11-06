@@ -41,6 +41,8 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.4.1 · 6 Nov 2026:** Added cloud reset markers, stale-device write protection and automatic removal of older local entries when an approved shop reset is received. Apply `supabase_reset_protection.sql` after the main setup; this file installs guards and does not erase records.
+
 - **v2.4.0 · 6 Nov 2026:** Added separate Super Admin portal, signup and paid-shop dashboard, admin-approved Retail/Wholesale permissions, private shop invitations, plan pricing and payment receipts, and shop-scoped local storage.
 
 - **v2.3.0 · 6 Nov 2026:** Added required shop registration, secure Super Admin controls, 7-day trials, monthly/yearly/demo renewals, owner/user seats and invitations, shop-level cloud ledgers, and centrally shared rates.
