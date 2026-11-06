@@ -8,7 +8,7 @@ Use **Add to Home** in the app header. Android browsers that support app install
 
 ## Cloud account
 
-1. Open **Settings → Cloud account** on each device. Use the same Goldleaf cloud connection and sign in with the exact same email account.
+1. In **Settings → Sign in / create account**, choose **Create account** the first time. Use an email you can access and a password of at least 8 characters; verify the email if prompted. This creates a Goldleaf login, so no separate Supabase account is needed. Then use this same account and cloud connection on both devices.
 2. On the phone that has the correct records, tap **Replace cloud with this device** and confirm. This makes the phone’s records the cloud copy.
 3. On the laptop, tap **Replace this device with cloud** and confirm. This replaces laptop-only entries with the phone’s synced records.
 4. After that setup, a save on either device updates the cloud, and the other open device refreshes within about 5 seconds or when reopened. Check for **Cloud sync · your email**.
@@ -36,6 +36,7 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.0.2 · 6 Nov 2026:** Added email/password validation before account creation and clearer sign-up errors, including the anonymous sign-in case.
 - **v2.0.1 · 6 Nov 2026:** Added phone-to-cloud and cloud-to-laptop replace controls with confirmation, conflict-aware cloud writes, and five-second refresh while open.
 - **v2.0.0 · 6 Nov 2026:** Added manual/automatic karat rates, ERP-style Retail invoices without the 24K rate box, Cash/Cheque/GPay collections, detailed Customer and Party ledger reports with PDF/share actions, and same-account cloud sync with automatic refresh.
 - **v1.9.0 · 5 Nov 2026:** Added bill collected amount, automatic Balance Due, ledger and summary collection tracking, clearer balance contrast, and Classic/Modern print templates.
