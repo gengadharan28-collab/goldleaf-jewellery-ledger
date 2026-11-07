@@ -41,6 +41,8 @@ Customer sale gold value = weight × selected-purity rate from Rate Book. Automa
 
 ## Website updates
 
+- **v2.6.0 · 7 Nov 2026:** Restored the previous cream, gold and charcoal palette. Added a reference-inspired ERP layout with searchable/collapsible sidebar, quick-navigation toolbar, shared-rate chips, and grouped financial/activity dashboards. Metric cards open their matching pages; calculations and saved data are unchanged.
+
 - **v2.5.0 · 6 Nov 2026:** Applied one compact ERP interface across Retail, Wholesale, Super Admin, registers, ledgers, Settings and account screens, with new light/dark palettes and mobile table navigation. Optional Retail GST is now a small button beside Old Gold Exchange; both panels open above the full viewport even when the invoice is scaled. Unsaved invoice edits are kept while background sync runs.
 
 - **v2.4.4 · 6 Nov 2026:** Added four bill/ledger PDF layouts selected in each Retail/Wholesale Settings page; editable shop headers and terms; automatic registered shop details; previews; optional Retail-only GST (off by default) with editable CGST/SGST or IGST. GST preferences and PDF headers sync with the shop. Historical bills keep their saved GST status. Retail GST is calculated on the new jewellery sale after discount, before exchange/collection credits. Wholesale PDF balances keep grams and hallmark rupees separate.
