@@ -410,7 +410,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.7.1';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.7.2';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -927,4 +927,4 @@ window.render=function(){
 };
 window.setInterval(()=>window.checkRateReminder(),30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.7.1"></script><script src="./admin-panel.js?v=2.7.1"></script><script src="./pdf-templates.js?v=2.7.1"></script><script src="./erp-ui.js?v=2.7.1"></script><script src="./retail-sales.js?v=2.7.1"></script><script src="./retail-purchases.js?v=2.7.1"></script></body></html>
+</script><script src="./app-v2.js?v=2.7.2"></script><script src="./admin-panel.js?v=2.7.2"></script><script src="./pdf-templates.js?v=2.7.2"></script><script src="./erp-ui.js?v=2.7.2"></script><script src="./retail-sales.js?v=2.7.2"></script><script src="./retail-purchases.js?v=2.7.2"></script></body></html>
