@@ -206,16 +206,24 @@ function customerView(){
    +'<section class="panel"><h2>Customer register</h2><div class="muted">Customer profiles and customer rupee balances are separate from party gram balances.</div>'
    +(db.customers.length?table(['Photo','Customer','City','Phone','WhatsApp','Opening ₹','Owing ₹',''],db.customers.map(x=>[(x.photo?'<img src="'+x.photo+'" style="width:36px;height:36px;object-fit:cover;border-radius:50%" alt="">':'—'),esc(x.name),esc(x.city),esc(x.phone),esc(x.whatsapp),'₹ '+n(x.openingAmount).toFixed(2),'₹ '+n(bal(x.id,'customer')).toFixed(2),'<button onclick="edit=\''+x.id+'\';render()">Edit</button>'])):'<div class="empty">Add your first customer profile.</div>')+'</section>';
 }
-function saveCustomer(e){
-  e.preventDefault();let f=new FormData(e.target),id=f.get('id'),name=f.get('name').trim(),aadhaar=String(f.get('aadhaar')||'').trim().replace(/[\s-]/g,''),pan=String(f.get('pan')||'').trim().toUpperCase();
+function saveCustomer(e,onSaved){
+  e.preventDefault();
+  const f=new FormData(e.target),id=f.get('id');
+  const field=name=>String(f.get(name)||'').trim();
+  const name=field('name'),aadhaar=field('aadhaar').replace(/[\s-]/g,''),pan=field('pan').toUpperCase();
+  if(!name)return say('Enter the customer name.');
   if(db.customers.some(c=>c.name.toLowerCase()===name.toLowerCase()&&c.id!==id))return say('Customer name already exists.');
   if(aadhaar&&!/^\d{12}$/.test(aadhaar))return say('Enter Aadhaar as 12 digits.');
   if(pan&&!/^[A-Z]{5}\d{4}[A-Z]$/.test(pan))return say('Enter PAN in the format ABCDE1234F.');
   if(id&&!confirm('Save changes to this customer profile?'))return;
   let old=db.customers.find(c=>c.id===id);
-  let x={id:id||crypto.randomUUID(),name,city:f.get('city').trim(),phone:f.get('phone').trim(),whatsapp:f.get('whatsapp').trim(),email:f.get('email').trim(),dob:f.get('dob'),address:f.get('address').trim(),aadhaar,pan,openingAmount:n(f.get('openingAmount')),photo:f.get('photo')||old?.photo||'',notes:f.get('notes').trim()};
+  let x={id:id||crypto.randomUUID(),name,city:field('city'),phone:field('phone'),whatsapp:field('whatsapp'),email:field('email'),dob:field('dob'),address:field('address'),aadhaar,pan,openingAmount:n(f.get('openingAmount')),photo:f.get('photo')||old?.photo||'',notes:field('notes')};
   if(id)db.customers[db.customers.findIndex(c=>c.id===id)]=x;else db.customers.push(x);
-  closeCustomerCamera();edit=null;save();render();say('Customer saved.');
+  closeCustomerCamera();
+  if(!onSaved)edit=null;
+  save();
+  if(onSaved)onSaved(x);else render();
+  say('Customer saved.');
 }
 function setCustomerPhoto(data){let input=$('#customerPhotoValue'),preview=$('#customerPhotoPreview');if(input)input.value=data;if(preview){preview.src=data;preview.classList.remove('hidden')}}
 function compressCustomerPhoto(source){
@@ -410,7 +418,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.7.3';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.7.4';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -927,4 +935,4 @@ window.render=function(){
 };
 window.setInterval(()=>window.checkRateReminder(),30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.7.3"></script><script src="./admin-panel.js?v=2.7.3"></script><script src="./pdf-templates.js?v=2.7.3"></script><script src="./erp-ui.js?v=2.7.3"></script><script src="./retail-sales.js?v=2.7.3"></script><script src="./retail-purchases.js?v=2.7.3"></script></body></html>
+</script><script src="./app-v2.js?v=2.7.4"></script><script src="./admin-panel.js?v=2.7.4"></script><script src="./pdf-templates.js?v=2.7.4"></script><script src="./erp-ui.js?v=2.7.4"></script><script src="./retail-sales.js?v=2.7.4"></script><script src="./retail-purchases.js?v=2.7.4"></script></body></html>

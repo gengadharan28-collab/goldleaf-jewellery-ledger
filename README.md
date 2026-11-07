@@ -51,6 +51,8 @@ For an existing Supabase installation, apply **supabase_retail_documents.sql** b
 
 ## Website updates
 
+- **v2.7.4 · 7 Nov 2026:** Retail Sales Entry shows saved bills below the form and lets you add a billing customer without leaving the draft. Adjustment buttons wrap at their natural width on phones.
+
 - **v2.7.3 · 7 Nov 2026:** Item amounts and actions in Retail sales bills stay aligned with their column headings as the jewellery table scrolls horizontally. Adjustments and receipts use compact buttons with inline amounts.
 
 - **v2.7.2 · 7 Nov 2026:** Retail sales bills scroll through adjustments and totals to the Save buttons. Removed the inline item-details instruction.

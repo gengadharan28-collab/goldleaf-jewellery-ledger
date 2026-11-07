@@ -23,6 +23,7 @@
    display: inline-flex;
    align-items: center;
    gap: 5px;
+   width: auto;
  }
  .rb-adjustment-grid > button > b {
    font-size: inherit;
@@ -82,6 +83,42 @@
     height: auto;
     grid-template-rows: auto auto auto !important;
   }
+  .rb-customer-field-label {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .rb-customer-field-label > button,
+  .rb-history-actions > button {
+    min-height: 27px;
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  #rbAddCustomerPanel .retail-modal {
+    width: min(420px, 100%);
+  }
+  .rb-quick-customer-fields {
+    display: grid;
+    gap: 12px;
+  }
+  .rb-sales-history {
+    min-width: 0;
+    margin: 0 !important;
+    scroll-margin-top: 12px;
+  }
+  .rb-sales-history > .table {
+    overflow-x: auto;
+  }
+  .rb-history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
   .rb-bill-screen .rb-section-head h2 {
     font-size: 16px !important;
   }
@@ -105,6 +142,13 @@
   }
   .rb-form .rb-totals-scroll {
     overflow: visible;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .rb-customer-field-label > button,
+  .rb-history-actions > button {
+    min-height: 34px;
   }
 }
 
