@@ -418,7 +418,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.8.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.8.1';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -473,11 +473,11 @@ releaseStyle.textContent=[
 ].join('\n');
 document.head.append(releaseStyle);
 function rateMoney(value){return '₹ '+n(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function rate24Purity(purity){return n(db.rates.gold24)*n(purity)/24}
+function rate24Purity(purity){return typeof v2RateForPurity==='function'?v2RateForPurity(purity):n(db.rates.gold24)*n(purity)/24}
 function customerSaleTotals(x){
   const weight=n(x.weight),purity=n(x.purity),rate24=n(x.rate24),wastage=n(x.wastage),pieces=n(x.pieces),makingPerPiece=n(x.makingPerPiece),discount=n(x.discount);
-  const pureGold=weight*purity/24,goldAmount=pureGold*rate24,wastageGold=pureGold*wastage/100,wastageAmount=wastageGold*rate24,makingTotal=pieces*makingPerPiece,subtotal=goldAmount+wastageAmount+makingTotal;
-  return {pureGold,goldAmount,wastageGold,wastageAmount,makingTotal,subtotal,discount,final:Math.max(0,subtotal-discount),purityRate:rate24*purity/24};
+  const pureGold=weight*purity/24,purityRate=rate24Purity(purity)||rate24*purity/24,goldAmount=weight*purityRate,wastageGold=pureGold*wastage/100,wastageAmount=weight*wastage/100*purityRate,makingTotal=pieces*makingPerPiece,subtotal=goldAmount+wastageAmount+makingTotal;
+  return {pureGold,goldAmount,wastageGold,wastageAmount,makingTotal,subtotal,discount,final:Math.max(0,subtotal-discount),purityRate};
 }
 function updateCustomerSaleBreakdown(form){
   if(!form||form.elements.accountType.value!=='customer')return;
@@ -556,36 +556,35 @@ function rateMoneyInput(label,name,value,extra){
 }
 function rateBookView(){
   ensureExtendedData();const r=db.rates;
-  const rows=db.rateHistory.slice(0,12).map(x=>[x.date+' '+x.time+' IST',esc(x.slot),rateMoney(x.rates.gold24),rateMoney(x.rates.oldGold),rateMoney(x.rates.silver),rateMoney(x.rates.oldSilver)]);
-  return header('Update daily gold and silver prices. Karat rates are calculated from the 24K rate.')
-  +'<section class="panel"><h2>Today’s rates</h2><form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
-  +rateMoneyInput('Gold · 24K base · ₹/g *','gold24',r.gold24,'oninput="updateRatePreview(this.form)" required')
-  +'<div class="field"><label>Gold · 22K · ₹/g</label><input data-rate-preview="22" readonly value="'+rateMoney(rate24Purity(22))+'"></div>'
-  +'<div class="field"><label>Gold · 18K · ₹/g</label><input data-rate-preview="18" readonly value="'+rateMoney(rate24Purity(18))+'"></div>'
-  +'<div class="field"><label>Gold · 14K · ₹/g</label><input data-rate-preview="14" readonly value="'+rateMoney(rate24Purity(14))+'"></div>'
-  +'<p class="rate-preview-note">24K rate × karat ÷ 24 gives the 22K, 18K and 14K rates.</p>'
-  +rateMoneyInput('Old gold · ₹/g *','oldGold',r.oldGold,'required')
-  +rateMoneyInput('Silver · ₹/g *','silver',r.silver,'required')
-  +rateMoneyInput('Old silver · ₹/g *','oldSilver',r.oldSilver,'required')
-  +'</div><p class="muted">Last saved: '+(r.updatedAt?new Date(r.updatedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'No rates saved yet.')+'</p><div class="right"><button class="primary">Save today’s rates</button></div></form></section>'
-  +'<section class="panel"><h2>Rate update history</h2>'+(rows.length?table(['Date and time','Update','24K gold','Old gold','Silver','Old silver'],rows):'<div class="empty">Rate changes will appear here after the first save.</div>')+'</section>';
+  const rows=db.rateHistory.slice(0,12).map(x=>[x.date+' '+x.time+' IST',esc(x.slot),rateMoney(x.rates.gold24),rateMoney(x.rates.gold22),rateMoney(x.rates.gold18),rateMoney(x.rates.gold14),rateMoney(x.rates.silver),rateMoney(x.rates.silverBoard),rateMoney(x.rates.diamond)]);
+  const dateValue=istDateTime(new Date()).date,slot=r.entrySlot||'AM';
+  return header('Set today’s Retail rates. Enter each value manually, then save the rate entry with its date and AM/PM time.')
+  +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p class="muted">Manual rates · enter the exact ₹/g values you want used for Retail sales.</p></div><span class="pill">Retail</span></div><form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
+  +rateMoneyInput('Gold Pure Rate · 24K · ₹/g *','gold24',r.gold24,'required')
+  +rateMoneyInput('Gold Board Rate · 22K · ₹/g *','gold22',r.gold22,'required')
+  +rateMoneyInput('Gold Rate · 18K · ₹/g *','gold18',r.gold18,'required')
+  +rateMoneyInput('Gold Rate · 14K · ₹/g *','gold14',r.gold14,'required')
+  +rateMoneyInput('Silver Pure Rate · ₹/g *','silver',r.silver,'required')
+  +rateMoneyInput('Silver Board Rate · ₹/g *','silverBoard',r.silverBoard,'required')
+  +rateMoneyInput('Diamond Rate · 22K · ₹/g','diamond',r.diamond,'')
+  +rateMoneyInput('Old silver · ₹/g','oldSilver',r.oldSilver,'')
+  +'<div class="field"><label for="rateEntryDate">Date *</label><input id="rateEntryDate" name="rateDate" type="date" required value="'+dateValue+'"></div><div class="field"><label for="rateEntrySlot">Entry time *</label><select id="rateEntrySlot" name="rateSlot"><option '+(slot==='AM'?'selected':'')+'>AM</option><option '+(slot==='PM'?'selected':'')+'>PM</option></select></div>'
+  +'</div><p class="muted">Last updated: '+(r.updatedAt?new Date(r.updatedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'No rates saved yet.')+'</p><div class="right"><button type="button" onclick="displayRateEntry()">Display</button> <button type="button" onclick="go(\'Dashboard\')">Back</button> <button class="primary">Save rates</button></div><div id="rateEntryDisplay" class="muted" aria-live="polite"></div></form></section>'
+  +'<section class="panel"><h2>Retail Rate History</h2>'+(rows.length?table(['Date and time','Entry','24K Gold','22K Gold','18K Gold','14K Gold','Silver pure','Silver board','Diamond'],rows):'<div class="empty">Rate history appears here after the first save.</div>')+'</section>';
 }
-function updateRatePreview(form){
-  const base=n(form.elements.gold24.value);
-  form.querySelectorAll('[data-rate-preview]').forEach(input=>input.value=(base*n(input.dataset.ratePreview)/24).toFixed(2));
-}
+function displayRateEntry(){const f=document.getElementById('rateBookForm');if(!f)return;const names=['gold24','gold22','gold18','gold14','silver','silverBoard','diamond'];const labels=['Gold 24K','Gold 22K','Gold 18K','Gold 14K','Silver pure','Silver board','Diamond'];const e=document.getElementById('rateEntryDisplay');e.textContent=labels.map((x,i)=>x+': '+rateMoney(f.elements[names[i]].value)).join('  ·  ')}
 function istDateTime(now){
   const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(x=>[x.type,x.value]));
   return {date:p.year+'-'+p.month+'-'+p.day,time:new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now)};
 }
 function saveRateValues(form,slot){
-  const f=new FormData(form),rates={gold24:n(f.get('gold24')),oldGold:n(f.get('oldGold')),silver:n(f.get('silver')),oldSilver:n(f.get('oldSilver'))};
-  if(Object.values(rates).some(x=>x<=0)){say('Enter each rate before saving.');return false}
-  const now=new Date(),when=istDateTime(now);db.rates=Object.assign({},rates,{updatedAt:now.toISOString()});
-  db.rateHistory.unshift({id:crypto.randomUUID(),date:when.date,time:when.time,slot:slot||'Manual',rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);
+  const f=new FormData(form),rates={gold24:n(f.get('gold24')),gold22:n(f.get('gold22')),gold18:n(f.get('gold18')),gold14:n(f.get('gold14')),oldGold:n(f.get('oldGold'))||n(f.get('gold22')),silver:n(f.get('silver')),silverBoard:n(f.get('silverBoard')),diamond:n(f.get('diamond')),oldSilver:n(f.get('oldSilver'))};
+  if(['gold24','gold22','gold18','gold14','silver','silverBoard'].some(k=>rates[k]<=0)){say('Enter the 24K, 22K, 18K, 14K and silver rates before saving.');return false}
+  const now=new Date(),date=String(f.get('rateDate')||istDateTime(now).date),timeSlot=String(f.get('rateSlot')||'AM');db.rates=Object.assign({},rates,{entryDate:date,entrySlot:timeSlot,updatedAt:now.toISOString()});
+  db.rateHistory.unshift({id:crypto.randomUUID(),date,time:timeSlot==='AM'?'11:00':'18:00',slot:timeSlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);
   save();return true;
 }
-function saveRateBook(e){e.preventDefault();if(!saveRateValues(e.target,'Manual'))return;render();say('Daily rates saved.')}
+function saveRateBook(e){e.preventDefault();if(!saveRateValues(e.target))return;render();say('Retail rates saved.')}
 const rateReminderSlots=[{key:'11:00',label:'11:00 AM'},{key:'18:00',label:'6:00 PM'}];
 let activeRateReminder=null;
 function rateReminderKey(date,slot){return 'goldleaf-rate-reminder-'+date+'-'+slot}
@@ -935,4 +934,4 @@ window.render=function(){
 };
 window.setInterval(()=>window.checkRateReminder(),30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.8.0"></script><script src="./admin-panel.js?v=2.8.0"></script><script src="./pdf-templates.js?v=2.8.0"></script><script src="./erp-ui.js?v=2.8.0"></script><script src="./retail-sales.js?v=2.8.0"></script><script src="./retail-purchases.js?v=2.8.0"></script><script src="./retail-estimate-chit.js?v=2.8.0"></script></body></html>
+</script><script src="./app-v2.js?v=2.8.1"></script><script src="./admin-panel.js?v=2.8.1"></script><script src="./pdf-templates.js?v=2.8.1"></script><script src="./erp-ui.js?v=2.8.1"></script><script src="./retail-sales.js?v=2.8.1"></script><script src="./retail-purchases.js?v=2.8.1"></script><script src="./retail-estimate-chit.js?v=2.8.1"></script></body></html>

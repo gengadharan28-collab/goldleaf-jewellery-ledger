@@ -50,7 +50,7 @@ Retail **Purchase** includes Purchase, Purchase Return, Payment, Old Jewel Purch
 
 All five Sales and seven Purchase sections offer saved history and PDF reports using the shop’s selected Retail template/header. Wholesale pages retain their existing workflow.
 
-For an existing Supabase installation, apply **supabase_retail_documents.sql** before publishing v2.7.0. For v2.8.0, also run **supabase_retail_features.sql** once in the same Supabase SQL Editor. This safely extends the existing Retail document validator for estimates, products, tags and chit records. It does not erase or insert business records. All new records stay in `retailDocuments` inside the same shop-owned, row-level-secured `goldleaf_shop_ledgers.payload`; the Retail-only database filter still controls access. No extra login, public data store or new service key is introduced. Signed-in devices in the same shop merge these records by ID and update time. Both devices must sign in to the same shop to share cloud records. Until the one-time v2.8.0 SQL update is applied, new Retail feature saves remain on the device and may show a cloud validation error.
+For an existing Supabase installation, apply **supabase_retail_documents.sql** before publishing v2.7.0. For v2.8.0, also run **supabase_retail_features.sql** once in the same Supabase SQL Editor. This safely extends the existing Retail document validator for estimates, products, tags and chit records. It does not erase or insert business records. All new records stay in `retailDocuments` inside the same shop-owned, row-level-secured `goldleaf_shop_ledgers.payload`; the Retail-only database filter still controls access. No extra login, public data store or new service key is introduced. Signed-in devices in the same shop merge these records by ID and update time. Both devices must sign in to the same shop to share cloud records. Until the one-time v2.8.1 SQL update is applied, new Retail feature saves remain on the device and may show a cloud validation error.
 
 ## Website updates
 
@@ -114,3 +114,5 @@ The referenced conversation did not include the Excel workbook file. These calcu
 ## Local preview
 
 From this folder, run python -m http.server 8765, then visit http://127.0.0.1:8765/.
+
+- **v2.8.1 · 7 Nov 2026:** Retail rate entry now follows a dated JewelGrow-style flow with manual 24K, 22K, 18K, 14K, silver and diamond rates, AM/PM entry, display and rate history. Retail bill pricing uses the saved matching karat rate when available.
