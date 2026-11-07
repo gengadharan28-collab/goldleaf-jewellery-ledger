@@ -1,5 +1,5 @@
-const CACHE='goldleaf-shell-v274';
-const SHELL=['./','./app-v2.js?v=2.7.4','./admin-panel.js?v=2.7.4','./pdf-templates.js?v=2.7.4','./erp-ui.js?v=2.7.4','./erp-theme.css?v=2.6.0-r3','./retail-sales.js?v=2.7.4','./retail-purchases.js?v=2.7.4','./retail-sales.css?v=2.7.4','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='goldleaf-shell-v280';
+const SHELL=['./','./app-v2.js?v=2.8.0','./admin-panel.js?v=2.8.0','./pdf-templates.js?v=2.8.0','./erp-ui.js?v=2.8.0','./erp-theme.css?v=2.6.0-r3','./retail-sales.js?v=2.8.0','./retail-purchases.js?v=2.8.0','./retail-estimate-chit.js?v=2.8.0','./retail-estimate-chit.css?v=2.8.0','./retail-sales.css?v=2.8.0','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{})).then(()=>self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('goldleaf-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
