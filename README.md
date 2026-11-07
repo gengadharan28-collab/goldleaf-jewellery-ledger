@@ -118,3 +118,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.8.1 · 7 Nov 2026:** Retail rate entry now follows a dated JewelGrow-style flow with manual 24K, 22K, 18K, 14K, silver and diamond rates, AM/PM entry, display and rate history. Retail bill pricing uses the saved matching karat rate when available.
 
 - **v2.8.2 · 7 Nov 2026:** Finalised manual Retail rates and defaulted the Silver Board field from the saved silver price where no separate board rate exists.
+
+- **v2.8.3 · 7 Nov 2026:** Retail Estimation / Quotation now appears directly beside Rate Book in the main navigation.
