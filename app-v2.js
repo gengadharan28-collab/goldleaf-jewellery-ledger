@@ -30,7 +30,7 @@ window.rateBookView=function(){
   ensureExtendedData();const r=db.rates;
   const fmtRate=value=>rateMoney(value||0);
   const rows=db.rateHistory.slice(0,12).map(item=>{const v=item.rates||{};return [esc(item.date+' '+item.time+' IST'),esc(item.slot||''),fmtRate(v.gold24),fmtRate(v.gold22),fmtRate(v.gold18),fmtRate(v.gold14),fmtRate(v.silver),fmtRate(v.silverBoard||v.silver),fmtRate(v.diamond)]});
-  const date=istDateTime(new Date()).date,slot=r.entrySlot||'AM';
+  const date=istDateTime(new Date()).date,slot=r.entrySlot||(Number(istDateTime(new Date()).time.slice(0,2))>=16?'PM':'AM');
   return header('Enter today’s Retail prices manually, choose the entry date and AM/PM slot, then save. Gold prices are not auto-calculated.')
    +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p class="muted">Manual entry · use the exact rate values for each metal and purity.</p></div><span class="pill">Retail</span></div><form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
    +rateMoneyInput('Gold Pure Rate · 24K · ₹/g *','gold24',r.gold24,'required')
@@ -38,7 +38,7 @@ window.rateBookView=function(){
    +rateMoneyInput('Gold Rate · 18K · ₹/g *','gold18',r.gold18,'required')
    +rateMoneyInput('Gold Rate · 14K · ₹/g *','gold14',r.gold14,'required')
    +rateMoneyInput('Silver Pure Rate · ₹/g *','silver',r.silver,'required')
-   +rateMoneyInput('Silver Board Rate · ₹/g *','silverBoard',r.silverBoard,'required')
+   +rateMoneyInput('Silver Board Rate · ₹/g *','silverBoard',r.silverBoard||r.silver,'required')
    +rateMoneyInput('Diamond Rate · 22K · ₹/g','diamond',r.diamond,'')
    +'<div class="field"><label>Date *</label><input type="date" name="rateDate" required value="'+date+'"></div><div class="field"><label>Entry Time *</label><select name="rateSlot"><option '+(slot==='AM'?'selected':'')+'>AM</option><option '+(slot==='PM'?'selected':'')+'>PM</option></select></div>'
    +'</div><p class="muted">Last updated: '+(r.updatedAt?new Date(r.updatedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'No rates saved yet.')+'</p><div class="right"><button type="button" onclick="displayRateEntry()">Display</button> <button type="button" onclick="go(\'Dashboard\')">Back</button> <button class="primary">Save rates</button></div><p id="rateEntryDisplay" class="muted" aria-live="polite"></p></form></section>'
