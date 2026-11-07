@@ -410,7 +410,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.6.0';
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud.url&&db.cloud.key){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device')})}</script><script>const GOLDLEAF_VERSION='2.7.0';
 const goldleafPreviousGo=window.go;
 window.go=function(target){
   if(target==='Party Register'){registerType='party';target='Register'}
@@ -645,7 +645,7 @@ function exchangeLineMarkup(item={},index=0){
     +'<div class="field"><label>Old jewellery product *</label><input name="exchangeProduct" placeholder="For example, old chain" value="'+esc(item.product||'')+'" oninput="calcSale(this.form)"></div>'
     +'<div class="field"><label>Old jewellery purity *</label><input name="exchangePurity" placeholder="For example, 22K / 75.7%" value="'+esc(item.purity||'')+'"></div>'
     +'<div class="field"><label>Old jewellery weight · g *</label><input name="exchangeWeight" type="number" min=".001" step=".001" value="'+(item.weight||'')+'" oninput="calcSale(this.form)"></div>'
-    +'<div class="field"><label>Testing purity · % *</label><input name="exchangeTestingPurity" type="number" min="1" max="100" step=".01" placeholder="1 to 100" value="'+(item.testingPurity||'')+'" oninput="calcSale(this.form)"></div>'
+    +'<div class="field"><label>Testing purity · % *</label><input name="exchangeTestingPurity" type="number" min="1" max="100" step="any" placeholder="1 to 100" value="'+(item.testingPurity||'')+'" oninput="calcSale(this.form)"></div>'
     +'<div class="field"><label>Old gold rate · ₹/g *</label><input name="exchangeRate" type="number" min=".01" step=".01" value="'+(item.rate||db.rates.oldGold||'')+'" oninput="calcSale(this.form)"></div>'
     +'<div class="field"><label>Old gold amount</label><b class="exchange-line-total" data-exchange-line-total>₹ 0.00</b></div>'
     +'<div class="right"><button type="button" onclick="removeExchangeLine(this)">Remove item</button></div></div>';
@@ -927,4 +927,4 @@ window.render=function(){
 };
 window.setInterval(()=>window.checkRateReminder(),30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./app-v2.js?v=2.4.4-gst"></script><script src="./admin-panel.js?v=2.6.0"></script><script src="./pdf-templates.js?v=2.6.0"></script><script src="./erp-ui.js?v=2.6.0"></script></body></html>
+</script><script src="./app-v2.js?v=2.7.0"></script><script src="./admin-panel.js?v=2.7.0"></script><script src="./pdf-templates.js?v=2.7.0"></script><script src="./erp-ui.js?v=2.7.0"></script><script src="./retail-sales.js?v=2.7.0"></script><script src="./retail-purchases.js?v=2.7.0"></script></body></html>
