@@ -9,9 +9,9 @@ function erpRefreshDialogState(){const open=!!document.querySelector('#oldGoldPa
 function erpSetEntryDialog(id,force,buttonId){
   const panel=document.getElementById(id),button=document.getElementById(buttonId);if(!panel)return;
   const open=typeof force==='boolean'?force:panel.classList.contains('hidden');
-  if(open)for(const otherId of ['oldGoldPanel','retailGSTPanel'])if(otherId!==id){const other=document.getElementById(otherId);other?.classList.add('hidden');other?.setAttribute('aria-hidden','true');const otherButton=document.getElementById(otherId==='oldGoldPanel'?'oldGoldToggle':'retailGSTToggle');otherButton?.setAttribute('aria-expanded','false');if(otherId==='oldGoldPanel'&&otherButton)otherButton.textContent='＋ Old Gold Exchange';}
+  if(open)for(const otherId of ['oldGoldPanel','retailGSTPanel'])if(otherId!==id){const other=document.getElementById(otherId);other?.classList.add('hidden');other?.setAttribute('aria-hidden','true');const otherButton=document.getElementById(otherId==='oldGoldPanel'?'oldGoldToggle':'retailGSTToggle');otherButton?.setAttribute('aria-expanded','false');if(otherId==='oldGoldPanel'&&otherButton&&!otherButton.querySelector('#rbExchangeBadge'))otherButton.textContent='＋ Old Gold Exchange';}
   panel.classList.toggle('hidden',!open);panel.setAttribute('aria-hidden',String(!open));button?.setAttribute('aria-expanded',String(open));erpRefreshDialogState();
-  if(id==='oldGoldPanel'&&button)button.textContent=open?'− Close exchange':'＋ Old Gold Exchange';
+  if(id==='oldGoldPanel'&&button&&!button.querySelector('#rbExchangeBadge'))button.textContent=open?'− Close exchange':'＋ Old Gold Exchange';
   if(open){const focus=id==='retailGSTPanel'?panel.querySelector('[name="gstEnabled"]'):panel.querySelector('input:not([type="hidden"]),select');focus?.focus({preventScroll:true});}
   else{button?.focus({preventScroll:true});requestAnimationFrame(()=>{if(!erpRefreshDialogState()&&page==='Sales Entry'&&workspaceMode==='retail')fitRetailSaleScreen();});}
 }
