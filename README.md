@@ -51,6 +51,8 @@ For an existing Supabase installation, apply **supabase_retail_documents.sql** b
 
 ## Website updates
 
+- **v2.7.1 · 7 Nov 2026:** Android layouts add Sales/Purchase section selectors, labelled item cards, larger touch controls, decimal keyboards and popup sizing that adapts to the visible keyboard area. Desktop Purchase keeps balance and PDF/Save actions visible.
+
 - **v2.7.0 · 7 Nov 2026:** Added all five Retail Sales workflows and seven Purchase workflows, itemised bills, split collections, tracked advances/returns, supplier reports and old-metal conversion. Adapted the reference workflow to Goldleaf’s own responsive cream/gold/charcoal interface.
 
 - **v2.6.0 · 7 Nov 2026:** Restored the previous cream, gold and charcoal palette. Added a reference-inspired ERP layout with searchable/collapsible sidebar, quick-navigation toolbar, shared-rate chips, and grouped financial/activity dashboards. Metric cards open their matching pages; calculations and saved data are unchanged.
