@@ -136,3 +136,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.2 · 8 Nov 2026:** Fixed cloud merge to retain Retail Chit, Products, Tagging and Estimation records on saves, refresh and across devices.
 
 - **v2.10.3 · 8 Nov 2026:** Chit saves now wait for cloud sync to finish before reporting success and show a clear on-device-only message when cloud sync fails.
+
+- **v2.10.4 · 8 Nov 2026:** Carry the shop reset token on Retail documents so Product, Tagging and Chit writes pass the reset guard; expose cloud write errors on Retail document saves.

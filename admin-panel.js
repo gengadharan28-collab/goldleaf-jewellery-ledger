@@ -106,7 +106,7 @@ let platformLedgerShop='';
 const platformPreviousSave=window.save;
 const platformPreviousAuthForm=window.authForm;
 window.authForm=function(){if(session){goldleafContext=null;platformLoadedUser='';platformLedgerShop='';}return platformPreviousAuthForm();};
-window.save=function(){if(db.recordsResetToken)for(const key of ['parties','customers','sales','payments'])for(const row of db[key]||[])row.recordsResetToken=db.recordsResetToken;const result=platformPreviousSave();if(session&&platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));return result;};
+window.save=function(){if(db.recordsResetToken)for(const key of ['parties','customers','sales','payments','retailSuppliers','retailDocuments'])for(const row of db[key]||[])row.recordsResetToken=db.recordsResetToken;const result=platformPreviousSave();if(session&&platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));return result;};
 function platformStoreLedger(){localStorage.setItem(dbkey,JSON.stringify(db));if(platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));}
 function platformAdoptCloudReset(payload){
   if(!payload?.recordsResetToken||payload.recordsResetToken===db.recordsResetToken)return false;
@@ -136,7 +136,7 @@ window.pullCloud=async function(){
     else db=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?v2MergeCloudLedgers(remote.payload,db,true):Object.assign(init(),remote.payload||{});
     ensureExtendedData();db.rates=shared.data||{};v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
     setCloudStatus('Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
-  }catch(error){platformError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
+  }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
   finally{v2CloudBusy=false;}
 };
 window.pushCloud=async function(){
@@ -152,9 +152,9 @@ window.pushCloud=async function(){
         if(write.data){written=true;v2LastCloudUpdatedAt=write.data;}
       }
       if(!written)throw new Error('Records changed on another device. Your entry is saved here and will retry.');
-      platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);setCloudStatus('Cloud · '+goldleafContext.shop_name);
+      platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
     }while(v2CloudQueuedPush);
-  }catch(error){platformError=error.message;setCloudStatus('Entry saved here · waiting to sync');}
+  }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Entry saved here · waiting to sync');}
   finally{v2CloudBusy=false;}
 };
 window.v2CheckCloudForChanges=async function(){if(!session||!client||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
