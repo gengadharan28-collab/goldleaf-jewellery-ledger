@@ -124,4 +124,4 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.8.3 · 7 Nov 2026:** Retail Estimation / Quotation now appears directly beside Rate Book in the main navigation.
 
 - **v2.8.6 · 7 Nov 2026:** Retail Products and Chit have independent sidebar sections below Sales and Purchase. Each opens only its own content; returning to Sales restores the sales workflow.
-- **v2.8.8 · 8 Nov 2026:** Fixed vertical scrolling in the Retail Sales Bill on desktop and kept the bill actions easy to reach while scrolling.
+- **v2.8.9 · 8 Nov 2026:** Fixed desktop Retail Sales Bill scrolling by making its actual content container scroll, while keeping Save and Print actions reachable.
