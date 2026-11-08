@@ -142,3 +142,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.5 · 8 Nov 2026:** Remember each signed-in shop's active workspace and page so Retail or Wholesale reopens to the same screen after refresh; also remember the selected Retail sales tab.
 
 - **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with JewelGrow-inspired gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
+
+- **v2.10.10 · 8 Nov 2026:** Fixed Retail Sales screens stretching past phone width. Bill forms stay within the screen, with wide jewellery tables scrolling inside their own panels.

@@ -247,3 +247,11 @@
  .rc-item{grid-template-columns:minmax(0,1fr)!important}
  .rc-actions{grid-template-columns:minmax(0,1fr)!important}
 }
+
+/* Prevent implicit grid tracks from stretching Retail forms beyond phone width. */
+@media screen and (max-width:760px){
+ .rc-content{width:100%!important;max-width:100%!important;min-width:0!important;grid-template-columns:minmax(0,1fr)!important}
+ .rc-content>*{box-sizing:border-box;min-width:0!important;max-width:100%!important;width:100%!important}
+ .rc-content .rb-screen,.rc-content .rp-screen,.rc-content .rc-screen{box-sizing:border-box;min-width:0!important;max-width:100%!important}
+ .rc-content .retail-sale-screen,.rc-content .rp-document-screen{width:100%!important;min-width:0!important;max-width:100%!important}
+}
