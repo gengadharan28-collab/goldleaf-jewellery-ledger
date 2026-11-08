@@ -119,4 +119,8 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 
 - **v2.8.2 · 7 Nov 2026:** Finalised manual Retail rates and defaulted the Silver Board field from the saved silver price where no separate board rate exists.
 
+- **v2.8.5 · 7 Nov 2026:** Added separate Retail Products, Tagging and Chit pages in the left navigation. They are also available from More on mobile.
+- **v2.8.4 · 7 Nov 2026:** Retail Estimation / Quotation, Tagging and Chit open as separate pages from the top quick-access toolbar. Fixed full-page scrolling for Tagging and Chit on desktop and mobile.
 - **v2.8.3 · 7 Nov 2026:** Retail Estimation / Quotation now appears directly beside Rate Book in the main navigation.
+
+- **v2.8.6 · 7 Nov 2026:** Retail Products and Chit have independent sidebar sections below Sales and Purchase. Each opens only its own content; returning to Sales restores the sales workflow.

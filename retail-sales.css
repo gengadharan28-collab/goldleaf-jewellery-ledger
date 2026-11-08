@@ -153,7 +153,27 @@
 }
 
 @media screen and (min-width: 761px) {
+  body.rb-active #app.main:has(> .rb-bill-screen) {
+    height: auto !important;
+    min-height: calc(100dvh - var(--erp-toolbar, 56px)) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain;
+  }
+  body.rb-active .layout:has(.rb-bill-screen) {
+    height: auto !important;
+    min-height: 100dvh;
+    overflow: visible !important;
+    grid-template-rows: var(--erp-toolbar, 56px) minmax(0, 1fr) !important;
+  }
+  body.rb-active .rb-screen.rb-bill-screen {
+    min-height: max-content !important;
+    height: auto !important;
+  }
   body.rb-active.compact-customer-sale #app.main:has(> .rb-bill-screen) {
+    height: auto !important;
+    min-height: calc(100dvh - var(--erp-toolbar, 56px)) !important;
     overflow-y: auto !important;
     scroll-padding-block: 12px;
   }
