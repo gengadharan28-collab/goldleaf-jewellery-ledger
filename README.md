@@ -140,3 +140,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.4 · 8 Nov 2026:** Carry the shop reset token on Retail documents so Product, Tagging and Chit writes pass the reset guard; expose cloud write errors on Retail document saves.
 
 - **v2.10.5 · 8 Nov 2026:** Remember each signed-in shop's active workspace and page so Retail or Wholesale reopens to the same screen after refresh; also remember the selected Retail sales tab.
+
+- **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with JewelGrow-inspired gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
