@@ -30,3 +30,15 @@
  html[data-theme="dark"] body[data-erp] .top,html[data-theme="dark"] body[data-erp] .rc-screen>.rb-header,html[data-theme="dark"] body[data-erp] .panel,html[data-theme="dark"] body[data-erp] .cards .card,html[data-theme="dark"] body[data-erp] .right{background:#202923!important;border-color:#3e493f!important}
  html[data-theme="dark"] body[data-erp] .panel h2,html[data-theme="dark"] body[data-erp] .top h1{color:#f0e9db;border-color:#3b443d}
 }
+@media screen and (max-width:760px){
+ body[data-erp] .rc-grid>label:not(.rc-wide){grid-column:auto!important}
+ body[data-erp] .rc-grid>label.rc-wide{grid-column:1/-1!important}
+ body[data-erp] .rc-item{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body[data-erp] .rc-item>label{grid-column:auto!important}
+ body[data-erp] .rc-item>.rc-line-value,body[data-erp] .rc-item>button{grid-column:1/-1!important}
+ body[data-erp] #app .grid>.field:not(.wide),body[data-erp] #app .grid>label:not(.wide){grid-column:auto!important}
+}
+
+@media screen and (max-width:360px){
+ body[data-erp] .rc-grid,body[data-erp] .rc-item{grid-template-columns:minmax(0,1fr)!important}
+}
