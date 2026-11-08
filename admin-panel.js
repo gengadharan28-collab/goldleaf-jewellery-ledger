@@ -134,9 +134,9 @@ window.pullCloud=async function(){
       if(!remote.payload?.recordsResetToken)localStorage.setItem('goldleaf-device-backup-before-shop-login',JSON.stringify(db));
       const local=JSON.parse(localStorage.getItem(platformStorageKey())||'null');
       db=local&&(!remote.payload?.recordsResetToken||local.recordsResetToken===remote.payload.recordsResetToken)?v2MergeCloudLedgers(remote.payload,local,true):Object.assign(init(),remote.payload||{});
-      platformLedgerShop=shop;localStorage.removeItem(V2_CLOUD_PENDING_KEY);
+      platformLedgerShop=shop;if(JSON.stringify(db)!==JSON.stringify(remote.payload||{}))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
-    else db=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?v2MergeCloudLedgers(remote.payload,db,true):Object.assign(init(),remote.payload||{});
+    else {const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
     ensureExtendedData();db.rates=shared.data||{};v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
     setCloudStatus('Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
@@ -152,7 +152,14 @@ window.pushCloud=async function(){
         if(platformAdoptCloudReset(remote.data?.payload)){say('Old shop entries were cleared. Please enter your new record again.');render();return;}
         db=v2MergeCloudLedgers(remote.data?.payload,db,true);
         const write=await client.rpc('goldleaf_save_ledger',{p_payload:db,p_expected:remote.data?.updated_at||null});if(write.error)throw write.error;
-        if(write.data){written=true;v2LastCloudUpdatedAt=write.data;}
+        if(write.data){
+          const confirmed=await client.rpc('goldleaf_read_ledger');if(confirmed.error)throw confirmed.error;
+          for(const key of ['retailDocuments','retailSuppliers']){
+            const saved=new Map((confirmed.data?.payload?.[key]||[]).map(row=>[row.id,row]));
+            if((db[key]||[]).some(row=>!saved.has(row.id)||String(saved.get(row.id).updatedAt||saved.get(row.id).createdAt||'')!==String(row.updatedAt||row.createdAt||'')))throw new Error('Cloud has not confirmed the Retail records. Your entries remain saved on this device. Cloud Retail storage needs updating.');
+          }
+          written=true;v2LastCloudUpdatedAt=write.data;
+        }
       }
       if(!written)throw new Error('Records changed on another device. Your entry is saved here and will retry.');
       platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
