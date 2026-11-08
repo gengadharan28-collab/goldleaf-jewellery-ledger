@@ -126,3 +126,6 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.8.6 · 7 Nov 2026:** Retail Products and Chit have independent sidebar sections below Sales and Purchase. Each opens only its own content; returning to Sales restores the sales workflow.
 - **v2.9.0 · 8 Nov 2026:** Fixed desktop Retail Sales Bill scrolling by sizing the app scroll area to the viewport and keeping Save/Print actions reachable.
 - **v2.9.1 · 8 Nov 2026:** Reordered Retail Chit steps as Group, Type, Mapping and Entry; Chit now opens at Group first.
+
+- **v2.10.0 · 8 Nov 2026:** Expanded Retail Chit to seven scheme types (Digi Gold/Silver, Fixed, Flexi, One Time, Fixed Interest, Custom), group/type/mapping workflows, dues tracking, metal/testing payments, adjustments and printable receipts.
+
