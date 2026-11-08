@@ -138,3 +138,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.3 · 8 Nov 2026:** Chit saves now wait for cloud sync to finish before reporting success and show a clear on-device-only message when cloud sync fails.
 
 - **v2.10.4 · 8 Nov 2026:** Carry the shop reset token on Retail documents so Product, Tagging and Chit writes pass the reset guard; expose cloud write errors on Retail document saves.
+
+- **v2.10.5 · 8 Nov 2026:** Remember each signed-in shop's active workspace and page so Retail or Wholesale reopens to the same screen after refresh; also remember the selected Retail sales tab.
