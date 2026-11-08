@@ -132,3 +132,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 
 - **v2.10.1 · 8 Nov 2026:** Fixed nested Chit grids that squeezed Group, Type and Mapping forms, compacted the Chit summary cards and removed the default customer enrolment cap.
 
+
+- **v2.10.2 · 8 Nov 2026:** Fixed cloud merge to retain Retail Chit, Products, Tagging and Estimation records on saves, refresh and across devices.
