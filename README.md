@@ -144,3 +144,5 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with JewelGrow-inspired gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
 
 - **v2.10.10 · 8 Nov 2026:** Fixed Retail Sales screens stretching past phone width. Bill forms stay within the screen, with wide jewellery tables scrolling inside their own panels.
+
+- **v2.10.11 · 8 Nov 2026:** Rebuilt Retail tagging as a batch workflow with Gram/Item modes and product catalog defaults. Includes lot/supplier/tray/counter metadata, barcode, per-tag weights/charges/stones/HUID/references, preview/print/history, and expanded Product Master fields. Mobile forms and contained tables improved.
