@@ -440,8 +440,8 @@ window.pushCloud=async function(){
     if(remote){let request=client.from('goldleaf_shop_ledgers').update({payload:db,updated_at:updated}).eq('shop_id',goldleafContext.shop_id);if(remote.updated_at)request=request.eq('updated_at',remote.updated_at);const {data,error}=await request.select('updated_at').maybeSingle();if(error)throw error;if(!data)continue}
     else{const {error}=await client.from('goldleaf_shop_ledgers').insert(payload);if(error){if(error.code==='23505')continue;throw error}}
     written=true;v2LastCloudUpdatedAt=updated;
-  }if(!written)throw new Error('Shop records changed repeatedly. Save again in a moment.');localStorage.removeItem(V2_CLOUD_PENDING_KEY);localStorage.setItem(v2CloudMarker(),'1');setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email))}while(v2CloudQueuedPush)}
-  catch(error){setCloudStatus('Sync issue · saved on this device');const message=document.getElementById('cloudMsg');if(message)message.textContent='Shop data sync could not finish: '+error.message}
+  }if(!written)throw new Error('Shop records changed repeatedly. Save again in a moment.');localStorage.removeItem(V2_CLOUD_PENDING_KEY);localStorage.setItem(v2CloudMarker(),'1');window.v2LastSyncError='';setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email))}while(v2CloudQueuedPush)}
+  catch(error){window.v2LastSyncError=error.message;setCloudStatus('Sync issue · saved on this device');const message=document.getElementById('cloudMsg');if(message)message.textContent='Shop data sync could not finish: '+error.message}
   finally{v2CloudBusy=false}
 };
 const goldleafRenderWithTenant=window.render;
