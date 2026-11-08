@@ -129,3 +129,6 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 
 - **v2.10.0 · 8 Nov 2026:** Expanded Retail Chit to seven scheme types (Digi Gold/Silver, Fixed, Flexi, One Time, Fixed Interest, Custom), group/type/mapping workflows, dues tracking, metal/testing payments, adjustments and printable receipts.
 
+
+- **v2.10.1 · 8 Nov 2026:** Fixed nested Chit grids that squeezed Group, Type and Mapping forms, compacted the Chit summary cards and removed the default customer enrolment cap.
+
