@@ -1,0 +1,32 @@
+/* Goldleaf selected mobile layout: phone-only ERP cards. Desktop stays unchanged. */
+@media screen and (max-width:760px){
+ body[data-erp] .layout{display:block!important;min-height:100dvh}
+ body[data-erp] .side{display:none!important}
+ body[data-erp] #app.main,body[data-erp] .main{width:100%!important;max-width:100%!important;margin:0!important;padding:12px 12px calc(96px + env(safe-area-inset-bottom))!important;min-width:0!important}
+ body[data-erp] .top,body[data-erp] .rc-screen>.rb-header{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;padding:13px!important;margin:0 0 12px!important;border:1px solid #e7dcc8!important;border-radius:18px!important;background:linear-gradient(135deg,#fffdf8,#f4eddf)!important;box-shadow:0 4px 14px #4637190c!important}
+ body[data-erp] .top h1,body[data-erp] .rc-screen>.rb-header h1{font-size:21px!important;line-height:1.2;margin:2px 0 5px!important;color:#2f302b}
+ body[data-erp] .top .header-actions,body[data-erp] .rc-screen>.rb-header .header-actions{display:flex;flex-wrap:wrap;gap:5px;max-width:100%}
+ body[data-erp] .panel,body[data-erp] .rc-content>.panel,body[data-erp] .rc-content>form>.panel{min-width:0;padding:13px!important;margin:0 0 11px!important;border:1px solid #e7decd!important;border-radius:15px!important;background:#fffefa!important;box-shadow:0 3px 12px #4637190c!important}
+ body[data-erp] .panel h2{font-size:15px!important;line-height:1.3;margin:0 0 10px!important;padding-bottom:8px;border-bottom:1px solid #efe8dc;color:#38352e}
+ body[data-erp] .grid,body[data-erp] .rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ body[data-erp] .field,body[data-erp] .rc-grid label,body[data-erp] .rc-item label{min-width:0;gap:5px}
+ body[data-erp] .field>label,body[data-erp] label.field{font-size:11px;line-height:1.3;color:#6c6559}
+ body[data-erp] input,body[data-erp] select,body[data-erp] textarea{max-width:100%;min-width:0;min-height:44px;font-size:16px}
+ body[data-erp] .wide,body[data-erp] .rc-wide{grid-column:1/-1}
+ body[data-erp] .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+ body[data-erp] .cards .card{min-width:0;padding:11px;border:1px solid #e7decd;border-top:2px solid #c8aa79;border-radius:13px;background:#fffefa}
+ body[data-erp] .cards .card label{font-size:9px;line-height:1.2;letter-spacing:.3px}
+ body[data-erp] .cards .card b{font-size:17px;line-height:1.25;margin-top:7px;overflow-wrap:anywhere}
+ body[data-erp] .right,body[data-erp] .rc-actions,body[data-erp] .rc-master-form .rc-actions,body[data-erp] .rc-tag-actions,body[data-erp] .rc-tag-actions .primary,body[data-erp] .rb-bill-actions{position:static!important;inset:auto!important;max-height:none!important;overflow:visible!important}
+ body[data-erp] .right{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0 0!important;padding:8px;border:1px solid #e9dfcc;border-radius:14px;background:#fffdf8;box-shadow:0 3px 12px #49391a12}
+ body[data-erp] .rc-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ body[data-erp] button{max-width:100%;min-height:44px;border-radius:11px}
+ body[data-erp] .table,body[data-erp] .rc-content .table{max-width:100%;overflow:auto!important;overscroll-behavior-x:contain;border:1px solid #e9e1d3;border-radius:12px}
+ body[data-erp] .table table,body[data-erp] .rc-content table{width:max-content;min-width:680px!important}
+ body[data-erp] .table th,body[data-erp] .table td{padding:9px 10px!important;font-size:11px}
+ body[data-erp] .more-menu{max-height:min(70dvh,560px);overflow:auto;overscroll-behavior:contain;border:1px solid #e6dccb;border-radius:14px;box-shadow:0 12px 28px #30281924}
+ body[data-erp] .rc-item{grid-template-columns:minmax(0,1fr)!important}
+ body[data-erp] .rc-item output,body[data-erp] .rc-item>button{grid-column:1/-1}
+ html[data-theme="dark"] body[data-erp] .top,html[data-theme="dark"] body[data-erp] .rc-screen>.rb-header,html[data-theme="dark"] body[data-erp] .panel,html[data-theme="dark"] body[data-erp] .cards .card,html[data-theme="dark"] body[data-erp] .right{background:#202923!important;border-color:#3e493f!important}
+ html[data-theme="dark"] body[data-erp] .panel h2,html[data-theme="dark"] body[data-erp] .top h1{color:#f0e9db;border-color:#3b443d}
+}
