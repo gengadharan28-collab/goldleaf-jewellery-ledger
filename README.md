@@ -149,4 +149,4 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 
 - **v2.10.12 · 8 Nov 2026:** Refresh the app's offline shell and stylesheet cache so the expanded Retail Tagging and Product mobile layouts load on returning devices.
 
-- **v2.10.13 · 8 Nov 2026:** Refreshed all Retail phone pages with a sectioned, touch-friendly card layout for Product, Tagging, Sales, Purchase, Chit, estimates and reports. Improved grouped fields, scan actions, sticky save controls and contained history tables; desktop styling remains unchanged.
+- **v2.10.14 · 8 Nov 2026:** Refreshed Retail and Wholesale phone pages with a sectioned, touch-friendly ERP card layout. Improved grouped forms, scan/batch actions and contained history tables while preserving desktop styling.
