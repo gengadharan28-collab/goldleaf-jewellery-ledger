@@ -48,9 +48,9 @@
  body.optionc-mobile .more-menu button{background:#f4efe4!important;color:#554426!important}
  body.optionc-tagging #app.main{padding-bottom:calc(177px + env(safe-area-inset-bottom))!important}
  body.optionc-tagging .optionc-quick-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:11px 0 13px!important}
- body.optionc-tagging .optionc-quick-actions button{display:flex!important;min-width:0!important;min-height:52px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:5px 3px!important;border:1px solid transparent!important;font-size:10px!important;font-weight:750!important;line-height:1.15!important;white-space:normal!important}
+ body.optionc-tagging .optionc-quick-actions button{display:flex!important;min-width:0!important;min-height:60px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:5px 3px!important;border:1px solid transparent!important;font-size:10px!important;font-weight:750!important;line-height:1.15!important;white-space:normal!important}
  body.optionc-tagging .optionc-quick-actions button:before{content:none!important}
- body.optionc-tagging .optionc-action-icon{display:grid!important;place-items:center!important;width:25px!important;height:25px!important;border-radius:9px!important;background:rgba(255,255,255,.72)!important;box-shadow:0 2px 5px rgba(61,45,29,.12)!important;font-size:15px!important;font-weight:850!important;line-height:1!important}
+ body.optionc-tagging .optionc-action-icon{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;border-radius:9px!important;background:rgba(255,255,255,.72)!important;box-shadow:0 2px 5px rgba(61,45,29,.12)!important;font-size:18px!important;font-weight:850!important;line-height:1!important}
  body.optionc-tagging .optionc-action-label{font-size:10px!important;font-weight:800!important;line-height:1!important}
  body.optionc-tagging .new-batch .optionc-action-icon{background:#ddc7ec!important;color:#64467a!important}
  body.optionc-tagging .scan-shortcut .optionc-action-icon{background:#cde5d3!important;color:#2a6941!important}
@@ -118,7 +118,7 @@
  html[data-theme='dark'] body.optionc-tagging .optionc-item-details>summary,html[data-theme='dark'] body.optionc-tagging .optionc-item-details>.rc-tag-fields,html[data-theme='dark'] body.optionc-tagging .optionc-batch-summary>div{background:#202521!important;border-color:#45483e!important}
  html[data-theme='dark'] body.optionc-mobile input,html[data-theme='dark'] body.optionc-mobile select,html[data-theme='dark'] body.optionc-mobile textarea{background:#202420!important;border-color:#4a5048!important;color:#eee7d8!important}
 }
-@media(max-width:430px){body.optionc-mobile #app.main{padding-left:10px!important;padding-right:10px!important}body.optionc-mobile .erp-workbar:after{font-size:22px!important}body.optionc-mobile .rc-screen>.rb-header h1{font-size:20px!important}body.optionc-mobile .optionc-quick-actions button{min-height:52px!important;font-size:9px!important}body.optionc-tagging .rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:430px){body.optionc-mobile #app.main{padding-left:10px!important;padding-right:10px!important}body.optionc-mobile .erp-workbar:after{font-size:22px!important}body.optionc-mobile .rc-screen>.rb-header h1{font-size:20px!important}body.optionc-mobile .optionc-quick-actions button{min-height:60px!important;font-size:9px!important}body.optionc-tagging .rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 `;
   document.head.append(style);
   const phoneOverflowStyle=document.createElement('style');
@@ -210,7 +210,7 @@
   setInterval(()=>{if(document.body.classList.contains('optionc-tagging')){const f=app?.querySelector('#rcTagBatchForm');if(f)syncSummaries(f)}},1200);
   const previousHistory=window.updateHistoryView;
   if(typeof previousHistory==='function'&&!previousHistory.__optionC){
-    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.18 · 9 Nov 2026 · Current</h3><ul><li>Mobile Option C uses compact, colorful New Batch, Scan Tag and Add Product shortcuts with clearer icons.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
+    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.19 · 9 Nov 2026 · Current</h3><ul><li>Mobile Option C uses compact, colorful New Batch, Scan Tag and Add Product shortcuts with clearer icons.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
   }
   enhance();
 })();
