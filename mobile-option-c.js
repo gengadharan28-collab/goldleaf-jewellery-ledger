@@ -145,7 +145,7 @@
     const details=form.querySelector('.optionc-batch-details');if(details){const lot=form.elements.lotEntry?.value?.trim();const s=details.querySelector('summary .optionc-batch-caption');if(s)s.textContent=lot?'Batch / Lot · '+lot:'Batch / Lot details'}
   }
   function enhance(){
-    if(!mq.matches||!document.body.hasAttribute('data-erp')){restoreDesktop();return}
+    if(!mq.matches){restoreDesktop();return}
     document.body.classList.add('optionc-mobile');
     const form=app?.querySelector('#rcTagBatchForm');
     const tagging=!!form;
