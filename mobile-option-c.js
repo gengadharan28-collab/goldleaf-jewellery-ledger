@@ -116,6 +116,9 @@
 @media(max-width:430px){body.optionc-mobile #app.main{padding-left:10px!important;padding-right:10px!important}body.optionc-mobile .erp-workbar:after{font-size:22px!important}body.optionc-mobile .rc-screen>.rb-header h1{font-size:20px!important}body.optionc-mobile .optionc-quick-actions button{min-height:66px!important;font-size:10px!important}body.optionc-tagging .rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 `;
   document.head.append(style);
+  const phoneOverflowStyle=document.createElement('style');
+  phoneOverflowStyle.textContent='@media(max-width:760px){body.optionc-mobile{overflow-x:hidden!important}body.optionc-mobile #app .rc-content .table table{width:100%!important;min-width:0!important;table-layout:fixed!important}body.optionc-mobile #app .rc-content .table tbody tr{width:100%!important;min-width:0!important}body.optionc-mobile #app .rc-content .table td{min-width:0!important;width:auto!important}}';
+  document.head.append(phoneOverflowStyle);
   const app=document.getElementById('app');
   const make=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e};
   function restoreDesktop(){
