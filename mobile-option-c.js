@@ -202,7 +202,7 @@
   setInterval(()=>{if(document.body.classList.contains('optionc-tagging')){const f=app?.querySelector('#rcTagBatchForm');if(f)syncSummaries(f)}},1200);
   const previousHistory=window.updateHistoryView;
   if(typeof previousHistory==='function'&&!previousHistory.__optionC){
-    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.16 · 9 Nov 2026 · Current</h3><ul><li>Mobile pages now use the selected Option C app layout with section cards, expandable Tagging details, camera scan shortcuts and stacked item cards.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return /<h2[^>]*>Update history</h2>/i.test(html)?html.replace(/(<h2[^>]*>Update history</h2>)/i,'$1'+note):note+html};updated.__optionC=true;window.updateHistoryView=updated;
+    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.16 · 9 Nov 2026 · Current</h3><ul><li>Mobile pages now use the selected Option C app layout with section cards, expandable Tagging details, camera scan shortcuts and stacked item cards.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
   }
   enhance();
 })();
