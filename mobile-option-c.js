@@ -120,26 +120,24 @@
 }
 @media(max-width:430px){body.optionc-mobile #app.main{padding-left:10px!important;padding-right:10px!important}body.optionc-mobile .erp-workbar:after{font-size:22px!important}body.optionc-mobile .rc-screen>.rb-header h1{font-size:20px!important}body.optionc-mobile .optionc-quick-actions button{min-height:60px!important;font-size:9px!important}body.optionc-tagging .rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 `;
+  style.textContent+="\n@media(max-width:760px){\n body.optionc-mobile .erp-workbar{gap:6px!important;padding:5px 9px!important}\n body.optionc-mobile .erp-bar-left{flex:0 0 auto!important;width:auto!important;min-width:0!important}\n body.optionc-mobile .erp-bar-right{flex:0 0 auto!important;width:auto!important;min-width:0!important}\n body.optionc-mobile .erp-workbar:after{display:none!important;content:none!important}\n body.optionc-mobile .optionb-header-label{display:block!important;flex:1 1 auto!important;min-width:0!important;margin:0 4px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:center!important;color:#76541e!important;font:600 clamp(12px,3.8vw,16px)/1.1 Georgia,serif!important;letter-spacing:.05px!important}\n body.optionc-mobile #app .top,body.optionc-mobile #app .rc-screen>.rb-header{display:flex!important;min-height:0!important;gap:6px!important;margin:0 0 7px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}\n body.optionc-mobile #app .top>div:first-child,body.optionc-mobile #app .rc-screen>.rb-header>div:first-child{display:none!important}\n body.optionc-mobile #app .top .header-actions,body.optionc-mobile #app .rc-screen>.rb-header .rb-tools{display:flex!important;justify-content:flex-end!important;flex-wrap:wrap!important;gap:5px!important;max-width:100%!important}\n body.optionc-mobile #app .retail-sale-top{min-height:0!important;margin:0 0 7px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}\n body.optionc-mobile #app .retail-sale-top .retail-title{display:none!important}\n body.optionc-mobile #app .retail-sale-top .retail-sale-tools{display:flex!important;justify-content:flex-end!important;gap:5px!important}\n}";
   document.head.append(style);
   const phoneOverflowStyle=document.createElement('style');
   phoneOverflowStyle.textContent='@media(max-width:760px){body.optionc-mobile{overflow-x:hidden!important}body.optionc-mobile #app .rc-content .table table{width:100%!important;min-width:0!important;table-layout:fixed!important}body.optionc-mobile #app .rc-content .table tbody tr{width:100%!important;min-width:0!important}body.optionc-mobile #app .rc-content .table td{min-width:0!important;width:auto!important}}';
   document.head.append(phoneOverflowStyle);
   const app=document.getElementById('app');
   const make=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;e.textContent=text;return e};
-  function restoreDesktop(){
-    document.body.classList.remove('optionc-mobile','optionc-tagging');
-    document.querySelector('.optionc-bottom-actions')?.remove();
-    document.querySelector('.optionc-quick-actions')?.remove();
-    document.querySelector('.optionc-scan-card')?.remove();
-    document.querySelector('.optionc-batch-summary')?.remove();
-    document.querySelectorAll('.optionc-item-details').forEach(d=>{const f=d.querySelector('.rc-tag-fields');if(f)d.parentNode.insertBefore(f,d);d.remove()});
-    document.querySelectorAll('.optionc-batch-details').forEach(d=>{const m=d.querySelector('.rc-tag-batch-meta');if(m)d.parentNode.insertBefore(m,d);d.remove()});
-    document.querySelectorAll('.optionc-tagging-form').forEach(f=>f.classList.remove('optionc-tagging-form'));
+  function syncOptionBHeader(){
+    if(!mq.matches){document.querySelector('.optionb-header-label')?.remove();return}
+    const bar=document.querySelector('.erp-workbar');if(!bar)return;
+    let label=bar.querySelector('.optionb-header-label');if(!label){label=make('span','optionb-header-label','Goldleaf');label.setAttribute('aria-live','polite');bar.insertBefore(label,bar.querySelector('.erp-bar-right'))}
+    const host=app?.querySelector('.retail-sale-top, .top, .rc-screen>.rb-header')||document.querySelector('.retail-sale-top, .top, .rc-screen>.rb-header');
+    const eyebrow=host?.querySelector('.eyebrow')?.textContent?.trim()||'';
+    const title=host?.querySelector('h1')?.textContent?.replace(/^\s*✦\s*/,'').trim()||'';
+    const workspace=/WHOLESALE/i.test(eyebrow)?'Wholesale':/RETAIL/i.test(eyebrow)?'Retail':/SUPER\s*ADMIN|ADMIN/i.test(eyebrow)?'Admin':'';
+    label.textContent=['Goldleaf',workspace,title].filter(Boolean).join(' · ');
   }
-  function syncSummaries(form){
-    form.querySelectorAll('.rc-tag-row').forEach((row,i)=>{
-      const s=row.querySelector('.optionc-item-details>summary');if(!s)return;
-      const val=k=>row.querySelector('[data-tag="'+k+'"]')?.value||'';
+  function restoreDesktop(){
       const product=row.querySelector('[data-tag="productId"]')?.selectedOptions?.[0]?.textContent?.trim();
       const title=product&&product!=='Select product'?product:'New jewellery item';
       const tag=val('tagCode').trim()||'Scan or enter tag code';
@@ -153,8 +151,9 @@
     const details=form.querySelector('.optionc-batch-details');if(details){const lot=form.elements.lotEntry?.value?.trim();const s=details.querySelector('summary .optionc-batch-caption');if(s)s.textContent=lot?'Batch / Lot · '+lot:'Batch / Lot details'}
   }
   function enhance(){
-    if(!mq.matches){restoreDesktop();return}
+    if(!mq.matches){syncOptionBHeader();restoreDesktop();return}
     document.body.classList.add('optionc-mobile');
+    syncOptionBHeader();
     const form=app?.querySelector('#rcTagBatchForm');
     const tagging=!!form;
     document.body.classList.toggle('optionc-tagging',tagging);
@@ -210,7 +209,7 @@
   setInterval(()=>{if(document.body.classList.contains('optionc-tagging')){const f=app?.querySelector('#rcTagBatchForm');if(f)syncSummaries(f)}},1200);
   const previousHistory=window.updateHistoryView;
   if(typeof previousHistory==='function'&&!previousHistory.__optionC){
-    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.19 · 9 Nov 2026 · Current</h3><ul><li>Mobile Option C uses compact, colorful New Batch, Scan Tag and Add Product shortcuts with clearer icons.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
+    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.20 · 9 Nov 2026 · Current</h3><ul><li>Mobile page headings now use the selected compact, single-line Goldleaf · workspace · page header across the app.</li><li>Desktop layout and saved business records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
   }
   enhance();
 })();
