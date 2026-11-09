@@ -48,8 +48,13 @@
  body.optionc-mobile .more-menu button{background:#f4efe4!important;color:#554426!important}
  body.optionc-tagging #app.main{padding-bottom:calc(177px + env(safe-area-inset-bottom))!important}
  body.optionc-tagging .optionc-quick-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:11px 0 13px!important}
- body.optionc-tagging .optionc-quick-actions button{display:flex!important;min-width:0!important;min-height:70px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:8px 4px!important;border:1px solid transparent!important;font-size:11px!important;font-weight:750!important;line-height:1.15!important;white-space:normal!important}
- body.optionc-tagging .optionc-quick-actions button:before{font-size:18px!important;line-height:1}
+ body.optionc-tagging .optionc-quick-actions button{display:flex!important;min-width:0!important;min-height:56px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:5px 3px!important;border:1px solid transparent!important;font-size:10px!important;font-weight:750!important;line-height:1.15!important;white-space:normal!important}
+ body.optionc-tagging .optionc-quick-actions button:before{content:none!important}
+ body.optionc-tagging .optionc-action-icon{display:grid!important;place-items:center!important;width:27px!important;height:27px!important;border-radius:9px!important;background:rgba(255,255,255,.72)!important;box-shadow:0 2px 5px rgba(61,45,29,.12)!important;font-size:15px!important;font-weight:850!important;line-height:1!important}
+ body.optionc-tagging .optionc-action-label{font-size:10px!important;font-weight:800!important;line-height:1!important}
+ body.optionc-tagging .new-batch .optionc-action-icon{background:#ddc7ec!important;color:#64467a!important}
+ body.optionc-tagging .scan-shortcut .optionc-action-icon{background:#cde5d3!important;color:#2a6941!important}
+ body.optionc-tagging .add-product .optionc-action-icon{background:#f2d8bd!important;color:#85502a!important}
  body.optionc-tagging .optionc-quick-actions .new-batch{background:#eee2f6!important;border-color:#e4d5ee!important;color:#59406d!important}
  body.optionc-tagging .optionc-quick-actions .scan-shortcut{background:#e4f1e6!important;border-color:#d4e7d8!important;color:#295c3b!important}
  body.optionc-tagging .optionc-quick-actions .add-product{background:#faeadc!important;border-color:#f1deca!important;color:#784923!important}
@@ -186,10 +191,10 @@
     const firstPanel=app.querySelector('.rc-screen.rc-standalone .rc-content>.panel'),section=firstPanel?.querySelector('.rc-section-title');
     if(section&&!firstPanel.querySelector('.optionc-quick-actions')){
       const actions=document.createElement('div');actions.className='optionc-quick-actions';
-      const add=(label,cls,icon,fn)=>{const b=make('button',cls,label);b.type='button';b.insertAdjacentText('afterbegin',icon+' ');b.onclick=fn;actions.append(b)};
-      add('New Batch','new-batch','▱',()=>{if(window.rbCanLeave?.()===false)return;form.querySelector('.rc-tag-actions button:last-child')?.click()});
-      add('Scan Tag','scan-shortcut','▥',()=>{const b=form.querySelector('#rcTagRows .rc-scan-wrap button');if(b)b.click()});
-      add('Add Product','add-product','◇',()=>window.rcOpenStandalone?.('Products'));
+      const add=(label,cls,icon,fn)=>{const b=make('button',cls,'');b.type='button';const glyph=make('span','optionc-action-icon',icon);glyph.setAttribute('aria-hidden','true');const caption=make('span','optionc-action-label',label);b.append(glyph,caption);b.onclick=fn;actions.append(b)};
+      add('New Batch','new-batch','＋',()=>{if(window.rbCanLeave?.()===false)return;form.querySelector('.rc-tag-actions button:last-child')?.click()});
+      add('Scan Tag','scan-shortcut','⌗',()=>{const b=form.querySelector('#rcTagRows .rc-scan-wrap button');if(b)b.click()});
+      add('Add Product','add-product','◈',()=>window.rcOpenStandalone?.('Products'));
       section.insertAdjacentElement('afterend',actions);
     }
     const sticky=document.createElement('div');sticky.className='optionc-bottom-actions';
@@ -205,7 +210,7 @@
   setInterval(()=>{if(document.body.classList.contains('optionc-tagging')){const f=app?.querySelector('#rcTagBatchForm');if(f)syncSummaries(f)}},1200);
   const previousHistory=window.updateHistoryView;
   if(typeof previousHistory==='function'&&!previousHistory.__optionC){
-    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.16 · 9 Nov 2026 · Current</h3><ul><li>Mobile pages now use the selected Option C app layout with section cards, expandable Tagging details, camera scan shortcuts and stacked item cards.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
+    const updated=function(){let html=previousHistory.apply(this,arguments);const note='<article class="release-note"><h3>v2.10.17 · 9 Nov 2026 · Current</h3><ul><li>Mobile Option C uses compact, colorful New Batch, Scan Tag and Add Product shortcuts with clearer icons.</li><li>Desktop layouts and saved Retail records are unchanged.</li></ul></article>';return note+html};updated.__optionC=true;window.updateHistoryView=updated;
   }
   enhance();
 })();
