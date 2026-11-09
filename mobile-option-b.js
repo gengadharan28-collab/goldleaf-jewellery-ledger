@@ -20,10 +20,22 @@
     'body #app .retail-sale-top{min-height:0!important;margin:0 0 6px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}'+
     'body #app .retail-sale-top .retail-title{display:none!important}'+
     'body #app .retail-sale-top .retail-sale-tools{display:flex!important;justify-content:flex-end!important;gap:5px!important}'+
+    'body #app #rcTagBatchForm .rc-scan-wrap button{display:inline-grid!important;place-items:center!important;width:44px!important;min-width:44px!important;max-width:44px!important;padding:0!important;font-size:0!important;line-height:1!important;overflow:hidden!important}'+
+    'body #app #rcTagBatchForm .rc-scan-wrap button svg{display:block!important;width:20px!important;height:20px!important}'+
     '}';
   document.head.appendChild(style);
+  function setTagScanIcon(enabled){
+    document.querySelectorAll('#rcTagBatchForm .rc-scan-wrap button').forEach(button=>{
+      if(enabled){
+        if(button.dataset.optionbQr)return;
+        button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm9-2h3v3h-3zm5 0h2v2h-2zm-5 5h2v2h-2zm4-1h3v3h-3z"/></svg>';
+        button.setAttribute('aria-label','Scan tag with camera');button.title='Scan tag';button.dataset.optionbQr='true';
+      }else if(button.dataset.optionbQr){button.textContent='▣ Scan';button.removeAttribute('aria-label');button.removeAttribute('title');delete button.dataset.optionbQr}
+    });
+  }
   function sync(){
-    if(!mq.matches){document.querySelector('.optionb-header-label')?.remove();return}
+    if(!mq.matches){document.querySelector('.optionb-header-label')?.remove();setTagScanIcon(false);return}
+    setTagScanIcon(true);
     const bar=document.querySelector('#erpWorkbar');if(!bar)return;
     let badge=bar.querySelector('.optionb-header-label');
     if(!badge){badge=document.createElement('span');badge.className='optionb-header-label';badge.setAttribute('aria-label','Current Goldleaf page');bar.insertBefore(badge,bar.querySelector('.erp-bar-right'))}
