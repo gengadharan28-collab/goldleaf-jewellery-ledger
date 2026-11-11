@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.24';
+const RC_VERSION='2.10.28';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -425,7 +425,12 @@ function rcQuoteForm(){
         rates = n(db.rates.gold24)||0,
         inStockTags = rcDocs('retail-tagging').filter(t=>t.status==='In stock');
 
-  const products = rcDocs('retail-product');
+  const products = rcDocs('retail-product'),
+        goldGrossVal = n(q?.exchangeGross),
+        goldTestingVal = n(q?.exchangeTesting || 91.6),
+        goldRateVal = n(q?.exchangeRate ?? rates),
+        oldGoldCredit = rbRound(goldGrossVal * goldTestingVal / 100 * goldRateVal),
+        hasOldGold = goldGrossVal > 0;
 
   return '<form id="rcEstimateForm" class="rc-form" oninput="rcRecalc()" onchange="rcRecalc()" onsubmit="rcSaveEstimate(event)">'
     +'<input type="hidden" name="id" value="'+esc(q?.id||'')+'">'
@@ -549,16 +554,37 @@ function rcQuoteForm(){
     +'<div class="rc-grid">'
     +'<label>Discount ₹<input name="discount" type="number" min="0" step=".01" value="'+(q?.discount||0)+'" oninput="rcRecalc()"></label>'
     +'<label>GST Rate %<input name="gstRate" type="number" min="0" max="100" step=".01" value="'+(q?.gstRate||3)+'" oninput="rcRecalc()"></label>'
-    +'<label>Old Gold Item<input name="exchangeProduct" value="'+esc(q?.exchangeProduct||'')+'" placeholder="Old Jewellery description"></label>'
-    +'<label>Old Gold Gross g<input name="exchangeGross" type="number" min="0" step=".001" value="'+(q?.exchangeGross||0)+'" oninput="rcRecalc()"></label>'
-    +'<label>Old Gold Testing %<input name="exchangeTesting" type="number" min="1" max="100" step=".01" value="'+(q?.exchangeTesting||91.6)+'" oninput="rcRecalc()"></label>'
-    +'<label>Old Gold Rate ₹/g<input name="exchangeRate" type="number" min="0" step=".01" value="'+(q?.exchangeRate??rates)+'" oninput="rcRecalc()"></label>'
     +'<label class="rc-wide">Quotation Notes / Terms<textarea name="notes" rows="2" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea></label>'
     +'</div>'
+    +'<div class="rc-old-gold-wrap">'
+    +'<button type="button" id="rcOldGoldToggleBtn" class="rc-old-gold-btn '+(hasOldGold?'active':'')+'" onclick="rcToggleOldGold()" aria-expanded="'+(hasOldGold?'true':'false')+'">'
+    +'<div class="rc-old-gold-btn-left">'
+    +'<span class="rc-old-gold-icon">🔄</span>'
+    +'<span class="rc-old-gold-title">Old Gold Exchange</span>'
+    +'<b id="rcOldGoldBadge" class="rc-old-gold-badge">'+rateMoney(oldGoldCredit)+'</b>'
+    +'</div>'
+    +'<div class="rc-old-gold-btn-right">'
+    +'<span class="rc-old-gold-hint">'+(hasOldGold?'Click to collapse':'Click to enter Old Gold data')+'</span>'
+    +'<span id="rcOldGoldChevron" class="rc-old-gold-chevron">'+(hasOldGold?'▲':'▼')+'</span>'
+    +'</div>'
+    +'</button>'
+    +'<div id="rcOldGoldDropdown" class="rc-old-gold-dropdown '+(hasOldGold?'':'hidden')+'">'
+    +'<div class="rc-old-gold-dropdown-head">'
+    +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Credit = Gross weight × Testing % ÷ 100 × Rate</small></div>'
+    +'<div class="rc-old-gold-credit-pill">Credit: <b id="rcOldGoldCreditSummary">'+rateMoney(oldGoldCredit)+'</b></div>'
+    +'</div>'
+    +'<div class="rc-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
+    +'<label class="rc-wide" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Item Description</span><input name="exchangeProduct" value="'+esc(q?.exchangeProduct||'')+'" placeholder="Old Jewellery description"></label>'
+    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Gross g *</span><input name="exchangeGross" type="number" min="0" step=".001" placeholder="0.000" value="'+(q?.exchangeGross||'')+'" oninput="rcRecalc()"></label>'
+    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Testing Purity % *</span><input name="exchangeTesting" type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+(q?.exchangeTesting||91.6)+'" oninput="rcRecalc()"></label>'
+    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Rate ₹/g *</span><input name="exchangeRate" type="number" min="0" step=".01" placeholder="Rate/g" value="'+(q?.exchangeRate??rates)+'" oninput="rcRecalc()"></label>'
+    +'</div>'
+    +'</div>'
+    +'</div>'
     +'<div class="rc-advance-collection-card">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">'
-    +'<div style="display:flex;align-items:center;gap:8px"><span class="rb-collection-highlight-badge">💰 ADVANCE COLLECTION</span><h2 style="margin:0;font-size:14px;color:#18392a;font-weight:800">Advance / Collected Amount</h2></div>'
-    +'<span class="muted" style="font-size:11px;font-weight:600;color:#2e7d32">● Record booking advance / token received</span>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE COLLECTION</span><h2 style="margin:0;font-size:14px;color:#18392a;font-weight:800">Advance / Collected Amount</h2></div>'
+    +'<div class="rc-advance-live-badge">Total Advance: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></div>'
     +'</div>'
     +'<div class="rc-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
     +'<label style="margin:0"><span style="font-size:12px;font-weight:800;color:#18392a">Advance Collected · ₹ *</span><input name="collectedAmount" class="rc-advance-input" type="number" inputmode="decimal" min="0" step=".01" placeholder="0.00" value="'+(q?.collectedAmount||'')+'" oninput="rcRecalc()"></label>'
@@ -575,13 +601,15 @@ function rcQuoteForm(){
     +'<span>Old Gold Credit <b id="rcOldGold" style="display:block;font-size:14px;color:#854d0e">₹ 0.00</b></span>'
     +'<span>Estimate Total <b id="rcFinal" style="display:block;font-size:14px;color:var(--green,#18392a)">₹ 0.00</b></span>'
     +'<span class="rc-advance-total-badge">💵 Advance Collected <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">₹ 0.00</b></span>'
-    +'<div id="rcBalanceBox" class="rc-balance-box rc-balance-due" style="grid-column:1/-1;margin-top:8px;padding:12px 16px;border-radius:10px;display:flex;justify-content:space-between;align-items:center">'
+    +'</div>'
+    +'<div id="rcBalanceBox" class="rc-balance-box rc-balance-due" style="margin-top:12px;padding:14px 18px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
     +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<span style="font-size:22px">⚖️</span>'
-    +'<div><span id="rcBalanceLabel" style="font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small style="font-size:11px;color:#b45309;font-weight:600">Net balance after advance collection</small></div>'
+    +'<span style="font-size:24px">⚖️</span>'
+    +'<div><span id="rcBalanceLabel" style="font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small style="font-size:11px;color:#b45309;font-weight:600">Net balance after advance collection</small>'
+    +'<div class="rc-balance-breakdown"><span>Quote Total: <b id="rcBalGrandTotal">₹ 0.00</b></span><span class="rc-balance-sep">•</span><span>Advance: <b id="rcBalAdvance">₹ 0.00</b></span></div>'
+    +'</div>'
     +'</div>'
     +'<b id="rcBalanceDue" style="font-size:26px;font-weight:900;color:#b45309;letter-spacing:-0.5px">₹ 0.00</b>'
-    +'</div>'
     +'</div>'
     +'</section>'
 
@@ -896,6 +924,24 @@ window.rcConvert = function(id){
   }, 50);
 };
 
+window.rcToggleOldGold = function() {
+  const dropdown = document.getElementById('rcOldGoldDropdown');
+  const btn = document.getElementById('rcOldGoldToggleBtn');
+  const chev = document.getElementById('rcOldGoldChevron');
+  const hint = btn?.querySelector('.rc-old-gold-hint');
+  if (!dropdown) return;
+  const isHidden = dropdown.classList.toggle('hidden');
+  if (btn) {
+    btn.setAttribute('aria-expanded', String(!isHidden));
+    btn.classList.toggle('active', !isHidden);
+  }
+  if (chev) chev.textContent = isHidden ? '▼' : '▲';
+  if (hint) hint.textContent = isHidden ? 'Click to enter Old Gold data' : 'Click to collapse';
+  if (!isHidden) {
+    dropdown.querySelector('input[name="exchangeGross"]')?.focus({ preventScroll: true });
+  }
+};
+
 function rcRecalc(){
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
@@ -935,12 +981,22 @@ function rcRecalc(){
   if(elGST) elGST.textContent = rateMoney(gst);
   const elGold = document.getElementById('rcOldGold');
   if(elGold) elGold.textContent = rateMoney(goldCredit);
+  const elBadge = document.getElementById('rcOldGoldBadge');
+  if(elBadge) elBadge.textContent = rateMoney(goldCredit);
+  const elCreditSum = document.getElementById('rcOldGoldCreditSummary');
+  if(elCreditSum) elCreditSum.textContent = rateMoney(goldCredit);
   const elFinal = document.getElementById('rcFinal');
   if(elFinal) elFinal.textContent = rateMoney(finalVal);
   const elCol = document.getElementById('rcCollected');
   if(elCol) elCol.textContent = rateMoney(collected);
+  const elAdvLive = document.getElementById('rcAdvanceLiveTotal');
+  if(elAdvLive) elAdvLive.textContent = rateMoney(collected);
   const elBal = document.getElementById('rcBalanceDue');
   if(elBal) elBal.textContent = rateMoney(balanceDue);
+  const elBalTot = document.getElementById('rcBalGrandTotal');
+  if(elBalTot) elBalTot.textContent = rateMoney(finalVal);
+  const elBalAdv = document.getElementById('rcBalAdvance');
+  if(elBalAdv) elBalAdv.textContent = rateMoney(collected);
   const balBox = document.getElementById('rcBalanceBox');
   if(balBox){
     balBox.classList.remove('rc-balance-paid', 'rc-balance-due');

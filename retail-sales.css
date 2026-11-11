@@ -223,8 +223,8 @@
  .rb-items,.rb-item-scroll{width:100%;max-width:100%;max-height:none!important;min-height:0!important;overflow-x:auto!important;overflow-y:visible!important}
  #rbItemsTable{min-width:1050px!important}
  .rb-form .rb-totals-scroll{columns:1!important;max-height:none!important;overflow:visible!important}
- .rb-balance{width:100%!important;position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 0 0 8px var(--paper)}
- .rb-bill-actions,.rb-record-columns .right,.rc-actions{display:grid!important;grid-template-columns:1fr!important;position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;background:var(--paper);padding:9px 0!important}
+ .rb-balance{width:100%!important;position:relative!important;bottom:auto!important;margin:12px 0!important;z-index:auto!important;box-shadow:0 4px 14px rgba(217,119,6,0.12)!important}
+ .rb-bill-actions,.rb-record-columns .right,.rc-actions{display:grid!important;grid-template-columns:1fr!important;position:relative!important;bottom:auto!important;z-index:auto!important;background:transparent!important;padding:9px 0!important}
  .rb-bill-actions button,.rb-record-columns .right button,.rc-actions button{width:100%!important;min-height:46px!important;font-size:14px!important}
  .rb-record-columns{display:grid!important;grid-template-columns:minmax(0,1fr)!important;min-height:0!important}
  .rb-record-columns>.panel{max-height:none!important;overflow:visible!important}
@@ -1218,4 +1218,289 @@ body.dark .rc-balance-box.rc-balance-paid b {
   font-weight: 600;
   color: var(--muted, #888);
   font-size: 14px;
+}
+
+/* ==========================================================================
+   Mobile Collection Visibility & Old Gold Exchange Dropdown Enhancements
+   ========================================================================== */
+
+/* Total Collected Badges & Live Display */
+.rb-total-collected-badge {
+  display: inline-block !important;
+  font-size: 13.5px !important;
+  font-weight: 850 !important;
+  color: #1b5e20 !important;
+  background: #c8e6c9 !important;
+  border: 1px solid #81c784 !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 3px rgba(46, 125, 50, 0.12) !important;
+}
+
+.rb-collection-live-total-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #e8f5e9 !important;
+  border: 1.5px solid #81c784 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+}
+.rb-collection-live-label {
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  color: #1b5e20 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+}
+.rb-collection-live-val {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  color: #1b5e20 !important;
+}
+
+/* Balance Header & Breakdown */
+.rb-balance-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 4px !important;
+}
+.rb-balance-sub {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+.rb-balance-breakdown {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px dashed rgba(217, 119, 6, 0.35) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #92400e !important;
+  flex-wrap: wrap !important;
+}
+.rb-balance-sep {
+  color: #d97706 !important;
+  opacity: 0.6 !important;
+}
+.rb-balance-col-val {
+  color: #166534 !important;
+  font-weight: 850 !important;
+}
+
+/* Old Gold Exchange Dropdown Button & Dropdown Panel */
+.rc-old-gold-wrap {
+  margin: 14px 0 !important;
+  border: 2px solid #d97706 !important;
+  border-radius: 12px !important;
+  background: #fffcf5 !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.12) !important;
+}
+.rc-old-gold-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  padding: 10px 14px !important;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  transition: background 0.2s, box-shadow 0.2s !important;
+  text-align: left !important;
+}
+.rc-old-gold-btn:hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+}
+.rc-old-gold-btn.active,
+.rc-old-gold-btn[aria-expanded="true"] {
+  border-bottom: 2px solid #d97706 !important;
+}
+.rc-old-gold-btn-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+.rc-old-gold-icon {
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+.rc-old-gold-title {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #92400e !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+.rc-old-gold-badge {
+  display: inline-block !important;
+  background: #d97706 !important;
+  color: #ffffff !important;
+  font-size: 12.5px !important;
+  font-weight: 850 !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+}
+.rc-old-gold-btn-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.rc-old-gold-hint {
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  color: #b45309 !important;
+}
+.rc-old-gold-chevron {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  color: #92400e !important;
+  line-height: 1 !important;
+}
+.rc-old-gold-dropdown {
+  padding: 14px 16px !important;
+  background: #fffdf7 !important;
+}
+.rc-old-gold-dropdown.hidden {
+  display: none !important;
+}
+.rc-old-gold-dropdown-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px dashed rgba(217, 119, 6, 0.3) !important;
+}
+.rc-old-gold-credit-pill {
+  background: #fef3c7 !important;
+  border: 1px solid #d97706 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #92400e !important;
+}
+.rc-old-gold-credit-pill b {
+  color: #b45309 !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+/* Quotation Advance & Balance Breakdown */
+.rc-advance-live-badge {
+  background: #e8f5e9 !important;
+  border: 1px solid #81c784 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-size: 11.5px !important;
+  font-weight: 750 !important;
+  color: #1b5e20 !important;
+}
+.rc-advance-live-badge b {
+  font-size: 13.5px !important;
+  font-weight: 850 !important;
+  color: #166534 !important;
+}
+.rc-balance-breakdown {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: #92400e !important;
+  flex-wrap: wrap !important;
+}
+.rc-balance-sep {
+  color: #d97706 !important;
+  opacity: 0.6 !important;
+}
+
+/* Dark mode overrides for new components */
+[data-theme="dark"] .rb-total-collected-badge,
+body.dark .rb-total-collected-badge {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rb-collection-live-total-wrap,
+body.dark .rb-collection-live-total-wrap {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+}
+[data-theme="dark"] .rb-collection-live-label,
+body.dark .rb-collection-live-label,
+[data-theme="dark"] .rb-collection-live-val,
+body.dark .rb-collection-live-val {
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rb-balance-breakdown,
+body.dark .rb-balance-breakdown {
+  border-top-color: rgba(251, 191, 36, 0.3) !important;
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rb-balance-col-val,
+body.dark .rb-balance-col-val {
+  color: #4ade80 !important;
+}
+[data-theme="dark"] .rc-old-gold-wrap,
+body.dark .rc-old-gold-wrap {
+  border-color: #d97706 !important;
+  background: #231c12 !important;
+}
+[data-theme="dark"] .rc-old-gold-btn,
+body.dark .rc-old-gold-btn {
+  background: linear-gradient(135deg, #2b2216 0%, #1f180f 100%) !important;
+}
+[data-theme="dark"] .rc-old-gold-title,
+body.dark .rc-old-gold-title {
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rc-old-gold-hint,
+body.dark .rc-old-gold-hint {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rc-old-gold-chevron,
+body.dark .rc-old-gold-chevron {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rc-old-gold-dropdown,
+body.dark .rc-old-gold-dropdown {
+  background: #1c160e !important;
+}
+[data-theme="dark"] .rc-old-gold-credit-pill,
+body.dark .rc-old-gold-credit-pill {
+  background: #2b2216 !important;
+  border-color: #d97706 !important;
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rc-old-gold-credit-pill b,
+body.dark .rc-old-gold-credit-pill b {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rc-advance-live-badge,
+body.dark .rc-advance-live-badge {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rc-advance-live-badge b,
+body.dark .rc-advance-live-badge b {
+  color: #4ade80 !important;
+}
+[data-theme="dark"] .rc-balance-breakdown,
+body.dark .rc-balance-breakdown {
+  color: #fde68a !important;
 }

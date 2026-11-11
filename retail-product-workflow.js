@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.25';
+const GL_PRODUCT_VERSION = '2.10.28';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -212,14 +212,14 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.27');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.27</b> · 11 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.26 · 11 Nov 2026</h3>');
-  const v27Note = '<article class="release-note"><h3>v2.10.27 · 11 Nov 2026 · Current</h3><ul>'
-    + '<li>High-Visibility Balance Amount Layout: Redesigned Balance to Collect (Sales) and Balance to Pay (Quotation) layouts with high-contrast, bright, crystal-clear card styling perfectly suitable for normal light mode and tablets.</li>'
-    + '<li>Prominently Highlighted Payment Collection: Enhanced visual prominence with distinct badges, clear input styling, and direct entry in Sales Entry settlement, Bill Totals, and Quotation Advance cards.</li>'
-    + '<li>Silver Product Purity Handling: Hidden purity input and displayed clean dashes for Silver items across Tagging, Quotation / Estimation, and Customer Sales Bills, while strictly preserving full purity functionality in Purchases.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.28');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.28</b> · 11 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.27 · 11 Nov 2026</h3>');
+  const v28Note = '<article class="release-note"><h3>v2.10.28 · 11 Nov 2026 · Current</h3><ul>'
+    + '<li>Mobile View Total Collected Amount Display: Resolved mobile view issue by clearly presenting the live formatted Total Collected Amount (₹ 5,000.00) in Bill Totals, Payment Collection panel, and live balance breakdown on mobile screens.</li>'
+    + '<li>Quotation Old Gold Exchange Dropdown Button: Added dedicated toggle button for Old Gold Exchange in mobile and desktop view that drops down on click to enter gross weight, testing purity, and exchange rate with instant live calculation.</li>'
+    + '<li>Eliminated Mobile Balance Overlay: Converted sticky balance on mobile to natural document flow, preventing overlap with form inputs and action buttons.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v27Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v28Note);
 };
 render();
