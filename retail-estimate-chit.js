@@ -1065,11 +1065,47 @@ window.rcSaveTagBatch=function(e,printAfter=false){
   if(printAfter)rcPrintTagBatch(printed);
 };
 
-function rcRenderTagQr(container,text,size=70){
-  if(!container||!text)return;
-  container.innerHTML='';
+function rcGenerateQrSvg(text,size=66){
+  if(!text)return '';
   if(window.QRCode){
     try{
+      const dummy=document.createElement('div');
+      const qr=new window.QRCode(dummy,{
+        text:String(text).trim(),
+        correctLevel:window.QRCode.CorrectLevel.M
+      });
+      const model=qr._oQRCode;
+      if(model){
+        const count=model.getModuleCount();
+        const margin=2;
+        const total=count+(margin*2);
+        let pathD='';
+        for(let r=0;r<count;r++){
+          for(let c=0;c<count;c++){
+            if(model.isDark(r,c)){
+              pathD+='M'+(c+margin)+','+(r+margin)+'h1v1h-1z ';
+            }
+          }
+        }
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+total+' '+total+'" width="'+size+'" height="'+size+'" shape-rendering="crispEdges" style="display:block;width:'+size+'px;height:'+size+'px;background:#ffffff;" aria-label="QR Code '+esc(text)+'"><rect width="'+total+'" height="'+total+'" fill="#ffffff"/><path d="'+pathD+'" fill="#000000"/></svg>';
+      }
+    }catch(e){
+      console.warn('QR SVG render error:',e);
+    }
+  }
+  return '';
+}
+
+function rcRenderTagQr(container,text,size=70){
+  if(!container||!text)return;
+  const svg=rcGenerateQrSvg(text,size);
+  if(svg){
+    container.innerHTML=svg;
+    return;
+  }
+  if(window.QRCode){
+    try{
+      container.innerHTML='';
       new window.QRCode(container,{
         text:String(text).trim(),
         width:size,
@@ -1078,19 +1114,7 @@ function rcRenderTagQr(container,text,size=70){
         colorLight:'#ffffff',
         correctLevel:window.QRCode.CorrectLevel.M
       });
-      const canvas = container.querySelector('canvas');
-      const img = container.querySelector('img');
-      if(canvas && img){
-        try{
-          if(!img.src || img.src === 'data:,'){
-            img.src = canvas.toDataURL('image/png');
-          }
-          img.style.display = 'block';
-          canvas.style.display = 'none';
-        }catch(_){}
-      }
-      return;
-    }catch(e){console.warn('QRCode render error:',e)}
+    }catch(_){}
   }
 }
 
@@ -1098,11 +1122,11 @@ window.rcDisplayTagBatch=function(){
   const items=rcTagReadRows();if(!items.some(t=>t.tagCode||t.productId))return say('Enter at least one product and tag first.');
   const old=document.querySelector('.rc-tag-preview');old?.remove();
   const box=document.createElement('div');box.className='retail-modal-backdrop rc-tag-preview';
-  box.innerHTML='<section class="retail-modal"><header class="retail-modal-head"><h2>Tag preview · '+items.length+' item(s)</h2><div style="display:flex;gap:8px"><button type="button" class="primary" onclick="rcPrintTagBatch();this.closest(\'.retail-modal-backdrop\').remove()">🖨 Print tags with QR</button><button type="button" onclick="this.closest(\'.retail-modal-backdrop\').remove()">Close</button></div></header><div class="retail-modal-scroll"><div class="rc-tag-preview-grid">'+items.map((t,idx)=>'<article class="rc-tag-preview-card"><div class="rc-tag-preview-qr" id="rcPrevQr_'+idx+'"></div><div class="rc-tag-preview-meta"><b>'+esc(t.printName||t.product||'Product')+'</b><div class="rc-tag-code-badge">'+esc(t.tagCode||'No barcode')+' · '+(t.metalType||'Gold')+'</div><span>'+fmt(t.netWeight??t.grossWeight)+' g · '+esc(t.purity)+'%</span>'+(t.size?'<small>Size: '+esc(t.size)+'</small>':'')+'<small>₹'+rateMoney(t.rate)+'/g · Total ₹'+rateMoney(t.totalAmount)+'</small>'+(t.huid?'<small>HUID '+esc(t.huid)+'</small>':'')+'</div></article>').join('')+'</div></div></section>';
+  box.innerHTML='<section class="retail-modal"><header class="retail-modal-head"><h2>Tag preview · '+items.length+' item(s)</h2><div style="display:flex;gap:8px"><button type="button" class="primary" onclick="rcPrintTagBatch();this.closest(\'.retail-modal-backdrop\').remove()">🖨 Print tags with QR</button><button type="button" onclick="this.closest(\'.retail-modal-backdrop\').remove()">Close</button></div></header><div class="retail-modal-scroll"><div class="rc-tag-preview-grid">'+items.map((t,idx)=>'<article class="rc-tag-preview-card"><div class="rc-tag-preview-qr" id="rcPrevQr_'+idx+'">'+rcGenerateQrSvg(t.tagCode||'GL-TAG',76)+'</div><div class="rc-tag-preview-meta"><b>'+esc(t.printName||t.product||'Product')+'</b><div class="rc-tag-code-badge">'+esc(t.tagCode||'No barcode')+' · '+(t.metalType||'Gold')+'</div><span>'+fmt(t.netWeight??t.grossWeight)+' g · '+esc(t.purity)+'%</span>'+(t.size?'<small>Size: '+esc(t.size)+'</small>':'')+'<small>₹'+rateMoney(t.rate)+'/g · Total ₹'+rateMoney(t.totalAmount)+'</small>'+(t.huid?'<small>HUID '+esc(t.huid)+'</small>':'')+'</div></article>').join('')+'</div></div></section>';
   document.body.append(box);
   items.forEach((t,idx)=>{
     const el=document.getElementById('rcPrevQr_'+idx);
-    rcRenderTagQr(el,t.tagCode||'GL-TAG',76);
+    if(el&&!el.querySelector('svg'))rcRenderTagQr(el,t.tagCode||'GL-TAG',76);
   });
 };
 
@@ -1110,17 +1134,21 @@ window.rcPrintTagBatch=function(items){
   items=items||rcTagReadRows();if(!items||!items.length)return;
   const old=document.getElementById('rcTagPrintSheet');old?.remove();
   const sheet=document.createElement('div');sheet.id='rcTagPrintSheet';
-  sheet.innerHTML=items.map((t,idx)=>'<article class="rc-tag-print-item" data-tag="'+esc(t.tagCode||'')+'"><div class="rc-tag-print-head"><span class="rc-tag-brand">'+esc(goldleafContext?.shop_name||'GOLDLEAF')+'</span><span class="rc-tag-code-text">'+esc(t.tagCode||'')+'</span></div><div class="rc-tag-print-main"><div class="rc-tag-qr-box" id="rcPrintQr_'+idx+'"></div><div class="rc-tag-details"><b class="rc-tag-name">'+esc(t.printName||t.product||'Jewellery')+'</b><div class="rc-tag-meta-line"><span>'+esc(t.metalType||'Gold')+' '+n(t.purity)+'%</span>'+(t.size?'<span>Sz: '+esc(t.size)+'</span>':'')+'</div><div class="rc-tag-weight-line"><span>GW: '+fmt(t.grossWeight)+'g</span><span>NW: '+fmt(t.netWeight??t.grossWeight)+'g</span></div>'+(n(t.rate)>0?'<div class="rc-tag-price-line">₹'+rateMoney(t.rate)+'/g</div>':'')+(t.huid?'<div class="rc-tag-huid-line">HUID: '+esc(t.huid)+'</div>':'')+'</div></div></article>').join('');
+  sheet.innerHTML=items.map((t,idx)=>'<article class="rc-tag-print-item" data-tag="'+esc(t.tagCode||'')+'"><div class="rc-tag-print-head"><span class="rc-tag-brand">'+esc(goldleafContext?.shop_name||'GOLDLEAF')+'</span><span class="rc-tag-code-text">'+esc(t.tagCode||'')+'</span></div><div class="rc-tag-print-main"><div class="rc-tag-qr-box" id="rcPrintQr_'+idx+'">'+rcGenerateQrSvg(t.tagCode||'GL-TAG',66)+'</div><div class="rc-tag-details"><b class="rc-tag-name">'+esc(t.printName||t.product||'Jewellery')+'</b><div class="rc-tag-meta-line"><span>'+esc(t.metalType||'Gold')+' '+n(t.purity)+'%</span>'+(t.size?'<span>Sz: '+esc(t.size)+'</span>':'')+'</div><div class="rc-tag-weight-line"><span>GW: '+fmt(t.grossWeight)+'g</span><span>NW: '+fmt(t.netWeight??t.grossWeight)+'g</span></div>'+(n(t.rate)>0?'<div class="rc-tag-price-line">₹'+rateMoney(t.rate)+'/g</div>':'')+(t.huid?'<div class="rc-tag-huid-line">HUID: '+esc(t.huid)+'</div>':'')+'</div></div></article>').join('');
   document.body.append(sheet);
 
   items.forEach((t,idx)=>{
     const el=document.getElementById('rcPrintQr_'+idx);
-    rcRenderTagQr(el,t.tagCode||'GL-TAG',66);
+    if(el&&!el.querySelector('svg'))rcRenderTagQr(el,t.tagCode||'GL-TAG',66);
   });
 
-  const cleanup=()=>{sheet.remove();window.removeEventListener('afterprint',cleanup)};
-  window.addEventListener('afterprint',cleanup);
-  setTimeout(()=>{window.print();setTimeout(cleanup,2500)},150);
+  document.body.classList.add('goldleaf-tag-printing');
+  const onAfterPrint=()=>{
+    document.body.classList.remove('goldleaf-tag-printing');
+    window.removeEventListener('afterprint',onAfterPrint);
+  };
+  window.addEventListener('afterprint',onAfterPrint,{once:true});
+  setTimeout(()=>{window.print()},100);
 };
 
 window.rcPrintOneTag=function(id){const t=rcDocs('retail-tagging').find(z=>z.id===id);if(t)rcPrintTagBatch([t])};

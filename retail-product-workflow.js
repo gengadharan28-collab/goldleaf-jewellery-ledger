@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.24';
+const GL_PRODUCT_VERSION = '2.10.25';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -198,16 +198,14 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.24');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.24</b> · 11 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.23 · 11 Nov 2026</h3>');
-  const v24Note = '<article class="release-note"><h3>v2.10.24 · 11 Nov 2026 · Current</h3><ul>'
-    + '<li>Product Group catalog: replaced Product Type with Product Size attribute across group creation, table columns, and product auto-fill.</li>'
-    + '<li>Google Pay full-screen mobile camera scanner with 4-color rounded reticle, direct 1080p stream, and multi-scale barcode/QR detection.</li>'
-    + '<li>Left Side Navigation Bar drawer on mobile replacing the old downside navigation bar.</li>'
-    + '<li>Responsive quotation mobile cards with zero horizontal scrolling.</li>'
-    + '<li>Compact pill chips for Product & Model required-field tick options on mobile screens.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.25');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.25</b> · 11 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.24 · 11 Nov 2026</h3>');
+  const v25Note = '<article class="release-note"><h3>v2.10.25 · 11 Nov 2026 · Current</h3><ul>'
+    + '<li>Tag Print & PDF QR: Synchronous vector SVG QR code generation with high-contrast crisp edges and quiet margin, ensuring 100% scannability in "Save as PDF" and physical label printing.</li>'
+    + '<li>Eliminated premature print sheet DOM timer removal so PDF preview and export in App and Website always retain all QR codes and item details.</li>'
+    + '<li>Scoped print styling with body.goldleaf-tag-printing and explicit vector fill colors for consistent thermal and laser printing.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v24Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v25Note);
 };
 render();
