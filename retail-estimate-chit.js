@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.22-r1';
+const RC_VERSION='2.10.23-r1';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -55,20 +55,20 @@ function rcQuoteItemRow(x={}, i=0){
   const lineTotal = rbRound((net + wstGrams) * rateVal + mcTot + stoneAmt + (valAdded * net));
 
   return '<tr class="rc-quote-row" data-id="'+esc(x.id||crypto.randomUUID())+'">'
-    +'<td class="rc-index">'+(i+1)+'</td>'
-    +'<td><input data-q="tagCode" value="'+esc(x.tagCode||'')+'" placeholder="Tag / Code" style="width:85px"><input type="hidden" data-q="huid" value="'+esc(x.huid||'')+'"><input type="hidden" data-q="productId" value="'+esc(p?.id||x.productId||'')+'"></td>'
-    +'<td><input data-q="product" list="rcQuoteProdList" value="'+esc(name)+'" placeholder="Product" style="width:130px;font-weight:600"></td>'
-    +'<td><select data-q="metalType" onchange="rcQuoteRowMetalChanged(this)" style="width:75px"><option value="Gold" '+(metal==='Gold'?'selected':'')+'>Gold</option><option value="Silver" '+(metal==='Silver'?'selected':'')+'>Silver</option><option value="Platinum" '+(metal==='Platinum'?'selected':'')+'>Platinum</option></select></td>'
-    +'<td><input data-q="purity" type="number" min="1" max="100" step=".01" value="'+purity+'" oninput="rcQuoteRowPurityChanged(this)" style="width:60px"></td>'
-    +'<td><input data-q="grossWeight" type="number" min="0" step=".001" value="'+(gross||'')+'" oninput="rcQuoteRowCalc(this)" style="width:70px"></td>'
-    +'<td><input data-q="stoneWeight" type="number" min="0" step=".001" value="'+(stoneWt||0)+'" oninput="rcQuoteRowCalc(this)" style="width:60px"><input type="hidden" data-q="stoneAmount" value="'+stoneAmt+'"></td>'
-    +'<td><input data-q="netWeight" type="number" min="0" step=".001" value="'+fmt(net)+'" oninput="this.dataset.manualNet=\'1\';rcQuoteRowCalc(this)" style="width:70px;background:#fbfaf7;font-weight:600"></td>'
-    +'<td><div style="display:flex;gap:2px"><select data-q="wastageMode" onchange="rcQuoteRowCalc(this)" style="width:38px"><option value="percent" '+(wstMode==='percent'?'selected':'')+'>%</option><option value="grams" '+(wstMode==='grams'?'selected':'')+'>g</option></select><input data-q="wastage" type="number" min="0" step=".01" value="'+wst+'" oninput="rcQuoteRowCalc(this)" style="width:50px"></div></td>'
-    +'<td><div style="display:flex;gap:2px"><select data-q="makingMode" onchange="rcQuoteRowCalc(this)" style="width:42px"><option value="piece" '+(mcMode==='piece'?'selected':'')+'>/pc</option><option value="gram" '+(mcMode==='gram'?'selected':'')+'>/g</option><option value="fixed" '+(mcMode==='fixed'?'selected':'')+'>Fix</option><option value="percent" '+(mcMode==='percent'?'selected':'')+'>%</option></select><input data-q="makingRate" type="number" min="0" step=".01" value="'+mcRate+'" oninput="rcQuoteRowCalc(this)" style="width:55px"></div></td>'
-    +'<td><input data-q="rate" type="number" min="0" step=".01" value="'+rateVal.toFixed(2)+'" oninput="rcQuoteRowCalc(this)" style="width:75px"></td>'
-    +'<td><span class="rc-q-ratetax" style="font-size:11px;color:#555">₹'+rateTax.toFixed(2)+'</span><input type="hidden" data-q="valueAdded" value="'+valAdded+'"><input type="hidden" data-q="pieces" value="'+pcs+'"></td>'
-    +'<td><b class="rc-q-lineamount" style="font-size:12px;color:var(--green,#18392a)">'+rateMoney(lineTotal)+'</b></td>'
-    +'<td><button type="button" class="rc-tag-remove" onclick="rcQuoteRemoveRow(this)" aria-label="Remove item">×</button></td>'
+    +'<td class="rc-index" data-label="Item #"><span class="rc-q-idx-badge">#'+(i+1)+'</span></td>'
+    +'<td class="rc-q-cell-tag" data-label="Tag / Barcode"><div class="rc-q-tag-wrap"><input data-q="tagCode" value="'+esc(x.tagCode||'')+'" placeholder="Tag / Code" onchange="window.rcQuoteRowTagChanged&&rcQuoteRowTagChanged(this)"><button type="button" class="gl-scan-btn gl-scan-btn-embedded" onclick="window.openQrScannerForQuoteRow&&openQrScannerForQuoteRow(this)" title="Scan Tag" aria-label="Scan Tag">'+(window.glScanIconSvg||'<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h4v2H4v4H2V4zm14-2h4a2 2 0 0 1 2 2v4h-2V4h-4V2zM2 16h2v4h4v2H4a2 2 0 0 1-2-2v-4zm18 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM5 8h4v4H5V8zm8 0h4v4h-4V8zm-6 6h4v4H7v-4zm6-2h4v1h-4v-1zm0 3h2v1h-2v-1z"/></svg>')+'</button></div><input type="hidden" data-q="huid" value="'+esc(x.huid||'')+'"><input type="hidden" data-q="productId" value="'+esc(p?.id||x.productId||'')+'"></td>'
+    +'<td class="rc-q-cell-product" data-label="Product Name"><input data-q="product" list="rcQuoteProdList" value="'+esc(name)+'" placeholder="Product name"></td>'
+    +'<td class="rc-q-cell-metal" data-label="Metal"><select data-q="metalType" onchange="rcQuoteRowMetalChanged(this)"><option value="Gold" '+(metal==='Gold'?'selected':'')+'>Gold</option><option value="Silver" '+(metal==='Silver'?'selected':'')+'>Silver</option><option value="Platinum" '+(metal==='Platinum'?'selected':'')+'>Platinum</option></select></td>'
+    +'<td class="rc-q-cell-purity" data-label="Purity %"><input data-q="purity" type="number" min="1" max="100" step=".01" value="'+purity+'" oninput="rcQuoteRowPurityChanged(this)"></td>'
+    +'<td class="rc-q-cell-gross" data-label="Gross Wt (g)"><input data-q="grossWeight" type="number" min="0" step=".001" value="'+(gross||'')+'" placeholder="0.000" oninput="rcQuoteRowCalc(this)"></td>'
+    +'<td class="rc-q-cell-stone" data-label="Stone Wt (g)"><input data-q="stoneWeight" type="number" min="0" step=".001" value="'+(stoneWt||0)+'" oninput="rcQuoteRowCalc(this)"><input type="hidden" data-q="stoneAmount" value="'+stoneAmt+'"></td>'
+    +'<td class="rc-q-cell-net" data-label="Net Wt (g)"><input data-q="netWeight" type="number" min="0" step=".001" value="'+fmt(net)+'" oninput="this.dataset.manualNet=\'1\';rcQuoteRowCalc(this)"></td>'
+    +'<td class="rc-q-cell-wastage" data-label="Wastage"><div class="rc-q-combo"><select data-q="wastageMode" onchange="rcQuoteRowCalc(this)"><option value="percent" '+(wstMode==='percent'?'selected':'')+'>%</option><option value="grams" '+(wstMode==='grams'?'selected':'')+'>g</option></select><input data-q="wastage" type="number" min="0" step=".01" value="'+wst+'" oninput="rcQuoteRowCalc(this)"></div></td>'
+    +'<td class="rc-q-cell-making" data-label="Making Charge"><div class="rc-q-combo"><select data-q="makingMode" onchange="rcQuoteRowCalc(this)"><option value="piece" '+(mcMode==='piece'?'selected':'')+'>/pc</option><option value="gram" '+(mcMode==='gram'?'selected':'')+'>/g</option><option value="fixed" '+(mcMode==='fixed'?'selected':'')+'>Fix</option><option value="percent" '+(mcMode==='percent'?'selected':'')+'>%</option></select><input data-q="makingRate" type="number" min="0" step=".01" value="'+mcRate+'" oninput="rcQuoteRowCalc(this)"></div></td>'
+    +'<td class="rc-q-cell-rate" data-label="Rate ₹/g"><input data-q="rate" type="number" min="0" step=".01" value="'+rateVal.toFixed(2)+'" oninput="rcQuoteRowCalc(this)"></td>'
+    +'<td class="rc-q-cell-ratetax" data-label="Rate + GST"><span class="rc-q-ratetax">₹'+rateTax.toFixed(2)+'</span><input type="hidden" data-q="valueAdded" value="'+valAdded+'"><input type="hidden" data-q="pieces" value="'+pcs+'"></td>'
+    +'<td class="rc-q-cell-amount" data-label="Line Amount"><b class="rc-q-lineamount">'+rateMoney(lineTotal)+'</b></td>'
+    +'<td class="rc-q-cell-remove" data-label=""><button type="button" class="rc-tag-remove" onclick="rcQuoteRemoveRow(this)" aria-label="Remove item">×</button></td>'
     +'</tr>';
 }
 
@@ -165,13 +165,51 @@ window.rcQuoteRowPurityChanged = function(input){
   rcQuoteRowCalc(input);
 };
 
+window.rcQuoteRowTagChanged = function(input){
+  const row = input.closest('tr.rc-quote-row');
+  if(!row) return;
+  const code = String(input.value || '').trim().toUpperCase();
+  if(!code) return;
+  input.value = code;
+  const tag = rcDocs('retail-tagging').find(t => String(t.tagCode||'').toUpperCase() === code && (t.status||'In stock') === 'In stock');
+  if(!tag){
+    say('Tag "' + code + '" not found in stock.');
+    return;
+  }
+  const p = rcDocs('retail-product').find(z => z.id===tag.productId || String(z.name||'').toLowerCase()===String(tag.product||'').toLowerCase());
+  const setVal = (key, val) => { const el = row.querySelector('[data-q="'+key+'"]'); if(el && val !== undefined && val !== null) el.value = val; };
+  setVal('huid', tag.huid || p?.huid || '');
+  setVal('productId', tag.productId || p?.id || '');
+  setVal('product', tag.product || p?.name || '');
+  const metal = tag.metalType || p?.metalType || 'Gold';
+  setVal('metalType', metal);
+  const purity = Number(tag.purity || p?.purity || 92);
+  setVal('purity', purity);
+  const gross = n(tag.grossWeight || p?.defaultWeight || 0);
+  const stoneWt = n(tag.lessWeight || tag.stoneWeight || 0);
+  setVal('grossWeight', gross || '');
+  setVal('stoneWeight', stoneWt || 0);
+  setVal('stoneAmount', n(tag.stoneCharge || 0));
+  const netIn = row.querySelector('[data-q="netWeight"]');
+  if(netIn){ delete netIn.dataset.manualNet; netIn.value = fmt(Math.max(0, gross - stoneWt)); }
+  setVal('wastageMode', tag.wastageMode || p?.wastageMode || 'percent');
+  setVal('wastage', n(tag.wastage ?? p?.wastage ?? 0));
+  setVal('makingMode', tag.makingMode || p?.makingMode || 'piece');
+  setVal('makingRate', n(tag.makingRate ?? p?.makingRate ?? 0));
+  setVal('pieces', n(tag.pieces || 1));
+  const rate = rcRateForMetal(metal, purity, p?.rateType || tag.rateType, p?.manualRate || tag.manualRate);
+  setVal('rate', (rate > 0 ? rate : n(tag.rate || 0)).toFixed(2));
+  rcQuoteRowCalc(input);
+  say('Loaded tag ' + code + ' · ' + (tag.product || p?.name || 'Item'));
+};
+
 window.rcQuoteRemoveRow = function(btn){
   const rows = document.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row');
   if(rows.length <= 1) return say('Keep at least one quotation item.');
   btn.closest('tr.rc-quote-row').remove();
   document.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row').forEach((r, i)=>{
     const idx = r.querySelector('.rc-index');
-    if(idx) idx.textContent = i + 1;
+    if(idx) idx.innerHTML = '<span class="rc-q-idx-badge">#' + (i + 1) + '</span>';
   });
   rcRecalc();
 };
@@ -407,20 +445,20 @@ function rcQuoteForm(){
     ))
     +'</section>'
 
-    // Items Section (Table)
-    +'<section class="panel">'
-    +'<div class="rc-section-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    // Items Section (Table on desktop, responsive Item Cards on mobile)
+    +'<section class="panel rc-quote-items-panel">'
+    +'<div class="rc-section-head rc-quote-items-head">'
     +'<h2>Quotation Items · <span id="rcQuoteItemCount">'+items.length+' item(s)</span></h2>'
-    +'<div style="display:flex;gap:6px">'
-    +'<button type="button" onclick="rcQuoteAddRow({})">＋ Add Empty Row</button>'
+    +'<div class="rc-quote-items-actions">'
+    +'<button type="button" class="rc-quote-add-btn" onclick="rcQuoteAddRow({})">＋ Add Item Row</button>'
     +'</div>'
     +'</div>'
-    +'<div class="rb-item-scroll" style="overflow-x:auto;max-height:420px;border:1px solid var(--line,#ccc);border-radius:6px">'
-    +'<table id="rcQuoteTable" style="width:100%;min-width:1150px;border-collapse:collapse;font-size:11px">'
+    +'<div class="rb-item-scroll rc-quote-table-wrap">'
+    +'<table id="rcQuoteTable" class="rc-quote-table">'
     +'<thead>'
     +'<tr style="background:var(--erp-soft,#f4f1ea);text-align:left">'
     +'<th style="padding:6px;width:30px">#</th>'
-    +'<th style="padding:6px;width:95px">Tag Code</th>'
+    +'<th style="padding:6px;width:110px">Tag Code</th>'
     +'<th style="padding:6px;width:140px">Product Name</th>'
     +'<th style="padding:6px;width:80px">Metal</th>'
     +'<th style="padding:6px;width:65px">Purity</th>'
@@ -438,15 +476,15 @@ function rcQuoteForm(){
     +'<tbody>'
     +items.map(rcQuoteItemRow).join('')
     +'</tbody>'
-    +'<tfoot style="background:#faf8f3;font-weight:750;border-top:2px solid var(--line,#ccc)">'
-    +'<tr>'
-    +'<td colspan="5" style="padding:8px">Totals</td>'
-    +'<td id="rcQuoteTotalGross" style="padding:8px">0.000 g</td>'
-    +'<td id="rcQuoteTotalStone" style="padding:8px">0.000 g</td>'
-    +'<td id="rcQuoteTotalNet" style="padding:8px">0.000 g</td>'
-    +'<td colspan="4"></td>'
-    +'<td id="rcQuoteTotalItemsVal" style="padding:8px;color:var(--green,#18392a)">₹ 0.00</td>'
-    +'<td></td>'
+    +'<tfoot class="rc-quote-tfoot">'
+    +'<tr class="rc-quote-totals-row">'
+    +'<td colspan="5" class="rc-qt-label">Totals</td>'
+    +'<td id="rcQuoteTotalGross" data-label="Gross Total">0.000 g</td>'
+    +'<td id="rcQuoteTotalStone" data-label="Stone Total">0.000 g</td>'
+    +'<td id="rcQuoteTotalNet" data-label="Net Total">0.000 g</td>'
+    +'<td colspan="4" class="rc-qt-spacer"></td>'
+    +'<td id="rcQuoteTotalItemsVal" data-label="Items Subtotal" style="color:var(--green,#18392a)">₹ 0.00</td>'
+    +'<td class="rc-qt-spacer"></td>'
     +'</tr>'
     +'</tfoot>'
     +'</table>'
@@ -797,7 +835,7 @@ function rcModeOptions(values,current){return values.map(([v,l])=>'<option value
 function rcProductsView(){const list=rcDocs('retail-product'),x=list.find(p=>p.id===rcProductEdit);return '<section class="panel"><h2>'+(x?'Edit retail product':'Retail product master')+'</h2><p class="muted">Product defaults flow into tagging, sales and quotations.</p><form class="rc-grid rc-master-form" onsubmit="rcSaveProduct(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'"><label>Product group<input name="group" value="'+esc(x?.group||'')+'" placeholder="Gold, Silver"></label><label>Product name *<input name="name" required maxlength="100" value="'+esc(x?.name||'')+'"></label><label>Print name<input name="printName" value="'+esc(x?.printName||'')+'"></label><label>Purity %<input name="purity" type="number" min="1" max="100" step=".01" value="'+(x?.purity||92)+'"></label><label>Wastage type<select name="wastageMode">'+rcModeOptions([['percent','Percentage (%)'],['grams','Weight (g)']],x?.wastageMode)+'</select></label><label>Wastage value<input name="wastage" type="number" min="0" step=".001" value="'+(x?.wastage||0)+'"></label><label>Making charge type<select name="makingMode">'+rcModeOptions([['fixed','Fixed amount'],['piece','Per piece'],['gram','Per gram'],['percent','Percentage'] ],x?.makingMode)+'</select></label><label>Making charge value<input name="makingRate" type="number" min="0" step=".01" value="'+(x?.makingRate||0)+'"></label><label>HSN<input name="hsn" value="'+esc(x?.hsn||'')+'"></label><label>Product size<input name="size" value="'+esc(x?.size||'')+'"></label><label>HUID<input name="huid" value="'+esc(x?.huid||'')+'"></label><label>Stone type<select name="stoneType">'+rcModeOptions([['none','None'],['diamond','Diamond'],['stone','Stone'],['other','Other']],x?.stoneType)+'</select></label><label>Stone pieces<input name="stonePieces" type="number" min="0" step="1" value="'+(x?.stonePieces||0)+'"></label><label>Stone carat<input name="stoneCarat" type="number" min="0" step=".001" value="'+(x?.stoneCarat||0)+'"></label><label>Stone / certificate charge ₹<input name="stoneCharge" type="number" min="0" step=".01" value="'+(x?.stoneCharge||0)+'"></label><label class="rc-wide">Description / remarks<input name="description" value="'+esc(x?.description||'')+'"></label><div class="rc-actions rc-wide"><button class="primary">'+(x?'Update product':'Add product')+'</button><button type="button" onclick="rcProductEdit=\'\';render()">Clear</button></div></form></section><section class="panel"><h2>Products · '+list.length+'</h2>'+ (list.length?table(['Group','Product','Purity','Wastage','MC type','Making','HUID','Stone','HSN',''],list.map(p=>[esc(p.group||'—'),esc(p.name),p.purity+'%',(p.wastageMode==='grams'?'g':'%')+' '+n(p.wastage),esc(p.makingMode||'piece'),rateMoney(p.makingRate),esc(p.huid||'—'),esc(p.stoneType||'none'),esc(p.hsn||'—'),'<button type="button" onclick="rcEditProduct(\''+esc(p.id)+'\')">Edit</button>'])):'<p class="muted">Add the first retail product above.</p>')+'</section>'}
 window.rcEditProduct=id=>{rcProductEdit=id;render()};window.rcSaveProduct=function(e){e.preventDefault();const f=e.target,d=Object.fromEntries(new FormData(f)),name=String(d.name||'').trim(),purity=n(d.purity);if(!name||purity<1||purity>100)return say('Enter a product name and purity from 1 to 100%.');if(d.id&&!confirm('Save changes to this product?'))return;const old=rcDocs('retail-product').find(x=>x.id===d.id),p=Object.assign({},old||{},{id:d.id||crypto.randomUUID(),kind:'retail-product',accountType:'customer',name,group:String(d.group||'').trim(),printName:String(d.printName||'').trim(),purity,wastage:n(d.wastage),wastageMode:d.wastageMode==='grams'?'grams':'percent',makingRate:n(d.makingRate),makingMode:['fixed','piece','gram','percent'].includes(d.makingMode)?d.makingMode:'piece',hsn:String(d.hsn||'').trim(),size:String(d.size||'').trim(),huid:String(d.huid||'').trim(),stoneType:d.stoneType||'none',stonePieces:n(d.stonePieces),stoneCarat:n(d.stoneCarat),stoneCharge:n(d.stoneCharge),description:String(d.description||'').trim(),createdAt:old?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}),i=db.retailDocuments.findIndex(x=>x.id===p.id);if(i<0)db.retailDocuments.push(p);else db.retailDocuments[i]=p;rcProductEdit='';const cloudSave=save();render();rcSaveStatus(cloudSave,'Retail product')};
 function rcTaggingView(){const rows=rcDocs('retail-tagging'),x=rows.find(t=>t.id===rcTagEdit),prods=rcDocs('retail-product'),groups=[...new Set(prods.map(p=>p.group).filter(Boolean))];return '<section class="panel"><h2>'+(x?'Edit tagged item':'Retail product tagging')+'</h2><p class="muted">Tag stock by weight or by item. Charge types and stone details carry into Retail sale and quotation entries.</p><form class="rc-grid rc-master-form" onsubmit="rcSaveTag(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'"><label>Tag / barcode *<span class="rc-scan-wrap"><input name="tagCode" id="rcTagCode" required value="'+esc(x?.tagCode||'')+'" autocomplete="off"><button type="button" onclick="rcScanTag()">▣ Scan</button></span></label><label>Tag date<input name="tagDate" type="date" value="'+esc(x?.tagDate||new Date().toISOString().slice(0,10))+'"></label><label>Entry mode<select name="entryMode">'+rcModeOptions([['gram','Gram based'],['item','Item based']],x?.entryMode)+'</select></label><label>Lot entry<input name="lotEntry" value="'+esc(x?.lotEntry||'')+'"></label><label>Product group<select name="group"><option value="">Select group</option>'+groups.map(g=>'<option '+(g===x?.group?'selected':'')+'>'+esc(g)+'</option>').join('')+'</select></label><label>Product name *<input name="product" list="rcProductNames" required value="'+esc(x?.product||'')+'"><datalist id="rcProductNames">'+prods.map(p=>'<option value="'+esc(p.name)+'">').join('')+'</datalist></label><label>Print name<input name="printName" value="'+esc(x?.printName||'')+'"></label><label>Pieces<input name="pieces" type="number" min="1" step="1" value="'+(x?.pieces||1)+'"></label><label>Gross weight · g *<input name="grossWeight" type="number" min=".001" step=".001" required value="'+(x?.grossWeight||'')+'"></label><label>Net weight · g<input name="netWeight" type="number" min="0" step=".001" value="'+(x?.netWeight??Math.max(0,n(x?.grossWeight)-n(x?.lessWeight)))+'"></label><label>Less weight · g<input name="lessWeight" type="number" min="0" step=".001" value="'+(x?.lessWeight||0)+'"></label><label>MC type<select name="makingMode">'+rcModeOptions([['fixed','Fixed'],['piece','Per piece'],['gram','Per gram'],['percent','Percentage']],x?.makingMode)+'</select></label><label>Making charge · amount<input name="makingRate" type="number" min="0" step=".01" value="'+(x?.makingRate||0)+'"></label><label>Wastage type<select name="wastageMode">'+rcModeOptions([['percent','Percentage (%)'],['grams','Weight (g)']],x?.wastageMode)+'</select></label><label>Wastage value<input name="wastage" type="number" min="0" step=".001" value="'+(x?.wastage||0)+'"></label><label>Purity · %<input name="purity" type="number" min="1" max="100" step=".01" required value="'+(x?.purity||92)+'"></label><label>Rate / gram · ₹<input name="rate" type="number" min="0" step=".01" value="'+(x?.rate||v2RateForPurity(x?.purity||92))+'"></label><label>HUID<input name="huid" value="'+esc(x?.huid||'')+'"></label><label>Ornament purity / touch<input name="ornamentPurity" type="number" min="0" max="100" step=".01" value="'+(x?.ornamentPurity||'')+'"></label><label>Product size<input name="size" value="'+esc(x?.size||'')+'"></label><label>Stone type<select name="stoneType">'+rcModeOptions([['none','None'],['diamond','Diamond'],['stone','Stone'],['other','Other']],x?.stoneType)+'</select></label><label>Diamond / stone pieces<input name="stonePieces" type="number" min="0" step="1" value="'+(x?.stonePieces||0)+'"></label><label>Diamond / stone carat<input name="stoneCarat" type="number" min="0" step=".001" value="'+(x?.stoneCarat||0)+'"></label><label>Stone / certificate charge · ₹<input name="stoneCharge" type="number" min="0" step=".01" value="'+(x?.stoneCharge||0)+'"></label><label>Reference 1<input name="reference1" value="'+esc(x?.reference1||'')+'"></label><label>Reference 2<input name="reference2" value="'+esc(x?.reference2||'')+'"></label><label>Status<select name="status">'+rbOptions(['In stock','Reserved','Sold'],x?.status||'In stock')+'</select></label><label>Location<input name="location" value="'+esc(x?.location||'')+'"></label><label class="rc-wide">Remarks<input name="remarks" value="'+esc(x?.remarks||'')+'"></label><div class="rc-actions rc-wide"><button class="primary">'+(x?'Save changes':'Create tag')+'</button><button type="button" onclick="rcTagEdit=\'\';render()">Clear</button></div></form></section><section class="panel"><h2>Tagged items · '+rows.length+'</h2>'+ (rows.length?table(['Tag','Mode','Product','Pcs','Gross','Net','MC type','MC','Wst type','Wastage','Purity','HUID','Stone','Status',''],rows.sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))).map(t=>[esc(t.tagCode),esc(t.entryMode||'gram'),esc(t.product),t.pieces,fmt(t.grossWeight),fmt(t.netWeight??(t.grossWeight-t.lessWeight)),esc(t.makingMode||'piece'),(t.makingMode==='percent'?n(t.makingRate)+'%':rateMoney(t.makingRate)),esc(t.wastageMode||'percent'),(t.wastageMode==='grams'?fmt(t.wastage)+' g':n(t.wastage)+'%'),n(t.purity)+'%',esc(t.huid||'—'),esc(t.stoneType||'none'),esc(t.status),'<button type="button" onclick="rcEditTag(\''+esc(t.id)+'\')">Edit</button>'])):'<p class="muted">No items tagged yet.</p>')+'</section>'}
-window.rcScanTag=async function(){const field=document.getElementById('rcTagCode');if(!field)return;if(!('BarcodeDetector'in window)){field.focus();field.placeholder='Use scanner keyboard or type barcode';say('Camera scan is unavailable here. A USB/Bluetooth barcode scanner can type into this field.');return}try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}}),video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.srcObject=stream;await video.play();const detector=new BarcodeDetector({formats:['code_128','ean_13','ean_8','qr_code','upc_a','upc_e']});const dialog=document.createElement('div');dialog.className='retail-modal-backdrop';dialog.innerHTML='<section class="retail-modal"><header class="retail-modal-head"><h2>Scan item tag</h2><button type="button">Close</button></header><div class="retail-modal-scroll"></div></section>';dialog.querySelector('.retail-modal-scroll').append(video);document.body.append(dialog);let active=true;const close=()=>{active=false;stream.getTracks().forEach(t=>t.stop());dialog.remove()};dialog.querySelector('button').onclick=close;const scan=async()=>{if(!active)return;try{const codes=await detector.detect(video);if(codes[0]){field.value=codes[0].rawValue;field.dispatchEvent(new Event('input',{bubbles:true}));close();return}}catch{}requestAnimationFrame(scan)};scan()}catch{say('Camera access was blocked. Use the barcode field with a scanner or enter the tag manually.')}};
+window.rcScanTag=function(){const field=document.getElementById('rcTagCode')||document.getElementById('rcQuoteTagInput');if(window.openQrScanner){window.openQrScanner(code=>{if(field){field.value=code;field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));}if(document.getElementById('rcQuoteTagInput')===field&&typeof window.rcQuoteAddByTag==='function')window.rcQuoteAddByTag();});return;}if(field)field.focus();};
 
 // Batch tagging workflow modeled on the reference ERP while retaining Goldleaf Retail cloud documents.
 window.rcRateForMetal=function(metalType,purity,rateType='metal-default',manualRate=0){

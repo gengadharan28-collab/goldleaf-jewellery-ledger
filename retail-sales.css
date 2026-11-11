@@ -231,7 +231,7 @@
  .rp-controls{grid-template-columns:minmax(0,1fr)!important}
  .rc-item{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .rc-content .table,.rb-record-history .table,.rp-record-history .table{width:100%;max-width:100%;overflow-x:auto!important;overscroll-behavior-x:contain}
- .rc-content table,.rb-record-history table,.rp-record-history table{min-width:680px!important}
+ .rc-content table:not(#rcQuoteTable),.rb-record-history table,.rp-record-history table{min-width:680px!important}
  .rc-section-title{flex-wrap:wrap}
  .rc-section-title>button{min-height:42px}
  .retail-modal-backdrop{padding:8px!important}

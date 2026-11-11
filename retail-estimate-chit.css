@@ -8,12 +8,12 @@
 /* Standalone Retail pages use the document scroll instead of a clipped app panel. */
 html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height:auto!important;min-height:100vh;overflow:visible!important}html body.rc-active #app{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}html body.rc-active .rc-screen,html body.rc-active .rc-content{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}html body.rc-active .rc-content .table{max-width:100%;overflow-x:auto}
 
-@media(max-width:760px){body[data-erp] #nav>button[data-rc-sidebar]{display:none!important}}
+/* Keep Retail standalone pages visible in the mobile slide-out side menu */
 
 
 /* Goldleaf Retail product and tagging fields, optimized for phone entry. */
 .rc-master-form{grid-template-columns:repeat(3,minmax(0,1fr))}.rc-scan-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}.rc-scan-wrap button{min-height:42px;white-space:nowrap}.rc-tagging-groups{display:grid;gap:10px}.rc-item-mode{display:inline-flex;align-items:center;border-radius:8px;background:var(--mint);padding:5px 8px;font-weight:700}
-@media(max-width:760px){.rc-master-form{grid-template-columns:minmax(0,1fr)!important}.rc-scan-wrap input,.rc-scan-wrap button{min-height:46px;font-size:16px}.rc-master-form>label{font-size:12px!important}.rc-master-form input,.rc-master-form select{font-size:16px!important;min-height:46px!important}.rc-master-form .rc-actions{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));background:var(--white);padding:8px 0;z-index:5}.rc-master-form .rc-actions button{min-height:48px}.rc-content .panel{overflow:visible}.rc-content .table{border-radius:10px}.rc-content table{min-width:900px!important}.rc-item{grid-template-columns:minmax(0,1fr)!important}.rc-item output,.rc-item>button{grid-column:1/-1}.rc-mobile-select{position:sticky;top:50px;z-index:6;background:var(--paper);padding:5px 0}}
+@media(max-width:760px){.rc-master-form{grid-template-columns:minmax(0,1fr)!important}.rc-scan-wrap input,.rc-scan-wrap button{min-height:46px;font-size:16px}.rc-master-form>label{font-size:12px!important}.rc-master-form input:not([type="checkbox"]):not([type="radio"]),.rc-master-form select{font-size:16px!important;min-height:46px!important}.rc-master-form .rc-actions{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));background:var(--white);padding:8px 0;z-index:5}.rc-master-form .rc-actions button{min-height:48px}.rc-content .panel{overflow:visible}.rc-content .table{border-radius:10px}.rc-content table:not(#rcQuoteTable){min-width:900px!important}.rc-item{grid-template-columns:minmax(0,1fr)!important}.rc-item output,.rc-item>button{grid-column:1/-1}.rc-mobile-select{position:sticky;top:50px;z-index:6;background:var(--paper);padding:5px 0}}
 
 /* Full Retail product-tag batch layout: dense desktop grid, touch-sized mobile cards and contained tables. */
 .rc-tag-batch-meta{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
@@ -46,7 +46,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
   body[data-erp] .rc-wide{grid-column:1/-1}
   body[data-erp] .rc-master-form{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
   body[data-erp] .rc-master-form>label{padding:9px;border:1px solid #eee6d8;border-radius:12px;background:#fffefa}
-  body[data-erp] .rc-master-form>label input,body[data-erp] .rc-master-form>label select{min-height:44px!important;font-size:15px!important}
+  body[data-erp] .rc-master-form>label input:not([type="checkbox"]):not([type="radio"]),body[data-erp] .rc-master-form>label select{min-height:44px!important;font-size:15px!important}
   body[data-erp] .rc-master-form .rc-actions{grid-column:1/-1;bottom:calc(70px + env(safe-area-inset-bottom));border:1px solid #eadfca;border-radius:14px;background:#fffdf8;box-shadow:0 4px 15px #51412718}
   body[data-erp] .rc-master-form .rc-actions button{min-height:47px;border-radius:12px}
   body[data-erp] .rc-tag-batch-meta{gap:9px;padding:11px;border:1px solid #e9ddc5;border-radius:15px;background:linear-gradient(145deg,#fffaf0,#f3ead9)}
@@ -75,7 +75,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
   body[data-erp] .rc-actions button,body[data-erp] .rc-content button{border-radius:11px}
   body[data-erp] .rc-content>.panel>.rc-section-title>button{min-height:40px;background:#f4ead6;border-color:#e7d7b9;color:#624c2c;font-weight:700}
   body[data-erp] .rc-content .table{border:1px solid #e9e1d3;border-radius:13px;background:#fffefa;overscroll-behavior-x:contain;scrollbar-width:thin}
-  body[data-erp] .rc-content table{min-width:850px!important}
+  body[data-erp] .rc-content table:not(#rcQuoteTable){min-width:850px!important}
   body[data-erp] .rc-preview-grid,body[data-erp] .rc-tag-preview-grid{gap:8px}
   body[data-erp] .rc-tag-preview-grid article{border-color:#e5d7bf;border-radius:12px;background:#fffefa}
   body[data-erp] .rc-chit-overview .rc-totals{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -99,7 +99,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
  body[data-erp] .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
  body[data-erp] .field{min-width:0;gap:5px}
  body[data-erp] .field>label,body[data-erp] label.field{font-size:11px;line-height:1.3;color:#6c6559}
- body[data-erp] .field input,body[data-erp] .field select,body[data-erp] .field textarea,body[data-erp] input,body[data-erp] select,body[data-erp] textarea{max-width:100%;min-width:0;min-height:44px;font-size:16px}
+ body[data-erp] .field input:not([type="checkbox"]):not([type="radio"]),body[data-erp] .field select,body[data-erp] .field textarea,body[data-erp] input:not([type="checkbox"]):not([type="radio"]),body[data-erp] select,body[data-erp] textarea{max-width:100%;min-width:0;min-height:44px;font-size:16px}
  body[data-erp] .wide{grid-column:1/-1}
  body[data-erp] .row{gap:7px}
  body[data-erp] .right{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px -3px 0;padding:8px;border:1px solid #e9dfcc;border-radius:14px;background:#fffdf8;box-shadow:0 4px 14px #49391a18}
@@ -782,3 +782,488 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
     gap: 8px !important;
   }
 }
+
+/* ==========================================================================
+   Quotation Item Details Table & Mobile Responsive Card Layout (Zero Scroll)
+   ========================================================================== */
+.rc-quote-items-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+  flex-wrap: wrap !important;
+}
+.rc-quote-table-wrap {
+  width: 100% !important;
+  overflow-x: auto !important;
+  border: 1px solid var(--line, #dcd3c2) !important;
+  border-radius: 10px !important;
+}
+#rcQuoteTable.rc-quote-table {
+  width: 100% !important;
+  min-width: 1080px;
+  border-collapse: collapse !important;
+  font-size: 11.5px !important;
+}
+#rcQuoteTable.rc-quote-table th,
+#rcQuoteTable.rc-quote-table td {
+  padding: 6px !important;
+  border-bottom: 1px solid #ece5d8 !important;
+  vertical-align: middle !important;
+}
+.rc-q-tag-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.rc-q-tag-wrap input {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.rc-q-tag-wrap .gl-scan-btn-embedded {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 7px !important;
+  background: #18392a !important;
+  color: #fff !important;
+  border: none !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  flex-shrink: 0 !important;
+}
+.rc-q-combo {
+  display: flex !important;
+  gap: 3px !important;
+  align-items: center !important;
+}
+.rc-q-combo select {
+  width: 54px !important;
+  flex: 0 0 54px !important;
+  padding: 4px !important;
+}
+.rc-q-combo input {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.rc-quote-tfoot {
+  background: #faf8f3 !important;
+  font-weight: 750 !important;
+  border-top: 2px solid var(--line, #ccc) !important;
+}
+
+@media screen and (max-width: 760px) {
+  .rc-quote-table-wrap,
+  body[data-erp] .rc-quote-table-wrap {
+    overflow: visible !important;
+    max-height: none !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  #rcQuoteTable.rc-quote-table,
+  body[data-erp] #rcQuoteTable.rc-quote-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border: none !important;
+  }
+  #rcQuoteTable.rc-quote-table thead {
+    display: none !important;
+  }
+  #rcQuoteTable.rc-quote-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px 10px !important;
+    padding: 42px 12px 12px !important;
+    border: 1px solid #e2d8c5 !important;
+    border-left: 4px solid #c59b47 !important;
+    border-radius: 14px !important;
+    background: #fffdf9 !important;
+    box-shadow: 0 3px 10px rgba(45, 35, 18, 0.06) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    border: none !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td::before {
+    content: attr(data-label);
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    color: #746855 !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-index {
+    position: absolute !important;
+    top: 10px !important;
+    left: 12px !important;
+    width: auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-index::before {
+    display: none !important;
+  }
+  .rc-q-idx-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 2px 9px !important;
+    border-radius: 999px !important;
+    background: #f3ead8 !important;
+    color: #6e501f !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-remove {
+    position: absolute !important;
+    top: 8px !important;
+    right: 10px !important;
+    width: auto !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-remove::before {
+    display: none !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-remove .rc-tag-remove {
+    width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: #fff1f0 !important;
+    border: 1px solid #f3c4c0 !important;
+    color: #b42318 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-tag,
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-product {
+    grid-column: 1 / -1 !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-amount {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 10px !important;
+    margin-top: 2px !important;
+    border-radius: 9px !important;
+    background: #eef6f1 !important;
+    border: 1px solid #c6dfd0 !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-amount .rc-q-lineamount {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #18392a !important;
+  }
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row input,
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row select {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 5px 8px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-q-tag-wrap .gl-scan-btn-embedded {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot {
+    display: block !important;
+    margin-top: 10px !important;
+    border: 1px solid #e2d8c5 !important;
+    border-radius: 12px !important;
+    background: #faf6ed !important;
+    padding: 10px !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot tr.rc-quote-totals-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td.rc-qt-label,
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td.rc-qt-spacer {
+    display: none !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td[data-label] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding: 7px 9px !important;
+    background: #fff !important;
+    border: 1px solid #e6decb !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+  }
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td[data-label]::before {
+    content: attr(data-label);
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    color: #746855 !important;
+  }
+}
+
+/* ==========================================================================
+   Exact Google Pay Full-Screen Mobile QR & Barcode Scanner UI
+   ========================================================================== */
+.gl-gpay-screen,
+.gl-qr-modal-backdrop.gl-gpay-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 2147483640 !important;
+  background: #141517 !important;
+  color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  font-family: 'Google Sans', Inter, Roboto, system-ui, sans-serif !important;
+}
+.gl-gpay-container {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  overflow: hidden !important;
+}
+.gl-gpay-video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  z-index: 1 !important;
+}
+.gl-gpay-scrim {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  background: radial-gradient(circle at 50% 42%, transparent 132px, rgba(20, 21, 23, 0.74) 152px) !important;
+  z-index: 2 !important;
+}
+.gl-gpay-topbar {
+  position: relative !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 12px !important;
+}
+.gl-gpay-topactions,
+.gl-gpay-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.gl-gpay-topbtn,
+.gl-gpay-top-btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  background: rgba(32, 33, 36, 0.68) !important;
+  backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.28) !important;
+}
+.gl-gpay-topbtn.active,
+.gl-gpay-top-btn.is-active {
+  background: #fbbc04 !important;
+  color: #202124 !important;
+}
+.gl-gpay-center-stage {
+  position: relative !important;
+  z-index: 10 !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  padding: 0 20px !important;
+}
+.gl-gpay-status-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+  background: rgba(32, 33, 36, 0.86) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #e8eaed !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35) !important;
+}
+.gl-gpay-status-chip.is-locked {
+  background: #34A853 !important;
+  border-color: #81c995 !important;
+  color: #ffffff !important;
+}
+.gl-gpay-status-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #34A853 !important;
+  box-shadow: 0 0 8px #34A853 !important;
+}
+.gl-gpay-cutout {
+  position: relative !important;
+  width: min(264px, 68vw) !important;
+  height: min(264px, 68vw) !important;
+  border-radius: 34px !important;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.gl-gpay-cutout.is-zooming {
+  transform: scale(0.95) !important;
+}
+.gl-gpay-cutout.is-locked {
+  transform: scale(0.9) !important;
+}
+.gl-gpay-corner {
+  position: absolute !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-style: solid !important;
+  border-color: transparent !important;
+  transition: all 0.25s ease !important;
+}
+.gl-gpay-corner.c-blue {
+  top: -2px !important;
+  left: -2px !important;
+  border-width: 6px 0 0 6px !important;
+  border-top-color: #4285F4 !important;
+  border-left-color: #4285F4 !important;
+  border-top-left-radius: 32px !important;
+}
+.gl-gpay-corner.c-red {
+  top: -2px !important;
+  right: -2px !important;
+  border-width: 6px 6px 0 0 !important;
+  border-top-color: #EA4335 !important;
+  border-right-color: #EA4335 !important;
+  border-top-right-radius: 32px !important;
+}
+.gl-gpay-corner.c-yellow {
+  bottom: -2px !important;
+  left: -2px !important;
+  border-width: 0 0 6px 6px !important;
+  border-bottom-color: #FBBC05 !important;
+  border-left-color: #FBBC05 !important;
+  border-bottom-left-radius: 32px !important;
+}
+.gl-gpay-corner.c-green {
+  bottom: -2px !important;
+  right: -2px !important;
+  border-width: 0 6px 6px 0 !important;
+  border-bottom-color: #34A853 !important;
+  border-right-color: #34A853 !important;
+  border-bottom-right-radius: 32px !important;
+}
+.gl-gpay-cutout.is-locked .gl-gpay-corner {
+  border-color: #34A853 !important;
+  filter: drop-shadow(0 0 12px rgba(52, 168, 83, 0.85)) !important;
+}
+.gl-gpay-gallery-btn {
+  pointer-events: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 42px !important;
+  padding: 9px 20px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(32, 33, 36, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  color: #e8eaed !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  cursor: pointer !important;
+}
+.gl-gpay-zoom-bar {
+  pointer-events: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 6px !important;
+  border-radius: 999px !important;
+  background: rgba(32, 33, 36, 0.84) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+.gl-gpay-bottom-sheet {
+  position: relative !important;
+  z-index: 10 !important;
+  background: #202124 !important;
+  border-radius: 28px 28px 0 0 !important;
+  padding: 12px 20px calc(22px + env(safe-area-inset-bottom)) !important;
+  text-align: center !important;
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45) !important;
+}
+.gl-gpay-sheet-handle {
+  width: 36px !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: #5f6368 !important;
+  margin: 0 auto 12px !important;
+}
+.gl-gpay-bottom-sheet h4 {
+  margin: 0 0 6px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #e8eaed !important;
+}
+.gl-gpay-bottom-sheet p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #9aa0a6 !important;
+  line-height: 1.4 !important;
+}
+
