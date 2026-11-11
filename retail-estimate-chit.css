@@ -147,3 +147,298 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
  body[data-erp] .rc-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  body[data-erp] .rc-tag-actions{margin-top:12px}
 }
+
+/* ==========================================================================
+   Goldleaf QR & Barcode Camera Scanner - Luxury ERP Styling
+   Icon-Only Scanner Buttons with Zero Text Clutter (Mobile & Desktop)
+   ========================================================================== */
+
+.gl-scan-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  background: var(--green, #18392a) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--green, #18392a) !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background .15s ease, transform .1s ease, box-shadow .15s ease !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+}
+.gl-scan-btn:hover {
+  background: #23523c !important;
+  border-color: #23523c !important;
+}
+.gl-scan-btn:active {
+  transform: scale(0.95) !important;
+}
+.gl-scan-btn svg {
+  display: block !important;
+  width: 22px !important;
+  height: 22px !important;
+  fill: currentColor !important;
+}
+
+.gl-load-tag-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  background: #eef5f0 !important;
+  color: var(--green, #18392a) !important;
+  border: 1px solid #b8cebe !important;
+  border-radius: 8px !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+.gl-load-tag-btn:hover {
+  background: #ddeadf !important;
+}
+
+/* Modal Overlay */
+.gl-qr-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  background: rgba(10, 16, 12, 0.88) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  animation: glQrFadeIn .2s ease-out !important;
+}
+@keyframes glQrFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gl-qr-modal-card {
+  width: min(480px, 100%) !important;
+  max-height: 94vh !important;
+  background: #141c18 !important;
+  color: #f0fdf4 !important;
+  border: 1px solid #2d4536 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.gl-qr-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid #23372b !important;
+  background: #192520 !important;
+}
+.gl-qr-modal-header h3 {
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #e6f4ea !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.gl-qr-modal-close {
+  background: transparent !important;
+  border: none !important;
+  color: #94a39b !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+}
+.gl-qr-modal-close:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: #ffffff !important;
+}
+
+.gl-qr-viewport {
+  position: relative !important;
+  width: 100% !important;
+  background: #000000 !important;
+  min-height: 280px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+.gl-qr-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+#glQrReader {
+  width: 100% !important;
+  border: none !important;
+}
+#glQrReader__scan_region {
+  background: transparent !important;
+}
+#glQrReader__dashboard {
+  display: none !important;
+}
+
+/* Scanner Reticle and Laser */
+.gl-qr-reticle {
+  position: absolute !important;
+  inset: 15% 15% !important;
+  pointer-events: none !important;
+  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.45) !important;
+  border-radius: 12px !important;
+}
+.gl-qr-corner {
+  position: absolute !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-color: #34d399 !important;
+  border-style: solid !important;
+}
+.gl-qr-corner.tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-top-left-radius: 10px; }
+.gl-qr-corner.tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-top-right-radius: 10px; }
+.gl-qr-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-bottom-left-radius: 10px; }
+.gl-qr-corner.br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-bottom-right-radius: 10px; }
+
+.gl-qr-laser {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, transparent, #34d399, transparent) !important;
+  box-shadow: 0 0 10px #34d399, 0 0 5px #10b981 !important;
+  animation: glQrScanLine 2s ease-in-out infinite alternate !important;
+}
+@keyframes glQrScanLine {
+  from { top: 4%; }
+  to { top: 96%; }
+}
+
+.gl-qr-modal-footer {
+  padding: 12px 16px !important;
+  background: #192520 !important;
+  border-top: 1px solid #23372b !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+.gl-qr-controls-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+.gl-qr-tool-btn {
+  background: #23372b !important;
+  color: #d1fae5 !important;
+  border: 1px solid #365341 !important;
+  border-radius: 8px !important;
+  padding: 7px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: background .15s ease !important;
+}
+.gl-qr-tool-btn:hover {
+  background: #2d4536 !important;
+}
+.gl-qr-hint {
+  font-size: 11px !important;
+  color: #94a39b !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+/* Mobile Quick Tag Bar in Sales Entry */
+.rb-quick-tag-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 8px 0 !important;
+  padding: 8px 10px !important;
+  background: #f4f8f5 !important;
+  border: 1px solid #c2d8c9 !important;
+  border-radius: 10px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.rb-quick-tag-card .rb-quick-tag-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #18392a !important;
+  white-space: nowrap !important;
+}
+.rb-quick-tag-card input {
+  flex: 1 !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  padding: 0 10px !important;
+  font-size: 13px !important;
+  border: 1px solid #b2c9b9 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #1c2e24 !important;
+}
+
+/* Ensure mobile cards in tag batch rows use flex */
+.rc-scan-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+.rc-scan-wrap input {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Estimation / Quotation Mobile Fit */
+@media screen and (max-width: 760px) {
+  #rcQuoteTagBar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #rcQuoteTagBar span {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+  #rcQuoteTagInput {
+    flex: 1 !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    font-size: 13px !important;
+    padding: 0 8px !important;
+  }
+}

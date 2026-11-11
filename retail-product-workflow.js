@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION='2.10.18';
+const GL_PRODUCT_VERSION = '2.10.20';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -165,7 +165,12 @@ setInterval(()=>{
   if(!table||document.getElementById('rbQuickTagInput'))return;
   const bar=document.createElement('div');
   bar.className='rb-quick-tag-bar';
-  bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px 14px;background:#f6f9f6;border:1px solid #c9d8ce;border-radius:10px;"><b style="font-size:13px;color:#18392a;white-space:nowrap;">🏷 Scan / Enter Tag:</b><input id="rbQuickTagInput" type="text" placeholder="Type or scan tag code & press Enter" autocomplete="off" style="flex:1;max-width:320px;height:38px;padding:6px 12px;border:1px solid #a9bcae;border-radius:8px;font-size:14px;"><button type="button" onclick="rbQuickTagScan(document.getElementById(\'rbQuickTagInput\')?.value,this)" style="min-height:38px;padding:6px 16px;background:#18392a;color:#fff;border-radius:8px;font-weight:600;">Load Tag</button><span class="muted" style="font-size:11px;">Auto fills product, weight, purity, Rate Book price & totals</span></div>';
+  bar.innerHTML='<div class="rb-quick-tag-card">'
+    +'<span class="rb-quick-tag-label">🏷 Tag:</span>'
+    +'<input id="rbQuickTagInput" type="text" placeholder="Scan or enter tag / HUID..." autocomplete="off">'
+    +'<button type="button" class="gl-scan-btn" onclick="openQrScannerForQuickTag()" title="Scan QR / Barcode with Camera" aria-label="Scan QR / Barcode">'+(window.glScanIconSvg||'<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h4v2H4v4H2V4zm14-2h4a2 2 0 0 1 2 2v4h-2V4h-4V2zM2 16h2v4h4v2H4a2 2 0 0 1-2-2v-4zm18 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM5 8h4v4H5V8zm2 2h0v0H7v0zm8-2h4v4h-4V8zm2 2h0v0h0V10zm-8 6h4v4H7v-4zm2 2h0v0H9v0zm6-4h4v1h-4v-1zm0 3h2v1h-2v-1zm3-1h1v2h-1v-2z"/></svg>')+'</button>'
+    +'<button type="button" class="gl-load-tag-btn" onclick="rbQuickTagScan(document.getElementById(\'rbQuickTagInput\')?.value,this)" title="Load Tag into Bill" aria-label="Load Tag">＋</button>'
+    +'</div>';
   table.closest('.rb-item-scroll')?.before(bar);
   const qIn=document.getElementById('rbQuickTagInput');
   if(qIn)qIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rbQuickTagScan(qIn.value,qIn);}});

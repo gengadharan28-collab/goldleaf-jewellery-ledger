@@ -26,20 +26,58 @@ function v2RateForPurity(purity,rates=db.rates){
   if(k===22||k===18||k===14)return n(rates['gold'+k])||n(rates.gold24)*k/24;
   return n(rates['gold'+String(k).replace('.','_')])||n(rates.gold24)*k/24;
 }
+
+let rateBookMode = localStorage.getItem('goldleaf-ratebook-mode') || 'auto';
+window.setRateBookMode = function(mode){
+  rateBookMode = mode;
+  localStorage.setItem('goldleaf-ratebook-mode', mode);
+  const f = document.getElementById('rateBookForm');
+  if(f && mode === 'auto'){
+    const g24 = Number(f.elements.gold24?.value)||0;
+    if(g24 > 0){
+      if(f.elements.gold22) f.elements.gold22.value = Math.round(g24 * 22 / 24);
+      if(f.elements.gold18) f.elements.gold18.value = Math.round(g24 * 18 / 24);
+      if(f.elements.gold14) f.elements.gold14.value = Math.round(g24 * 14 / 24);
+    }
+  }
+  render();
+};
+
+window.rateBookAutoCalc = function(input){
+  if(rateBookMode !== 'auto') return;
+  const f = input.form;
+  if(!f) return;
+  const name = input.name;
+  if(name === 'gold24'){
+    const val = Number(input.value)||0;
+    if(val > 0){
+      if(f.elements.gold22) f.elements.gold22.value = Math.round(val * 22 / 24);
+      if(f.elements.gold18) f.elements.gold18.value = Math.round(val * 18 / 24);
+      if(f.elements.gold14) f.elements.gold14.value = Math.round(val * 14 / 24);
+    }
+  } else if(name === 'silver'){
+    const val = Number(input.value)||0;
+    if(val > 0 && f.elements.silverBoard){
+      f.elements.silverBoard.value = val;
+    }
+  }
+};
+
 window.rateBookView=function(){
   ensureExtendedData();const r=db.rates;
   const fmtRate=value=>rateMoney(value||0);
   const rows=db.rateHistory.slice(0,12).map(item=>{const v=item.rates||{};return [esc(item.date+' '+item.time+' IST'),esc(item.slot||''),fmtRate(v.gold24),fmtRate(v.gold22),fmtRate(v.gold18),fmtRate(v.gold14),fmtRate(v.silver),fmtRate(v.silverBoard||v.silver),fmtRate(v.diamond)]});
   const date=istDateTime(new Date()).date,slot=r.entrySlot||(Number(istDateTime(new Date()).time.slice(0,2))>=16?'PM':'AM');
-  return header('Enter today’s Retail prices manually, choose the entry date and AM/PM slot, then save. Gold prices are not auto-calculated.')
-   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p class="muted">Manual entry · use the exact rate values for each metal and purity.</p></div><span class="pill">Retail</span></div><form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
-   +rateMoneyInput('Gold Pure Rate · 24K · ₹/g *','gold24',r.gold24,'required')
-   +rateMoneyInput('Gold Board Rate · 22K · ₹/g *','gold22',r.gold22,'required')
-   +rateMoneyInput('Gold Rate · 18K · ₹/g *','gold18',r.gold18,'required')
-   +rateMoneyInput('Gold Rate · 14K · ₹/g *','gold14',r.gold14,'required')
-   +rateMoneyInput('Silver Pure Rate · ₹/g *','silver',r.silver,'required')
-   +rateMoneyInput('Silver Board Rate · ₹/g *','silverBoard',r.silverBoard||r.silver,'required')
-   +rateMoneyInput('Diamond Rate · 22K · ₹/g','diamond',r.diamond,'')
+  const modeSwitch='<div class="rate-mode-switch" style="display:flex;gap:8px;margin-bottom:14px"><button type="button" class="'+(rateBookMode==='auto'?'active':'')+'" onclick="setRateBookMode(\'auto\')">⚖ Automatic Calculation (22K/18K/14K from 24K)</button><button type="button" class="'+(rateBookMode==='manual'?'active':'')+'" onclick="setRateBookMode(\'manual\')">✎ Manual Rate Entry</button></div>';
+  return header('Enter today’s Retail prices manually or use automatic calculation. Choose entry date and AM/PM slot, then save.')
+   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p class="muted">'+(rateBookMode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.')+'</p></div><span class="pill">Retail</span></div>'+modeSwitch+'<form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
+   +'<div class="field"><label>Gold Pure Rate · 24K · ₹/g *</label><input type="number" min="0" step=".01" name="gold24" required value="'+(r.gold24||'')+'" oninput="rateBookAutoCalc(this)"></div>'
+   +'<div class="field"><label>Gold Board Rate · 22K · ₹/g *</label><input type="number" min="0" step=".01" name="gold22" required value="'+(r.gold22||'')+'"></div>'
+   +'<div class="field"><label>Gold Rate · 18K · ₹/g *</label><input type="number" min="0" step=".01" name="gold18" required value="'+(r.gold18||'')+'"></div>'
+   +'<div class="field"><label>Gold Rate · 14K · ₹/g *</label><input type="number" min="0" step=".01" name="gold14" required value="'+(r.gold14||'')+'"></div>'
+   +'<div class="field"><label>Silver Pure Rate · ₹/g *</label><input type="number" min="0" step=".01" name="silver" required value="'+(r.silver||'')+'" oninput="rateBookAutoCalc(this)"></div>'
+   +'<div class="field"><label>Silver Board Rate · ₹/g *</label><input type="number" min="0" step=".01" name="silverBoard" required value="'+(r.silverBoard||r.silver||'')+'"></div>'
+   +'<div class="field"><label>Diamond Rate · 22K · ₹/g</label><input type="number" min="0" step=".01" name="diamond" value="'+(r.diamond||'')+'"></div>'
    +'<div class="field"><label>Date *</label><input type="date" name="rateDate" required value="'+date+'"></div><div class="field"><label>Entry Time *</label><select name="rateSlot"><option '+(slot==='AM'?'selected':'')+'>AM</option><option '+(slot==='PM'?'selected':'')+'>PM</option></select></div>'
    +'</div><p class="muted">Last updated: '+(r.updatedAt?new Date(r.updatedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'No rates saved yet.')+'</p><div class="right"><button type="button" onclick="displayRateEntry()">Display</button> <button type="button" onclick="go(\'Dashboard\')">Back</button> <button class="primary">Save rates</button></div><p id="rateEntryDisplay" class="muted" aria-live="polite"></p></form></section>'
    +'<section class="panel"><h2>Retail Rate History</h2>'+(rows.length?table(['Date and time','Entry','24K Gold','22K Gold','18K Gold','14K Gold','Silver pure','Silver board','Diamond'],rows):'<div class="empty">Rate history appears here after the first save.</div>')+'</section>';
@@ -197,21 +235,86 @@ window.ledgerPage=function(type){
   const rows=tx(entity.id,type),opening=accountOpening(entity,type)+openingBefore(entity.id,type);let closing=opening;
   const summaryClosing=rows.reduce((sum,row)=>sum+row.amount,opening);
   const stats=v2LedgerSummary(entity,type,rows,summaryClosing);
-  const headings=money?['Date','Entry','Purchase / payment details','Gold taken g','Pure equivalent g','Purchase value ₹','Old gold given','Paid by / method','Amount paid ₹','Bill pending ₹','Running balance ₹']:['Date','Entry','Product / payment type','Gold weight g','Purity / testing','Wastage','Sale debit g','Payment gross / amount','Payment rate / test','Pure credit g','Running balance g'];
+  const headings=money?['Date & Time','Doc / Bill #','Type','Jewellery Items Purchased','Gross g','Net g','Purchase Value ₹','Old Gold Given','Payment / Method','Amount Paid ₹','Bill Pending ₹','Running Balance ₹','Actions']:['Date & Time','Voucher #','Type','Product / Payment Details','Gold Weight g','Purity / Testing','Wastage','Sale Debit g','Payment Gross / Amount','Payment Rate / Test','Pure Credit g','Running Balance g'];
   const tableRows=rows.map(row=>{
     closing+=row.amount;
     if(money){
-      if(row.type==='Sale'){const purchase=v2SalePurchase(row),billPending=v2BillPending(row),old= row.exchangeAmount?fmt(v2OldGoldWeight(row))+' g · '+v2Money(row.exchangeAmount)+'<br><small>'+v2OldGoldDetails(row)+'</small>':'—',method=saleCollectionValue(row)?esc(row.collectedMethod||'Cash')+(row.collectedReference?' · '+esc(row.collectedReference):''):'—';return [row.when.replace('T',' '),'Sale',esc(row.product)+'<br><small>'+esc(v2RetailPurityText(row))+' · '+esc(row.wastageLabel||n(row.wastage)+'%')+' wastage</small>',fmt(row.weight),fmt(v2RetailPureWeight(row)),v2Money(purchase),old,method,saleCollectionValue(row)?v2Money(saleCollectionValue(row)):'—',v2Money(billPending),v2Money(closing)]}
-      if(row.retailKind==='return')return [row.when.replace('T',' '),'Sales return',esc(row.desc),fmt(-n(row.returnWeight)),'—',v2Money(row.amount),'—','Account credit','—','—',v2Money(closing)];
-      const method=esc(row.method||row.kind||'Cash'),reference=row.reference||'';return [row.when.replace('T',' '),row.isBillCollection?'Bill collection':row.retailKind?esc(row.kind):'Payment',esc(row.desc||method), '—','—','—','—',method+(reference?' · '+esc(reference):''),v2Money(-row.amount),'—',v2Money(closing)];
+      if(row.type==='Sale'){
+        const purchase=v2SalePurchase(row),billPending=v2BillPending(row),old=row.exchangeAmount?fmt(v2OldGoldWeight(row))+' g · '+v2Money(row.exchangeAmount)+'<br><small>'+v2OldGoldDetails(row)+'</small>':'—';
+        let method='—';
+        if(row.collections?.length){
+          method=row.collections.map(c=>esc(c.method)+': '+v2Money(c.amount)+(c.reference?' ('+esc(c.reference)+')':'')).join('<br>');
+        } else if(saleCollectionValue(row)){
+          method=esc(row.collectedMethod||'Cash')+(row.collectedReference?' · '+esc(row.collectedReference):'');
+        }
+        let itemsPurchased='';
+        if(row.invoiceItems?.length){
+          itemsPurchased=row.invoiceItems.map(i=>'<b>'+esc(i.product||'Item')+'</b> ('+fmt(i.netWeight||i.grossWeight)+'g, '+(i.purity||22)+(n(i.purity)>24?'%':'K')+')').join('<br>');
+        } else {
+          itemsPurchased='<b>'+esc(row.product||'Jewellery')+'</b><br><small>'+esc(v2RetailPurityText(row))+' · '+esc(row.wastageLabel||n(row.wastage)+'%')+' wastage</small>';
+        }
+        const billGross = row.invoiceItems?.length ? row.invoiceItems.reduce((s,i)=>s+n(i.grossWeight),0) : n(row.weight);
+        const billNet = row.invoiceItems?.length ? row.invoiceItems.reduce((s,i)=>s+n(i.netWeight),0) : n(row.weight);
+        return [
+          row.when.replace('T',' '),
+          '<b>'+esc(row.documentNo||'Bill')+'</b>',
+          '<span class="pill">Sale</span>',
+          itemsPurchased,
+          fmt(billGross)+' g',
+          fmt(billNet)+' g',
+          '<b style="color:var(--green,#18392a)">'+v2Money(purchase)+'</b>',
+          old,
+          method,
+          saleCollectionValue(row)?v2Money(saleCollectionValue(row)):'—',
+          billPending>0?'<b style="color:#b45309">'+v2Money(billPending)+'</b>':'<span style="color:#059669">Paid</span>',
+          '<b>'+v2Money(closing)+'</b>',
+          '<button type="button" onclick="rbPrintSavedSale(\''+esc(row.id)+'\')">View Bill</button>'
+        ];
+      }
+      if(row.retailKind==='return'){
+        return [row.when.replace('T',' '),esc(row.documentNo||'Return'),'<span class="pill">Sales return</span>',esc(row.desc),fmt(-n(row.returnWeight))+' g',fmt(-n(row.returnWeight))+' g',v2Money(row.amount),'—','Account credit','—','—','<b>'+v2Money(closing)+'</b>','—'];
+      }
+      const method=esc(row.method||row.kind||'Cash'),reference=row.reference?' · '+esc(row.reference):'';
+      return [
+        row.when.replace('T',' '),
+        esc(row.documentNo||'Recpt'),
+        '<span class="pill" style="background:#e0f2fe;color:#0369a1">'+(row.isBillCollection?'Bill collection':row.retailKind?esc(row.kind):'Payment')+'</span>',
+        esc(row.desc||method),
+        '—','—','—','—',
+        method+reference,
+        '<b style="color:#0284c7">'+v2Money(-row.amount)+'</b>',
+        '—',
+        '<b>'+v2Money(closing)+'</b>',
+        '<button type="button" onclick="rbPrintSavedReceipt(\''+esc(row.id)+'\')">Receipt</button>'
+      ];
     }
     const sale=row.type==='Sale',grossPay=!sale&&row.kind!=='Cash'?fmt(row.weight)+' g':!sale?'₹ '+n(row.amount).toFixed(2):'—',purity=sale?n(row.purity).toFixed(2)+'%':row.kind==='Cash'?'24K ₹ '+n(row.rate).toFixed(2)+'/g':n(row.purity).toFixed(2)+'%',payCredit=sale?'—':fmt(-row.amount)+' g';
-    return [row.when.replace('T',' '),sale?'Sale':'Payment',esc(sale?row.product:row.kind)+(sale?'<br><small>'+n(row.wastage)+'% wastage</small>':''),sale?fmt(row.weight):'—',purity,sale?n(row.wastage).toFixed(2)+'%':'—',sale?fmt(row.amount)+' g':'—',grossPay,sale?'—':(row.kind==='Cash'?'₹ '+n(row.rate).toFixed(2)+'/g':n(row.purity).toFixed(2)+'%'),payCredit,fmt(closing)+' g'];
+    return [row.when.replace('T',' '),esc(row.documentNo||(sale?'Sale':'Voucher')),sale?'<span class="pill">Sale</span>':'<span class="pill">Payment</span>',esc(sale?row.product:row.kind)+(sale?'<br><small>'+n(row.wastage)+'% wastage</small>':''),sale?fmt(row.weight)+' g':'—',purity,sale?n(row.wastage).toFixed(2)+'%':'—',sale?fmt(row.amount)+' g':'—',grossPay,sale?'—':(row.kind==='Cash'?'₹ '+n(row.rate).toFixed(2)+'/g':n(row.purity).toFixed(2)+'%'),payCredit,'<b>'+fmt(closing)+' g</b>'];
   });
-  const actions='<div class="v2-ledger-actions"><button type="button" onclick="viewLedgerPdf(\''+type+'\')">View PDF</button><button type="button" class="primary" onclick="shareLedger(\''+type+'\')">Share</button></div>';
+  const actions='<div class="v2-ledger-actions"><button type="button" onclick="viewLedgerPdf(\''+type+'\')">📄 View PDF / Print</button><button type="button" class="primary" onclick="shareLedgerWhatsApp(\''+type+'\')">📲 Share via WhatsApp</button></div>';
   const openingLabel=money?v2Money(opening):fmt(opening)+' g',closingLabel=money?v2Money(summaryClosing):fmt(summaryClosing)+' g';
   return header((money?'Customer':'Party')+' transaction report · '+(money?'amounts in rupees.':'pure gold balances in grams.'),actions)+'<section class="panel v2-ledger-panel"><div class="v2-ledger-title"><div><h2>'+esc(entity.name)+' · '+(money?'Customer ledger':'Party ledger')+'</h2><span class="muted">'+esc(accountCity(entity.id,type)||'')+'</span></div></div>'+controls(type)+'<div id="ledgerReportArea" class="v2-ledger-report"><div class="v2-ledger-report-head"><div><h2>Goldleaf · '+(money?'Customer':'Party')+' Ledger</h2><p>'+esc(entity.name)+(accountCity(entity.id,type)?' · '+esc(accountCity(entity.id,type)):'')+'</p></div><span>Period opening: <b>'+openingLabel+'</b></span></div>'+stats+table(headings,tableRows)+'<div class="v2-ledger-closing">Closing balance: <b>'+closingLabel+'</b></div></div></section>';
 };
+
+window.shareLedgerWhatsApp=function(type){
+  const key=type==='customer'?'customer':'party',entity=account(filter[key],type);
+  if(!entity)return say('Select an account to share its ledger.');
+  const money=type==='customer',rows=tx(entity.id,type),opening=accountOpening(entity,type)+openingBefore(entity.id,type),closing=opening+rows.reduce((sum,row)=>sum+row.amount,0);
+  const shop=db.shopName||goldleafContext?.shop_name||'Goldleaf Jewellery';
+  let lines=['*'+shop.toUpperCase()+'*','*'+(money?'CUSTOMER':'PARTY')+' LEDGER STATEMENT*','--------------------------------','Account: '+entity.name+(entity.phone?' ('+entity.phone+')':''),'Closing Balance: '+(money?v2Money(closing):fmt(closing)+' g'),'--------------------------------','*Recent Transactions:*'];
+  rows.slice(-10).forEach(r=>{
+    const desc=r.invoiceItems?.length?r.invoiceItems.map(i=>i.product).join(', '):(r.product||r.desc||r.kind||'Transaction');
+    lines.push(r.when.replace('T',' ')+' | '+r.type+' | '+desc+' | '+(money?(r.amount<0?'Paid: '+v2Money(-r.amount):'Bill: '+v2Money(r.amount)):fmt(Math.abs(r.amount))+' g'));
+  });
+  lines.push('--------------------------------');
+  lines.push('*Outstanding Balance: '+(money?v2Money(closing):fmt(closing)+' g')+'*');
+  lines.push('Thank you for choosing '+shop+'!');
+  const text=lines.join('\n');
+  const phone=(entity.phone||'').replace(/[^0-9]/g,'');
+  const url=phone?('https://api.whatsapp.com/send?phone=91'+(phone.length===10?phone:phone.slice(-10))+'&text='+encodeURIComponent(text)):('https://api.whatsapp.com/send?text='+encodeURIComponent(text));
+  window.open(url,'_blank');
+};
+
 window.viewLedgerPdf=function(type){const report=document.getElementById('ledgerReportArea');if(!report)return say('Select an account to view its ledger PDF.');const copy=report.cloneNode(true);copy.querySelector('.v2-ledger-report-head')?.remove();copy.querySelector('.v2-ledger-stats')?.remove();let root=document.getElementById('ledgerPrintRoot');if(!root){root=document.createElement('div');root.id='ledgerPrintRoot';document.body.append(root)}root.innerHTML='<article class="v2-print-ledger"><h2>Goldleaf · '+(type==='customer'?'Customer':'Party')+' Ledger</h2><div>'+copy.innerHTML+'</div></article>';const article=root.querySelector('article'),table=article.querySelector('.table'),closing=article.querySelector('.v2-party-closing')||article.querySelector('.v2-ledger-closing');if(closing){closing.classList.add('v2-print-ending');if(table)table.after(closing)}document.body.classList.add('printing-ledger-report');window.addEventListener('afterprint',()=>document.body.classList.remove('printing-ledger-report'),{once:true});say('In the print preview, choose Save as PDF.');setTimeout(()=>window.print(),80)};
 window.shareLedger=async function(type){const key=type==='customer'?'customer':'party',entity=account(filter[key],type);if(!entity)return say('Select an account before sharing its ledger.');const money=type==='customer',rows=tx(entity.id,type),closing=accountOpening(entity,type)+openingBefore(entity.id,type)+rows.reduce((sum,row)=>sum+row.amount,0);let lines=['Goldleaf '+(money?'Customer':'Party')+' Ledger',entity.name,accountCity(entity.id,type)||'',money?'Balance pending: '+v2Money(closing):'Balance pending: '+fmt(closing)+' g','Transactions:'];for(const row of rows){lines.push(row.when.replace('T',' ')+' | '+row.type+' | '+row.desc+' | '+(money?(row.amount<0?'Paid ':'Sale ')+v2Money(Math.abs(row.amount)):fmt(Math.abs(row.amount))+' g'))}const text=lines.filter(Boolean).join('\n');try{if(navigator.share)await navigator.share({title:'Goldleaf ledger · '+entity.name,text,url:location.href});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);say('Ledger report copied. Paste it into the app you want to share with.')}else say(text)}catch(error){if(error?.name!=='AbortError')say('Could not open the share menu. Use View PDF to print or save this report.')}};
 function v2PartyAmountPayment(payment){const original=db.payments.find(p=>p.id===payment.id)||payment;return ownerType(original)==='party'&&original.kind==='Cash'&&original.cashPurpose==='hallmark'?n(original.amount):0}
@@ -282,7 +385,43 @@ window.pullCloud=async function(){
   if(needsPush||v2CloudQueuedPush)await pushCloud();
 };
 
-async function v2CheckCloudForChanges(){if(!session||!client||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'){await pullCloud();return}const {data,error}=await client.from('jewellery_ledgers').select('updated_at').eq('user_id',session.user.id).maybeSingle();if(error)throw error;if(data?.updated_at&&(!v2LastCloudUpdatedAt||Date.parse(data.updated_at)>Date.parse(v2LastCloudUpdatedAt))){await pullCloud();return}if(!data)await pushCloud()}catch(error){setCloudStatus('Sync issue · saved on this device')}finally{v2CloudCheckBusy=false}}
+async function v2CheckCloudForChanges(){
+  if(!session||!client||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;
+  v2CloudCheckBusy=true;
+  try{
+    if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'){await pullCloud();return}
+    const table = goldleafContext?.shop_id ? 'goldleaf_shop_ledgers' : 'jewellery_ledgers';
+    let q = client.from(table).select('updated_at');
+    if(goldleafContext?.shop_id) q = q.eq('shop_id', goldleafContext.shop_id);
+    else q = q.eq('user_id', session.user.id);
+    const {data, error} = await q.maybeSingle();
+    if(error) throw error;
+    if(data?.updated_at && (!v2LastCloudUpdatedAt || Date.parse(data.updated_at) > Date.parse(v2LastCloudUpdatedAt))){
+      await pullCloud();
+      return;
+    }
+    if(!data) await pushCloud();
+  }catch(error){
+    setCloudStatus('Sync issue · saved on this device');
+  }finally{
+    v2CloudCheckBusy=false;
+  }
+}
+
+// Supabase Realtime subscription for instant cross-device updates (Mobile <-> Laptop)
+window.setupGoldleafRealtimeSync = function(){
+  if(!client || !goldleafContext?.shop_id || window.goldleafRealtimeActive) return;
+  window.goldleafRealtimeActive = true;
+  try {
+    client.channel('public:goldleaf_shop_ledgers:' + goldleafContext.shop_id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'goldleaf_shop_ledgers', filter: 'shop_id=eq.' + goldleafContext.shop_id }, payload => {
+        if(!v2CloudBusy && localStorage.getItem(V2_CLOUD_PENDING_KEY) !== '1'){
+          window.pullCloud();
+        }
+      })
+      .subscribe();
+  } catch(e){}
+};
 window.settingsView=(function(previous){return function(){const html=previous(),end=html.indexOf('</header>');if(end<0)return html;const status=session?'Signed in · '+esc(session.user.email):'Not signed in · data stays on this device';const syncPanel='<section class="panel v2-cloud-guide"><h2>Always sync and merge phone and laptop</h2><p><b>'+status+'</b></p><ol><li>Sign in to the same Goldleaf cloud account with the same email on both devices.</li><li>Phone and laptop records merge automatically on save; the other device refreshes while the app is open.</li><li>Updates are sent immediately when saved. The other active device checks about every 10 seconds; reopen the app to sync when a device was closed.</li></ol><p class="hint">Sync and merge combines records from this device and the cloud. Existing cloud records are kept; no device copy is used to replace the other.</p>'+(session?'':'<button class="primary" type="button" onclick="document.getElementById(\'auth\')?.classList.remove(\'hidden\')">Sign in to cloud</button>')+'</section>';return html.slice(0,end+9)+syncPanel+html.slice(end+9)}})(window.settingsView);
 window.addEventListener('online',()=>{if(session)v2CheckCloudForChanges()});window.addEventListener('focus',()=>{if(session)v2CheckCloudForChanges()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)v2CheckCloudForChanges()});window.setInterval(()=>window.v2CheckCloudForChanges(),10000);
 
@@ -423,7 +562,7 @@ window.pullCloud=async function(){
     if(data?.payload){const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(data.payload,db,pending);ensureExtendedData();needsPush=JSON.stringify(db)!==JSON.stringify(data.payload);v2LastCloudUpdatedAt=data.updated_at||''}
     else needsPush=true;
     db.rates=sharedRates;localStorage.setItem(dbkey,JSON.stringify(db));
-    setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email));if(!v2HasFocusedEdit())render();
+    setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email));if(window.setupGoldleafRealtimeSync)setupGoldleafRealtimeSync();if(!v2HasFocusedEdit())render();
     if(needsPush){v2CloudBusy=false;await window.pushCloud()}
   }catch(error){setCloudStatus('Cloud setup needed');const message=document.getElementById('cloudMsg');if(message)message.textContent='Cloud account could not load: '+error.message}
   finally{v2CloudBusy=false}
