@@ -1,6 +1,149 @@
 .rc-screen{width:100%;max-width:100%;padding:4px 0 28px}.rc-content{display:grid;gap:12px}.rc-tabs,.rc-subtabs{display:flex;gap:6px;overflow-x:auto;padding:3px 1px 8px;scrollbar-width:thin}.rc-tabs button,.rc-subtabs button{flex:0 0 auto;min-height:37px;padding:7px 11px;border-radius:9px;background:var(--white);font-size:12px;font-weight:650}.rc-tabs button.active,.rc-subtabs button.active{background:var(--green);border-color:var(--green);color:#fff}.rc-mobile-select{display:none}.rc-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.rc-section-title h2{margin:0}.rc-section-title>span{padding:4px 8px;border-radius:99px;background:var(--mint);font-size:11px}.rc-form{display:grid;gap:12px}.rc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.rc-grid label,.rc-item label{display:grid;gap:4px;min-width:0;color:var(--muted);font-size:11px;font-weight:650}.rc-grid input,.rc-grid select,.rc-grid textarea,.rc-item input,.rc-item select{width:100%;min-width:0;min-height:37px;padding:7px 9px;font-size:13px}.rc-wide{grid-column:1/-1}.rc-check{display:flex!important;align-items:center;gap:6px}.rc-check input{width:18px;height:18px;min-height:18px}.rc-item{display:grid;grid-template-columns:1.2fr 1.1fr .55fr .75fr .7fr .68fr .72fr .9fr .9fr auto auto;align-items:end;gap:7px;padding:9px 0;border-bottom:1px solid var(--line)}.rc-item output{padding:8px 0;font-weight:700;white-space:nowrap}.rc-item>button{min-height:34px;padding:5px 8px}.rc-weight{display:flex;justify-content:flex-end;gap:8px;padding-top:9px}.rc-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.rc-totals span,.rc-totals strong{display:flex;justify-content:space-between;gap:6px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-size:12px}.rc-totals strong{grid-column:1/-1;background:#174e3b;color:#fff;font-size:15px}.rc-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.rc-actions button{min-height:38px;padding:7px 12px}.rc-chit-tabs{margin:0 0 8px}.rc-content .panel{min-width:0}.rc-content .table{overflow-x:auto}.rc-content table{min-width:660px}.rc-active #app{overflow-y:auto!important;height:auto!important;max-height:none!important}.rc-active #app> .rc-screen{min-height:0}.rc-active .rc-content .panel{padding:14px}.rc-active .rc-content h2{font-size:17px}.rc-active .rb-header{margin-bottom:10px}.rc-active .rb-header h1{font-size:24px}html[data-theme="dark"] .rc-tabs button,html[data-theme="dark"] .rc-subtabs button{background:#242a27;color:var(--ink)}html[data-theme="dark"] .rc-tabs button.active,html[data-theme="dark"] .rc-subtabs button.active{background:#395342;color:#fff}html[data-theme="dark"] .rc-totals strong{background:#174e3b;color:#fff}@media(max-width:1200px){.rc-item{grid-template-columns:repeat(6,minmax(0,1fr))}.rc-item output{grid-column:span 2}.rc-item>button{grid-column:span 1}}@media(max-width:760px){.rc-tabs{display:none}.rc-mobile-select{display:grid;margin:4px 0 10px;gap:5px;color:var(--muted);font-size:11px}.rc-mobile-select select{min-height:42px}.rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc-item{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:11px 0}.rc-item output{grid-column:auto}.rc-item>button{grid-column:auto}.rc-totals{grid-template-columns:1fr 1fr}.rc-actions{display:grid;grid-template-columns:1fr 1fr}.rc-actions .primary{grid-column:1/-1}.rc-section-title{align-items:flex-start}.rc-content .panel{padding:12px}.rc-content table{min-width:750px}.rc-screen{padding-bottom:18px}}
 
+/* Keep Group, Type and Mapping fields at the full content width (no nested-grid squeeze). */
+.rc-chit-definition-form{min-width:0}.rc-chit-definition-form>.rc-grid{width:100%;grid-template-columns:repeat(3,minmax(0,1fr))}.rc-chit-type-form>.rc-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.rc-chit-definition-form>.primary{justify-self:end;min-width:145px}.rc-chit-overview .rc-totals{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:6px}.rc-chit-overview .rc-totals span{padding:7px 9px;align-items:center}.rc-chit-overview .rc-totals b{white-space:nowrap}
+@media(max-width:1100px){.rc-chit-type-form>.rc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.rc-chit-definition-form>.rc-grid,.rc-chit-type-form>.rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc-chit-definition-form>.primary{justify-self:stretch;width:100%}.rc-chit-overview .rc-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* Standalone Retail pages use the document scroll instead of a clipped app panel. */
 html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height:auto!important;min-height:100vh;overflow:visible!important}html body.rc-active #app{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}html body.rc-active .rc-screen,html body.rc-active .rc-content{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}html body.rc-active .rc-content .table{max-width:100%;overflow-x:auto}
 
 @media(max-width:760px){body[data-erp] #nav>button[data-rc-sidebar]{display:none!important}}
+
+
+/* Goldleaf Retail product and tagging fields, optimized for phone entry. */
+.rc-master-form{grid-template-columns:repeat(3,minmax(0,1fr))}.rc-scan-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}.rc-scan-wrap button{min-height:42px;white-space:nowrap}.rc-tagging-groups{display:grid;gap:10px}.rc-item-mode{display:inline-flex;align-items:center;border-radius:8px;background:var(--mint);padding:5px 8px;font-weight:700}
+@media(max-width:760px){.rc-master-form{grid-template-columns:minmax(0,1fr)!important}.rc-scan-wrap input,.rc-scan-wrap button{min-height:46px;font-size:16px}.rc-master-form>label{font-size:12px!important}.rc-master-form input,.rc-master-form select{font-size:16px!important;min-height:46px!important}.rc-master-form .rc-actions{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));background:var(--white);padding:8px 0;z-index:5}.rc-master-form .rc-actions button{min-height:48px}.rc-content .panel{overflow:visible}.rc-content .table{border-radius:10px}.rc-content table{min-width:900px!important}.rc-item{grid-template-columns:minmax(0,1fr)!important}.rc-item output,.rc-item>button{grid-column:1/-1}.rc-mobile-select{position:sticky;top:50px;z-index:6;background:var(--paper);padding:5px 0}}
+
+/* Full Retail product-tag batch layout: dense desktop grid, touch-sized mobile cards and contained tables. */
+.rc-tag-batch-meta{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.rc-tag-batch-meta label,.rc-tag-fields label{display:grid;gap:5px;min-width:0;color:var(--muted);font-size:11px;font-weight:650}
+.rc-tag-batch-meta input,.rc-tag-fields input,.rc-tag-fields select{box-sizing:border-box;width:100%;min-width:0;min-height:39px;padding:8px 9px;font-size:13px}
+.rc-tag-check{display:flex!important;align-items:center;gap:7px}.rc-tag-check input{width:18px;min-height:18px}
+.rc-tag-modebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 9px}.rc-tag-modebar>div{display:flex;padding:3px;border:1px solid var(--line);border-radius:11px;background:var(--paper)}.rc-tag-modebar button{min-height:38px;padding:7px 14px;border-radius:8px}.rc-tag-modebar button.active{background:var(--green);color:#fff}
+.rc-tag-row{margin:10px 0;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--white)}.rc-tag-row>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.rc-tag-remove{min-height:32px;padding:5px 9px}.rc-tag-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.rc-tag-fields output{display:block;min-height:39px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-size:13px}.rc-tag-wide{grid-column:1/-1}
+.rc-tag-actions{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:4;display:flex;flex-wrap:wrap;gap:7px;padding:9px;border:1px solid var(--line);border-radius:12px;background:var(--white);box-shadow:0 5px 22px #10241b22}.rc-tag-actions button{min-height:40px;padding:7px 11px}.rc-tag-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.rc-tag-preview-grid article{display:grid;gap:6px;padding:12px;border:1px dashed var(--line);border-radius:10px;text-align:center}.rc-tag-preview-grid small{color:var(--muted)}
+#rcTagPrintSheet{display:none}
+@media(max-width:1100px){.rc-tag-batch-meta{grid-template-columns:repeat(3,minmax(0,1fr))}.rc-tag-fields{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.rc-tag-batch-meta{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rc-tag-modebar{align-items:flex-start;flex-direction:column}.rc-tag-modebar button{min-height:42px}.rc-tag-row{padding:10px}.rc-tag-fields input,.rc-tag-fields select,.rc-tag-batch-meta input{min-height:45px;font-size:16px}.rc-tag-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));bottom:calc(68px + env(safe-area-inset-bottom));max-height:32vh;overflow:auto}.rc-tag-actions .primary{grid-column:1/-1}.rc-tag-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{body>*:not(#rcTagPrintSheet){display:none!important}#rcTagPrintSheet{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6mm;padding:5mm}#rcTagPrintSheet article{display:grid;gap:2mm;min-height:24mm;padding:4mm;border:1px solid #555;text-align:center;font:10pt Arial}#rcTagPrintSheet article b{font-size:12pt}}
+/* v2.10.13: sectioned, thumb-first Retail experience on phones only. */
+@media screen and (max-width:760px){
+  body[data-erp]{--mobile-card:#fffdfa;--mobile-soft:#f4eddf;--mobile-accent:#b98b4e}
+  body[data-erp] .rc-screen{padding:0 0 calc(112px + env(safe-area-inset-bottom));}
+  body[data-erp] .rc-screen>.rb-header{position:relative;padding:14px 14px 13px;margin:0 -2px 14px;border:1px solid #eadfca;border-radius:17px;background:linear-gradient(130deg,#fffdf8,#f3ead9);box-shadow:0 4px 14px #755a3010}
+  body[data-erp] .rc-screen>.rb-header:after{content:"RETAIL WORKSPACE";display:block;margin-top:6px;color:#9a7847;font-size:9px;font-weight:800;letter-spacing:1.2px}
+  body[data-erp] .rc-screen .rb-header h1{font-size:21px;line-height:1.2;margin:2px 0 4px;color:#302d27}
+  body[data-erp] .rc-screen .rb-header p{font-size:12px;line-height:1.4;margin:0;color:#777064}
+  body[data-erp] .rc-screen>.rc-content{gap:11px}
+  body[data-erp] .rc-content>.panel,body[data-erp] .rc-content>form>.panel{position:relative;padding:14px 13px;margin:0 0 11px;border:1px solid #e9e1d3;border-radius:16px;background:var(--mobile-card);box-shadow:0 3px 12px #49391a0a}
+  body[data-erp] .rc-content .rc-section-title{align-items:center;gap:8px;margin:0 0 12px;padding:0 0 9px;border-bottom:1px solid #eee7da}
+  body[data-erp] .rc-content .rc-section-title h2,body[data-erp] .rc-content>.panel>h2{font-size:15px;line-height:1.3;color:#3a352c}
+  body[data-erp] .rc-content .rc-section-title>span{flex:0 0 auto;background:#f4ead6;color:#755b32;font-weight:750}
+  body[data-erp] .rc-grid,body[data-erp] .rc-chit-definition-form>.rc-grid,body[data-erp] .rc-chit-type-form>.rc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body[data-erp] .rc-grid label{gap:5px;color:#72695b;font-size:11px}
+  body[data-erp] .rc-grid input,body[data-erp] .rc-grid select,body[data-erp] .rc-grid textarea{border-color:#e4dccd;border-radius:11px;background:#fffefa}
+  body[data-erp] .rc-wide{grid-column:1/-1}
+  body[data-erp] .rc-master-form{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  body[data-erp] .rc-master-form>label{padding:9px;border:1px solid #eee6d8;border-radius:12px;background:#fffefa}
+  body[data-erp] .rc-master-form>label input,body[data-erp] .rc-master-form>label select{min-height:44px!important;font-size:15px!important}
+  body[data-erp] .rc-master-form .rc-actions{grid-column:1/-1;bottom:calc(70px + env(safe-area-inset-bottom));border:1px solid #eadfca;border-radius:14px;background:#fffdf8;box-shadow:0 4px 15px #51412718}
+  body[data-erp] .rc-master-form .rc-actions button{min-height:47px;border-radius:12px}
+  body[data-erp] .rc-tag-batch-meta{gap:9px;padding:11px;border:1px solid #e9ddc5;border-radius:15px;background:linear-gradient(145deg,#fffaf0,#f3ead9)}
+  body[data-erp] .rc-tag-batch-meta label{gap:5px;color:#716650;font-size:10px}
+  body[data-erp] .rc-tag-batch-meta input{border-color:#e2d7c3;border-radius:11px;background:#fffefa}
+  body[data-erp] .rc-tag-check{padding:6px 2px}
+  body[data-erp] .rc-tag-modebar{align-items:center;flex-direction:row;flex-wrap:wrap;margin:12px 0 9px}
+  body[data-erp] .rc-tag-modebar>div{display:grid;grid-template-columns:1fr 1fr;width:100%;padding:4px;border-radius:13px;background:#f2ecdf}
+  body[data-erp] .rc-tag-modebar button{min-height:45px;border-radius:10px;font-size:13px}
+  body[data-erp] .rc-tag-row{margin:10px 0;padding:12px;border:1px solid #e8decc;border-left:4px solid #c29a5b;border-radius:15px;background:#fffefa;box-shadow:0 3px 12px #5141270d}
+  body[data-erp] .rc-tag-row>header{margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0eadf}
+  body[data-erp] .rc-tag-row>header:before{content:"TAG ITEM";color:#a17d48;font-size:9px;font-weight:850;letter-spacing:1px}
+  body[data-erp] .rc-tag-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  body[data-erp] .rc-tag-fields label{gap:5px;color:#72695b;font-size:10px}
+  body[data-erp] .rc-tag-fields input,body[data-erp] .rc-tag-fields select{min-height:44px;border-color:#e4dccd;border-radius:10px;background:#fff}
+  body[data-erp] .rc-tag-fields .rc-scan-wrap{grid-template-columns:minmax(0,1fr) 48px}
+  body[data-erp] .rc-tag-fields .rc-scan-wrap button{min-height:44px;padding:6px}
+  body[data-erp] .rc-tag-fields .rc-tag-wide,body[data-erp] .rc-tag-fields>.rc-tag-wide{grid-column:1/-1}
+  body[data-erp] .rc-tag-actions{bottom:calc(71px + env(safe-area-inset-bottom));grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:9px;border-color:#e6dbc6;border-radius:15px;background:#fffdf9;box-shadow:0 5px 18px #41351f20}
+  body[data-erp] .rc-tag-actions button{min-height:45px;border-radius:11px;font-size:11px}
+  body[data-erp] .rc-tag-actions .primary{grid-column:1/-1;min-height:49px;font-size:14px}
+  body[data-erp] .rc-totals{gap:7px}
+  body[data-erp] .rc-totals span{min-height:43px;padding:9px;border-color:#eee5d6;border-radius:11px;background:#fffefa;font-size:11px}
+  body[data-erp] .rc-totals strong{border-radius:12px;background:#304b39;color:white}
+  body[data-erp] .rc-actions{gap:8px}
+  body[data-erp] .rc-actions button,body[data-erp] .rc-content button{border-radius:11px}
+  body[data-erp] .rc-content>.panel>.rc-section-title>button{min-height:40px;background:#f4ead6;border-color:#e7d7b9;color:#624c2c;font-weight:700}
+  body[data-erp] .rc-content .table{border:1px solid #e9e1d3;border-radius:13px;background:#fffefa;overscroll-behavior-x:contain;scrollbar-width:thin}
+  body[data-erp] .rc-content table{min-width:850px!important}
+  body[data-erp] .rc-preview-grid,body[data-erp] .rc-tag-preview-grid{gap:8px}
+  body[data-erp] .rc-tag-preview-grid article{border-color:#e5d7bf;border-radius:12px;background:#fffefa}
+  body[data-erp] .rc-chit-overview .rc-totals{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body[data-erp] .rc-mobile-select{top:52px;padding:6px 0;background:var(--paper)}
+  html[data-theme="dark"] body[data-erp] .rc-screen>.rb-header,html[data-theme="dark"] body[data-erp] .rc-content>.panel,html[data-theme="dark"] body[data-erp] .rc-content>form>.panel,html[data-theme="dark"] body[data-erp] .rc-tag-row,html[data-theme="dark"] body[data-erp] .rc-tag-actions{background:#202923;border-color:#3e493f}
+  html[data-theme="dark"] body[data-erp] .rc-tag-batch-meta{background:#242923;border-color:#4a493d}
+  html[data-theme="dark"] body[data-erp] .rc-tag-fields input,html[data-theme="dark"] body[data-erp] .rc-tag-fields select,html[data-theme="dark"] body[data-erp] .rc-grid input,html[data-theme="dark"] body[data-erp] .rc-grid select,html[data-theme="dark"] body[data-erp] .rc-master-form>label{background:#19211c;border-color:#3e493f;color:#eee8da}
+}
+/* Shared mobile-only ERP polish across Retail and Wholesale pages. */
+@media screen and (max-width:760px){
+ body[data-erp]{--erp-mobile-card:#fffdfa;--erp-mobile-border:#e8dfd0}
+ body[data-erp] #app.main{max-width:100vw;overflow-x:hidden;padding:13px 11px calc(103px + env(safe-area-inset-bottom))}
+ body[data-erp] #app.main>*{min-width:0;max-width:100%}
+ body[data-erp] .top{padding:0 2px 10px;margin:0 0 12px;border-bottom:1px solid #e9e1d4}
+ body[data-erp] .top>div:first-child{min-width:0}
+ body[data-erp] .top h1{font-size:20px!important;line-height:1.2;overflow-wrap:anywhere}
+ body[data-erp] .top .muted{font-size:11px;line-height:1.4}
+ body[data-erp] .top .header-actions{max-width:100%;flex-wrap:wrap}
+ body[data-erp] .panel{min-width:0;padding:13px!important;margin:0 0 11px!important;border:1px solid var(--erp-mobile-border)!important;border-radius:15px!important;background:var(--erp-mobile-card)!important;box-shadow:0 3px 12px #44371f0c!important}
+ body[data-erp] .panel h2{font-size:15px;line-height:1.3;margin:0 0 11px;padding-bottom:8px;border-bottom:1px solid #efe8dc;color:#38352e}
+ body[data-erp] .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body[data-erp] .field{min-width:0;gap:5px}
+ body[data-erp] .field>label,body[data-erp] label.field{font-size:11px;line-height:1.3;color:#6c6559}
+ body[data-erp] .field input,body[data-erp] .field select,body[data-erp] .field textarea,body[data-erp] input,body[data-erp] select,body[data-erp] textarea{max-width:100%;min-width:0;min-height:44px;font-size:16px}
+ body[data-erp] .wide{grid-column:1/-1}
+ body[data-erp] .row{gap:7px}
+ body[data-erp] .right{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px -3px 0;padding:8px;border:1px solid #e9dfcc;border-radius:14px;background:#fffdf8;box-shadow:0 4px 14px #49391a18}
+ body[data-erp] .right button{width:100%;min-width:0;min-height:46px;padding:8px;font-size:12px}
+ body[data-erp] button{max-width:100%;min-height:42px;border-radius:11px}
+ body[data-erp] .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid #e9dfcc;border-radius:14px;background:#faf6ed}
+ body[data-erp] .filters>*{min-width:0;max-width:100%}
+ body[data-erp] .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ body[data-erp] .cards .card{min-width:0;padding:11px;border:1px solid var(--erp-mobile-border);border-top:2px solid #c8aa79;border-radius:13px}
+ body[data-erp] .cards .card label{font-size:9px;line-height:1.2;letter-spacing:.3px}
+ body[data-erp] .cards .card b{font-size:17px;line-height:1.25;margin-top:7px}
+ body[data-erp] .table{max-width:100%;overflow:auto;overscroll-behavior-x:contain;border:1px solid #e9e1d3;border-radius:12px;scrollbar-width:thin}
+ body[data-erp] .table table{width:max-content;min-width:680px!important}
+ body[data-erp] .table th,body[data-erp] .table td{padding:9px 10px!important;font-size:11px}
+ body[data-erp] .empty{padding:24px 12px;font-size:12px}
+ body[data-erp] .pill{max-width:100%;overflow-wrap:anywhere}
+ body[data-erp] .more-menu{max-height:min(70dvh,560px);overflow:auto;overscroll-behavior:contain;border:1px solid #e6dccb;border-radius:14px;box-shadow:0 12px 28px #30281924}
+ body[data-erp] .more-menu button{min-height:46px;padding:11px 13px;border-bottom:1px solid #eee7db}
+ html[data-theme="dark"] body[data-erp] .panel,html[data-theme="dark"] body[data-erp] .cards .card,html[data-theme="dark"] body[data-erp] .right,html[data-theme="dark"] body[data-erp] .filters{background:#202923!important;border-color:#3e493f!important}
+ html[data-theme="dark"] body[data-erp] .panel h2{color:#f0e9db;border-color:#3b443d}
+ html[data-theme="dark"] body[data-erp] input,html[data-theme="dark"] body[data-erp] select,html[data-theme="dark"] body[data-erp] textarea{background:#19211c;color:#eee8da;border-color:#3e493f}
+}
+
+@media screen and (max-width:760px){
+ body[data-erp] .rc-tag-actions{position:static;bottom:auto;max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}
+ body[data-erp] .rc-tag-actions .primary{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));}
+ body[data-erp] .rc-screen>.rb-header .header-actions{display:flex;flex-wrap:nowrap;align-items:center;gap:4px;flex:0 0 auto}
+ body[data-erp] .rc-screen>.rb-header .header-actions button{min-height:35px;padding:5px 7px;font-size:10px}
+ body[data-erp] .rc-screen>.rb-header{gap:7px}
+}
+
+@media screen and (max-width:760px){
+ body[data-erp] .rc-screen>.rb-header .rb-tools{display:flex;flex-wrap:nowrap;align-items:center;gap:4px;margin-left:auto}
+ body[data-erp] .rc-screen>.rb-header .rb-tools button{min-height:34px;padding:5px 7px;font-size:10px}
+}
+
+/* Keep mobile form actions in the document flow so they never cover fields. */
+@media screen and (max-width:760px){
+ body[data-erp] .right,
+ body[data-erp] .rc-actions,
+ body[data-erp] .rc-master-form .rc-actions,
+ body[data-erp] .rc-tag-actions,
+ body[data-erp] .rc-tag-actions .primary{position:static!important;inset:auto!important;max-height:none;overflow:visible}
+ body[data-erp] .right{margin-top:12px}
+ body[data-erp] .rc-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ body[data-erp] .rc-tag-actions{margin-top:12px}
+}

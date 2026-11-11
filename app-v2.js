@@ -240,7 +240,8 @@ let v2CloudBusy=false,v2CloudQueuedPush=false,v2CloudCheckBusy=false,v2LastCloud
 function v2CloudMarker(){return session?V2_CLOUD_PENDING_KEY+'-'+session.user.id:''}
 function v2MergeCloudLedgers(remote,local,preferLocal=true){
   const merged=JSON.parse(JSON.stringify(remote||{})),current=local||{};
-  for(const key of ['parties','customers','sales','payments']){
+  // Preserve retail-only records during cloud merge too.
+  for(const key of ['parties','customers','sales','payments','retailDocuments']){
     const combined=new Map();for(const item of Array.isArray(merged[key])?merged[key]:[])combined.set(item.id||JSON.stringify(item),item);
     for(const item of Array.isArray(current[key])?current[key]:[]){const id=item.id||JSON.stringify(item);if(preferLocal||!combined.has(id))combined.set(id,item)}
     merged[key]=[...combined.values()];
@@ -439,8 +440,8 @@ window.pushCloud=async function(){
     if(remote){let request=client.from('goldleaf_shop_ledgers').update({payload:db,updated_at:updated}).eq('shop_id',goldleafContext.shop_id);if(remote.updated_at)request=request.eq('updated_at',remote.updated_at);const {data,error}=await request.select('updated_at').maybeSingle();if(error)throw error;if(!data)continue}
     else{const {error}=await client.from('goldleaf_shop_ledgers').insert(payload);if(error){if(error.code==='23505')continue;throw error}}
     written=true;v2LastCloudUpdatedAt=updated;
-  }if(!written)throw new Error('Shop records changed repeatedly. Save again in a moment.');localStorage.removeItem(V2_CLOUD_PENDING_KEY);localStorage.setItem(v2CloudMarker(),'1');setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email))}while(v2CloudQueuedPush)}
-  catch(error){setCloudStatus('Sync issue · saved on this device');const message=document.getElementById('cloudMsg');if(message)message.textContent='Shop data sync could not finish: '+error.message}
+  }if(!written)throw new Error('Shop records changed repeatedly. Save again in a moment.');localStorage.removeItem(V2_CLOUD_PENDING_KEY);localStorage.setItem(v2CloudMarker(),'1');window.v2LastSyncError='';setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email))}while(v2CloudQueuedPush)}
+  catch(error){window.v2LastSyncError=error.message;setCloudStatus('Sync issue · saved on this device');const message=document.getElementById('cloudMsg');if(message)message.textContent='Shop data sync could not finish: '+error.message}
   finally{v2CloudBusy=false}
 };
 const goldleafRenderWithTenant=window.render;
@@ -453,6 +454,12 @@ const goldleafBaseHistory=window.updateHistoryView;
 window.updateHistoryView=function(){let html=goldleafBaseHistory();html=html.replace('Goldleaf v2.0.9','Goldleaf v2.3.0').replace('<h3>v2.0.9 · 6 Nov 2026 · Current</h3><ul><li>Settings now accepts custom purity values from 1 to 100, including decimal values.</li></ul>','<h3>v2.3.0 · 6 Nov 2026 · Current</h3><ul><li>Added public shop registration with compulsory GST and contact details, secure super-admin controls, 7-day trials, monthly/yearly/demo renewals and user/owner seat limits.</li><li>Added a shared Rate Book controlled by Super Admin and automatic shop account sync across devices.</li></ul><article class="release-note"><h3>v2.0.9 · 6 Nov 2026</h3><ul><li>Settings now accepts custom purity values from 1 to 100, including decimal values.</li></ul></article>');return html};
 const goldleafCurrentHistory=window.updateHistoryView;
 window.updateHistoryView=function(){let html=goldleafCurrentHistory();html=html.replace('Goldleaf v2.3.0','Goldleaf v2.8.8').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.8.8 · 8 Nov 2026 · Current</h3><ul><li>Fixed vertical scrolling in the Retail Sales Bill on desktop and kept the bill actions easy to reach.</li></ul></article>').replace('<h3>v2.3.0 · 6 Nov 2026 · Current</h3>','<h3>v2.3.0 · 6 Nov 2026</h3>');return html};
+const goldleafHistory288=window.updateHistoryView;
+window.updateHistoryView=function(){let html=goldleafHistory288();html=html.replace('Goldleaf v2.8.8','Goldleaf v2.8.9').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.8.9 · 8 Nov 2026 · Current</h3><ul><li>Fixed desktop Retail Sales Bill page scrolling by making its actual content container scroll, while keeping Save and Print actions reachable.</li></ul></article>').replace('<article class="release-note"><h3>v2.8.8 · 8 Nov 2026 · Current</h3><ul><li>Fixed vertical scrolling in the Retail Sales Bill on desktop and kept the bill actions easy to reach.</li></ul></article>','').replace('<h3>v2.3.0 · 6 Nov 2026 · Current</h3>','<h3>v2.3.0 · 6 Nov 2026</h3>');return html};
+const goldleafHistory289=window.updateHistoryView;
+window.updateHistoryView=function(){let html=goldleafHistory289();html=html.replace('Goldleaf v2.8.9','Goldleaf v2.9.0').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.9.0 · 8 Nov 2026 · Current</h3><ul><li>Fixed desktop Retail Sales Bill scrolling by sizing the actual app scroll area to the viewport and keeping Save/Print visible.</li></ul></article>').replace('<article class="release-note"><h3>v2.8.9 · 8 Nov 2026 · Current</h3><ul><li>Fixed desktop Retail Sales Bill page scrolling by making its actual content container scroll, while keeping Save and Print actions reachable.</li></ul></article>','');return html};
+const goldleafHistory290=window.updateHistoryView;
+window.updateHistoryView=function(){let html=goldleafHistory290();html=html.replace('Goldleaf v2.9.0','Goldleaf v2.10.1').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.9.1 · 8 Nov 2026</h3><ul><li>Reordered Retail Chit steps as Group, Type, Mapping, then Entry; Chit opens at Group first.</li></ul></article>').replace('<h3>v2.9.0 · 8 Nov 2026 · Current</h3>','<h3>v2.9.0 · 8 Nov 2026</h3>');return html};
 const goldleafTenantStyle=document.createElement('style');goldleafTenantStyle.textContent='.goldleaf-admin-shop{margin:12px 0;padding:14px}.goldleaf-admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.goldleaf-admin-head .muted{font-size:12px;margin-top:3px}.goldleaf-plan-card{background:#f5efe3;border-color:#d8c59e}.goldleaf-admin{border-color:#b89559}html[data-theme="dark"] .goldleaf-plan-card{background:#302e28;border-color:#65543a}';document.head.append(goldleafTenantStyle);
 
 

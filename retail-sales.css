@@ -206,3 +206,52 @@
   }
 }
 
+
+
+/* Phone-first Retail entry layout: allow full-page vertical scrolling and keep controls tappable. */
+@media screen and (max-width:760px){
+ body.rb-active,body.rp-active,body.rc-active{height:auto!important;min-height:100dvh!important;overflow-x:hidden!important;overflow-y:auto!important}
+ body.rb-active .layout,body.rp-active .layout,body.rc-active .layout{display:block!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
+ body.rb-active #app.main,body.rp-active #app.main,body.rc-active #app.main{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding:12px 12px calc(104px + env(safe-area-inset-bottom))!important;overscroll-behavior-y:auto!important}
+ .rb-screen,.rp-screen,.rc-screen{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;transform:none!important}
+ .rb-screen>* ,.rp-screen>* ,.rc-screen>*{min-width:0;max-width:100%}
+ .rb-header,.rp-header,.rc-screen .rb-header{position:sticky;top:0;z-index:8;padding:8px 0;background:var(--paper);}
+ .rb-account-grid,.rb-record-grid,.rp-head-grid,.rp-source-grid,.rc-grid,.rc-chit-definition-form>.rc-grid,.rc-chit-type-form>.rc-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+ .rb-account-grid>.rb-field,.rb-record-grid>.rb-field,.rp-head-grid>.rb-field,.rc-grid>label,.rc-grid>.rc-wide,.rb-wide{grid-column:1/-1!important}
+ .rb-bill-screen .rb-form,.rb-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important;gap:10px!important;min-height:0!important;overflow:visible!important}
+ .rb-settlement{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:visible!important}
+ .rb-items,.rb-item-scroll{width:100%;max-width:100%;max-height:none!important;min-height:0!important;overflow-x:auto!important;overflow-y:visible!important}
+ #rbItemsTable{min-width:1050px!important}
+ .rb-form .rb-totals-scroll{columns:1!important;max-height:none!important;overflow:visible!important}
+ .rb-balance{width:100%!important;position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 0 0 8px var(--paper)}
+ .rb-bill-actions,.rb-record-columns .right,.rc-actions{display:grid!important;grid-template-columns:1fr!important;position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;background:var(--paper);padding:9px 0!important}
+ .rb-bill-actions button,.rb-record-columns .right button,.rc-actions button{width:100%!important;min-height:46px!important;font-size:14px!important}
+ .rb-record-columns{display:grid!important;grid-template-columns:minmax(0,1fr)!important;min-height:0!important}
+ .rb-record-columns>.panel{max-height:none!important;overflow:visible!important}
+ .rp-controls{grid-template-columns:minmax(0,1fr)!important}
+ .rc-item{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .rc-content .table,.rb-record-history .table,.rp-record-history .table{width:100%;max-width:100%;overflow-x:auto!important;overscroll-behavior-x:contain}
+ .rc-content table,.rb-record-history table,.rp-record-history table{min-width:680px!important}
+ .rc-section-title{flex-wrap:wrap}
+ .rc-section-title>button{min-height:42px}
+ .retail-modal-backdrop{padding:8px!important}
+ .retail-modal{width:100%!important;max-height:calc(100dvh - 24px - env(safe-area-inset-bottom))!important}
+}
+@media screen and (max-width:380px){
+ body[data-erp] #app.main{padding-left:9px!important;padding-right:9px!important}
+ .rb-header h1,.rc-screen .rb-header h1{font-size:19px!important}
+ .rb-tools{gap:3px}
+ .rb-tools button{padding-inline:7px!important}
+ .rb-section-head{align-items:flex-start;flex-wrap:wrap}
+ .rb-section-head>div{width:100%;flex-wrap:wrap}
+ .rc-item{grid-template-columns:minmax(0,1fr)!important}
+ .rc-actions{grid-template-columns:minmax(0,1fr)!important}
+}
+
+/* Prevent implicit grid tracks from stretching Retail forms beyond phone width. */
+@media screen and (max-width:760px){
+ .rc-content{width:100%!important;max-width:100%!important;min-width:0!important;grid-template-columns:minmax(0,1fr)!important}
+ .rc-content>*{box-sizing:border-box;min-width:0!important;max-width:100%!important;width:100%!important}
+ .rc-content .rb-screen,.rc-content .rp-screen,.rc-content .rc-screen{box-sizing:border-box;min-width:0!important;max-width:100%!important}
+ .rc-content .retail-sale-screen,.rc-content .rp-document-screen{width:100%!important;min-width:0!important;max-width:100%!important}
+}

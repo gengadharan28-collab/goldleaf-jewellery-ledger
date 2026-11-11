@@ -124,4 +124,31 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.8.3 · 7 Nov 2026:** Retail Estimation / Quotation now appears directly beside Rate Book in the main navigation.
 
 - **v2.8.6 · 7 Nov 2026:** Retail Products and Chit have independent sidebar sections below Sales and Purchase. Each opens only its own content; returning to Sales restores the sales workflow.
-- **v2.8.8 · 8 Nov 2026:** Fixed vertical scrolling in the Retail Sales Bill on desktop and kept the bill actions easy to reach while scrolling.
+- **v2.9.0 · 8 Nov 2026:** Fixed desktop Retail Sales Bill scrolling by sizing the app scroll area to the viewport and keeping Save/Print actions reachable.
+- **v2.9.1 · 8 Nov 2026:** Reordered Retail Chit steps as Group, Type, Mapping and Entry; Chit now opens at Group first.
+
+- **v2.10.0 · 8 Nov 2026:** Expanded Retail Chit to seven scheme types (Digi Gold/Silver, Fixed, Flexi, One Time, Fixed Interest, Custom), group/type/mapping workflows, dues tracking, metal/testing payments, adjustments and printable receipts.
+
+
+- **v2.10.1 · 8 Nov 2026:** Fixed nested Chit grids that squeezed Group, Type and Mapping forms, compacted the Chit summary cards and removed the default customer enrolment cap.
+
+
+- **v2.10.2 · 8 Nov 2026:** Fixed cloud merge to retain Retail Chit, Products, Tagging and Estimation records on saves, refresh and across devices.
+
+- **v2.10.3 · 8 Nov 2026:** Chit saves now wait for cloud sync to finish before reporting success and show a clear on-device-only message when cloud sync fails.
+
+- **v2.10.4 · 8 Nov 2026:** Carry the shop reset token on Retail documents so Product, Tagging and Chit writes pass the reset guard; expose cloud write errors on Retail document saves.
+
+- **v2.10.5 · 8 Nov 2026:** Remember each signed-in shop's active workspace and page so Retail or Wholesale reopens to the same screen after refresh; also remember the selected Retail sales tab.
+
+- **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with JewelGrow-inspired gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
+
+- **v2.10.10 · 8 Nov 2026:** Fixed Retail Sales screens stretching past phone width. Bill forms stay within the screen, with wide jewellery tables scrolling inside their own panels.
+
+- **v2.10.11 · 8 Nov 2026:** Rebuilt Retail tagging as a batch workflow with Gram/Item modes and product catalog defaults. Includes lot/supplier/tray/counter metadata, barcode, per-tag weights/charges/stones/HUID/references, preview/print/history, and expanded Product Master fields. Mobile forms and contained tables improved.
+
+- **v2.10.12 · 8 Nov 2026:** Refresh the app's offline shell and stylesheet cache so the expanded Retail Tagging and Product mobile layouts load on returning devices.
+
+- **v2.10.16 · 8 Nov 2026:** Applied the selected phone layout across all Retail and Wholesale pages, with action controls kept below form content. Desktop layouts remain unchanged.
+- **v2.10.15 · 8 Nov 2026:** Refreshed Retail and Wholesale phone pages with a sectioned, touch-friendly ERP card layout. Improved grouped forms, scan/batch actions and contained history tables while preserving desktop styling.
+- **v2.10.18 · 11 Nov 2026:** Added ornament/metal selection and Rate Book integration to tag creation (auto-fetches gold 24K/22K/18K/14K and silver board/pure rates based on metal and purity). Added live estimated line total calculation on tags. In Sales Entry, entering or scanning a tag number automatically populates product, purity, metal rate, weights, and calculates line subtotal and bill totals immediately. Added quick tag scan bar in Sales bill items table.
