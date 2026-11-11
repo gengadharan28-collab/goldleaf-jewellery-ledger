@@ -149,7 +149,35 @@ function render(){
   $('#nav').innerHTML=APP_NAV_ITEMS.map((x,i)=>'<button class="'+(x===page?'active':'')+'" onclick="go(\''+x+'\')" aria-label="'+x+'"><span class="nav-icon">'+APP_NAV_ICONS[i]+'</span><span>'+x+'</span></button>').join('')
     +'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button>'
     +'<div id="moreMenu" class="more-menu">'+APP_NAV_ITEMS.slice(4).map((x,i)=>'<button onclick="go(\''+x+'\')"><span class="nav-icon">'+APP_NAV_ICONS[i+4]+'</span><span>'+x+'</span></button>').join('')+'</div>';
-  const routes={'Dashboard':dash,'Register':registerView,'Sales Entry':salesView,'Payments':paymentsView,'Ledger':ledgerView,'Summary':summaryView,'Rate Book':()=>window.rateBookView?window.rateBookView():'','Update History':()=>window.updateHistoryView?window.updateHistoryView():'','Settings':settingsView};
+  const routes={
+    'Dashboard': dash,
+    'Register': registerView,
+    'Party Register': registerView,
+    'Customer Register': registerView,
+    'Sales Entry': salesView,
+    'Customer Sales Entry': salesView,
+    'Party Sales Entry': salesView,
+    'Estimation / Quotation': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Estimation / Quotation') : (window.rcQuoteForm ? window.rcQuoteForm() : salesView()),
+    'Retail Estimation': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Estimation / Quotation') : (window.rcQuoteForm ? window.rcQuoteForm() : salesView()),
+    'Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
+    'Retail Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
+    'Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
+    'Retail Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
+    'Chit': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Chit') : (window.rcChitView ? window.rcChitView() : salesView()),
+    'Retail Chit': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Chit') : (window.rcChitView ? window.rcChitView() : salesView()),
+    'Payments': paymentsView,
+    'Customer Payment': paymentsView,
+    'Party Payments': paymentsView,
+    'Ledger': ledgerView,
+    'Party Ledger': ledgerView,
+    'Customer Ledger': ledgerView,
+    'Summary': summaryView,
+    'Party Summary': summaryView,
+    'Customer Summary': summaryView,
+    'Rate Book': () => window.rateBookView ? window.rateBookView() : '',
+    'Update History': () => window.updateHistoryView ? window.updateHistoryView() : '',
+    'Settings': settingsView
+  };
   $('#app').innerHTML=(routes[page]||dash)();
 }
 let workspaceMode=localStorage.getItem('goldleaf-workspace-mode')==='retail'?'retail':'wholesale';
@@ -518,7 +546,7 @@ function salesView(){
   +'<div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">'+db.purities.map(a=>'<option value="'+a+'" '+(Number(a)===purity?'selected':'')+'>'+a+'K</option>').join('')+'</select></div>'
   +'<div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="'+(x&&x.wastage||0)+'" oninput="calcSale(this.form)"></div>'
   +'<div class="field customer-sale-fields"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="'+(x&&x.makingPerPiece!=null?x.makingPerPiece:0)+'" oninput="calcSale(this.form)"></div>'
-  + \'<input name="rate24" type="hidden" value="\'+(x&&x.rate24||db.rates.gold24||\'\')+\'">\'
+  +'<input name="rate24" type="hidden" value="'+(x&&x.rate24||db.rates.gold24||'')+'">'
   +'<div class="field customer-sale-fields"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="'+rateMoney(initial.purityRate)+'"></div>'
   +'<div class="field party-sale-fields '+(customer?'hidden':'')+'"><label>Payable pure grams</label><b id="saleCalc">'+fmt(x?saleVal(x):0)+' g</b></div>'
   +'<div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>'
@@ -772,9 +800,23 @@ function header(sub,buttons=''){
 }
 const moduleBaseGo=window.go;
 window.go=function(target){
-  const aliases={'Party Register':['Register','wholesale'],'Customer Register':['Register','retail'],'Party Sales Entry':['Sales Entry','wholesale'],'Customer Sales Entry':['Sales Entry','retail'],'Party Payments':['Payments','wholesale'],'Customer Payment':['Payments','retail'],'Customer Payments':['Payments','retail'],'Party Ledger':['Ledger','wholesale'],'Customer Ledger':['Ledger','retail'],'Party Summary':['Summary','wholesale'],'Customer Summary':['Summary','retail']};
-  if(aliases[target]){const [route,mode]=aliases[target];workspaceMode=mode;localStorage.setItem('goldleaf-workspace-mode',mode);registerType=summaryType=ledgerType=moduleAccountType();target=route}
-  else if(['Register','Sales Entry','Payments','Ledger','Summary'].includes(target))registerType=summaryType=ledgerType=moduleAccountType();
+  if(['Products','Tagging','Estimation / Quotation','Chit','Retail Products','Retail Tagging','Retail Estimation','Retail Chit'].includes(target)){
+    workspaceMode = 'retail';
+    localStorage.setItem('goldleaf-workspace-mode', 'retail');
+    let section = target.replace(/^Retail /, '');
+    if(section === 'Estimation') section = 'Estimation / Quotation';
+    page = section;
+    edit = null;
+    if(window.rcOpenStandalone){
+      window.rcOpenStandalone(section);
+    } else {
+      render();
+    }
+    return;
+  }
+  const aliases={'Party Register':['Register','wholesale'],'Customer Register':['Register','retail'],'Party Sales Entry':['Sales Entry','wholesale'],'Customer Sales Entry':['Sales Entry','retail'],'Party Payments':['Payments','wholesale'],'Customer Payment':['Payments','retail'],'Party Ledger':['Ledger','wholesale'],'Customer Ledger':['Ledger','retail'],'Party Summary':['Summary','wholesale'],'Customer Summary':['Summary','retail']};
+  if(aliases[target]){const [route,mode]=aliases[target];workspaceMode=mode;localStorage.setItem('goldleaf-workspace-mode',mode);page=route;let type=mode==='retail'?'customer':'party';registerType=type;summaryType=type;ledgerType=type;}
+  else if(['Register','Sales Entry','Payments','Ledger','Summary'].includes(target))registerType=summaryType=ledgerType=workspaceMode==='retail'?'customer':'party';
   return moduleBaseGo(target);
 };
 function renderModuleNavigation(){
@@ -830,7 +872,7 @@ function salesView(){
   return header('Retail customer bill. Sale details, amount, discount and balance stay together on one page.')
   +`<section class="panel"><h2>${x?'Edit customer sales bill':'Customer sales bill'}</h2>${records.length?`<form id="customerSaleForm" onsubmit="saveSale(event)"><input name="id" type="hidden" value="${x?.id||''}"><input name="accountType" type="hidden" value="customer"><input name="amount" type="hidden" value="${x?.amount||0}">
     <section class="panel"><h2>Account and bill details</h2><div class="grid"><div class="field"><label>Customer *</label>${accountSelect('customer',x?.partyId||'')}</div><div class="field"><label>City · automatic</label><input name="place" value="${esc(accountCity(x?.partyId,'customer'))}" readonly></div><div class="field"><label>Date and time</label><input name="when" type="datetime-local" required value="${when}"></div></div></section>
-    <section class="panel"><h2>New jewellery sale</h2><div class="grid"><div class="field"><label>Product *</label><select name="product" required>${productOptions}</select></div><div class="field"><label>Total weight · g *</label><input name="weight" type="number" min=".001" step=".001" required value="${x?.weight||''}" oninput="calcSale(this.form)"></div><div class="field"><label>Pieces *</label><input name="pieces" type="number" min="1" step="1" required value="${x?.pieces||1}" oninput="calcSale(this.form)"></div><div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">${purityOptions}</select></div><div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="${x?.wastage||0}" oninput="calcSale(this.form)"></div><div class="field"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="${x?.makingPerPiece??0}" oninput="calcSale(this.form)"></div><input name="rate24" type="hidden" value="${x?.rate24||db.rates.gold24||\'\'}"><div class="field"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="${rateMoney(initial.purityRate)}"></div><div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>
+    <section class="panel"><h2>New jewellery sale</h2><div class="grid"><div class="field"><label>Product *</label><select name="product" required>${productOptions}</select></div><div class="field"><label>Total weight · g *</label><input name="weight" type="number" min=".001" step=".001" required value="${x?.weight||''}" oninput="calcSale(this.form)"></div><div class="field"><label>Pieces *</label><input name="pieces" type="number" min="1" step="1" required value="${x?.pieces||1}" oninput="calcSale(this.form)"></div><div class="field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">${purityOptions}</select></div><div class="field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="${x?.wastage||0}" oninput="calcSale(this.form)"></div><div class="field"><label>Making charge per piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="${x?.makingPerPiece??0}" oninput="calcSale(this.form)"></div><input name="rate24" type="hidden" value="${x?.rate24||db.rates.gold24||''}"><div class="field"><label>Purity adjusted rate · ₹/g</label><input id="salePurityRateInput" readonly value="${rateMoney(initial.purityRate)}"></div><div class="field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div></div></section>
     <section class="panel exchange-toggle-row"><div><h2>Old gold exchange</h2><div class="muted">Optional. Open only when the customer gives old jewellery.</div></div><button id="oldGoldToggle" class="exchange-toggle" type="button" aria-expanded="false" aria-controls="oldGoldPanel" onclick="toggleOldGold()">＋ Old gold exchange${itemCount?' · '+itemCount+' item'+(itemCount===1?'':'s'):''}</button></section>
     <section id="oldGoldPanel" class="panel hidden"><div class="exchange-heading"><div><h2>Old gold exchange items</h2><div class="muted">Amount = weight × manually entered testing purity ÷ 100 × rate.</div></div><button type="button" onclick="addExchangeLine()">＋ Add old gold item</button></div><div id="oldGoldLines">${items.map((item,i)=>exchangeLineMarkup(item,i)).join('')}</div><div class="exchange-total"><span>Total old gold amount</span><b id="exchangeAmountTotal">${rateMoney(x?.exchangeAmount||0)}</b></div><p class="muted">Tested pure gold credit: <b id="exchangePureTotal">${fmt(x?.exchangePureGrams||0)} g</b>. Enter testing purity manually from 1% to 100%.</p></section>
     <section class="panel"><h2>Amount, discount and balance</h2><div class="sale-summary-grid"><div><span>New gold value</span><b id="saleGoldAmount">${rateMoney(initial.goldAmount)}</b></div><div><span>Wastage value</span><b id="saleWastageAmount">${rateMoney(initial.wastageAmount)}</b></div><div><span>Making charges · pieces × per piece</span><b id="saleMakingAmount">${rateMoney(initial.makingTotal)}</b></div><div><span>Amount before discount</span><b id="saleSubtotal">${rateMoney(initial.subtotal)}</b></div><div class="field"><label>Discount · ₹</label><input name="discount" type="number" min="0" step=".01" value="${x?.discount||0}" oninput="calcSale(this.form)"></div><div><span>New sale after discount</span><b id="saleAfterDiscount">${rateMoney(initial.final)}</b></div><div><span>Old gold exchange</span><b id="saleExchangeAmount">${rateMoney(x?.exchangeAmount||0)}</b></div><div class="sale-final"><span id="saleBalanceLabel">Balance to collect</span><b id="saleBalanceAmount">${rateMoney(Math.abs(n(x?.amount)))}</b></div></div><p class="muted">New sale total = gold value + wastage + making charges − discount. Old gold exchange is subtracted after discount.</p></section>
@@ -872,7 +914,7 @@ function salesView(){
           <div class="field retail-sale-field"><label>Purity *</label><select name="purity" required onchange="calcSale(this.form)">${purityOptions}</select></div>
           <div class="field retail-sale-field"><label>Wastage · %</label><input name="wastage" type="number" min="0" step=".01" value="${x?.wastage||0}" oninput="calcSale(this.form)"></div>
           <div class="field retail-sale-field"><label>Making / piece · ₹</label><input name="makingPerPiece" type="number" min="0" step=".01" value="${x?.makingPerPiece??0}" oninput="calcSale(this.form)"></div>
-          <input name="rate24" type="hidden" value="${x?.rate24||db.rates.gold24||\'\'}">
+          <input name="rate24" type="hidden" value="${x?.rate24||db.rates.gold24||''}">
           <div class="field retail-sale-field"><label>Purity rate · ₹/g</label><input id="salePurityRateInput" readonly value="${rateMoney(initial.purityRate)}"></div>
           <div class="field retail-sale-field retail-photo-field"><label>Product photo</label><input name="photo" type="file" accept="image/*"></div>
         </div><div class="retail-exchange-row"><span class="muted">Optional old jewellery credit${itemCount?' · '+itemCount+' item'+(itemCount===1?'':'s'):''}</span><button id="oldGoldToggle" class="exchange-toggle" type="button" aria-expanded="false" aria-controls="oldGoldPanel" onclick="toggleOldGold(true)">＋ Old Gold Exchange</button></div></section>
@@ -935,6 +977,6 @@ window.render=function(){
 };
 window.setInterval(()=>window.checkRateReminder(),30000);window.addEventListener('focus',checkRateReminder);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkRateReminder()});
 render();
-</script><script src="./html5-qrcode.min.js?v=2.10.20"></script><script src="./qr-scanner.js?v=2.10.20"></script><script src="./app-v2.js?v=2.10.20"></script><script src="./admin-panel.js?v=2.10.20"></script><script src="./pdf-templates.js?v=2.10.20"></script><script src="./erp-ui.js?v=2.10.20"></script><script src="./retail-sales.js?v=2.10.20"></script><script src="./retail-purchases.js?v=2.10.20"></script><script src="./retail-estimate-chit.js?v=2.10.20"></script><script src="./retail-product-workflow.js?v=2.10.20"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.20"></body></html>
+</script><script src="./html5-qrcode.min.js?v=2.10.20-r3"></script><script src="./qr-scanner.js?v=2.10.20-r3"></script><script src="./app-v2.js?v=2.10.20-r3"></script><script src="./admin-panel.js?v=2.10.20-r3"></script><script src="./pdf-templates.js?v=2.10.20-r3"></script><script src="./erp-ui.js?v=2.10.20-r3"></script><script src="./retail-sales.js?v=2.10.20-r3"></script><script src="./retail-purchases.js?v=2.10.20-r3"></script><script src="./retail-estimate-chit.js?v=2.10.20-r3"></script><script src="./retail-product-workflow.js?v=2.10.20-r3"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.20-r3"></body></html>
 
 

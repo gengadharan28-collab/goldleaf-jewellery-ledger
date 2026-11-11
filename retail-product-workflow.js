@@ -177,5 +177,21 @@ setInterval(()=>{
 },500);
 const glProductStyle=document.createElement('style');glProductStyle.textContent=`.gl-product-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}.gl-product-card{display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;gap:2px 10px;min-height:64px;padding:10px 14px;border:1px solid var(--line,#ddd);border-radius:12px;background:var(--white,#fff);color:var(--ink,#222);box-shadow:0 2px 8px #2d25200a}.gl-product-card>span{grid-row:1/3;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#f4ead7;color:#8d651f;font-size:20px}.gl-product-card b{font-size:14px}.gl-product-card small{font-size:11px;color:var(--muted,#777)}.gl-product-card.active{border-color:#a77a33;box-shadow:0 0 0 2px #a77a331f;background:linear-gradient(135deg,#fffcf6,#fff)}.gl-check-list{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px}.gl-check-list label{display:inline-flex!important;align-items:center;gap:4px;font-size:12px!important;font-weight:500!important}.gl-check-list input{width:14px;min-height:14px}.gl-span-two{grid-column:span 2}@media(max-width:760px){.gl-product-switch{gap:6px;margin-bottom:8px}.gl-product-card{grid-template-columns:28px 1fr;gap:2px 6px;min-height:56px;padding:7px;border-radius:10px}.gl-product-card>span{width:28px;height:28px;font-size:16px;border-radius:8px}.gl-product-card b{font-size:12px;white-space:nowrap}.gl-product-card small{font-size:9px;line-height:1.1}.gl-span-two{grid-column:1/-1}.gl-check-list{gap:4px 8px}}@media(max-width:360px){.gl-product-card{grid-template-columns:1fr;text-align:center;padding:6px 3px;gap:2px}.gl-product-card>span{grid-row:auto;justify-self:center;width:25px;height:25px}.gl-product-card small{display:none}}`;
 document.head.append(glProductStyle);
-const glOldHistory=window.updateHistoryView;window.updateHistoryView=function(){const html=glOldHistory();return html.replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v'+GL_PRODUCT_VERSION+' · Current</h3><ul><li>Added separate Product Group, Product and Model card workflows with saved master lists.</li><li>Expanded Product and Model details for metal, purity, HSN, stock, tags, wastage, charge types and required fields.</li><li>Silver Product and Tag rates now use the selected silver Rate Book price in Retail bills and quotations; Gold keeps purity-based rates.</li></ul></article>')};
+const glOldHistory=window.updateHistoryView;
+window.updateHistoryView=function(){
+  let html = glOldHistory ? glOldHistory() : '';
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.20');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.20</b> · 11 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.19 · 11 Nov 2026</h3>');
+  const v20Note = '<article class="release-note"><h3>v2.10.20 · 11 Nov 2026 · Current</h3><ul>'
+    + '<li>Dedicated direct navigation to Products, Tagging, Estimation / Quotation, and Chit from the sidebar and mobile bottom navigation.</li>'
+    + '<li>Modernized QR & Barcode Camera Scanner with dual-engine detection (Html5Qrcode + native BarcodeDetector) across Sales Entry, Estimation / Quotation, and Tagging.</li>'
+    + '<li>Clean icon-only scan buttons with zero text clutter, optimized for mobile and desktop.</li>'
+    + '<li>Full JewelGrow Quotation workflow parity (Tag, Manual, and Multi-Tag modes with live Rate Book rates, HUID, Old Gold credit, and 1-click Convert to Sales Bill).</li>'
+    + '<li>Rate Book automatic vs manual calculation toggle for 22K, 18K, 14K purities (Old Gold tab removed).</li>'
+    + '<li>ERP Sales Entry with multi-mode payment collection (Cash, Cheque, GPay, Card, Bank) and high-contrast dynamic balance indicator.</li>'
+    + '<li>Customer and Party Ledger reports with direct WhatsApp sharing and PDF export.</li>'
+    + '</ul></article>';
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v20Note);
+};
 render();

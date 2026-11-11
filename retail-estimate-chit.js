@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.13';
+const RC_VERSION='2.10.20';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -1090,31 +1090,40 @@ window.rcPrintChit=function(id){const p=rcDocs('retail-chit-entry').find(x=>x.id
 function rcBody(){rbSection=rcSection;return salesView().replace(/<header class="rb-header">[\s\S]*?<\/header>/,'').replace(/<label class="rb-mobile-section">[\s\S]*?<\/label>/,'').replace(/<nav class="rb-tabs"[\s\S]*?<\/nav>/,'')}
 function rcRetailScreen(){const labels=RC_SECTIONS.map(x=>'<option '+(x===rcSection?'selected':'')+'>'+x+'</option>').join('');return '<div class="rc-screen rb-screen"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(rcSection==='Bill'?'Sales entry':rcSection)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><label class="rc-mobile-select">Retail workspace<select aria-label="Retail workspace" onchange="rcOpen(this.value)">'+labels+'</select></label><nav class="rc-tabs" aria-label="Retail workspace sections">'+RC_SECTIONS.map(x=>'<button type="button" class="'+(x===rcSection?'active':'')+'" onclick="rcOpen(\''+x+'\')">'+esc(x)+'</button>').join('')+'</nav><main class="rc-content">'+rcBody()+'</main></div>'}
 function rcStandaloneScreen(section){return '<div class="rc-screen rb-screen rc-standalone"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(section)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><main class="rc-content">'+(section==='Estimation / Quotation'?rcQuoteForm():section==='Products'?rcProductsView():section==='Tagging'?rcTaggingView():rcChitView())+'</main></div>'}
-window.rcOpenStandalone=function(section){if(!['Products','Estimation / Quotation','Tagging','Chit'].includes(section)||!rcAllowed()||!rbCanLeave())return;rcEstimateEdit='';rcProductEdit='';rcTagEdit='';rcChitEdit='';page='Retail '+(section==='Estimation / Quotation'?'Estimation':section);window.goldleafRememberView?.();render();window.scrollTo?.(0,0)}
+window.rcOpenStandalone=function(section){
+  if(!['Products','Estimation / Quotation','Tagging','Chit'].includes(section)||!rbCanLeave())return;
+  workspaceMode='retail';
+  localStorage.setItem('goldleaf-workspace-mode','retail');
+  rcEstimateEdit='';rcProductEdit='';rcTagEdit='';rcChitEdit='';
+  page=section;
+  window.goldleafRememberView?.();
+  render();
+  window.scrollTo?.(0,0);
+};
 
 window.rcOpen=function(section){if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
 const rcOldDirty=window.rbDirty;window.rbDirty=function(){return rcOldDirty()||!!document.querySelector('.rc-screen form[data-entry-dirty="1"]')};const rcOldCanLeave=window.rbCanLeave;window.rbCanLeave=function(){return !document.querySelector('.rc-screen form[data-entry-dirty="1"]')?rcOldCanLeave():confirm('Leave this entry and discard the unsaved changes?')};
 document.addEventListener('input',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});document.addEventListener('change',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});
-const RC_PAGES={'Retail Products':'Products','Retail Chit':'Chit','Retail Tagging':'Tagging','Retail Estimation':'Estimation / Quotation'};
+const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
 function rcNavigation(){
-  if(!rcAllowed())return;
   const nav=document.getElementById('nav');if(!nav)return;
   nav.querySelectorAll('[data-rc-sidebar],[data-rc-estimate-nav]').forEach(b=>b.remove());
-  const anchor=nav.querySelector('button[aria-label="Purchase"]')||nav.querySelector('button[aria-label="Sales"]');
+  const anchor=nav.querySelector('button[aria-label*="Sales"]')||nav.querySelector('button:nth-child(2)')||nav.firstElementChild;
   const fragment=document.createDocumentFragment();
-  for(const [label,icon] of [['Products','plans'],['Chit','chit'],['Tagging','tagging']]){
+  for(const [label,icon] of [['Estimation / Quotation','tagging'],['Products','plans'],['Tagging','tagging'],['Chit','chit']]){
     const button=document.createElement('button');button.type='button';button.dataset.rcSidebar=label;
     button.setAttribute('aria-label',label);button.title=label;
-    button.classList.toggle('active',page==='Retail '+label);
-    if(page==='Retail '+label)button.setAttribute('aria-current','page');
+    button.classList.toggle('active',page===label||page==='Retail '+label);
+    if(page===label||page==='Retail '+label)button.setAttribute('aria-current','page');
     button.onclick=()=>rcOpenStandalone(label);
     button.innerHTML='<span class="nav-icon">'+erpIcon(icon)+'</span><span class="erp-nav-label">'+esc(label)+'</span>';
     fragment.append(button);
   }
   if(anchor)anchor.after(fragment);
+  else nav.append(fragment);
   const more=document.getElementById('moreMenu');
   if(more){more.querySelectorAll('[data-rc-nav]').forEach(b=>b.remove());
-    for(const label of ['Products','Chit','Tagging','Estimation / Quotation']){
+    for(const label of ['Estimation / Quotation','Products','Tagging','Chit']){
       const button=document.createElement('button');button.type='button';button.dataset.rcNav=label;
       button.textContent=label;button.onclick=()=>{more.classList.remove('open');rcOpenStandalone(label)};more.append(button);
     }
@@ -1123,19 +1132,22 @@ function rcNavigation(){
 }
 const rcPreviousRender=window.render;
 window.render=function(){
-  const active=rcAllowed()&&page==='Sales Entry';
+  const active=page==='Sales Entry'&&workspaceMode==='retail';
   if(active)rcSection=RC_SECTIONS.includes(rbSection)?rbSection:'Bill';
-  const result=rcPreviousRender(),section=rcAllowed()?RC_PAGES[page]:null;
+  const result=rcPreviousRender(),section=RC_PAGES[page]||null;
   if(section){
-    document.getElementById('app').innerHTML=rcStandaloneScreen(section);
+    const appEl=document.getElementById('app');
+    if(appEl) appEl.innerHTML=rcStandaloneScreen(section);
     document.body.classList.add('rb-active','rc-active');document.body.dataset.erpPage='Retail';
     if(section==='Estimation / Quotation')rcRecalc();
     if(section==='Chit'&&rcChitTab==='Entry')rcEntryPlan(document.getElementById('rcEntryMapping')?.value||'');
   }else if(active){
-    document.getElementById('app').innerHTML=rcRetailScreen();
+    const appEl=document.getElementById('app');
+    if(appEl) appEl.innerHTML=rcRetailScreen();
     document.body.classList.add('rb-active','rc-active');document.body.dataset.erpPage='Retail';
   }else document.body.classList.remove('rc-active');
-  rcNavigation();return result;
+  rcNavigation();
+  return result;
 };
 const rcStyle=document.createElement('link');rcStyle.rel='stylesheet';rcStyle.href='./retail-estimate-chit.css?v='+RC_VERSION;document.head.append(rcStyle);
 const rcHistoryPrevious=window.updateHistoryView;window.updateHistoryView=function(){return rcHistoryPrevious().replace('Goldleaf v2.7.0','Goldleaf v'+RC_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.8.7 · 7 Nov 2026 · Current</h3><ul><li>Products and Chit are independent Retail sidebar pages below Sales and Purchase. Each page shows only its own workflow; returning to Sales restores sales content.</li></ul></article><article class="release-note"><h3>v2.8.5 · 7 Nov 2026</h3><ul><li>Added dedicated Retail Products, Tagging and Chit pages to the left navigation and kept them scrollable on mobile.</li></ul></article><article class="release-note"><h3>v2.8.4 · 7 Nov 2026</h3><ul><li>Added separate Retail toolbar pages for Estimation / Quotation, Tagging and Chit, with improved full-page scrolling.</li></ul></article><article class="release-note"><h3>v2.8.3 · 7 Nov 2026</h3><ul><li>Moved Retail Estimation / Quotation into the main navigation beside Rate Book for quicker access.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Rate-based Retail estimates now use saved purity-specific prices.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry now uses manually entered per-purity prices and a dated AM/PM history.</li><li>Retail sales and estimates use the saved purity-specific rates.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail now includes saved estimation and quotation, PDF printing, history and bill conversion.</li><li>Added Retail product master and item tagging with barcode, weights, purity, stock state and item details.</li><li>Added Retail chit groups, installment types, customer mappings, payment entry and printable receipts.</li><li>New Retail records sync in the shop cloud ledger and stay separate from Wholesale.</li></ul></article>')};
