@@ -1,5 +1,5 @@
 // Separate platform controls from each shop's jewellery workspace.
-let platformPage = new URLSearchParams(location.search).get('admin') === '1' ? 'Dashboard' : '';
+let platformPage = (new URLSearchParams(location.search).get('admin') === '1' || /super-admin\.html$/i.test(location.pathname)) ? 'Dashboard' : '';
 let platformError = '', platformLoadedUser = '', platformInvites = [], platformPlans = [];
 const platformBaseRender = window.render, platformBaseGo = window.go;
 const platformBaseSettings = window.settingsView, platformBaseHeader = window.header;
@@ -28,7 +28,7 @@ window.platformRefresh = async function() { if (!session || !client) return; awa
 
 function platformTop(title, subtitle) {
   document.body.classList.remove('compact-customer-sale');document.documentElement.classList.remove('compact-customer-sale');
-  return `<header class="top"><div><div class="eyebrow">GOLDLEAF · SUPER ADMIN</div><h1>${title}</h1><div class="muted">${subtitle}</div></div><div class="header-actions">${platformQuickSignOut()}<button onclick="toggleTheme()">${appTheme === 'dark' ? '☀ Light' : '☾ Dark'}</button><button onclick="platformRefresh()">Refresh</button></div></header>`;
+  return (() => { const signup = new URLSearchParams(location.search).has('signup') || !!window.goldleafShopInvite; const adminEntry = new URLSearchParams(location.search).has('admin'); const eyebrow = signup ? 'GOLDLEAF · SHOP REGISTRATION' : adminEntry ? 'GOLDLEAF · SUPER ADMIN' : 'GOLDLEAF · JEWELLERY ERP'; return `<header class="top"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><div class="muted">${subtitle}</div></div><div class="header-actions">${platformQuickSignOut()}<button onclick="toggleTheme()">${appTheme === 'dark' ? '☀ Light' : '☾ Dark'}</button><button onclick="platformRefresh()">Refresh</button></div></header>`; })();
 }
 function platformPlanOptions(current = 'trial') {
   return ['trial','demo','monthly','yearly'].map(plan => `<option value="${plan}" ${plan === current ? 'selected' : ''}>${plan === 'trial' ? 'Free trial · 7 days' : plan === 'demo' ? 'Demo · 7 days' : plan === 'monthly' ? 'Monthly · 1 month' : 'Yearly · 1 year'}</option>`).join('');
@@ -66,11 +66,98 @@ function platformPlansView() {
   return platformTop('Subscription plans','These plan details also appear on each shop’s account dashboard.') + platformPlans.map(p=>`<section class="panel"><form onsubmit="platformSavePlan(event)"><input type="hidden" name="code" value="${esc(p.code)}"><h2>${esc(p.name)}</h2><div class="grid">${platformInput('Plan name','name','text',p.name,'required')}${platformInput('Price · ₹ (blank = contact admin)','price','number',p.price??'','min="0" step=".01"')}<div class="field wide"><label>Description<textarea name="description" maxlength="500">${esc(p.description)}</textarea></label></div></div><div class="right"><button class="primary">Save plan</button></div></form></section>`).join('');
 }
 window.platformSavePlan=async function(event){event.preventDefault();const f=new FormData(event.target);await platformMutation('goldleaf_admin_save_plan',{p_code:f.get('code'),p_name:f.get('name'),p_price:f.get('price')===''?null:n(f.get('price')),p_description:f.get('description')},'Plan details saved.');};
+window.glLoginRole = window.glLoginRole || 'admin';
+window.glSwitchLoginRole = function(role) {
+  window.glLoginRole = role === 'staff' ? 'staff' : 'admin';
+  document.querySelectorAll('.c2-tab[data-role]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.role === window.glLoginRole);
+  });
+  const lbl = document.getElementById('glLoginEmailLabel');
+  const inp = document.getElementById('email');
+  const btn = document.getElementById('glLoginSubmitBtn');
+  if (lbl) lbl.textContent = window.glLoginRole === 'staff' ? 'Staff Counter Email' : 'Registered Email';
+  if (inp) inp.placeholder = window.glLoginRole === 'staff' ? 'staff@showroom.com' : 'contact@showroom.com';
+  if (btn) btn.textContent = window.glLoginRole === 'staff' ? 'Enter Staff Counter' : 'Enter Showroom';
+};
+window.glGetLoginRates = function() {
+  let r = (typeof db !== 'undefined' && db?.rates) ? db.rates : {};
+  if (!Number(r.gold24)) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('goldleaf-cached-public-rates') || 'null');
+      if (cached && Number(cached.gold24) > 0) r = cached;
+    } catch {}
+  }
+  if (!Number(r.gold24)) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('goldleaf-shop-')) {
+          const shopDb = JSON.parse(localStorage.getItem(k) || 'null');
+          if (shopDb?.rates && Number(shopDb.rates.gold24) > 0) {
+            r = shopDb.rates;
+            break;
+          }
+        }
+      }
+    } catch {}
+  }
+  const g24 = Number(r.gold24) || 7850;
+  const g22 = Number(r.gold22) || Math.round(g24 * 0.916);
+  const slv = Number(r.silver) || Number(r.silverBoard) || 95;
+  const fmtR = v => '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + '/g';
+  return { g24: fmtR(g24), g22: fmtR(g22), slv: fmtR(slv) };
+};
+window.glRefreshLoginRates = async function() {
+  try {
+    if (client) {
+      const res = await client.rpc('goldleaf_get_shared_rates');
+      if (res?.data && Number(res.data.gold24) > 0) {
+        db.rates = Object.assign({}, db.rates, res.data);
+        localStorage.setItem('goldleaf-cached-public-rates', JSON.stringify(db.rates));
+      }
+    }
+  } catch {}
+  const rates = window.glGetLoginRates();
+  const el24 = document.getElementById('glLoginRate24');
+  const el22 = document.getElementById('glLoginRate22');
+  const elSlv = document.getElementById('glLoginRateSilver');
+  if (el24) el24.textContent = rates.g24;
+  if (el22) el22.textContent = rates.g22;
+  if (elSlv) elSlv.textContent = rates.slv;
+  say('Live market rates refreshed.');
+};
 function platformLoginView() {
-  const signup=new URLSearchParams(location.search).has('signup')||!!window.goldleafShopInvite;
-  const adminEntry=new URLSearchParams(location.search).has('admin');
-  return platformTop(signup?'Register your shop':adminEntry?'Super Admin sign in':'Goldleaf sign in', signup?'Create your account. Your workspace access is approved by Goldleaf Super Admin.':'Sign in with your Goldleaf administrator account.') + `<section class="panel platform-login"><form onsubmit="platformLogin(event)">${platformInput('Email address','email','email',signup||!adminEntry?'':'gengadharan28@gmail.com','id="email" autocomplete="username" required')}${platformInput('Password','password','password','','id="password" autocomplete="current-password" required minlength="8"')}${signup&&!window.goldleafShopInvite?'<div class="grid">'+platformInput('Shop name *','shop_name','text','','id="shopName" required')+platformInput('GST number *','gst','text','','id="shopGst" required pattern="[A-Za-z0-9]{15}" maxlength="15"')+platformInput('Phone *','phone','tel','','id="shopPhone" required minlength="10"')+'<div class="field"><label>Address *<textarea id="shopAddress" required></textarea></label></div></div>':''}<input id="url" hidden value="${esc(db.cloud.url)}"><input id="key" hidden value="${esc(db.cloud.key)}"><button class="primary">${signup?'Create shop account':'Sign in'}</button><p id="cloudMsg" role="status">${esc(platformError)}</p></form>${signup?'<a href="?admin=1">Already registered? Sign in</a>':'<p>Use your existing Goldleaf password. Your Supabase dashboard login is a separate account.</p><a href="?signup=1">Register a shop</a>'}</section>`;
+  const signup = new URLSearchParams(location.search).has('signup') || !!window.goldleafShopInvite;
+  const adminEntry = new URLSearchParams(location.search).has('admin') || /super-admin\.html$/i.test(location.pathname);
+  const rates = window.glGetLoginRates();
+  const isStaff = window.glLoginRole === 'staff';
+  const subText = signup ? 'Showroom Registration • ERP' : adminEntry ? 'Super Admin • Platform Console' : 'Jewellery Atelier • ERP';
+  const tabsHtml = signup
+    ? '<div class="c2-tabs"><button type="button" class="c2-tab active" style="cursor:default">Register New Showroom</button></div>'
+    : adminEntry
+      ? '<div class="c2-tabs"><button type="button" class="c2-tab active" style="cursor:default">Super Admin Login</button></div>'
+      : '<div class="c2-tabs" role="tablist" aria-label="Account role"><button type="button" class="c2-tab ' + (!isStaff ? 'active' : '') + '" data-role="admin" onclick="glSwitchLoginRole(\'admin\')">Shop Admin</button><button type="button" class="c2-tab ' + (isStaff ? 'active' : '') + '" data-role="staff" onclick="glSwitchLoginRole(\'staff\')">Staff Counter</button></div>';
+  const emailLabel = signup ? 'Owner Email *' : adminEntry ? 'Super Admin Email' : (isStaff ? 'Staff Counter Email' : 'Registered Email');
+  const emailPlaceholder = signup ? 'owner@showroom.com' : adminEntry ? 'admin@goldleaf.in' : (isStaff ? 'staff@showroom.com' : 'contact@showroom.com');
+  const emailVal = (!signup && adminEntry) ? 'gengadharan28@gmail.com' : '';
+  const passLabel = signup ? 'Choose Password *' : adminEntry ? 'Master Password' : 'Password';
+  const submitLabel = signup ? 'Create Shop Account' : adminEntry ? 'Enter Super Admin' : (isStaff ? 'Enter Staff Counter' : 'Enter Showroom');
+  const extraSignupFields = (signup && !window.goldleafShopInvite)
+    ? '<div class="c2-signup-grid">'
+      + '<div class="c2-group"><label class="c2-label" for="shopName">Shop Name *</label><input class="c2-input" id="shopName" name="shop_name" type="text" placeholder="Showroom Name" required></div>'
+      + '<div class="c2-group"><label class="c2-label" for="shopGst">GST Number *</label><input class="c2-input" id="shopGst" name="gst" type="text" pattern="[A-Za-z0-9]{15}" maxlength="15" placeholder="15-digit GSTIN" required></div>'
+      + '<div class="c2-group c2-wide"><label class="c2-label" for="shopPhone">Phone Number *</label><input class="c2-input" id="shopPhone" name="phone" type="tel" minlength="10" placeholder="10-digit mobile number" required></div>'
+      + '<div class="c2-group c2-wide"><label class="c2-label" for="shopAddress">Showroom Address *</label><textarea class="c2-input" id="shopAddress" name="address" placeholder="Full street & city address" required></textarea></div>'
+      + '</div>'
+    : '';
+  const footerLeft = signup
+    ? '<span>Already registered? <a href="./">Sign in</a></span>'
+    : adminEntry
+      ? '<span><a href="./">← Showroom Login</a></span>'
+      : '<span>New Showroom? <a href="?signup=1">Register shop</a></span>';
+  return `<section class="c2-auth-card platform-login"><div class="c2-rate-bar"><div class="c2-rate-items"><span>24K <b id="glLoginRate24">${esc(rates.g24)}</b></span><span class="c2-rate-dot">•</span><span>22K <b id="glLoginRate22">${esc(rates.g22)}</b></span><span class="c2-rate-dot">•</span><span>Silver <b id="glLoginRateSilver">${esc(rates.slv)}</b></span></div><span class="c2-live-pill"><span class="c2-live-dot"></span>Live Rate</span></div><div class="c2-body"><div class="c2-header"><div class="c2-logo-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="#b38a39"><path d="M12 2L4 9l8 13 8-13-8-7zm0 3.2L17.2 9H6.8L12 5.2zM6 10.5h4.2L12 17.5 6 10.5zm6 7l1.8-7H18l-6 7z"/></svg></div><h1 class="c2-title">GOLDLEAF</h1><p class="c2-sub">${subText}</p></div>${tabsHtml}<form onsubmit="platformLogin(event)"><div class="c2-group"><label class="c2-label" id="glLoginEmailLabel" for="email">${emailLabel}</label><input class="c2-input" id="email" name="email" type="email" value="${esc(emailVal)}" placeholder="${emailPlaceholder}" autocomplete="username" required></div><div class="c2-group"><label class="c2-label" for="password">${passLabel}</label><input class="c2-input" id="password" name="password" type="password" placeholder="••••••••••••" autocomplete="current-password" required minlength="8"></div>${extraSignupFields}<input id="url" hidden value="${esc(db.cloud.url)}"><input id="key" hidden value="${esc(db.cloud.key)}"><button type="submit" id="glLoginSubmitBtn" class="c2-btn primary">${submitLabel}</button><p id="cloudMsg" class="c2-msg" role="status">${esc(platformError)}</p></form><div class="c2-links">${footerLeft}<a href="javascript:void(0)" onclick="glRefreshLoginRates()">Refresh Rates</a></div></div></section>`;
 }
+window.platformLoginView = platformLoginView;
 window.platformLogin=async function(event){event.preventDefault();await window.auth(new URLSearchParams(location.search).has('signup')||window.goldleafShopInvite?'signup':'login');};
 window.settingsView=function(){return platformBaseSettings().replace(/<section class="panel goldleaf-admin">[\s\S]*?(?=<section class="panel"><h2>Products<\/h2>)/,'');};
 window.header=function(sub,buttons=''){let html=platformBaseHeader(sub,buttons);if(session&&goldleafContext){if(!goldleafContext.retail_enabled&&!goldleafContext.is_super_admin)html=html.replace(/<button[^>]*onclick="setWorkspaceMode\('retail'\)"[^>]*>Retail<\/button>/,'');if(!goldleafContext.wholesale_enabled&&!goldleafContext.is_super_admin)html=html.replace(/<button[^>]*onclick="setWorkspaceMode\('wholesale'\)"[^>]*>Wholesale<\/button>/,'');if(page==='Dashboard')html=html.replace('<div class="header-actions">','<div class="header-actions">'+platformQuickSignOut());}return html;};
@@ -78,7 +165,7 @@ window.setWorkspaceMode=function(mode){if(session&&goldleafContext&&!goldleafCon
 function platformViewStateKey(){return 'goldleaf-view-'+(goldleafContext?.shop_id||session?.user?.id||'');}
 window.goldleafRememberView=function(){if(!session||!goldleafContext||goldleafContext.is_super_admin)return;try{localStorage.setItem(platformViewStateKey(),JSON.stringify({page,workspaceMode,retailSection:localStorage.getItem('goldleaf-retail-section')||'Bill'}));}catch{}}
 window.setWorkspaceMode=function(mode){if(session&&goldleafContext&&!goldleafContext.is_super_admin&&!goldleafContext[mode+'_enabled'])return say('This workspace has not been enabled by Super Admin.');const result=platformBaseSetMode(mode);goldleafRememberView();return result;};
-window.go=function(target){if(target==='Super Admin')return platformOpen();if(session&&goldleafContext&&!goldleafContext.is_super_admin){if(/^Customer/.test(target)&&!goldleafContext.retail_enabled||/^Party/.test(target)&&!goldleafContext.wholesale_enabled)return say('Ask Super Admin to enable this workspace.');}const result=platformBaseGo(target);goldleafRememberView();return result;};
+window.go=function(target){if(!session){return render();}if(target==='Super Admin')return platformOpen();if(session&&goldleafContext&&!goldleafContext.is_super_admin){if(/^Customer/.test(target)&&!goldleafContext.retail_enabled||/^Party/.test(target)&&!goldleafContext.wholesale_enabled)return say('Ask Super Admin to enable this workspace.');}const result=platformBaseGo(target);goldleafRememberView();return result;};
 const platformOriginalDash=window.dash;
 window.dash=function(){
   let html=platformOriginalDash().replace(/<section class="panel goldleaf-plan-card">[\s\S]*?<\/section>/g,'');
@@ -89,8 +176,8 @@ window.dash=function(){
   return html;
 };
 window.render=function(){
-  const adminLink=new URLSearchParams(location.search).has('admin'),signupLink=new URLSearchParams(location.search).has('signup')||!!window.goldleafShopInvite;
-  if(!session){document.getElementById('nav').innerHTML='<button class="active">'+(signupLink?'Shop registration':adminLink?'Super Admin':'Sign in')+'</button>';document.getElementById('app').innerHTML=platformLoginView();return;}
+  const adminLink=new URLSearchParams(location.search).has('admin')||/super-admin\.html$/i.test(location.pathname),signupLink=new URLSearchParams(location.search).has('signup')||!!window.goldleafShopInvite;
+  if(!session){document.body.classList.add('gl-auth-active');document.body.classList.remove('rb-active','rc-active','compact-customer-sale');document.getElementById('nav').innerHTML='<button class="active">'+(signupLink?'Shop registration':adminLink?'Super Admin':'Sign in')+'</button>';document.getElementById('app').innerHTML=platformLoginView();return;}document.body.classList.remove('gl-auth-active');
   if(session&&!goldleafContext){document.getElementById('nav').innerHTML='';document.getElementById('app').innerHTML=platformTop('Loading your account','Checking your shop and access permissions…')+'<section class="panel"><p role="status">'+esc(platformError||'Connecting to Goldleaf cloud…')+'</p><button onclick="platformRefresh()">Try again</button><button onclick="platformSignOut()">Sign out</button></section>';return;}
   if(session&&goldleafContext){
     if(platformLoadedUser!==session.user.id){platformLoadedUser=session.user.id;if(goldleafContext.is_super_admin)platformPage='Dashboard';else{platformPage='';let saved=null;try{saved=JSON.parse(localStorage.getItem(platformViewStateKey())||'null')}catch{}if(saved&&['retail','wholesale'].includes(saved.workspaceMode)&&goldleafContext[saved.workspaceMode+'_enabled']){workspaceMode=saved.workspaceMode;if(typeof saved.page==='string'&&saved.page.length<80)page=saved.page;if(saved.retailSection)localStorage.setItem('goldleaf-retail-section',saved.retailSection)}else if(goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled)workspaceMode='retail';else if(goldleafContext.wholesale_enabled)workspaceMode='wholesale';}if(!goldleafContext.is_super_admin)window.history.replaceState(null,'',platformLink());}
@@ -126,6 +213,7 @@ window.pullCloud=async function(){
     if(!goldleafContext?.shop_id&&!goldleafContext?.is_super_admin)throw new Error('This login does not have a shop. Contact Super Admin.');
     if(goldleafContext.is_super_admin){const responses=await Promise.all([client.rpc('goldleaf_admin_list_shops'),client.rpc('goldleaf_admin_list_onboarding'),client.rpc('goldleaf_list_plans')]);for(const response of responses)if(response.error)throw response.error;[goldleafAdminShops,platformInvites,platformPlans]=responses.map(r=>r.data||[]);}
     const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;
+    if(shared.data&&Number(shared.data.gold24)>0)try{localStorage.setItem('goldleaf-cached-public-rates',JSON.stringify(shared.data));}catch{}
     if(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled){db.rates=shared.data||{};platformError='';render();return;}
     const response=await client.rpc('goldleaf_read_ledger');if(response.error)throw response.error;
     const remote=response.data||{},shop=goldleafContext.shop_id;

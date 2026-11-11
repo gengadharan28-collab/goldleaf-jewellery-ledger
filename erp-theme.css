@@ -121,3 +121,328 @@
 @media screen and (min-width:761px) and (max-width:950px){.erp-shortcuts,.erp-install-shortcut{display:none!important}.erp-dashboard-lower{grid-template-columns:1fr}.erp-hub-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.erp-hub-actions>button{min-height:80px}}
 
 @media screen{.erp-workbar .erp-toolbar-signout{display:flex;width:auto;gap:6px;padding-inline:8px}.erp-signout-label{font-size:10px;font-weight:650;white-space:nowrap}@media(max-width:760px){.erp-signout-label{display:none}.erp-workbar .erp-toolbar-signout{width:31px;padding:6px}}}
+
+
+/* ==========================================================================
+   Clean Authentication View: Concept 2 (Champagne Boutique Atelier + Live Rates)
+   ========================================================================== */
+body.gl-auth-active {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 100dvh !important;
+  width: 100% !important;
+  margin: 0 !important;
+  background: linear-gradient(145deg, #f7f4ed 0%, #efebe1 50%, #e6dfd1 100%) !important;
+  color: #2b2823 !important;
+  overflow-x: hidden !important;
+}
+
+body.gl-auth-active .side,
+body[data-erp].gl-auth-active .side,
+body.gl-auth-active #erpWorkbar,
+body.gl-auth-active #erpSideSearch,
+body.gl-auth-active #erpSideCaption,
+body.gl-auth-active .rate-reminder-backdrop,
+body.gl-auth-active #rateReminderOverlay,
+body.gl-auth-active #nav,
+body.gl-auth-active .foot,
+body.gl-auth-active .more-menu {
+  display: none !important;
+}
+
+body.gl-auth-active .layout {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 100dvh !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom)) !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+
+body.gl-auth-active #app.main,
+body.gl-auth-active .main {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+
+.c2-auth-card {
+  background: #ffffff !important;
+  border-radius: 24px !important;
+  width: 100% !important;
+  max-width: 450px !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+  box-shadow: 0 22px 55px rgba(82, 69, 48, 0.12), 0 2px 10px rgba(82, 69, 48, 0.05) !important;
+  border: 1px solid #e5dccb !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  color: #2b2823 !important;
+}
+
+.c2-auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #c5a059, #e5c888, #c5a059);
+  z-index: 2;
+}
+
+.c2-rate-bar {
+  background: linear-gradient(90deg, #faf6ee 0%, #f3ece0 100%) !important;
+  border-bottom: 1px solid #e8dfd0 !important;
+  padding: 10px 20px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 11.5px !important;
+  color: #5c5243 !important;
+}
+
+.c2-rate-items {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  line-height: 1.3 !important;
+}
+
+.c2-rate-items b {
+  color: #1e1b17 !important;
+  font-weight: 700 !important;
+}
+
+.c2-rate-dot {
+  color: #c5a059 !important;
+}
+
+.c2-live-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  background: #fdfaf2 !important;
+  border: 1px solid #dcc494 !important;
+  color: #8f6d2c !important;
+  padding: 3px 9px !important;
+  border-radius: 20px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.c2-live-dot {
+  width: 6px !important;
+  height: 6px !important;
+  background: #2e8b57 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 6px #2e8b57 !important;
+}
+
+.c2-body {
+  padding: 30px 30px 32px !important;
+}
+
+.c2-header {
+  text-align: center !important;
+  margin-bottom: 22px !important;
+}
+
+.c2-logo-mark {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 52px !important;
+  height: 52px !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 14px !important;
+  margin-bottom: 12px !important;
+  background: #faf7f0 !important;
+  box-shadow: 0 4px 12px rgba(197, 160, 89, 0.12) !important;
+}
+
+.c2-title {
+  font: 700 24px/1.15 Georgia, 'Cinzel', serif !important;
+  letter-spacing: 2px !important;
+  color: #1e1b17 !important;
+  margin: 0 !important;
+}
+
+.c2-sub {
+  font-size: 10.5px !important;
+  letter-spacing: 2.2px !important;
+  text-transform: uppercase !important;
+  color: #9c8a6f !important;
+  margin: 5px 0 0 !important;
+  font-weight: 700 !important;
+}
+
+.c2-tabs {
+  display: flex !important;
+  background: #f4efe6 !important;
+  padding: 4px !important;
+  border-radius: 12px !important;
+  margin-bottom: 22px !important;
+  gap: 4px !important;
+}
+
+.c2-tab {
+  flex: 1 !important;
+  min-height: 38px !important;
+  padding: 8px 10px !important;
+  text-align: center !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #7b6f5d !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 9px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.c2-tab.active {
+  background: #ffffff !important;
+  color: #1e1b17 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+.c2-group {
+  margin-bottom: 16px !important;
+  text-align: left !important;
+}
+
+.c2-label {
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #4b4438 !important;
+  margin-bottom: 6px !important;
+}
+
+.c2-input,
+.c2-auth-card input:not([type="hidden"]),
+.c2-auth-card textarea {
+  width: 100% !important;
+  min-height: 46px !important;
+  padding: 10px 14px !important;
+  background: #faf8f5 !important;
+  border: 1px solid #ded6c8 !important;
+  border-radius: 11px !important;
+  font-size: 15px !important;
+  color: #1e1b17 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.c2-auth-card textarea {
+  min-height: 68px !important;
+  resize: vertical !important;
+}
+
+.c2-input:focus,
+.c2-auth-card input:focus,
+.c2-auth-card textarea:focus {
+  border-color: #bfa168 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2) !important;
+}
+
+.c2-signup-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.c2-signup-grid .c2-wide {
+  grid-column: 1 / -1 !important;
+}
+
+.c2-btn {
+  width: 100% !important;
+  min-height: 50px !important;
+  margin-top: 8px !important;
+  background: #23201c !important;
+  color: #f7eed8 !important;
+  border: 1px solid #3c3730 !important;
+  border-radius: 11px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.c2-btn:hover {
+  background: #36322c !important;
+}
+
+.c2-msg {
+  margin: 10px 0 0 !important;
+  font-size: 12.5px !important;
+  color: #9e3a2b !important;
+  text-align: center !important;
+  min-height: 18px !important;
+}
+
+.c2-links {
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #f0eae0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-size: 12px !important;
+  color: #7b6f5d !important;
+}
+
+.c2-links a {
+  color: #99783f !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+}
+
+.c2-links a:hover {
+  text-decoration: underline !important;
+}
+
+@media screen and (max-width: 760px) {
+  body.gl-auth-active .side,
+  body[data-erp].gl-auth-active .side {
+    display: none !important;
+  }
+  body.gl-auth-active .layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px 12px calc(24px + env(safe-area-inset-bottom)) !important;
+    min-height: 100dvh !important;
+  }
+  .c2-body {
+    padding: 24px 20px 26px !important;
+  }
+  .c2-rate-bar {
+    padding: 10px 16px !important;
+  }
+  .c2-signup-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

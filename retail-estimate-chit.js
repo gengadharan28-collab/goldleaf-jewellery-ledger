@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.20';
+const RC_VERSION='2.10.20-r4';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -361,25 +361,25 @@ function rcQuoteForm(){
     +'</div>'
     +'</section>'
 
-    // Mode Switcher Bar (Modeled on JewelGrow Quotation :: New)
-    +'<section class="panel" style="padding:12px">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'
-    +'<div style="font-size:13px;font-weight:750;letter-spacing:.3px">Item Entry Mode:</div>'
-    +'<div style="display:flex;gap:12px;align-items:center">'
-    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:'+(rcQuoteMode==='tag'?'700':'400')+';color:'+(rcQuoteMode==='tag'?'var(--green,#18392a)':'inherit')+'"><input type="radio" name="rcQuoteModeRadio" value="tag" '+(rcQuoteMode==='tag'?'checked':'')+' onchange="rcSetQuoteMode(\'tag\')"> 🏷 Tag Mode</label>'
-    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:'+(rcQuoteMode==='manual'?'700':'400')+';color:'+(rcQuoteMode==='manual'?'var(--green,#18392a)':'inherit')+'"><input type="radio" name="rcQuoteModeRadio" value="manual" '+(rcQuoteMode==='manual'?'checked':'')+' onchange="rcSetQuoteMode(\'manual\')"> ✎ Manual Mode</label>'
-    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:'+(rcQuoteMode==='multi'?'700':'400')+';color:'+(rcQuoteMode==='multi'?'var(--green,#18392a)':'inherit')+'"><input type="radio" name="rcQuoteModeRadio" value="multi" '+(rcQuoteMode==='multi'?'checked':'')+' onchange="rcSetQuoteMode(\'multi\')"> 📑 Multi Tag Mode</label>'
+    // Segmented Mode Switcher Bar
+    +'<section class="panel rc-quote-mode-section">'
+    +'<div class="rc-quote-mode-head">'
+    +'<span class="rc-quote-mode-title">Item Entry Mode</span>'
+    +'<div class="rc-quote-mode-tabs" role="tablist" aria-label="Item entry mode">'
+    +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='tag'?'active':'')+'" onclick="rcSetQuoteMode(\'tag\')" role="tab" aria-selected="'+(rcQuoteMode==='tag')+'">🏷 Tag Mode</button>'
+    +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='manual'?'active':'')+'" onclick="rcSetQuoteMode(\'manual\')" role="tab" aria-selected="'+(rcQuoteMode==='manual')+'">✎ Manual Mode</button>'
+    +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='multi'?'active':'')+'" onclick="rcSetQuoteMode(\'multi\')" role="tab" aria-selected="'+(rcQuoteMode==='multi')+'">📑 Multi Tag Mode</button>'
     +'</div>'
     +'</div>'
 
     // Interactive Entry Box according to mode
     +(rcQuoteMode==='tag' ? (
-      '<div id="rcQuoteTagBar" style="display:flex;gap:6px;align-items:center;margin-top:10px;background:#f4f8f5;padding:8px 10px;border-radius:10px;border:1px solid #c2d8c9">'
-      +'<span class="muted" style="font-size:12px;font-weight:700;white-space:nowrap;color:#18392a">🏷 Tag:</span>'
-      +'<input id="rcQuoteTagInput" list="rcQuoteTagDatalist" placeholder="Search Tag Code / HUID..." style="flex:1;min-width:0;height:38px;padding:0 10px;font-size:13px;border-radius:8px;border:1px solid #b2c9b9;background:#fff;color:#1c2e24" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rcQuoteLoadTag()}">'
+      '<div id="rcQuoteTagBar" class="rc-unified-search-field">'
+      +'<span class="rc-unified-search-prefix" aria-hidden="true">🏷</span>'
+      +'<input id="rcQuoteTagInput" list="rcQuoteTagDatalist" placeholder="Scan or search Tag Code / HUID..." autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rcQuoteLoadTag()}">'
       +'<datalist id="rcQuoteTagDatalist">'+inStockTags.map(t=>'<option value="'+esc(t.tagCode)+'">'+esc(t.product)+' · '+fmt(t.grossWeight)+'g · '+(t.metalType||'Gold')+'</option>').join('')+'</datalist>'
-      +'<button type="button" class="gl-scan-btn" onclick="openQrScannerForQuote()" title="Scan QR / Barcode with Camera" aria-label="Scan QR / Barcode">'+(window.glScanIconSvg||'<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h4v2H4v4H2V4zm14-2h4a2 2 0 0 1 2 2v4h-2V4h-4V2zM2 16h2v4h4v2H4a2 2 0 0 1-2-2v-4zm18 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM5 8h4v4H5V8zm2 2h0v0H7v0zm8-2h4v4h-4V8zm2 2h0v0h0V10zm-8 6h4v4H7v-4zm2 2h0v0H9v0zm6-4h4v1h-4v-1zm0 3h2v1h-2v-1zm3-1h1v2h-1v-2z"/></svg>')+'</button>'
-      +'<button type="button" class="gl-load-tag-btn" onclick="rcQuoteLoadTag()" title="Load Tag into Quotation" aria-label="Load Tag">＋</button>'
+      +'<button type="button" class="gl-scan-btn gl-scan-btn-embedded" onclick="openQrScannerForQuote()" title="Scan QR / Barcode with Camera" aria-label="Scan QR / Barcode">'+(window.glScanIconSvg||'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h4v2H4v4H2V4zm14-2h4a2 2 0 0 1 2 2v4h-2V4h-4V2zM2 16h2v4h4v2H4a2 2 0 0 1-2-2v-4zm18 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM5 8h4v4H5V8zm2 2h0v0H7v0zm8-2h4v4h-4V8zm2 2h0v0h0V10zm-8 6h4v4H7v-4zm2 2h0v0H9v0zm6-4h4v1h-4v-1zm0 3h2v1h-2v-1zm3-1h1v2h-1v-2z"/></svg>')+'</button>'
+      +'<button type="button" class="rc-unified-add-btn" onclick="rcQuoteLoadTag()" title="Load Tag into Quotation" aria-label="Load Tag">＋ Add Tag</button>'
       +'</div>'
     ) : rcQuoteMode==='manual' ? (
       '<div id="rcQuoteManualCard" style="margin-top:12px;background:#fbf9f4;padding:12px;border-radius:6px;border:1px solid var(--line,#ddd)">'
@@ -1101,13 +1101,18 @@ window.rcOpenStandalone=function(section){
   window.scrollTo?.(0,0);
 };
 
-window.rcOpen=function(section){if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
+window.rcOpen=function(section){
+  if(!session||!goldleafContext?.has_access){say('Please sign in first.');return;}
+  if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
 const rcOldDirty=window.rbDirty;window.rbDirty=function(){return rcOldDirty()||!!document.querySelector('.rc-screen form[data-entry-dirty="1"]')};const rcOldCanLeave=window.rbCanLeave;window.rbCanLeave=function(){return !document.querySelector('.rc-screen form[data-entry-dirty="1"]')?rcOldCanLeave():confirm('Leave this entry and discard the unsaved changes?')};
 document.addEventListener('input',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});document.addEventListener('change',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});
 const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
 function rcNavigation(){
   const nav=document.getElementById('nav');if(!nav)return;
   nav.querySelectorAll('[data-rc-sidebar],[data-rc-estimate-nav]').forEach(b=>b.remove());
+  const more=document.getElementById('moreMenu');
+  if(more)more.querySelectorAll('[data-rc-nav]').forEach(b=>b.remove());
+  if(!session||!goldleafContext?.has_access)return;
   const anchor=nav.querySelector('button[aria-label*="Sales"]')||nav.querySelector('button:nth-child(2)')||nav.firstElementChild;
   const fragment=document.createDocumentFragment();
   for(const [label,icon] of [['Estimation / Quotation','tagging'],['Products','plans'],['Tagging','tagging'],['Chit','chit']]){
@@ -1121,8 +1126,7 @@ function rcNavigation(){
   }
   if(anchor)anchor.after(fragment);
   else nav.append(fragment);
-  const more=document.getElementById('moreMenu');
-  if(more){more.querySelectorAll('[data-rc-nav]').forEach(b=>b.remove());
+  if(more){
     for(const label of ['Estimation / Quotation','Products','Tagging','Chit']){
       const button=document.createElement('button');button.type='button';button.dataset.rcNav=label;
       button.textContent=label;button.onclick=()=>{more.classList.remove('open');rcOpenStandalone(label)};more.append(button);
@@ -1132,6 +1136,10 @@ function rcNavigation(){
 }
 const rcPreviousRender=window.render;
 window.render=function(){
+  if(!session||!goldleafContext?.has_access){
+    rcNavigation();
+    return rcPreviousRender();
+  }
   const active=page==='Sales Entry'&&workspaceMode==='retail';
   if(active)rcSection=RC_SECTIONS.includes(rbSection)?rbSection:'Bill';
   const result=rcPreviousRender(),section=RC_PAGES[page]||null;

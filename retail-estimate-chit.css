@@ -442,3 +442,146 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
     padding: 0 8px !important;
   }
 }
+
+
+/* ==========================================================================
+   Quotation Luxury Mode Tabs & Mobile Responsive Card Layout
+   ========================================================================== */
+.rc-quote-mode-section {
+  background: #fbf9f4 !important;
+  border: 1px solid var(--line, #e2dac9) !important;
+  border-radius: 12px !important;
+}
+.rc-quote-mode-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+.rc-mode-title {
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  color: var(--ink, #172a21) !important;
+  letter-spacing: .3px !important;
+}
+.rc-quote-mode-tabs {
+  display: flex !important;
+  gap: 4px !important;
+  background: #eee8db !important;
+  padding: 3px !important;
+  border-radius: 10px !important;
+  border: 1px solid #dfd7c5 !important;
+}
+.rc-mode-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 34px !important;
+  padding: 6px 14px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #555 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all .15s ease !important;
+}
+.rc-mode-tab.active, .rc-mode-tab[aria-selected="true"] {
+  background: var(--erp-accent, #18392a) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(24,57,42,.2) !important;
+}
+
+/* Unified Quotation Search Field */
+.rc-unified-search-field {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  width: 100% !important;
+  margin-top: 10px !important;
+  background: var(--white, #fff) !important;
+  border: 1.5px solid var(--gold, #bd9761) !important;
+  border-radius: 9px !important;
+  padding: 2px 3px 2px 10px !important;
+  box-shadow: 0 2px 7px rgba(27,45,36,.06) !important;
+  box-sizing: border-box !important;
+}
+.rc-unified-search-field:focus-within {
+  border-color: var(--erp-accent, #18392a) !important;
+  box-shadow: 0 0 0 3px rgba(189,151,97,.25) !important;
+}
+.rc-unified-prefix {
+  font-size: 15px !important;
+  color: var(--gold, #bd9761) !important;
+  margin-right: 8px !important;
+  user-select: none !important;
+}
+.rc-unified-search-field input {
+  flex: 1 !important;
+  min-width: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 6px !important;
+  color: var(--ink, #172a21) !important;
+}
+.rc-unified-search-field .gl-scan-btn-embedded {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--erp-accent, #18392a) !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+.rc-unified-search-field .gl-add-tag-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: var(--erp-accent, #18392a) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+@media screen and (max-width: 760px) {
+  .rc-quote-mode-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .rc-quote-mode-tabs {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .rc-mode-tab {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    min-height: 36px !important;
+  }
+  #rcEstimateForm .rc-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
