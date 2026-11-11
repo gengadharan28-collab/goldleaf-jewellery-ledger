@@ -73,8 +73,22 @@ window.rbApplyTagData=function(row,tag){
   const netOut=row.querySelector('[data-out="netWeight"]');if(netOut)netOut.textContent=fmt(net);
 
   // 3. Purity option & value
-  const purityVal=tag.purity||(metalType==='Silver'?92.5:22);
+  const isSilver = metalType==='Silver'||String(tag.product||'').toLowerCase().includes('silver');
+  const purityVal=tag.purity||(isSilver?92.5:22);
   const purSel=row.querySelector('[data-item="purity"]');
+  const purCell=row.querySelector('.rb-purity-cell')||purSel?.closest('td');
+  let naSpan=row.querySelector('.rb-purity-na');
+  if(isSilver){
+    if(purSel) purSel.style.display='none';
+    if(!naSpan&&purCell){
+      purCell.insertAdjacentHTML('afterbegin','<span class="rb-purity-na muted">—</span>');
+    } else if(naSpan){
+      naSpan.style.display='inline';
+    }
+  } else {
+    if(purSel) purSel.style.display='';
+    if(naSpan) naSpan.style.display='none';
+  }
   if(purSel){
     if(![...purSel.options].some(o=>Number(o.value)===Number(purityVal))){
       purSel.add(new Option(purityVal+(Number(purityVal)<=24?'K':'%'),purityVal));
@@ -198,14 +212,14 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.25');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.25</b> · 11 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.24 · 11 Nov 2026</h3>');
-  const v25Note = '<article class="release-note"><h3>v2.10.25 · 11 Nov 2026 · Current</h3><ul>'
-    + '<li>Tag Print & PDF QR: Synchronous vector SVG QR code generation with high-contrast crisp edges and quiet margin, ensuring 100% scannability in "Save as PDF" and physical label printing.</li>'
-    + '<li>Eliminated premature print sheet DOM timer removal so PDF preview and export in App and Website always retain all QR codes and item details.</li>'
-    + '<li>Scoped print styling with body.goldleaf-tag-printing and explicit vector fill colors for consistent thermal and laser printing.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.27');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.27</b> · 11 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.26 · 11 Nov 2026</h3>');
+  const v27Note = '<article class="release-note"><h3>v2.10.27 · 11 Nov 2026 · Current</h3><ul>'
+    + '<li>High-Visibility Balance Amount Layout: Redesigned Balance to Collect (Sales) and Balance to Pay (Quotation) layouts with high-contrast, bright, crystal-clear card styling perfectly suitable for normal light mode and tablets.</li>'
+    + '<li>Prominently Highlighted Payment Collection: Enhanced visual prominence with distinct badges, clear input styling, and direct entry in Sales Entry settlement, Bill Totals, and Quotation Advance cards.</li>'
+    + '<li>Silver Product Purity Handling: Hidden purity input and displayed clean dashes for Silver items across Tagging, Quotation / Estimation, and Customer Sales Bills, while strictly preserving full purity functionality in Purchases.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v25Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v27Note);
 };
 render();

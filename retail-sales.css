@@ -30,7 +30,7 @@
    font-variant-numeric: tabular-nums;
  }
  .rb-bill-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}.rb-bill-actions button{min-height:34px;font-size:11px;padding:6px 13px}
- .rb-totals{display:flex;flex-direction:column;min-height:0;gap:6px}.rb-discount-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rb-discount-controls input,.rb-discount-controls select{height:30px;min-height:30px;font-size:11px}.rb-totals-scroll{min-height:0;overflow:auto;scrollbar-width:thin;flex:1;padding-right:4px}.rb-total-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:5px 1px;border-bottom:1px solid var(--line);font-size:10px}.rb-total-row>span{color:var(--muted)}.rb-total-row b{font-size:11px;font-weight:700}.rb-round{display:flex;align-items:center;gap:8px;font-size:9px;padding:4px 0;border-bottom:1px solid var(--line)}.rb-round>select{padding:3px 4px;min-height:26px;height:26px;font-size:9px;max-width:90px}.rb-round>b{margin-left:auto}.rb-balance{background:#303638;border:1px solid #c2a06b;border-radius:5px;padding:9px 11px;flex-shrink:0}.rb-balance span{font-size:9px;color:#d7d1c4}.rb-balance b{display:block;color:#f0d9aa!important;font-size:22px;margin-top:3px;line-height:1.2;letter-spacing:-.3px}
+ .rb-totals{display:flex;flex-direction:column;min-height:0;gap:6px}.rb-discount-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rb-discount-controls input,.rb-discount-controls select{height:30px;min-height:30px;font-size:11px}.rb-totals-scroll{min-height:0;overflow:auto;scrollbar-width:thin;flex:1;padding-right:4px}.rb-total-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:5px 1px;border-bottom:1px solid var(--line);font-size:10px}.rb-total-row>span{color:var(--muted)}.rb-total-row b{font-size:11px;font-weight:700}.rb-round{display:flex;align-items:center;gap:8px;font-size:9px;padding:4px 0;border-bottom:1px solid var(--line)}.rb-round>select{padding:3px 4px;min-height:26px;height:26px;font-size:9px;max-width:90px}.rb-round>b{margin-left:auto}.rb-balance{background:#fffbf0;border:2px solid #d97706;border-radius:10px;padding:12px 14px;flex-shrink:0;box-shadow:0 3px 10px rgba(217,119,6,0.12)}.rb-balance span{font-size:12px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.5px}.rb-balance b{display:block;color:#b45309!important;font-size:26px;font-weight:900;margin-top:4px;line-height:1.15;letter-spacing:-0.5px}
  .rb-collection-row{display:grid;grid-template-columns:110px 115px minmax(130px,1fr) 30px;gap:7px;align-items:center;margin:8px 0}.rb-collection-row input,.rb-collection-row select{width:100%;min-width:0;font-size:12px;min-height:38px;padding:7px}.rb-collection-row>button{padding:3px;min-height:34px}.rb-allocation{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:9px;border:1px solid var(--line);border-radius:6px;margin:7px 0}.rb-allocation>span{display:grid;gap:4px;font-size:12px}.rb-allocation small{font-size:10px;color:var(--muted)}.rb-allocation input{width:145px;min-width:90px;font-size:12px}.rb-modal h3{font-size:13px;margin:14px 0 7px}.rb-modal .table{max-height:60dvh;overflow:auto!important}#rbHistoryPanel .retail-modal{width:min(1200px,100%)}
  .rb-record-columns{display:grid;grid-template-columns:minmax(310px,.8fr) minmax(0,1.3fr);gap:12px;min-height:0}.rb-record-columns>.panel{min-height:0;overflow:auto;scrollbar-width:thin;margin:0!important}.rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.rb-wide{grid-column:1/-1}.rb-info{padding:12px;background:var(--mint);border:1px solid var(--line);font-size:12px;border-radius:5px}.rb-record-history .table{max-height:calc(100% - 45px);overflow:auto!important}.rb-record-history table{min-width:650px!important}.rb-record-columns .right{display:flex;margin-top:15px}.rb-record-columns .right button{width:auto;min-width:0;font-size:11px}
  .rb-purchase-tabs{display:flex;gap:4px;overflow:auto;flex-wrap:nowrap;scrollbar-width:thin}.rb-purchase-tabs button{white-space:nowrap;font-size:10px;padding:6px 10px;min-height:30px}.rb-purchase-tabs button.active{background:var(--mint);border-color:#c2a06b;color:var(--erp-accent)}.rp-source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rp-metrics{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.rp-metrics>span{padding:8px 10px;border:1px solid var(--line);background:var(--erp-soft);border-radius:5px;font-size:10px}.rp-metrics b{display:block;font-size:15px;margin-top:3px}.rp-stock-list{display:grid;gap:7px;max-height:220px;overflow:auto}.rp-stock-list label{display:flex;align-items:center;gap:9px;font-size:11px;padding:7px;border:1px solid var(--line)}.rp-stock-list input{min-height:0;width:16px;height:16px}.rp-supplier-actions{display:flex;gap:7px;margin-top:8px}.rp-supplier-actions button{font-size:10px;padding:4px 8px;min-height:29px}
@@ -256,17 +256,104 @@
  .rc-content .retail-sale-screen,.rc-content .rp-document-screen{width:100%!important;min-width:0!important;max-width:100%!important}
 }
 
-/* High-contrast balance styling */
-.rb-balance{transition:all 0.25s ease!important;border-radius:7px!important;padding:10px 12px!important}
-.rb-balance.rb-balance-paid{background:#0e3825!important;border:2px solid #2ecc71!important}
-.rb-balance.rb-balance-paid span{color:#a7f3d0!important;font-weight:700!important}
-.rb-balance.rb-balance-paid b{color:#4ade80!important}
-.rb-balance.rb-balance-due{background:#3e1704!important;border:2px solid #f59e0b!important}
-.rb-balance.rb-balance-due span{color:#fde68a!important;font-weight:700!important}
-.rb-balance.rb-balance-due b{color:#fbbf24!important}
-.rb-balance.rb-balance-credit{background:#172554!important;border:2px solid #60a5fa!important}
-.rb-balance.rb-balance-credit span{color:#bfdbfe!important}
-.rb-balance.rb-balance-credit b{color:#93c5fd!important}
+/* High-contrast balance styling - Suitable for Normal (Light) Mode */
+.rb-balance {
+  transition: all 0.25s ease !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  background: #fffbf0 !important;
+  border: 2px solid #d97706 !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12) !important;
+}
+.rb-balance span,
+.rb-balance #saleBalanceLabel {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #92400e !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+.rb-balance b,
+.rb-balance #saleBalanceAmount {
+  display: block !important;
+  color: #b45309 !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  margin-top: 4px !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.5px !important;
+}
+.rb-balance.rb-balance-due {
+  background: #fff8f0 !important;
+  border: 2px solid #e06d10 !important;
+  box-shadow: 0 4px 14px rgba(224, 109, 16, 0.16) !important;
+}
+.rb-balance.rb-balance-due span,
+.rb-balance.rb-balance-due #saleBalanceLabel {
+  color: #9a3412 !important;
+  font-weight: 800 !important;
+}
+.rb-balance.rb-balance-due b,
+.rb-balance.rb-balance-due #saleBalanceAmount {
+  color: #c2410c !important;
+}
+.rb-balance.rb-balance-paid {
+  background: #f0fdf4 !important;
+  border: 2px solid #16a34a !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.14) !important;
+}
+.rb-balance.rb-balance-paid span,
+.rb-balance.rb-balance-paid #saleBalanceLabel {
+  color: #166534 !important;
+  font-weight: 800 !important;
+}
+.rb-balance.rb-balance-paid b,
+.rb-balance.rb-balance-paid #saleBalanceAmount {
+  color: #15803d !important;
+}
+.rb-balance.rb-balance-credit {
+  background: #eff6ff !important;
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.14) !important;
+}
+.rb-balance.rb-balance-credit span,
+.rb-balance.rb-balance-credit #saleBalanceLabel {
+  color: #1e40af !important;
+  font-weight: 800 !important;
+}
+.rb-balance.rb-balance-credit b,
+.rb-balance.rb-balance-credit #saleBalanceAmount {
+  color: #1d4ed8 !important;
+}
+
+/* Dark mode overrides for balance */
+[data-theme="dark"] .rb-balance,
+body.dark .rb-balance {
+  background: #231d14 !important;
+  border-color: #d97706 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+[data-theme="dark"] .rb-balance span,
+body.dark .rb-balance span {
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rb-balance b,
+body.dark .rb-balance b {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rb-balance.rb-balance-paid,
+body.dark .rb-balance.rb-balance-paid {
+  background: #0e2a1b !important;
+  border-color: #22c55e !important;
+}
+[data-theme="dark"] .rb-balance.rb-balance-paid span,
+body.dark .rb-balance.rb-balance-paid span {
+  color: #86efac !important;
+}
+[data-theme="dark"] .rb-balance.rb-balance-paid b,
+body.dark .rb-balance.rb-balance-paid b {
+  color: #4ade80 !important;
+}
 
 /* ==========================================================================
    Goldleaf QR & Barcode Camera Scanner - Luxury ERP Styling
@@ -866,4 +953,269 @@
   color: var(--erp-accent, #18392a) !important;
   cursor: pointer !important;
   flex-shrink: 0 !important;
+}
+.rb-collected-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #e8f5e9 !important;
+  border: 1.5px solid #2e7d32 !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  margin: 6px 0 !important;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.14) !important;
+}
+.rb-collected-row > span:first-child {
+  font-weight: 800 !important;
+  color: #1b5e20 !important;
+  text-transform: uppercase !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.rb-total-input-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.rb-total-input-wrap b {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #1b5e20 !important;
+}
+.rb-total-input-wrap input {
+  width: 115px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 2px 8px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  text-align: right !important;
+  border-radius: 6px !important;
+  border: 2px solid #2e7d32 !important;
+  background: var(--white, #fff) !important;
+  color: #1b5e20 !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.06) !important;
+}
+.rb-total-input-wrap input:focus {
+  border-color: #18392a !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(24, 57, 42, 0.22) !important;
+}
+
+/* Highlighted Collection & Advance Panels */
+.rb-direct-collection-panel {
+  margin-top: 14px !important;
+  padding: 14px 16px !important;
+  background: linear-gradient(135deg, #f0f7f3 0%, #e8f4ec 100%) !important;
+  border: 2px solid #18392a !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(24, 57, 42, 0.12) !important;
+  position: relative !important;
+}
+.rb-collection-highlight-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  background: #18392a !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+}
+.rb-direct-amount-input {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #18392a !important;
+  background: #ffffff !important;
+  border: 2px solid #18392a !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  height: 38px !important;
+  box-shadow: 0 2px 4px rgba(24, 57, 42, 0.08) !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.rb-direct-amount-input:focus {
+  border-color: #2e7d32 !important;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.25) !important;
+  outline: none !important;
+}
+.rb-collection-toggle-highlight {
+  border: 1.5px solid #2e7d32 !important;
+  background: #f0f7f3 !important;
+}
+.rb-collection-toggle-highlight b {
+  color: #1b5e20 !important;
+  font-weight: 800 !important;
+}
+
+/* Quotation Advance Collection Highlighting */
+.rc-advance-collection-card {
+  margin-top: 14px !important;
+  padding: 14px 16px !important;
+  background: linear-gradient(135deg, #f0f7f3 0%, #e8f4ec 100%) !important;
+  border: 2px solid #18392a !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(24, 57, 42, 0.12) !important;
+}
+.rc-advance-input {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #18392a !important;
+  background: #ffffff !important;
+  border: 2px solid #18392a !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  height: 38px !important;
+  box-shadow: 0 2px 4px rgba(24, 57, 42, 0.08) !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.rc-advance-input:focus {
+  border-color: #2e7d32 !important;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.25) !important;
+  outline: none !important;
+}
+.rc-advance-total-badge {
+  background: #e8f5e9 !important;
+  border: 1.5px solid #2e7d32 !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  color: #1b5e20 !important;
+  display: inline-block !important;
+}
+
+/* Quotation Balance Box - Suitable for Normal (Light) Mode */
+.rc-balance-box {
+  background: #fffbf0 !important;
+  border: 2px solid #d97706 !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12) !important;
+  transition: all 0.25s ease !important;
+}
+.rc-balance-box span,
+.rc-balance-box #rcBalanceLabel {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #92400e !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+.rc-balance-box small {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #b45309 !important;
+}
+.rc-balance-box b,
+.rc-balance-box #rcBalanceDue {
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  color: #b45309 !important;
+  letter-spacing: -0.5px !important;
+}
+.rc-balance-box.rc-balance-paid {
+  background: #f0fdf4 !important;
+  border-color: #16a34a !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.14) !important;
+}
+.rc-balance-box.rc-balance-paid span,
+.rc-balance-box.rc-balance-paid #rcBalanceLabel {
+  color: #166534 !important;
+}
+.rc-balance-box.rc-balance-paid small {
+  color: #15803d !important;
+}
+.rc-balance-box.rc-balance-paid b,
+.rc-balance-box.rc-balance-paid #rcBalanceDue {
+  color: #15803d !important;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .rb-direct-collection-panel,
+body.dark .rb-direct-collection-panel,
+[data-theme="dark"] .rc-advance-collection-card,
+body.dark .rc-advance-collection-card {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="dark"] .rb-direct-amount-input,
+body.dark .rb-direct-amount-input,
+[data-theme="dark"] .rc-advance-input,
+body.dark .rc-advance-input {
+  background: #111e17 !important;
+  border-color: #4caf50 !important;
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rb-collected-row,
+body.dark .rb-collected-row {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+}
+[data-theme="dark"] .rb-collected-row > span:first-child,
+body.dark .rb-collected-row > span:first-child,
+[data-theme="dark"] .rb-total-input-wrap b,
+body.dark .rb-total-input-wrap b {
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rb-total-input-wrap input,
+body.dark .rb-total-input-wrap input {
+  background: #111e17 !important;
+  border-color: #4caf50 !important;
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rc-advance-total-badge,
+body.dark .rc-advance-total-badge {
+  background: #1c2b22 !important;
+  border-color: #4caf50 !important;
+  color: #81c784 !important;
+}
+[data-theme="dark"] .rc-balance-box,
+body.dark .rc-balance-box {
+  background: #231d14 !important;
+  border-color: #d97706 !important;
+}
+[data-theme="dark"] .rc-balance-box span,
+body.dark .rc-balance-box span,
+[data-theme="dark"] .rc-balance-box #rcBalanceLabel,
+body.dark .rc-balance-box #rcBalanceLabel {
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rc-balance-box b,
+body.dark .rc-balance-box b,
+[data-theme="dark"] .rc-balance-box #rcBalanceDue,
+body.dark .rc-balance-box #rcBalanceDue {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rc-balance-box.rc-balance-paid,
+body.dark .rc-balance-box.rc-balance-paid {
+  background: #0e2a1b !important;
+  border-color: #22c55e !important;
+}
+[data-theme="dark"] .rc-balance-box.rc-balance-paid span,
+body.dark .rc-balance-box.rc-balance-paid span {
+  color: #86efac !important;
+}
+[data-theme="dark"] .rc-balance-box.rc-balance-paid b,
+body.dark .rc-balance-box.rc-balance-paid b {
+  color: #4ade80 !important;
+}
+
+.rb-purity-cell {
+  position: relative !important;
+}
+.rb-purity-na {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--muted, #888);
+  font-size: 14px;
 }
