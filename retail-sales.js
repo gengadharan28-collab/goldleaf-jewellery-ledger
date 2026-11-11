@@ -1,6 +1,6 @@
 // Retail Sales: itemised invoices, returns, receipts and tracked advances.
 // All records use the existing shop-owned sales/payments cloud collections.
-const RB_VERSION='2.10.20-r4';
+const RB_VERSION='2.10.21-r1';
 const rbStyle=document.createElement('link');rbStyle.rel='stylesheet';rbStyle.href='./retail-sales.css?v='+RB_VERSION;document.head.append(rbStyle);
 let rbSection='Bill',rbSaving=false;
 const RB_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
@@ -333,24 +333,46 @@ window.rbTagRowChanged = function(input) {
 };
 window.openQrScannerForQuickTag = function() {
   if (typeof window.openQrScanner === 'function') {
-    window.openQrScanner(code => {
-      const qIn = document.getElementById('rbQuickTagInput');
-      if (qIn) qIn.value = code;
-      window.rbQuickTagScan(code);
+    window.openQrScanner({
+      title: 'Scan Tag / QR for Sale',
+      onScan: code => {
+        const qIn = document.getElementById('rbQuickTagInput');
+        if (qIn) qIn.value = code;
+        window.rbQuickTagScan(code);
+      }
     });
   } else {
     say('Camera scanner initializing...');
   }
 };
 window.openQrScannerForTagRow = function(btn) {
+  if (!btn) return;
   const row = btn.closest('.rb-item');
-  const tagIn = row?.querySelector('[data-item="tagCode"]');
-  if (typeof window.openQrScanner === 'function') {
-    window.openQrScanner(code => {
-      if (tagIn) tagIn.value = code;
-      window.rbTagRowChanged(tagIn);
+  if (row) {
+    const tagIn = row.querySelector('[data-item="tagCode"]');
+    if (typeof window.openQrScanner === 'function') {
+      window.openQrScanner({
+        title: 'Scan Item Tag / QR Code',
+        onScan: code => {
+          if (tagIn) tagIn.value = code;
+          window.rbTagRowChanged(tagIn);
+        }
+      });
+    } else {
+      say('Camera scanner initializing...');
+    }
+    return;
+  }
+  const field = btn.closest('.rc-scan-wrap')?.querySelector('input');
+  if (field && typeof window.openQrScanner === 'function') {
+    window.openQrScanner({
+      title: 'Scan Item Tag / QR Code',
+      onScan: code => {
+        field.value = code;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        say('✓ Scanned Tag: ' + code);
+      }
     });
-  } else {
-    say('Camera scanner initializing...');
   }
 };
