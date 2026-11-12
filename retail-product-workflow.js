@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.35';
+const GL_PRODUCT_VERSION = '2.10.36';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);

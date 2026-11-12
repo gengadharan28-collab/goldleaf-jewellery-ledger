@@ -1860,6 +1860,250 @@ body.dark .rc-bal-pipe {
 }
 
 /* ==========================================================================
+   Multi-Item Old Gold Exchange Details (Save, Edit, Clear, + Add Item)
+   Works across both Desktop Website & Mobile App
+   ========================================================================== */
+.rc-og-form-status {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 7px;
+  margin-bottom: 10px;
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+.rc-og-form-status.rc-og-status-saved {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+.rc-og-form-status.rc-og-status-editing {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1e40af;
+}
+#rcOldGoldDropdown input.rc-og-input-locked {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-style: dashed !important;
+}
+.rc-og-actions-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.rc-og-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.rc-og-btn-save {
+  background: #166534 !important;
+  border: 1.5px solid #15803d !important;
+  color: #ffffff !important;
+}
+.rc-og-btn-save:hover {
+  background: #14532d !important;
+}
+.rc-og-btn-edit {
+  background: #fffbeb !important;
+  border: 1.5px solid #d97706 !important;
+  color: #92400e !important;
+}
+.rc-og-btn-edit:hover {
+  background: #fef3c7 !important;
+}
+.rc-og-btn-clear {
+  background: #fff1f2 !important;
+  border: 1.5px solid #f43f5e !important;
+  color: #be123c !important;
+}
+.rc-og-btn-clear:hover {
+  background: #ffe4e6 !important;
+}
+.rc-og-btn-add {
+  background: #b45309 !important;
+  border: 1.5px solid #92400e !important;
+  color: #ffffff !important;
+}
+.rc-og-btn-add:hover {
+  background: #92400e !important;
+}
+.rc-og-items-list:empty {
+  display: none;
+}
+.rc-og-list-box {
+  margin-top: 12px;
+  border: 1.5px solid #e6c88a;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.rc-og-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  background: #fef3c7;
+  border-bottom: 1px solid #e6c88a;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #78350f;
+}
+.rc-og-clear-all-btn {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+  font-size: 10.5px !important;
+  font-weight: 750 !important;
+  border-radius: 5px !important;
+  border: 1px solid #dc2626 !important;
+  background: #fff5f5 !important;
+  color: #dc2626 !important;
+  cursor: pointer;
+}
+.rc-og-rows-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.rc-og-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3ead6;
+  background: #ffffff;
+}
+.rc-og-item-row.is-selected {
+  background: #fffdf5;
+}
+.rc-og-item-row.is-editing {
+  background: #eff6ff;
+  border-left: 3px solid #2563eb;
+}
+.rc-og-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.rc-og-item-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #fef3c7;
+  border: 1px solid #d97706;
+  color: #92400e;
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.rc-og-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rc-og-item-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rc-og-state-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.rc-og-state-pill.saved {
+  background: #dcfce7;
+  color: #166534;
+}
+.rc-og-state-pill.editing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.rc-og-item-meta {
+  font-size: 11px;
+  color: #78350f;
+  font-weight: 600;
+}
+.rc-og-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.rc-og-item-amt {
+  font-size: 13px;
+  font-weight: 850;
+  color: #92400e;
+  white-space: nowrap;
+}
+.rc-og-item-btns {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.rc-og-row-btn {
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  cursor: pointer;
+}
+.rc-og-row-edit {
+  background: #fffbeb !important;
+  border: 1px solid #d97706 !important;
+  color: #92400e !important;
+}
+.rc-og-row-del {
+  background: #fff1f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  padding: 0 7px !important;
+}
+.rc-og-list-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+  color: #78350f;
+  font-size: 12px;
+  font-weight: 750;
+}
+.rc-og-list-total-val {
+  font-size: 14px;
+  font-weight: 900;
+  color: #78350f;
+}
+
+/* ==========================================================================
    Single-Row POS Strip (Estimation & Quotation)
    Desktop layout preserved; Mobile uses the exact wireframe from mockup
    ========================================================================== */
@@ -2306,6 +2550,62 @@ body.dark .rc-bal-pipe {
     color: #92400e !important;
     font-size: 14px !important;
     font-weight: 850 !important;
+  }
+  #rcOldGoldDropdown .rc-og-form-status {
+    font-size: 10.5px !important;
+    padding: 5px 8px !important;
+    margin-bottom: 7px !important;
+    line-height: 1.25 !important;
+  }
+  #rcOldGoldDropdown .rc-og-actions-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    margin-top: 8px !important;
+  }
+  #rcOldGoldDropdown .rc-og-btn {
+    min-height: 33px !important;
+    height: 33px !important;
+    padding: 0 4px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    border-radius: 7px !important;
+    gap: 3px !important;
+  }
+  #rcOldGoldDropdown .rc-og-list-box {
+    margin-top: 8px !important;
+    border-radius: 8px !important;
+  }
+  #rcOldGoldDropdown .rc-og-list-head {
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+  }
+  #rcOldGoldDropdown .rc-og-item-row {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+  #rcOldGoldDropdown .rc-og-item-name {
+    font-size: 11.5px !important;
+  }
+  #rcOldGoldDropdown .rc-og-item-meta {
+    font-size: 10px !important;
+  }
+  #rcOldGoldDropdown .rc-og-item-amt {
+    font-size: 12px !important;
+  }
+  #rcOldGoldDropdown .rc-og-row-btn {
+    min-height: 24px !important;
+    height: 24px !important;
+    padding: 0 6px !important;
+    font-size: 10px !important;
+  }
+  #rcOldGoldDropdown .rc-og-list-foot {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+  #rcOldGoldDropdown .rc-og-list-total-val {
+    font-size: 12.5px !important;
   }
 
   /* 3. Payment Received Card (Single-Row POS Strip) */
