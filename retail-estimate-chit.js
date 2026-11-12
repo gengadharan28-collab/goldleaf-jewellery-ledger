@@ -1,110 +1,202 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.36';
+const RC_VERSION='2.10.37';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
+const RC_DEFAULT_OLD_GOLD_TYPES=[
+  { name: 'Old Gold', metal: 'Gold', touch: 91.6 },
+  { name: '916 Hallmark Gold', metal: 'Gold', touch: 91.6 },
+  { name: 'KDM / Non-Hallmark Gold', metal: 'Gold', touch: 85 },
+  { name: 'Pure Gold (24K)', metal: 'Gold', touch: 100 },
+  { name: 'Old Silver', metal: 'Silver', touch: 80 }
+];
+
+function rcGetOldGoldTypeDefs(){
+  let custom = [];
+  try {
+    const raw = JSON.parse(localStorage.getItem('goldleaf-oldgold-types') || '[]');
+    if(Array.isArray(raw)) custom = raw;
+  } catch(e){}
+  if(Array.isArray(db?.oldGoldTypes)){
+    for(const item of db.oldGoldTypes){
+      if(item && item.name && !custom.some(c => c.name.toLowerCase() === item.name.toLowerCase())){
+        custom.push(item);
+      }
+    }
+  }
+  const all = [...RC_DEFAULT_OLD_GOLD_TYPES];
+  for(const c of custom){
+    if(c && c.name && !all.some(x => x.name.toLowerCase() === String(c.name).trim().toLowerCase())){
+      all.push({
+        name: String(c.name).trim(),
+        metal: c.metal === 'Silver' ? 'Silver' : 'Gold',
+        touch: n(c.touch) > 0 ? n(c.touch) : 91.6
+      });
+    }
+  }
+  return all;
+}
+
+function rcOldGoldTypeOptions(selected='Old Gold'){
+  const defs = rcGetOldGoldTypeDefs();
+  const sel = String(selected || 'Old Gold').trim();
+  const hasSel = defs.some(d => d.name === sel);
+  const list = hasSel ? defs : [...defs, { name: sel, metal: sel.toLowerCase().includes('silver') ? 'Silver' : 'Gold', touch: 91.6 }];
+  return list.map(d => '<option value="' + esc(d.name) + '" ' + (d.name === sel ? 'selected' : '') + '>' + esc(d.name) + '</option>').join('')
+    + '<option value="__new__">＋ Create New Type...</option>';
+}
+
+function rcGetPureRateFromRateBook(typeName='Old Gold', form=null){
+  const defs = rcGetOldGoldTypeDefs();
+  const match = defs.find(d => d.name.toLowerCase() === String(typeName || '').trim().toLowerCase());
+  const isSilver = (match?.metal === 'Silver') || String(typeName || '').toLowerCase().includes('silver');
+  if(isSilver){
+    return n(db?.rates?.silver) || n(db?.rates?.oldSilver) || n(db?.rates?.silverBoard) || n(db?.rateHistory?.[0]?.rates?.silver) || 0;
+  }
+  const f = form || (typeof document !== 'undefined' ? document.getElementById('rcEstimateForm') : null);
+  return n(db?.rates?.gold24) || n(db?.rateHistory?.[0]?.rates?.gold24) || n(f?.elements?.goldRate?.value) || n(db?.rates?.oldGold) || 0;
+}
+
+function rcCalcOldGoldItem(raw={}, fallbackPureRate=0){
+  const type = String(raw.type || 'Old Gold').trim() || 'Old Gold';
+  const gross = n(raw.gross ?? raw.weight);
+  const lessType = (raw.lessType === 'percent' || raw.lessType === '%') ? 'percent' : 'grams';
+  const less = n(raw.less ?? raw.lessWeight ?? 0);
+  const lessGrams = lessType === 'percent' ? rbGrams(gross * less / 100) : rbGrams(less);
+  const netWeight = rbGrams(Math.max(0, gross - lessGrams));
+  const bookPure = fallbackPureRate > 0 ? n(fallbackPureRate) : rcGetPureRateFromRateBook(type);
+  const pureRate = n(raw.pureRate) > 0 ? n(raw.pureRate) : bookPure;
+  const testing = n(raw.testing ?? raw.touch ?? raw.testingPurity ?? 91.6);
+  const calcRate = pureRate > 0 ? rbRound(pureRate * testing / 100) : n(raw.rate);
+  const rate = (raw.manualRate && n(raw.rate) > 0) ? n(raw.rate) : (calcRate > 0 ? calcRate : n(raw.rate));
+  const calcAmount = rbRound(netWeight * rate);
+  const amount = (raw.manualAmount && n(raw.amount) > 0) ? n(raw.amount) : (calcAmount > 0 ? calcAmount : n(raw.amount));
+  const remarks = String(raw.remarks ?? raw.product ?? '').trim();
+  const product = remarks || type || 'Old Gold';
+  return {
+    id: String(raw.id || ('og-' + Date.now())),
+    type,
+    gross,
+    lessType,
+    less,
+    lessGrams,
+    netWeight,
+    pureRate,
+    testing,
+    rate,
+    amount,
+    remarks,
+    product
+  };
+}
+
 function rcNormalizeOldGoldItems(q){
+  const fallbackPure = n(db?.rates?.gold24) || n(q?.goldRate) || n(q?.exchangePureRate) || n(q?.exchangeRate);
   if(Array.isArray(q?.exchangeItems) && q.exchangeItems.length > 0){
     return q.exchangeItems.map((x, idx) => {
-      const gross = n(x.gross ?? x.weight);
-      const testing = n(x.testing ?? x.testingPurity ?? 91.6);
-      const rate = n(x.rate || q?.exchangeRate || q?.goldRate);
-      const calc = rbRound(gross * testing / 100 * rate);
-      const amount = n(x.amount) > 0 ? n(x.amount) : calc;
-      return {
-        id: String(x.id || ('og-' + (idx + 1) + '-' + Date.now())),
-        product: String(x.product || ('Old Gold #' + (idx + 1))).trim(),
-        gross,
-        testing,
-        rate,
-        amount
-      };
-    }).filter(x => x.gross > 0 || x.amount > 0 || x.product);
+      // Legacy records where pureRate wasn't saved separately: if rate === pureRate, compute from pureRate
+      const hasPure = n(x.pureRate) > 0;
+      const itemPure = hasPure ? n(x.pureRate) : fallbackPure;
+      const calc = rcCalcOldGoldItem(Object.assign({}, x, {
+        id: x.id || ('og-' + (idx + 1) + '-' + Date.now()),
+        pureRate: itemPure,
+        manualAmount: !hasPure && n(x.amount) > 0
+      }), fallbackPure);
+      return calc;
+    }).filter(x => x.gross > 0 || x.amount > 0 || x.remarks);
   }
   const gross = n(q?.exchangeGross);
-  const testing = n(q?.exchangeTesting || 91.6);
-  const rate = n(q?.exchangeRate || q?.goldRate || db?.rates?.gold24);
-  const calc = rbRound(gross * testing / 100 * rate);
-  const amount = n(q?.exchangeAmount) > 0 ? n(q.exchangeAmount) : calc;
+  const amount = n(q?.exchangeAmount);
   const prod = String(q?.exchangeProduct || '').trim();
   if(gross > 0 || amount > 0 || prod){
-    return [{
+    return [rcCalcOldGoldItem({
       id: 'og-init-1',
-      product: prod || 'Old Gold',
+      type: q?.exchangeType || 'Old Gold',
       gross,
-      testing,
-      rate,
-      amount
-    }];
+      lessType: q?.exchangeLessType || 'grams',
+      less: n(q?.exchangeLess || 0),
+      pureRate: n(q?.exchangePureRate) || fallbackPure,
+      testing: n(q?.exchangeTesting || 91.6),
+      rate: n(q?.exchangeRate),
+      amount,
+      remarks: prod,
+      manualAmount: amount > 0 && !q?.exchangePureRate
+    }, fallbackPure)];
   }
   return [];
 }
 
 function rcCollectOldGoldData(form){
   const f = form || document.getElementById('rcEstimateForm');
-  const fProd = String(f?.elements?.exchangeProduct?.value || '').trim();
+  const fType = String(f?.elements?.exchangeType?.value || 'Old Gold').trim();
   const fGross = n(f?.elements?.exchangeGross?.value);
+  const fLessType = f?.elements?.exchangeLessType?.value === 'percent' ? 'percent' : 'grams';
+  const fLess = n(f?.elements?.exchangeLess?.value);
+  const fPureRate = n(f?.elements?.exchangePureRate?.value) || rcGetPureRateFromRateBook(fType, f);
   const fTest = n(f?.elements?.exchangeTesting?.value || 91.6);
-  const fRate = n(f?.elements?.exchangeRate?.value || f?.elements?.goldRate?.value || db?.rates?.gold24);
-  const fCalc = rbRound(fGross * fTest / 100 * fRate);
-  const fDirect = n(f?.elements?.exchangeAmount?.value);
-  const fAmount = fDirect > 0 ? fDirect : fCalc;
-  const hasFormEntry = (fGross > 0 || fAmount > 0);
+  const fRateInput = n(f?.elements?.exchangeRate?.value);
+  const fDirectAmt = n(f?.elements?.exchangeAmount?.value);
+  const fRemarks = String(f?.elements?.exchangeProduct?.value || '').trim();
 
+  const draftItem = rcCalcOldGoldItem({
+    id: rcOldGoldEditId || '__draft__',
+    type: fType === '__new__' ? 'Old Gold' : fType,
+    gross: fGross,
+    lessType: fLessType,
+    less: fLess,
+    pureRate: fPureRate,
+    testing: fTest,
+    rate: fRateInput,
+    amount: fDirectAmt,
+    remarks: fRemarks,
+    manualRate: f?.elements?.exchangeRate?.dataset?.manualRate === '1',
+    manualAmount: f?.elements?.exchangeAmount?.dataset?.manualAmount === '1'
+  }, fPureRate);
+
+  const hasFormEntry = (draftItem.gross > 0 || draftItem.amount > 0);
   const list = rcOldGoldItems.map(x => Object.assign({}, x));
+
   if(rcOldGoldEditId){
     if(!rcOldGoldFormLocked){
       const idx = list.findIndex(x => x.id === rcOldGoldEditId);
       if(idx >= 0){
-        list[idx] = {
+        list[idx] = Object.assign({}, draftItem, {
           id: rcOldGoldEditId,
-          product: fProd || list[idx].product || ('Old Gold #' + (idx + 1)),
-          gross: fGross,
-          testing: fTest,
-          rate: fRate,
-          amount: fAmount
-        };
+          remarks: fRemarks || list[idx].remarks || '',
+          product: fRemarks || list[idx].remarks || draftItem.type || ('Old Gold #' + (idx + 1))
+        });
       }
     }
   } else if(hasFormEntry){
-    list.push({
+    list.push(Object.assign({}, draftItem, {
       id: '__draft__',
-      product: fProd || ('Old Gold #' + (list.length + 1)),
-      gross: fGross,
-      testing: fTest,
-      rate: fRate,
-      amount: fAmount,
       isDraft: true
-    });
+    }));
   }
 
   const validItems = list.filter(x => n(x.gross) > 0 || n(x.amount) > 0);
   const totalGross = rbGrams(validItems.reduce((s, x) => s + n(x.gross), 0));
+  const totalLessGrams = rbGrams(validItems.reduce((s, x) => s + n(x.lessGrams), 0));
+  const totalNet = rbGrams(validItems.reduce((s, x) => s + n(x.netWeight ?? x.gross), 0));
   const totalAmount = rbRound(validItems.reduce((s, x) => s + n(x.amount), 0));
-  const combinedProduct = validItems.map(x => String(x.product || 'Old Gold').trim()).filter(Boolean).join(', ');
+  const combinedProduct = validItems.map(x => String(x.remarks || x.type || x.product || 'Old Gold').trim()).filter(Boolean).join(', ');
   const avgTesting = validItems[0]?.testing || fTest || 91.6;
-  const avgRate = validItems[0]?.rate || fRate || n(f?.elements?.goldRate?.value);
+  const avgRate = validItems[0]?.rate || draftItem.rate || fPureRate;
 
   return {
-    items: validItems.map((x, idx) => ({
+    items: validItems.map((x, idx) => Object.assign({}, x, {
       id: x.id === '__draft__' ? ('og-' + (idx + 1) + '-' + Date.now()) : x.id,
-      product: String(x.product || ('Old Gold #' + (idx + 1))).trim(),
-      gross: n(x.gross),
-      testing: n(x.testing || 91.6),
-      rate: n(x.rate),
-      amount: n(x.amount)
+      product: String(x.remarks || x.type || x.product || ('Old Gold #' + (idx + 1))).trim()
     })),
     totalGross,
+    totalLessGrams,
+    totalNet,
     totalAmount,
     combinedProduct,
     avgTesting,
     avgRate,
-    fProd,
-    fGross,
-    fTest,
-    fRate,
-    fAmount
+    draftItem
   };
 }
 
@@ -116,23 +208,31 @@ function rcRenderOldGoldItemsMarkup(form){
   const rowsHtml = rcOldGoldItems.map((item, idx) => {
     const isEditing = !rcOldGoldFormLocked && rcOldGoldEditId === item.id;
     const isSelected = rcOldGoldFormLocked && rcOldGoldEditId === item.id;
-    const displayItem = isEditing ? (ogData.items.find(x => x.id === item.id) || item) : item;
-    return '<div class="rc-og-item-row ' + (isEditing ? 'is-editing' : isSelected ? 'is-selected' : '') + '">'
-      + '<div class="rc-og-item-main">'
+    const d = isEditing ? (ogData.items.find(x => x.id === item.id) || item) : item;
+    const lessLabel = d.lessType === 'percent' ? (n(d.less) + '% (' + fmt(d.lessGrams) + 'g)') : (fmt(d.less || 0) + ' g');
+    const lessTypeLabel = d.lessType === 'percent' ? 'Percentage (%)' : 'Grams (g)';
+    return '<tr class="rc-og-table-row ' + (isEditing ? 'is-editing' : isSelected ? 'is-selected' : '') + '">'
+      + '<td data-label="#">'
       + '<span class="rc-og-item-idx">#' + (idx + 1) + '</span>'
-      + '<div class="rc-og-item-info">'
-      + '<b class="rc-og-item-name">' + esc(displayItem.product || ('Old Gold #' + (idx + 1))) + (isEditing ? ' <span class="rc-og-state-pill editing">Editing</span>' : isSelected ? ' <span class="rc-og-state-pill saved">Saved</span>' : '') + '</b>'
-      + '<span class="rc-og-item-meta">' + fmt(displayItem.gross) + ' g · ' + n(displayItem.testing || 91.6) + '% · ' + rateMoney(displayItem.rate) + '/g</span>'
-      + '</div>'
-      + '</div>'
-      + '<div class="rc-og-item-right">'
-      + '<b class="rc-og-item-amt">' + rateMoney(displayItem.amount) + '</b>'
+      + (isEditing ? ' <span class="rc-og-state-pill editing">Editing</span>' : isSelected ? ' <span class="rc-og-state-pill saved">Saved</span>' : '')
+      + '</td>'
+      + '<td data-label="Type"><b>' + esc(d.type || 'Old Gold') + '</b></td>'
+      + '<td data-label="Weight">' + fmt(d.gross) + ' g</td>'
+      + '<td data-label="Less Type">' + esc(lessTypeLabel) + '</td>'
+      + '<td data-label="Less">' + esc(lessLabel) + '</td>'
+      + '<td data-label="Net Wt"><b>' + fmt(d.netWeight ?? d.gross) + ' g</b></td>'
+      + '<td data-label="Pure Rate">' + rateMoney(d.pureRate) + '</td>'
+      + '<td data-label="Touch(%)">' + n(d.testing || 91.6) + '%</td>'
+      + '<td data-label="Rate"><b>' + rateMoney(d.rate) + '</b></td>'
+      + '<td data-label="Amount"><b class="rc-og-item-amt">' + rateMoney(d.amount) + '</b></td>'
+      + '<td data-label="Remarks">' + esc(d.remarks || d.product || '—') + '</td>'
+      + '<td data-label="Actions" class="rc-og-actions-cell">'
       + '<div class="rc-og-item-btns">'
       + '<button type="button" class="rc-og-row-btn rc-og-row-edit" onclick="rcOldGoldEditItem(\'' + esc(item.id) + '\')">✎ Edit</button>'
       + '<button type="button" class="rc-og-row-btn rc-og-row-del" onclick="rcOldGoldRemoveItem(\'' + esc(item.id) + '\')" title="Remove item">✕</button>'
       + '</div>'
-      + '</div>'
-      + '</div>';
+      + '</td>'
+      + '</tr>';
   }).join('');
 
   return '<div class="rc-og-list-box">'
@@ -141,10 +241,17 @@ function rcRenderOldGoldItemsMarkup(form){
       + '<span>Saved Old Gold Items (' + rcOldGoldItems.length + ')</span>'
       + (rcOldGoldItems.length > 1 ? '<button type="button" class="rc-og-clear-all-btn" onclick="rcOldGoldClearAll()">Clear All</button>' : '')
       + '</div>'
-      + '<div class="rc-og-rows-wrap">' + rowsHtml + '</div>'
+      + '<div class="rc-og-table-scroll">'
+      + '<table class="rc-og-items-table">'
+      + '<thead><tr>'
+      + '<th>#</th><th>Type</th><th>Weight</th><th>Less Type</th><th>Less</th><th>Net Wt</th><th>Pure Rate</th><th>Touch(%)</th><th>Rate</th><th>Amount</th><th>Remarks</th><th>Actions</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rowsHtml + '</tbody>'
+      + '</table>'
+      + '</div>'
     ) : '')
     + '<div class="rc-og-list-foot">'
-    + '<span>Total Old Gold (<b id="rcOgTotalCount">' + ogData.items.length + '</b> ' + (ogData.items.length === 1 ? 'Item' : 'Items') + ' · <b id="rcOgTotalGross">' + fmt(ogData.totalGross) + ' g</b>)</span>'
+    + '<span>Total Old Gold (<b id="rcOgTotalCount">' + ogData.items.length + '</b> ' + (ogData.items.length === 1 ? 'Item' : 'Items') + ' · Wt: <b id="rcOgTotalGross">' + fmt(ogData.totalGross) + ' g</b> · Net Wt: <b id="rcOgTotalNet">' + fmt(ogData.totalNet) + ' g</b>)</span>'
     + '<b id="rcOgTotalAmount" class="rc-og-list-total-val">' + rateMoney(ogData.totalAmount) + '</b>'
     + '</div>'
     + '</div>';
@@ -631,22 +738,29 @@ function rcQuoteForm(){
 
   const products = rcDocs('retail-product'),
         activeOg = rcOldGoldEditId ? rcOldGoldItems.find(x => x.id === rcOldGoldEditId) : null,
-        ogProdVal = activeOg ? activeOg.product : '',
-        ogGrossVal = activeOg ? (activeOg.gross || '') : '',
+        ogTypeVal = activeOg ? (activeOg.type || 'Old Gold') : (q?.exchangeType || 'Old Gold'),
+        ogGrossVal = activeOg ? (activeOg.gross > 0 ? activeOg.gross : '') : '',
+        ogLessTypeVal = activeOg ? (activeOg.lessType === 'percent' ? 'percent' : 'grams') : (q?.exchangeLessType === 'percent' ? 'percent' : 'grams'),
+        ogLessVal = activeOg ? (activeOg.less > 0 ? activeOg.less : '') : '',
+        ogNetVal = activeOg ? (n(activeOg.netWeight) > 0 ? Number(activeOg.netWeight).toFixed(3) : (n(activeOg.gross) > 0 ? Number(activeOg.gross).toFixed(3) : '')) : '',
+        ogPureRateVal = activeOg && n(activeOg.pureRate) > 0 ? n(activeOg.pureRate) : (rcGetPureRateFromRateBook(ogTypeVal) || rates),
         ogTestingVal = activeOg ? (activeOg.testing || 91.6) : 91.6,
-        ogRateVal = activeOg ? (activeOg.rate ?? rates) : (q?.exchangeRate ?? rates),
+        ogRateCalc = ogPureRateVal > 0 ? rbRound(ogPureRateVal * ogTestingVal / 100) : 0,
+        ogRateVal = activeOg && n(activeOg.rate) > 0 ? Number(activeOg.rate).toFixed(2) : (ogRateCalc > 0 ? ogRateCalc.toFixed(2) : ''),
         ogAmtVal = activeOg ? (activeOg.amount > 0 ? activeOg.amount.toFixed(2) : '') : '',
+        ogRemarksVal = activeOg ? (activeOg.remarks ?? activeOg.product ?? '') : '',
         ogLockedAttr = rcOldGoldFormLocked ? ' readonly' : '',
         ogLockedClass = rcOldGoldFormLocked ? ' rc-og-input-locked' : '',
         oldGoldCredit = rbRound(rcOldGoldItems.reduce((s, x) => s + n(x.amount), 0)),
         hasOldGold = oldGoldCredit > 0 || rcOldGoldItems.length > 0;
 
   const activeOgIdx = rcOldGoldEditId ? (rcOldGoldItems.findIndex(x => x.id === rcOldGoldEditId) + 1) : 0;
+  const activeOgTitle = activeOg ? ((activeOg.type || 'Old Gold') + (activeOg.remarks ? ' · ' + activeOg.remarks : '')) : 'Old Gold';
   const ogStatusClass = (rcOldGoldFormLocked && rcOldGoldEditId) ? 'saved' : (!rcOldGoldFormLocked && rcOldGoldEditId) ? 'editing' : 'entry';
   const ogStatusText = (rcOldGoldFormLocked && rcOldGoldEditId)
-    ? ('✓ Item #' + activeOgIdx + ' Saved (' + esc(activeOg?.product || 'Old Gold') + ') — Click "Edit" to modify or "+ Add Item" for next item')
+    ? ('✓ Item #' + activeOgIdx + ' Saved (' + esc(activeOgTitle) + ') — Click "Edit" to modify or "+ Add Item" for next item')
     : (!rcOldGoldFormLocked && rcOldGoldEditId)
-      ? ('✎ Editing Item #' + activeOgIdx + ' (' + esc(activeOg?.product || 'Old Gold') + ') — Update fields & click "Save"')
+      ? ('✎ Editing Item #' + activeOgIdx + ' (' + esc(activeOgTitle) + ') — Update fields & click "Save"')
       : ('🪙 Entering Old Gold Item #' + (rcOldGoldItems.length + 1) + (rcOldGoldItems.length > 0 ? ' (' + rcOldGoldItems.length + ' saved below)' : ''));
 
   const quoteDiscount = n(q?.discount||0),
@@ -694,7 +808,7 @@ function rcQuoteForm(){
     +rcChitSelect(q?.customerId||'', q?.chitMappingId)
     +'<label>Valid Until<input name="validUntil" type="date" value="'+esc(q?.validUntil||new Date(Date.now()+86400000*2).toISOString().slice(0,10))+'"></label>'
     +'<label>Reference<input name="reference" value="'+esc(q?.reference||'')+'" placeholder="Sales rep / notes"></label>'
-    +'<label>24K Base Rate ₹/g<input name="goldRate" type="number" min="0" step=".01" required value="'+(q?.goldRate??rates)+'"></label>'
+    +'<label>24K Base Rate ₹/g<input name="goldRate" type="number" min="0" step=".01" required value="'+(q?.goldRate??rates)+'" oninput="rcBaseGoldRateChanged(this)"></label>'
     +'</div>'
     +'</section>'
 
@@ -839,16 +953,24 @@ function rcQuoteForm(){
     +'</button>'
     +'<div id="rcOldGoldDropdown" class="rc-old-gold-dropdown '+(hasOldGold?'':'hidden')+'">'
     +'<div class="rc-old-gold-dropdown-head">'
-    +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Credit = Gross weight × Testing % ÷ 100 × Rate</small></div>'
+    +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Net Wt = Weight − Less · Rate = Pure Rate (Rate Book) × Touch(%) ÷ 100 · Amount = Net Wt × Rate</small></div>'
     +'<div class="rc-old-gold-credit-pill">Credit: <b id="rcOldGoldCreditSummary">'+rateMoney(oldGoldCredit)+'</b></div>'
     +'</div>'
     +'<div id="rcOgFormStatus" class="rc-og-form-status rc-og-status-'+ogStatusClass+'">'+ogStatusText+'</div>'
-    +'<div class="rc-grid rc-old-gold-fields-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
-    +'<label class="rc-wide rc-og-field rc-og-desc" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Item Description</span><input name="exchangeProduct" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' value="'+esc(ogProdVal)+'" placeholder="e.g. Ring, Chain..." oninput="rcRecalc()"></label>'
-    +'<label class="rc-og-field rc-og-gross" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Gross g</span><input name="exchangeGross" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".001" placeholder="0.000" value="'+ogGrossVal+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label class="rc-og-field rc-og-purity" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Testing Purity %</span><input name="exchangeTesting" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+ogTestingVal+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label class="rc-og-field rc-og-rate" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Rate ₹/g</span><input name="exchangeRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate/g" value="'+ogRateVal+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label class="rc-og-field rc-og-amount" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Amount ₹</span><input name="exchangeAmount" id="rcExchangeAmountInput" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogAmtVal+'" oninput="rcOldGoldAmountChanged()"></label>'
+    +'<div class="rc-grid rc-old-gold-fields-grid">'
+    +'<div class="rc-og-field rc-og-type" style="margin:0">'
+    +'<div class="rc-og-label-row"><span class="rc-og-label-text">Type</span><button type="button" class="rc-og-new-type-btn" onclick="rcOldGoldCreateNewType()" title="Create New Old Gold Type">＋ New</button></div>'
+    +'<select name="exchangeType" class="rc-og-input'+ogLockedClass+'" onchange="rcOldGoldTypeChanged(this)">'+rcOldGoldTypeOptions(ogTypeVal)+'</select>'
+    +'</div>'
+    +'<label class="rc-og-field rc-og-weight" style="margin:0"><span class="rc-og-label-text">Weight</span><input name="exchangeGross" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".001" placeholder="0.000 g" value="'+ogGrossVal+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-less-type" style="margin:0"><span class="rc-og-label-text">Less Type</span><select name="exchangeLessType" class="rc-og-input'+ogLockedClass+'" onchange="rcOldGoldFieldChanged()"><option value="grams" '+(ogLessTypeVal==='grams'?'selected':'')+'>Grams (g)</option><option value="percent" '+(ogLessTypeVal==='percent'?'selected':'')+'>Percentage (%)</option></select></label>'
+    +'<label class="rc-og-field rc-og-less" style="margin:0"><span class="rc-og-label-text" id="rcOgLessLabel">Less ('+(ogLessTypeVal==='percent'?'%':'g')+')</span><input name="exchangeLess" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".001" placeholder="0.000" value="'+ogLessVal+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-net" style="margin:0"><span class="rc-og-label-text">Net Wt</span><input name="exchangeNet" class="rc-og-input rc-og-computed" readonly type="number" step=".001" placeholder="0.000 g" value="'+ogNetVal+'" tabindex="-1"></label>'
+    +'<label class="rc-og-field rc-og-purerate" style="margin:0"><div class="rc-og-label-row"><span class="rc-og-label-text">Pure Rate</span><small class="rc-og-ratebook-tag">Rate Book</small></div><input name="exchangePureRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate Book ₹/g" value="'+ogPureRateVal+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-touch" style="margin:0"><span class="rc-og-label-text">Touch(%)</span><input name="exchangeTesting" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+ogTestingVal+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-rate" style="margin:0"><span class="rc-og-label-text">Rate</span><input name="exchangeRate" class="rc-og-input rc-og-computed'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogRateVal+'" oninput="rcOldGoldRateManualChanged()"></label>'
+    +'<label class="rc-og-field rc-og-amount" style="margin:0"><span class="rc-og-label-text">Amount</span><input name="exchangeAmount" id="rcExchangeAmountInput" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogAmtVal+'" oninput="rcOldGoldAmountChanged()"></label>'
+    +'<label class="rc-og-field rc-og-remarks" style="margin:0"><span class="rc-og-label-text">Remarks</span><input name="exchangeProduct" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' value="'+esc(ogRemarksVal)+'" placeholder="e.g. Ring, Chain..." oninput="rcRecalc()"></label>'
     +'</div>'
     +'<div class="rc-og-actions-bar">'
     +'<button type="button" id="rcOgSaveBtn" class="rc-og-btn rc-og-btn-save" onclick="rcOldGoldSaveItem()">💾 Save</button>'
@@ -1052,8 +1174,13 @@ function rcEstimateRead(form){
     gstAmount: billCalc.gstAmount,
     purchaseValue: billCalc.saleBeforeRound,
     exchangeItems: ogData.items,
+    exchangeType: ogData.items[0]?.type || String(f.exchangeType?.value || 'Old Gold'),
     exchangeProduct: ogData.combinedProduct,
     exchangeGross: ogData.totalGross,
+    exchangeLessType: ogData.items[0]?.lessType || String(f.exchangeLessType?.value || 'grams'),
+    exchangeLess: ogData.totalLessGrams,
+    exchangeNet: ogData.totalNet,
+    exchangePureRate: ogData.items[0]?.pureRate || n(f.exchangePureRate?.value) || n(f.goldRate?.value),
     exchangeTesting: ogData.avgTesting,
     exchangeAmount: goldCredit,
     goldRate: n(f.goldRate.value),
@@ -1143,13 +1270,16 @@ function rcQuoteModel(q){
 
   const exchangeRowsPdf = ogItems.length > 0
     ? ogItems.map(x => ({
-        product: x.product || 'Old Gold',
-        weight: n(x.gross || 0),
+        product: (x.type ? x.type + (x.remarks ? ' - ' + x.remarks : '') : (x.product || 'Old Gold')),
+        weight: n(x.netWeight ?? x.gross ?? 0),
+        grossWeight: n(x.gross || 0),
+        lessWeight: n(x.lessGrams || 0),
+        pureRate: n(x.pureRate || q.goldRate || 0),
         testingPurity: n(x.testing || 91.6),
         rate: n(x.rate || q.exchangeRate || q.goldRate || 0),
         amount: n(x.amount || 0)
       }))
-    : ((exchangeCredit > 0 || q.exchangeGross > 0) ? [{product: q.exchangeProduct||'Old Gold', weight: q.exchangeGross||0, testingPurity: q.exchangeTesting||91.6, rate: q.exchangeRate||q.goldRate||0, amount: exchangeCredit}] : []);
+    : ((exchangeCredit > 0 || q.exchangeGross > 0) ? [{product: q.exchangeProduct||'Old Gold', weight: q.exchangeNet||q.exchangeGross||0, testingPurity: q.exchangeTesting||91.6, rate: q.exchangeRate||q.goldRate||0, amount: exchangeCredit}] : []);
 
   return {
     kind: 'bill',
@@ -1283,8 +1413,8 @@ window.rcConvert = function(id){
       const ogContainer = document.getElementById('oldGoldLines');
       if(ogContainer && typeof exchangeLineMarkup === 'function'){
         ogContainer.innerHTML = ogItems.map(item => exchangeLineMarkup({
-          product: item.product || 'Old Jewellery',
-          weight: n(item.gross),
+          product: item.remarks || item.type || item.product || 'Old Jewellery',
+          weight: n(item.netWeight ?? item.gross),
           purity: 22,
           testingPurity: n(item.testing || 91.6),
           rate: n(item.rate || q.goldRate),
@@ -1294,7 +1424,7 @@ window.rcConvert = function(id){
         const row = document.querySelector('#oldGoldLines .exchange-line');
         if(row){
           row.querySelector('[data-exchange="product"]').value = q.exchangeProduct || 'Old Jewellery';
-          if(q.exchangeGross > 0) row.querySelector('[data-exchange="weight"]').value = q.exchangeGross;
+          if(q.exchangeNet > 0 || q.exchangeGross > 0) row.querySelector('[data-exchange="weight"]').value = q.exchangeNet || q.exchangeGross;
           if(q.exchangeTesting > 0) row.querySelector('[data-exchange="testingPurity"]').value = q.exchangeTesting;
           if(q.exchangeRate || q.goldRate) row.querySelector('[data-exchange="rate"]').value = q.exchangeRate || q.goldRate;
           const amtInput = row.querySelector('[data-exchange="amount"]');
@@ -1340,33 +1470,84 @@ window.rcConvert = function(id){
   }, 50);
 };
 
+function rcPopulateOldGoldFormFields(form, item=null){
+  if(!form) return;
+  const typeVal = item?.type || 'Old Gold';
+  if(form.elements.exchangeType){
+    form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(typeVal);
+    form.elements.exchangeType.value = typeVal;
+  }
+  const pureRate = n(item?.pureRate) > 0 ? n(item.pureRate) : rcGetPureRateFromRateBook(typeVal, form);
+  const testing = n(item?.testing) > 0 ? n(item.testing) : 91.6;
+  const calcRate = pureRate > 0 ? rbRound(pureRate * testing / 100) : 0;
+  const rateVal = n(item?.rate) > 0 ? n(item.rate) : calcRate;
+  const lessType = item?.lessType === 'percent' ? 'percent' : 'grams';
+  const grossVal = n(item?.gross) > 0 ? item.gross : '';
+  const lessVal = n(item?.less) > 0 ? item.less : '';
+  const netVal = n(item?.netWeight) > 0 ? Number(item.netWeight).toFixed(3) : (n(item?.gross) > 0 ? Number(item.gross).toFixed(3) : '');
+  const amtVal = n(item?.amount) > 0 ? Number(item.amount).toFixed(2) : '';
+  const remarksVal = item ? String(item.remarks ?? '') : '';
+
+  if(form.elements.exchangeGross) form.elements.exchangeGross.value = grossVal;
+  if(form.elements.exchangeLessType) form.elements.exchangeLessType.value = lessType;
+  const lessLbl = document.getElementById('rcOgLessLabel');
+  if(lessLbl) lessLbl.textContent = 'Less (' + (lessType === 'percent' ? '%' : 'g') + ')';
+  if(form.elements.exchangeLess) form.elements.exchangeLess.value = lessVal;
+  if(form.elements.exchangeNet) form.elements.exchangeNet.value = netVal;
+  if(form.elements.exchangePureRate) form.elements.exchangePureRate.value = pureRate > 0 ? pureRate : '';
+  if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = testing;
+  if(form.elements.exchangeRate){
+    form.elements.exchangeRate.dataset.manualRate = '0';
+    form.elements.exchangeRate.value = rateVal > 0 ? rateVal.toFixed(2) : '';
+  }
+  if(form.elements.exchangeAmount){
+    form.elements.exchangeAmount.dataset.manualAmount = '0';
+    form.elements.exchangeAmount.value = amtVal;
+  }
+  if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = remarksVal;
+}
+
 function rcSyncOldGoldUI(){
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
-  const inputs = [
-    form.elements.exchangeProduct,
+  const textInputs = [
     form.elements.exchangeGross,
+    form.elements.exchangeLess,
+    form.elements.exchangePureRate,
     form.elements.exchangeTesting,
     form.elements.exchangeRate,
-    form.elements.exchangeAmount
+    form.elements.exchangeAmount,
+    form.elements.exchangeProduct
   ];
-  inputs.forEach(inp => {
+  textInputs.forEach(inp => {
     if(!inp) return;
     inp.readOnly = !!rcOldGoldFormLocked;
     inp.classList.toggle('rc-og-input-locked', !!rcOldGoldFormLocked);
   });
+  const selects = [
+    form.elements.exchangeType,
+    form.elements.exchangeLessType
+  ];
+  selects.forEach(sel => {
+    if(!sel) return;
+    sel.classList.toggle('rc-og-input-locked', !!rcOldGoldFormLocked);
+  });
+  if(form.elements.exchangeNet){
+    form.elements.exchangeNet.readOnly = true;
+  }
 
   const statusEl = document.getElementById('rcOgFormStatus');
   if(statusEl){
     statusEl.classList.remove('rc-og-status-saved', 'rc-og-status-editing', 'rc-og-status-entry');
     const activeIdx = rcOldGoldEditId ? (rcOldGoldItems.findIndex(x => x.id === rcOldGoldEditId) + 1) : 0;
     const activeItem = rcOldGoldEditId ? rcOldGoldItems.find(x => x.id === rcOldGoldEditId) : null;
+    const activeLabel = activeItem ? ((activeItem.type || 'Old Gold') + (activeItem.remarks ? ' · ' + activeItem.remarks : '')) : 'Old Gold';
     if(rcOldGoldFormLocked && rcOldGoldEditId){
       statusEl.classList.add('rc-og-status-saved');
-      statusEl.textContent = '✓ Item #' + activeIdx + ' Saved (' + (activeItem?.product || 'Old Gold') + ') — Click "Edit" to modify or "+ Add Item" for next item';
+      statusEl.textContent = '✓ Item #' + activeIdx + ' Saved (' + activeLabel + ') — Click "Edit" to modify or "+ Add Item" for next item';
     } else if(!rcOldGoldFormLocked && rcOldGoldEditId){
       statusEl.classList.add('rc-og-status-editing');
-      statusEl.textContent = '✎ Editing Item #' + activeIdx + ' (' + (activeItem?.product || 'Old Gold') + ') — Update fields & click "Save"';
+      statusEl.textContent = '✎ Editing Item #' + activeIdx + ' (' + activeLabel + ') — Update fields & click "Save"';
     } else {
       statusEl.classList.add('rc-og-status-entry');
       statusEl.textContent = '🪙 Entering Old Gold Item #' + (rcOldGoldItems.length + 1) + (rcOldGoldItems.length > 0 ? ' (' + rcOldGoldItems.length + ' saved below)' : '');
@@ -1382,52 +1563,38 @@ function rcSyncOldGoldUI(){
 window.rcOldGoldSaveItem = function(){
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
-  const fProd = String(form.elements.exchangeProduct?.value || '').trim();
-  const fGross = n(form.elements.exchangeGross?.value);
-  const fTest = n(form.elements.exchangeTesting?.value || 91.6);
-  const fRate = n(form.elements.exchangeRate?.value || form.elements.goldRate?.value || db?.rates?.gold24);
-  const fCalc = rbRound(fGross * fTest / 100 * fRate);
-  const fDirect = n(form.elements.exchangeAmount?.value);
-  const fAmount = fDirect > 0 ? fDirect : fCalc;
+  const ogData = rcCollectOldGoldData(form);
+  const draft = ogData.draftItem;
 
-  if(fGross <= 0 && fAmount <= 0){
-    say('Enter Old Gold gross weight or amount to save.');
+  if(draft.gross <= 0 && draft.amount <= 0){
+    say('Enter Old Gold weight or amount to save.');
     form.elements.exchangeGross?.focus();
     return;
   }
 
   if(rcOldGoldEditId){
     const idx = rcOldGoldItems.findIndex(x => x.id === rcOldGoldEditId);
-    const prodName = fProd || rcOldGoldItems[idx]?.product || ('Old Gold #' + (idx + 1));
+    const savedItem = Object.assign({}, draft, {
+      id: rcOldGoldEditId,
+      remarks: draft.remarks || rcOldGoldItems[idx]?.remarks || '',
+      product: draft.remarks || draft.type || ('Old Gold #' + (idx + 1))
+    });
     if(idx >= 0){
-      rcOldGoldItems[idx] = {
-        id: rcOldGoldEditId,
-        product: prodName,
-        gross: fGross,
-        testing: fTest,
-        rate: fRate,
-        amount: fAmount
-      };
+      rcOldGoldItems[idx] = savedItem;
     }
-    if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = prodName;
-    if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = fAmount.toFixed(2);
+    rcPopulateOldGoldFormFields(form, savedItem);
     rcOldGoldFormLocked = true;
     rcSyncOldGoldUI();
     rcRecalc();
     say('Old Gold item updated.');
   } else {
     const newId = 'og-' + (rcOldGoldItems.length + 1) + '-' + Date.now();
-    const prodName = fProd || ('Old Gold #' + (rcOldGoldItems.length + 1));
-    rcOldGoldItems.push({
+    const savedItem = Object.assign({}, draft, {
       id: newId,
-      product: prodName,
-      gross: fGross,
-      testing: fTest,
-      rate: fRate,
-      amount: fAmount
+      product: draft.remarks || draft.type || ('Old Gold #' + (rcOldGoldItems.length + 1))
     });
-    if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = prodName;
-    if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = fAmount.toFixed(2);
+    rcOldGoldItems.push(savedItem);
+    rcPopulateOldGoldFormFields(form, savedItem);
     rcOldGoldEditId = newId;
     rcOldGoldFormLocked = true;
     rcSyncOldGoldUI();
@@ -1443,7 +1610,7 @@ window.rcOldGoldEditTrigger = function(){
     rcOldGoldFormLocked = false;
     rcSyncOldGoldUI();
     rcRecalc();
-    form.elements.exchangeProduct?.focus();
+    form.elements.exchangeGross?.focus();
     return;
   }
   if(rcOldGoldItems.length > 0){
@@ -1453,7 +1620,7 @@ window.rcOldGoldEditTrigger = function(){
   }
   rcOldGoldFormLocked = false;
   rcSyncOldGoldUI();
-  form.elements.exchangeProduct?.focus();
+  form.elements.exchangeGross?.focus();
 };
 
 window.rcOldGoldEditItem = function(id){
@@ -1463,72 +1630,50 @@ window.rcOldGoldEditItem = function(id){
   if(!item) return;
   rcOldGoldEditId = item.id;
   rcOldGoldFormLocked = false;
-  if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = item.product || '';
-  if(form.elements.exchangeGross) form.elements.exchangeGross.value = item.gross > 0 ? item.gross : '';
-  if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = item.testing || 91.6;
-  if(form.elements.exchangeRate) form.elements.exchangeRate.value = item.rate || n(form.elements.goldRate?.value) || n(db?.rates?.gold24) || '';
-  if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = item.amount > 0 ? item.amount.toFixed(2) : '';
+  rcPopulateOldGoldFormFields(form, item);
   rcSyncOldGoldUI();
   rcRecalc();
-  form.elements.exchangeProduct?.focus();
+  form.elements.exchangeGross?.focus();
 };
 
 window.rcOldGoldAddItem = function(){
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
-  const fProd = String(form.elements.exchangeProduct?.value || '').trim();
-  const fGross = n(form.elements.exchangeGross?.value);
-  const fTest = n(form.elements.exchangeTesting?.value || 91.6);
-  const fRate = n(form.elements.exchangeRate?.value || form.elements.goldRate?.value || db?.rates?.gold24);
-  const fCalc = rbRound(fGross * fTest / 100 * fRate);
-  const fDirect = n(form.elements.exchangeAmount?.value);
-  const fAmount = fDirect > 0 ? fDirect : fCalc;
+  const ogData = rcCollectOldGoldData(form);
+  const draft = ogData.draftItem;
 
-  if(!rcOldGoldFormLocked && (fGross > 0 || fAmount > 0)){
+  if(!rcOldGoldFormLocked && (draft.gross > 0 || draft.amount > 0)){
     if(rcOldGoldEditId){
       const idx = rcOldGoldItems.findIndex(x => x.id === rcOldGoldEditId);
       if(idx >= 0){
-        rcOldGoldItems[idx] = {
+        rcOldGoldItems[idx] = Object.assign({}, draft, {
           id: rcOldGoldEditId,
-          product: fProd || rcOldGoldItems[idx]?.product || ('Old Gold #' + (idx + 1)),
-          gross: fGross,
-          testing: fTest,
-          rate: fRate,
-          amount: fAmount
-        };
+          remarks: draft.remarks || rcOldGoldItems[idx]?.remarks || '',
+          product: draft.remarks || draft.type || ('Old Gold #' + (idx + 1))
+        });
       }
     } else {
-      rcOldGoldItems.push({
+      rcOldGoldItems.push(Object.assign({}, draft, {
         id: 'og-' + (rcOldGoldItems.length + 1) + '-' + Date.now(),
-        product: fProd || ('Old Gold #' + (rcOldGoldItems.length + 1)),
-        gross: fGross,
-        testing: fTest,
-        rate: fRate,
-        amount: fAmount
-      });
+        product: draft.remarks || draft.type || ('Old Gold #' + (rcOldGoldItems.length + 1))
+      }));
     }
   }
 
   rcOldGoldEditId = '';
   rcOldGoldFormLocked = false;
-  const defaultRate = n(form.elements.goldRate?.value) || n(db?.rates?.gold24) || '';
-  if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = '';
-  if(form.elements.exchangeGross) form.elements.exchangeGross.value = '';
-  if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = '91.6';
-  if(form.elements.exchangeRate) form.elements.exchangeRate.value = defaultRate;
-  if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = '';
+  rcPopulateOldGoldFormFields(form, null);
   rcSyncOldGoldUI();
   rcRecalc();
-  form.elements.exchangeProduct?.focus();
+  form.elements.exchangeGross?.focus();
 };
 
 window.rcOldGoldClearForm = function(){
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
-  const fProd = String(form.elements.exchangeProduct?.value || '').trim();
+  const fRemarks = String(form.elements.exchangeProduct?.value || '').trim();
   const fGross = n(form.elements.exchangeGross?.value);
   const fAmount = n(form.elements.exchangeAmount?.value);
-  const defaultRate = n(form.elements.goldRate?.value) || n(db?.rates?.gold24) || '';
 
   if(rcOldGoldEditId){
     if(rcOldGoldItems.length <= 1){
@@ -1536,15 +1681,11 @@ window.rcOldGoldClearForm = function(){
     }
     rcOldGoldEditId = '';
     rcOldGoldFormLocked = false;
-  } else if(!fProd && fGross <= 0 && fAmount <= 0 && rcOldGoldItems.length > 0){
+  } else if(!fRemarks && fGross <= 0 && fAmount <= 0 && rcOldGoldItems.length > 0){
     rcOldGoldItems = [];
   }
 
-  if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = '';
-  if(form.elements.exchangeGross) form.elements.exchangeGross.value = '';
-  if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = '91.6';
-  if(form.elements.exchangeRate) form.elements.exchangeRate.value = defaultRate;
-  if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = '';
+  rcPopulateOldGoldFormFields(form, null);
   rcSyncOldGoldUI();
   rcRecalc();
 };
@@ -1557,24 +1698,11 @@ window.rcOldGoldRemoveItem = function(id){
       const last = rcOldGoldItems[rcOldGoldItems.length - 1];
       rcOldGoldEditId = last.id;
       rcOldGoldFormLocked = true;
-      if(form){
-        if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = last.product || '';
-        if(form.elements.exchangeGross) form.elements.exchangeGross.value = last.gross || '';
-        if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = last.testing || 91.6;
-        if(form.elements.exchangeRate) form.elements.exchangeRate.value = last.rate || '';
-        if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = last.amount > 0 ? last.amount.toFixed(2) : '';
-      }
+      rcPopulateOldGoldFormFields(form, last);
     } else {
       rcOldGoldEditId = '';
       rcOldGoldFormLocked = false;
-      if(form){
-        const defaultRate = n(form.elements.goldRate?.value) || n(db?.rates?.gold24) || '';
-        if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = '';
-        if(form.elements.exchangeGross) form.elements.exchangeGross.value = '';
-        if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = '91.6';
-        if(form.elements.exchangeRate) form.elements.exchangeRate.value = defaultRate;
-        if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = '';
-      }
+      rcPopulateOldGoldFormFields(form, null);
     }
   }
   rcSyncOldGoldUI();
@@ -1586,33 +1714,184 @@ window.rcOldGoldClearAll = function(){
   rcOldGoldItems = [];
   rcOldGoldEditId = '';
   rcOldGoldFormLocked = false;
-  if(form){
-    const defaultRate = n(form.elements.goldRate?.value) || n(db?.rates?.gold24) || '';
-    if(form.elements.exchangeProduct) form.elements.exchangeProduct.value = '';
-    if(form.elements.exchangeGross) form.elements.exchangeGross.value = '';
-    if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = '91.6';
-    if(form.elements.exchangeRate) form.elements.exchangeRate.value = defaultRate;
-    if(form.elements.exchangeAmount) form.elements.exchangeAmount.value = '';
-  }
+  rcPopulateOldGoldFormFields(form, null);
   rcSyncOldGoldUI();
+  rcRecalc();
+};
+
+window.rcOldGoldTypeChanged = function(sel){
+  const form = document.getElementById('rcEstimateForm');
+  if(!form || rcOldGoldFormLocked) return;
+  const val = sel?.value || 'Old Gold';
+  if(val === '__new__'){
+    sel.value = 'Old Gold';
+    window.rcOldGoldCreateNewType();
+    return;
+  }
+  const defs = rcGetOldGoldTypeDefs();
+  const def = defs.find(d => d.name.toLowerCase() === val.toLowerCase());
+  if(def && n(def.touch) > 0 && form.elements.exchangeTesting){
+    form.elements.exchangeTesting.value = def.touch;
+  }
+  const bookPure = rcGetPureRateFromRateBook(val, form);
+  if(bookPure > 0 && form.elements.exchangePureRate){
+    form.elements.exchangePureRate.value = bookPure;
+  }
+  window.rcOldGoldFieldChanged();
+};
+
+window.rcOldGoldCreateNewType = function(directName='', directMetal='Gold', directTouch=91.6){
+  const form = document.getElementById('rcEstimateForm');
+  if(directName && typeof directName === 'string' && directName.trim()){
+    const cleanName = directName.trim();
+    const metal = directMetal === 'Silver' ? 'Silver' : 'Gold';
+    const touch = n(directTouch) > 0 ? n(directTouch) : 91.6;
+    let custom = [];
+    try {
+      custom = JSON.parse(localStorage.getItem('goldleaf-oldgold-types') || '[]');
+      if(!Array.isArray(custom)) custom = [];
+    } catch(e){ custom = []; }
+    const existingIdx = custom.findIndex(x => String(x.name||'').toLowerCase() === cleanName.toLowerCase());
+    if(existingIdx >= 0) custom[existingIdx] = { name: cleanName, metal, touch };
+    else custom.push({ name: cleanName, metal, touch });
+    try { localStorage.setItem('goldleaf-oldgold-types', JSON.stringify(custom)); } catch(e){}
+    if(typeof db === 'object' && db){
+      db.oldGoldTypes = custom;
+    }
+    if(form){
+      rcOldGoldFormLocked = false;
+      if(form.elements.exchangeType){
+        form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(cleanName);
+        form.elements.exchangeType.value = cleanName;
+      }
+      if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = touch;
+      const bookPure = rcGetPureRateFromRateBook(cleanName, form);
+      if(bookPure > 0 && form.elements.exchangePureRate) form.elements.exchangePureRate.value = bookPure;
+      rcSyncOldGoldUI();
+      window.rcOldGoldFieldChanged();
+    }
+    say('Created Old Gold Type: ' + cleanName);
+    return cleanName;
+  }
+
+  document.getElementById('rcNewOldGoldTypeModal')?.remove();
+  const modalHtml = '<div id="rcNewOldGoldTypeModal" class="rc-og-type-modal-backdrop" onclick="if(event.target===this)this.remove()">'
+    + '<div class="rc-og-type-modal-card">'
+    + '<div class="rc-og-type-modal-head">'
+    + '<h3>＋ Create New Old Gold Type</h3>'
+    + '<button type="button" class="rc-og-type-modal-close" onclick="document.getElementById(\'rcNewOldGoldTypeModal\')?.remove()">✕</button>'
+    + '</div>'
+    + '<div class="rc-og-type-modal-body">'
+    + '<label>Type Name *<input id="rcNewOgTypeName" type="text" placeholder="e.g. 916 Coin Gold, 18K Gold, Antique Gold" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rcOldGoldSaveNewTypeModal()}"></label>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">'
+    + '<label>Metal Category<select id="rcNewOgTypeMetal" onchange="document.getElementById(\'rcNewOgTypeTouch\').value=this.value===\'Silver\'?80:91.6"><option value="Gold">Gold (24K Pure Rate)</option><option value="Silver">Silver (Pure Rate)</option></select></label>'
+    + '<label>Default Touch(%)<input id="rcNewOgTypeTouch" type="number" min="1" max="100" step=".01" value="91.6"></label>'
+    + '</div>'
+    + '</div>'
+    + '<div class="rc-og-type-modal-foot">'
+    + '<button type="button" onclick="document.getElementById(\'rcNewOldGoldTypeModal\')?.remove()">Cancel</button>'
+    + '<button type="button" class="primary" onclick="rcOldGoldSaveNewTypeModal()">💾 Save Type</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  setTimeout(() => document.getElementById('rcNewOgTypeName')?.focus(), 40);
+};
+
+window.rcOldGoldSaveNewTypeModal = function(){
+  const nameIn = document.getElementById('rcNewOgTypeName');
+  const metalIn = document.getElementById('rcNewOgTypeMetal');
+  const touchIn = document.getElementById('rcNewOgTypeTouch');
+  const name = String(nameIn?.value || '').trim();
+  if(!name){
+    say('Enter a Type Name.');
+    nameIn?.focus();
+    return;
+  }
+  const metal = metalIn?.value === 'Silver' ? 'Silver' : 'Gold';
+  const touch = n(touchIn?.value) > 0 ? n(touchIn.value) : 91.6;
+  document.getElementById('rcNewOldGoldTypeModal')?.remove();
+  window.rcOldGoldCreateNewType(name, metal, touch);
+};
+
+window.rcBaseGoldRateChanged = function(inp){
+  const form = document.getElementById('rcEstimateForm');
+  if(!form) return;
+  const newBase = n(inp?.value);
+  if(!rcOldGoldFormLocked && newBase > 0){
+    const fType = String(form.elements.exchangeType?.value || 'Old Gold');
+    const isSilver = fType.toLowerCase().includes('silver');
+    if(!isSilver && (!n(db?.rates?.gold24) || n(form.elements.exchangePureRate?.value) === 0 || n(form.elements.exchangePureRate?.value) === n(db?.rates?.gold24))){
+      if(form.elements.exchangePureRate){
+        form.elements.exchangePureRate.value = n(db?.rates?.gold24) || newBase;
+      }
+      window.rcOldGoldFieldChanged();
+      return;
+    }
+  }
   rcRecalc();
 };
 
 window.rcOldGoldFieldChanged = function(){
   const form = document.getElementById('rcEstimateForm');
   if(!form || rcOldGoldFormLocked) return;
+  const fType = String(form.elements.exchangeType?.value || 'Old Gold');
   const gross = n(form.elements.exchangeGross?.value);
-  const test = n(form.elements.exchangeTesting?.value||91.6);
-  const rate = n(form.elements.exchangeRate?.value);
-  const credit = rbRound(gross * test / 100 * rate);
+  const lessType = form.elements.exchangeLessType?.value === 'percent' ? 'percent' : 'grams';
+  const less = n(form.elements.exchangeLess?.value);
+  const lessLbl = document.getElementById('rcOgLessLabel');
+  if(lessLbl) lessLbl.textContent = 'Less (' + (lessType === 'percent' ? '%' : 'g') + ')';
+
+  const lessGrams = lessType === 'percent' ? rbGrams(gross * less / 100) : rbGrams(less);
+  const netWeight = rbGrams(Math.max(0, gross - lessGrams));
+  if(form.elements.exchangeNet){
+    form.elements.exchangeNet.value = (gross > 0 || less > 0) ? netWeight.toFixed(3) : '';
+  }
+
+  let pureRate = n(form.elements.exchangePureRate?.value);
+  if(pureRate <= 0){
+    pureRate = rcGetPureRateFromRateBook(fType, form);
+    if(pureRate > 0 && form.elements.exchangePureRate){
+      form.elements.exchangePureRate.value = pureRate;
+    }
+  }
+  const touch = n(form.elements.exchangeTesting?.value || 91.6);
+  const calcRate = pureRate > 0 ? rbRound(pureRate * touch / 100) : n(form.elements.exchangeRate?.value);
+
+  if(form.elements.exchangeRate){
+    form.elements.exchangeRate.dataset.manualRate = '0';
+    form.elements.exchangeRate.value = calcRate > 0 ? calcRate.toFixed(2) : '';
+  }
+  const credit = rbRound(netWeight * calcRate);
   if(form.elements.exchangeAmount){
+    form.elements.exchangeAmount.dataset.manualAmount = '0';
+    form.elements.exchangeAmount.value = credit > 0 ? credit.toFixed(2) : '';
+  }
+  rcRecalc();
+};
+
+window.rcOldGoldRateManualChanged = function(){
+  const form = document.getElementById('rcEstimateForm');
+  if(!form || rcOldGoldFormLocked) return;
+  if(form.elements.exchangeRate) form.elements.exchangeRate.dataset.manualRate = '1';
+  const gross = n(form.elements.exchangeGross?.value);
+  const lessType = form.elements.exchangeLessType?.value === 'percent' ? 'percent' : 'grams';
+  const less = n(form.elements.exchangeLess?.value);
+  const lessGrams = lessType === 'percent' ? rbGrams(gross * less / 100) : rbGrams(less);
+  const netWeight = rbGrams(Math.max(0, gross - lessGrams));
+  const rate = n(form.elements.exchangeRate?.value);
+  const credit = rbRound(netWeight * rate);
+  if(form.elements.exchangeAmount){
+    form.elements.exchangeAmount.dataset.manualAmount = '0';
     form.elements.exchangeAmount.value = credit > 0 ? credit.toFixed(2) : '';
   }
   rcRecalc();
 };
 
 window.rcOldGoldAmountChanged = function(){
-  if(rcOldGoldFormLocked) return;
+  const form = document.getElementById('rcEstimateForm');
+  if(!form || rcOldGoldFormLocked) return;
+  if(form.elements.exchangeAmount) form.elements.exchangeAmount.dataset.manualAmount = '1';
   rcRecalc();
 };
 
