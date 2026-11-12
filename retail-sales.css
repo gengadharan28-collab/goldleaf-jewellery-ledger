@@ -1102,40 +1102,75 @@ body.dark .rb-balance.rb-balance-paid b {
   box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12) !important;
   transition: all 0.25s ease !important;
 }
-.rc-balance-box span,
-.rc-balance-box #rcBalanceLabel {
-  font-size: 12px !important;
-  font-weight: 800 !important;
+.rc-balance-desktop-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.rc-balance-icon {
+  font-size: 24px !important;
+  line-height: 1 !important;
+}
+.rc-balance-title {
+  font-size: 13px !important;
+  font-weight: 850 !important;
   color: #92400e !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
+  display: block !important;
 }
-.rc-balance-box small {
+.rc-balance-sub {
   font-size: 11px !important;
   font-weight: 600 !important;
   color: #b45309 !important;
+  display: block !important;
 }
-.rc-balance-box b,
-.rc-balance-box #rcBalanceDue {
-  font-size: 26px !important;
+.rc-balance-linear-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.rc-bal-item {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #78350f !important;
+}
+.rc-bal-quote b {
+  color: #1f2937 !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+}
+.rc-bal-advance b {
+  color: #15803d !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+}
+.rc-bal-remaining b {
+  font-size: 24px !important;
   font-weight: 900 !important;
   color: #b45309 !important;
   letter-spacing: -0.5px !important;
+}
+.rc-bal-pipe {
+  color: #d97706 !important;
+  opacity: 0.5 !important;
+  font-weight: 300 !important;
 }
 .rc-balance-box.rc-balance-paid {
   background: #f0fdf4 !important;
   border-color: #16a34a !important;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.14) !important;
 }
-.rc-balance-box.rc-balance-paid span,
-.rc-balance-box.rc-balance-paid #rcBalanceLabel {
+.rc-balance-box.rc-balance-paid .rc-balance-title {
   color: #166534 !important;
 }
-.rc-balance-box.rc-balance-paid small {
+.rc-balance-box.rc-balance-paid .rc-balance-sub {
   color: #15803d !important;
 }
-.rc-balance-box.rc-balance-paid b,
-.rc-balance-box.rc-balance-paid #rcBalanceDue {
+.rc-balance-box.rc-balance-paid .rc-bal-remaining b {
   color: #15803d !important;
 }
 
@@ -1399,6 +1434,26 @@ body.dark .rc-balance-box.rc-balance-paid b {
 }
 
 /* Quotation Advance & Balance Breakdown */
+.rc-advance-card-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 10px !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.rc-advance-title-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+.rc-advance-title {
+  margin: 0 !important;
+  font-size: 14px !important;
+  color: #18392a !important;
+  font-weight: 800 !important;
+}
 .rc-advance-live-badge {
   background: #e8f5e9 !important;
   border: 1px solid #81c784 !important;
@@ -1407,11 +1462,25 @@ body.dark .rc-balance-box.rc-balance-paid b {
   font-size: 11.5px !important;
   font-weight: 750 !important;
   color: #1b5e20 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 .rc-advance-live-badge b {
   font-size: 13.5px !important;
   font-weight: 850 !important;
   color: #166534 !important;
+}
+.rc-adv-badge-bill b {
+  color: #18392a !important;
+}
+.rc-adv-badge-col b {
+  color: #166534 !important;
+}
+.rc-adv-badge-sep {
+  color: #81c784 !important;
+  opacity: 0.7 !important;
+  font-weight: 300 !important;
 }
 .rc-balance-breakdown {
   display: flex !important;
@@ -1500,7 +1569,309 @@ body.dark .rc-advance-live-badge {
 body.dark .rc-advance-live-badge b {
   color: #4ade80 !important;
 }
+[data-theme="dark"] .rc-adv-badge-bill b,
+body.dark .rc-adv-badge-bill b {
+  color: #a7f3d0 !important;
+}
+[data-theme="dark"] .rc-adv-badge-col b,
+body.dark .rc-adv-badge-col b {
+  color: #4ade80 !important;
+}
+[data-theme="dark"] .rc-adv-badge-sep,
+body.dark .rc-adv-badge-sep {
+  color: #4caf50 !important;
+}
 [data-theme="dark"] .rc-balance-breakdown,
 body.dark .rc-balance-breakdown {
   color: #fde68a !important;
+}
+[data-theme="dark"] .rc-bal-quote,
+body.dark .rc-bal-quote {
+  color: #9ca3af !important;
+}
+[data-theme="dark"] .rc-bal-quote b,
+body.dark .rc-bal-quote b {
+  color: #f3f4f6 !important;
+}
+[data-theme="dark"] .rc-bal-advance,
+body.dark .rc-bal-advance {
+  color: #86efac !important;
+}
+[data-theme="dark"] .rc-bal-advance b,
+body.dark .rc-bal-advance b {
+  color: #4ade80 !important;
+}
+[data-theme="dark"] .rc-bal-remaining,
+body.dark .rc-bal-remaining {
+  color: #fde68a !important;
+}
+[data-theme="dark"] .rc-bal-remaining b,
+body.dark .rc-bal-remaining b {
+  color: #fbbf24 !important;
+}
+[data-theme="dark"] .rc-bal-pipe,
+body.dark .rc-bal-pipe {
+  color: #d97706 !important;
+}
+
+/* ==========================================================================
+   Mobile-Only Quotation & Balance Layout (@media max-width: 760px)
+   1. Very small Old Gold Exchange toggle & dropdown
+   2. Compact Advance Collection with Bill Total & Collected Amount
+   3. Very simple, lineable, very small Balance to Pay layout
+   ========================================================================== */
+@media screen and (max-width: 760px) {
+  /* 1. Ultra-Compact Old Gold Exchange Layout (Mobile Only) */
+  body.optionc-mobile .rc-old-gold-wrap,
+  .rc-old-gold-wrap {
+    margin: 4px 0 !important;
+    border: 1px solid #d97706 !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    background: #fffdfa !important;
+  }
+  body.optionc-mobile button.rc-old-gold-btn,
+  body.optionc-mobile .rc-old-gold-btn,
+  button.rc-old-gold-btn,
+  .rc-old-gold-btn {
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 2px 8px !important;
+    border-radius: 5px !important;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  }
+  .rc-old-gold-btn-left {
+    gap: 4px !important;
+  }
+  .rc-old-gold-icon {
+    font-size: 12px !important;
+  }
+  .rc-old-gold-title {
+    font-size: 10.5px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0 !important;
+  }
+  .rc-old-gold-badge {
+    font-size: 9.5px !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    margin-left: 2px !important;
+  }
+  .rc-old-gold-hint {
+    display: none !important;
+  }
+  .rc-old-gold-chevron {
+    font-size: 10px !important;
+  }
+  .rc-old-gold-dropdown {
+    padding: 5px 8px !important;
+    background: #fffdf7 !important;
+  }
+  .rc-old-gold-dropdown-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 3px !important;
+    border-bottom: 1px dashed rgba(217, 119, 6, 0.25) !important;
+  }
+  .rc-old-gold-dropdown-head div:first-child span {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+  }
+  .rc-old-gold-dropdown-head small {
+    display: none !important;
+  }
+  .rc-old-gold-credit-pill {
+    padding: 1px 5px !important;
+    font-size: 9.5px !important;
+    border-radius: 3px !important;
+  }
+  .rc-old-gold-credit-pill b {
+    font-size: 10px !important;
+  }
+  body[data-erp] .rc-old-gold-dropdown input:not([type="checkbox"]):not([type="radio"]),
+  body.optionc-mobile .rc-old-gold-dropdown input,
+  .rc-old-gold-dropdown input {
+    min-height: 27px !important;
+    height: 27px !important;
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    border: 1px solid #d97706 !important;
+  }
+  .rc-old-gold-dropdown label {
+    margin: 0 !important;
+    gap: 1px !important;
+  }
+  .rc-old-gold-dropdown label span {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    margin-bottom: 1px !important;
+  }
+  .rc-old-gold-dropdown .rc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  /* 2. Compact Advance Collection Card with Bill Total (Mobile Only) */
+  body[data-erp] .rc-advance-collection-card,
+  body.optionc-mobile .rc-advance-collection-card,
+  .rc-advance-collection-card {
+    margin-top: 6px !important;
+    padding: 6px 8px !important;
+    border: 1.5px solid #18392a !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .rc-advance-card-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 5px !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+  }
+  .rc-advance-title-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .rc-advance-title {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+  }
+  .rb-collection-highlight-badge {
+    font-size: 8.5px !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+  }
+  .rc-advance-live-badge {
+    padding: 2px 5px !important;
+    font-size: 9.5px !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+  }
+  .rc-advance-live-badge b {
+    font-size: 10.5px !important;
+  }
+  .rc-adv-badge-sep {
+    font-size: 9px !important;
+  }
+  body[data-erp] .rc-advance-collection-card input:not([type="checkbox"]):not([type="radio"]),
+  body[data-erp] .rc-advance-input,
+  body.optionc-mobile .rc-advance-collection-card input,
+  body.optionc-mobile .rc-advance-input,
+  .rc-advance-input {
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+  body[data-erp] .rc-advance-collection-card select,
+  body.optionc-mobile .rc-advance-collection-card select,
+  .rc-advance-collection-card select {
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+  body.optionc-mobile .rc-advance-collection-card label,
+  .rc-advance-collection-card label {
+    margin: 0 !important;
+    gap: 2px !important;
+  }
+  body.optionc-mobile .rc-advance-collection-card label span,
+  .rc-advance-collection-card label span {
+    font-size: 9.5px !important;
+  }
+  .rc-advance-collection-card .rc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  /* 3. Very Simple, Lineable, Very Small Balance to Pay (Mobile Only) */
+  body.optionc-mobile #rcBalanceBox,
+  #rcBalanceBox,
+  .rc-balance-box {
+    margin-top: 6px !important;
+    padding: 5px 8px !important;
+    min-height: 28px !important;
+    border-radius: 6px !important;
+    border: 1.5px solid #d97706 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #fffbf0 !important;
+  }
+  .rc-balance-desktop-head {
+    display: none !important;
+  }
+  .rc-balance-linear-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 2px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+  }
+  .rc-bal-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+  .rc-bal-quote {
+    color: #4b5563 !important;
+  }
+  .rc-bal-quote b {
+    color: #1f2937 !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+  }
+  .rc-bal-advance {
+    color: #166534 !important;
+  }
+  .rc-bal-advance b {
+    color: #15803d !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+  }
+  .rc-bal-remaining {
+    color: #92400e !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+  }
+  .rc-bal-remaining b {
+    color: #b45309 !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+  }
+  .rc-bal-pipe {
+    color: #d97706 !important;
+    opacity: 0.4 !important;
+    font-weight: 300 !important;
+    font-size: 9px !important;
+    padding: 0 1px !important;
+  }
+
+  /* Paid state in mobile view */
+  #rcBalanceBox.rc-balance-paid {
+    background: #f0fdf4 !important;
+    border-color: #16a34a !important;
+  }
+  #rcBalanceBox.rc-balance-paid .rc-bal-remaining,
+  #rcBalanceBox.rc-balance-paid .rc-bal-remaining b {
+    color: #15803d !important;
+  }
 }

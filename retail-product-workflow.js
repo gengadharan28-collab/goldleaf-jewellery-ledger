@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.28';
+const GL_PRODUCT_VERSION = '2.10.29';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -212,14 +212,14 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.28');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.28</b> · 11 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.27 · 11 Nov 2026</h3>');
-  const v28Note = '<article class="release-note"><h3>v2.10.28 · 11 Nov 2026 · Current</h3><ul>'
-    + '<li>Mobile View Total Collected Amount Display: Resolved mobile view issue by clearly presenting the live formatted Total Collected Amount (₹ 5,000.00) in Bill Totals, Payment Collection panel, and live balance breakdown on mobile screens.</li>'
-    + '<li>Quotation Old Gold Exchange Dropdown Button: Added dedicated toggle button for Old Gold Exchange in mobile and desktop view that drops down on click to enter gross weight, testing purity, and exchange rate with instant live calculation.</li>'
-    + '<li>Eliminated Mobile Balance Overlay: Converted sticky balance on mobile to natural document flow, preventing overlap with form inputs and action buttons.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.29');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.29</b> · 12 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.28 · 11 Nov 2026</h3>');
+  const v29Note = '<article class="release-note"><h3>v2.10.29 · 12 Nov 2026 · Current</h3><ul>'
+    + '<li>Mobile View Ultra-Compact Old Gold Exchange: Minimized button, inputs, and dropdown padding on mobile to an ultra-compact size, saving screen space.</li>'
+    + '<li>Advance Collection Total Bill Display: Live Bill Total is now shown directly alongside Collected Amount in the Advance Collection card.</li>'
+    + '<li>Single-Line Streamlined Balance to Pay: Streamlined mobile Balance to Pay into a simple, lineable, and very small linear strip showing Quote Total, Advance, and Remaining Balance on a single line.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v28Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v29Note);
 };
 render();

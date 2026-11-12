@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.28';
+const RC_VERSION='2.10.29';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -582,9 +582,9 @@ function rcQuoteForm(){
     +'</div>'
     +'</div>'
     +'<div class="rc-advance-collection-card">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE COLLECTION</span><h2 style="margin:0;font-size:14px;color:#18392a;font-weight:800">Advance / Collected Amount</h2></div>'
-    +'<div class="rc-advance-live-badge">Total Advance: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></div>'
+    +'<div class="rc-advance-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
+    +'<div class="rc-advance-title-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE COLLECTION</span><h2 class="rc-advance-title" style="margin:0;font-size:14px;color:#18392a;font-weight:800">Advance / Collected Amount</h2></div>'
+    +'<div class="rc-advance-live-badge"><span class="rc-adv-badge-bill">Bill Total: <b id="rcAdvBillTotal">₹ 0.00</b></span> <span class="rc-adv-badge-sep">|</span> <span class="rc-adv-badge-col">Collected: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></span></div>'
     +'</div>'
     +'<div class="rc-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
     +'<label style="margin:0"><span style="font-size:12px;font-weight:800;color:#18392a">Advance Collected · ₹ *</span><input name="collectedAmount" class="rc-advance-input" type="number" inputmode="decimal" min="0" step=".01" placeholder="0.00" value="'+(q?.collectedAmount||'')+'" oninput="rcRecalc()"></label>'
@@ -602,14 +602,18 @@ function rcQuoteForm(){
     +'<span>Estimate Total <b id="rcFinal" style="display:block;font-size:14px;color:var(--green,#18392a)">₹ 0.00</b></span>'
     +'<span class="rc-advance-total-badge">💵 Advance Collected <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">₹ 0.00</b></span>'
     +'</div>'
-    +'<div id="rcBalanceBox" class="rc-balance-box rc-balance-due" style="margin-top:12px;padding:14px 18px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<span style="font-size:24px">⚖️</span>'
-    +'<div><span id="rcBalanceLabel" style="font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small style="font-size:11px;color:#b45309;font-weight:600">Net balance after advance collection</small>'
-    +'<div class="rc-balance-breakdown"><span>Quote Total: <b id="rcBalGrandTotal">₹ 0.00</b></span><span class="rc-balance-sep">•</span><span>Advance: <b id="rcBalAdvance">₹ 0.00</b></span></div>'
+    +'<div id="rcBalanceBox" class="rc-balance-box rc-balance-due">'
+    +'<div class="rc-balance-desktop-head">'
+    +'<span class="rc-balance-icon" style="font-size:24px">⚖️</span>'
+    +'<div><span id="rcBalanceLabel" class="rc-balance-title" style="font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small class="rc-balance-sub" style="font-size:11px;color:#b45309;font-weight:600">Net balance after advance collection</small></div>'
     +'</div>'
+    +'<div class="rc-balance-linear-bar">'
+    +'<span class="rc-bal-item rc-bal-quote">Quote: <b id="rcBalGrandTotal">₹ 0.00</b></span>'
+    +'<span class="rc-bal-pipe">|</span>'
+    +'<span class="rc-bal-item rc-bal-advance">Adv: <b id="rcBalAdvance">₹ 0.00</b></span>'
+    +'<span class="rc-bal-pipe">|</span>'
+    +'<span class="rc-bal-item rc-bal-remaining"><span class="rc-bal-rem-text">Remaining: </span><b id="rcBalanceDue">₹ 0.00</b></span>'
     +'</div>'
-    +'<b id="rcBalanceDue" style="font-size:26px;font-weight:900;color:#b45309;letter-spacing:-0.5px">₹ 0.00</b>'
     +'</div>'
     +'</section>'
 
@@ -956,7 +960,7 @@ function rcRecalc(){
   const goldTesting = n(form.elements.exchangeTesting?.value||91.6);
   const goldRate = n(form.elements.exchangeRate?.value);
   const goldCredit = rbRound(goldGross * goldTesting / 100 * goldRate);
-  const finalVal = rbRound(discounted + gst - goldCredit);
+  const finalVal = rbRound(Math.max(0, discounted + gst - goldCredit));
   const collected = n(form.elements.collectedAmount?.value);
   const balanceDue = rbRound(Math.max(0, finalVal - collected));
 
@@ -989,6 +993,8 @@ function rcRecalc(){
   if(elFinal) elFinal.textContent = rateMoney(finalVal);
   const elCol = document.getElementById('rcCollected');
   if(elCol) elCol.textContent = rateMoney(collected);
+  const elAdvBill = document.getElementById('rcAdvBillTotal');
+  if(elAdvBill) elAdvBill.textContent = rateMoney(finalVal);
   const elAdvLive = document.getElementById('rcAdvanceLiveTotal');
   if(elAdvLive) elAdvLive.textContent = rateMoney(collected);
   const elBal = document.getElementById('rcBalanceDue');
@@ -1001,12 +1007,15 @@ function rcRecalc(){
   if(balBox){
     balBox.classList.remove('rc-balance-paid', 'rc-balance-due');
     const balLbl = document.getElementById('rcBalanceLabel');
+    const balRemText = balBox.querySelector('.rc-bal-rem-text');
     if(balanceDue === 0 && finalVal > 0){
       balBox.classList.add('rc-balance-paid');
       if(balLbl) balLbl.textContent = '✓ BALANCE FULLY SETTLED';
+      if(balRemText) balRemText.textContent = 'Settled: ';
     } else {
       balBox.classList.add('rc-balance-due');
       if(balLbl) balLbl.textContent = 'BALANCE TO PAY';
+      if(balRemText) balRemText.textContent = 'Remaining: ';
     }
   }
   const elCount = document.getElementById('rcQuoteItemCount');
