@@ -13,7 +13,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
 
 /* Goldleaf Retail product and tagging fields, optimized for phone entry. */
 .rc-master-form{grid-template-columns:repeat(3,minmax(0,1fr))}.rc-scan-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}.rc-scan-wrap button{min-height:42px;white-space:nowrap}.rc-tagging-groups{display:grid;gap:10px}.rc-item-mode{display:inline-flex;align-items:center;border-radius:8px;background:var(--mint);padding:5px 8px;font-weight:700}
-@media(max-width:760px){.rc-master-form{grid-template-columns:minmax(0,1fr)!important}.rc-scan-wrap input,.rc-scan-wrap button{min-height:46px;font-size:16px}.rc-master-form>label{font-size:12px!important}.rc-master-form input:not([type="checkbox"]):not([type="radio"]),.rc-master-form select{font-size:16px!important;min-height:46px!important}.rc-master-form .rc-actions{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));background:var(--white);padding:8px 0;z-index:5}.rc-master-form .rc-actions button{min-height:48px}.rc-content .panel{overflow:visible}.rc-content .table{border-radius:10px}.rc-content table:not(#rcQuoteTable){min-width:900px!important}.rc-item{grid-template-columns:minmax(0,1fr)!important}.rc-item output,.rc-item>button{grid-column:1/-1}.rc-mobile-select{position:sticky;top:50px;z-index:6;background:var(--paper);padding:5px 0}}
+@media(max-width:760px){.rc-master-form{grid-template-columns:minmax(0,1fr)!important}.rc-scan-wrap input,.rc-scan-wrap button{min-height:46px;font-size:16px}.rc-master-form>label{font-size:12px!important}.rc-master-form input:not([type="checkbox"]):not([type="radio"]),.rc-master-form select{font-size:16px!important;min-height:46px!important}.rc-master-form .rc-actions{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));background:var(--white);padding:8px 0;z-index:5}.rc-master-form .rc-actions button{min-height:48px}.rc-content .panel{overflow:visible}.rc-content .table{border-radius:10px}.rc-content table:not(#rcQuoteTable):not(#rbItemsTable){min-width:900px!important}.rc-item{grid-template-columns:minmax(0,1fr)!important}.rc-item output,.rc-item>button{grid-column:1/-1}.rc-mobile-select{position:sticky;top:50px;z-index:6;background:var(--paper);padding:5px 0}}
 
 /* Full Retail product-tag batch layout: dense desktop grid, touch-sized mobile cards and contained tables. */
 .rc-tag-batch-meta{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
@@ -105,7 +105,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
   body[data-erp] .rc-actions button,body[data-erp] .rc-content button{border-radius:11px}
   body[data-erp] .rc-content>.panel>.rc-section-title>button{min-height:40px;background:#f4ead6;border-color:#e7d7b9;color:#624c2c;font-weight:700}
   body[data-erp] .rc-content .table{border:1px solid #e9e1d3;border-radius:13px;background:#fffefa;overscroll-behavior-x:contain;scrollbar-width:thin}
-  body[data-erp] .rc-content table:not(#rcQuoteTable){min-width:850px!important}
+  body[data-erp] .rc-content table:not(#rcQuoteTable):not(#rbItemsTable){min-width:850px!important}
   body[data-erp] .rc-preview-grid,body[data-erp] .rc-tag-preview-grid{gap:8px}
   body[data-erp] .rc-tag-preview-grid article{border-color:#e5d7bf;border-radius:12px;background:#fffefa}
   body[data-erp] .rc-chit-overview .rc-totals{grid-template-columns:repeat(2,minmax(0,1fr))}

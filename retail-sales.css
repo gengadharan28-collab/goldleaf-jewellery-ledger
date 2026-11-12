@@ -3,7 +3,7 @@
  .rb-screen{display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;height:100%;min-height:0;gap:10px;transform:none!important;width:100%!important}
  .rb-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:38px}.rb-header h1{font:750 21px/1.2 Inter,"Segoe UI",Arial,sans-serif;letter-spacing:-.4px;margin:2px 0}.rb-header .eyebrow{font-size:8px}.rb-tools{display:flex;gap:5px}.rb-tools button{min-height:31px;padding:5px 10px;font-size:11px}
  .rb-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);padding-bottom:7px;scrollbar-width:thin;flex-shrink:0}.rb-tabs>button{min-height:31px;padding:6px 13px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:11px;white-space:nowrap}.rb-tabs>button.active{background:var(--mint);border-color:#d8c39c;color:var(--erp-accent);font-weight:750}
- .rb-form{display:grid;min-width:0;gap:10px}.rb-form>.panel,.rb-settlement>.panel{margin:0!important;padding:13px!important;border-radius:7px!important}.rb-field{display:grid;gap:4px;align-content:start;min-width:0;font-size:11px}.rb-field>span{font-size:9px;font-weight:650;color:var(--muted)}.rb-field input,.rb-field select,.rb-field textarea{width:100%;min-width:0;min-height:34px;padding:6px 8px;font-size:12px;border-radius:5px}.rb-field input[type=file]{padding:4px;font-size:10px}.rb-account-grid{display:grid;grid-template-columns:minmax(100px,.7fr) minmax(170px,1.1fr) minmax(150px,1.2fr) minmax(140px,1fr) minmax(100px,.7fr);gap:9px;align-items:end}.rb-contact{display:grid;gap:4px;min-width:0;padding:7px 9px;background:var(--mint);border:1px solid var(--line);border-radius:5px;font-size:11px;min-height:52px}.rb-contact span,.rb-contact small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rb-contact small{font-size:9px;color:var(--muted)}
+ .rb-form{display:grid;min-width:0;gap:10px}.rb-form>.panel,.rb-settlement>.panel{margin:0!important;padding:13px!important;border-radius:7px!important}.rb-field{display:grid;gap:4px;align-content:start;min-width:0;font-size:11px}.rb-field>span{font-size:9px;font-weight:650;color:var(--muted)}.rb-field input,.rb-field select,.rb-field textarea{width:100%;min-width:0;min-height:34px;padding:6px 8px;font-size:12px;border-radius:5px}.rb-field input[type=file]{padding:4px;font-size:10px}.rb-account-grid{display:grid;grid-template-columns:minmax(100px,.7fr) minmax(170px,1.1fr) minmax(150px,1.2fr) minmax(140px,1fr) minmax(100px,.7fr);gap:9px;align-items:end}.rb-contact{display:grid;gap:4px;min-width:0;padding:7px 9px;background:var(--mint);border:1px solid var(--line);border-radius:5px;font-size:11px;min-height:52px}.rb-contact span,.rb-contact small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rb-contact small{font-size:9px;color:var(--muted)}.rb-contact-lbl{display:none}.rb-contact-card{display:block;min-width:0}
  .rb-bill-details{margin-top:8px}.rb-bill-details>summary{font-size:10px;color:var(--erp-accent);cursor:pointer}.rb-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:10px}.rb-detail-grid .hint{grid-column:1/-1}.rb-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}.rb-section-head h2{margin:0!important;font-size:14px!important;font-weight:700!important}.rb-section-head>div{display:flex;gap:9px;align-items:center}.rb-section-head span{font-size:9px;color:var(--muted)}.rb-section-head button,.rb-adjustment-grid > button{font-size:10px;padding:4px 9px;min-height:29px}
  .rb-items{display:flex;flex-direction:column;min-height:0;min-width:0}.rb-item-scroll{overflow:auto;min-height:0;flex:1;border:1px solid var(--line);border-radius:5px;scrollbar-width:thin;background:var(--white)}#rbItemsTable{width:100%;min-width:1350px;border-collapse:collapse!important;table-layout:fixed;background:var(--white)}#rbItemsTable thead{display:table-header-group!important;position:static!important;width:auto!important;height:auto!important;clip:auto!important;overflow:visible!important}#rbItemsTable tbody{display:table-row-group!important}#rbItemsTable tr{display:table-row!important;padding:0!important;background:var(--white);border:0!important;box-shadow:none!important}#rbItemsTable th,#rbItemsTable td{display:table-cell!important;text-align:left!important;padding:7px 5px!important;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:10px;vertical-align:middle}#rbItemsTable td:before{display:none!important}#rbItemsTable th{font-size:8px;letter-spacing:0;text-transform:none;position:sticky;top:0;background:var(--erp-soft);z-index:2;color:var(--muted)}#rbItemsTable th:first-child{width:34px}#rbItemsTable th:nth-child(2){width:125px}#rbItemsTable th:nth-child(3){width:94px}#rbItemsTable th:nth-child(4){width:50px}#rbItemsTable th:nth-child(9){width:120px}#rbItemsTable th:nth-child(11){width:92px}#rbItemsTable th:nth-last-child(2){width:112px}#rbItemsTable th:last-child{width:96px}#rbItemsTable input,#rbItemsTable select{width:100%;min-width:0;height:31px;min-height:31px;padding:4px 5px;font-size:11px;border-radius:3px}#rbItemsTable .rb-wastage-cell{display:table-cell}.rb-wastage-cell>select{width:40px!important;display:inline-block}.rb-wastage-cell>input{width:calc(100% - 43px)!important;display:inline-block}.rb-line-amount{background:var(--erp-soft-2)!important;font-weight:750}.rb-item-actions{background:var(--white)!important}.rb-item-actions button{min-height:28px;padding:3px 7px;font-size:11px}#rbItemsTable tfoot{font-weight:750;position:sticky;bottom:0;background:var(--erp-soft);z-index:2}#rbItemsTable tfoot tr{background:var(--erp-soft)}.rb-item-details>td{background:var(--erp-soft-2)!important}.rb-item-details .rb-detail-grid{max-width:1100px;margin:5px}
  .rb-settlement{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(275px,1fr);gap:10px;min-height:0}
@@ -217,12 +217,12 @@
  .rb-screen>* ,.rp-screen>* ,.rc-screen>*{min-width:0;max-width:100%}
  .rb-header,body[data-erp] .rb-header,.rc-screen .rb-header{display:none!important}
  .rp-header{position:sticky;top:0;z-index:8;padding:8px 0;background:var(--paper);}
- .rb-account-grid,.rb-record-grid,.rp-head-grid,.rp-source-grid,.rc-grid,.rc-chit-definition-form>.rc-grid,.rc-chit-type-form>.rc-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
- .rb-account-grid>.rb-field,.rb-record-grid>.rb-field,.rp-head-grid>.rb-field,.rc-grid>label,.rc-grid>.rc-wide,.rb-wide{grid-column:1/-1!important}
+ .rb-record-grid,.rp-head-grid,.rp-source-grid,.rc-grid,.rc-chit-definition-form>.rc-grid,.rc-chit-type-form>.rc-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+ .rb-record-grid>.rb-field,.rp-head-grid>.rb-field,.rc-grid>label,.rc-grid>.rc-wide,.rb-wide{grid-column:1/-1!important}
  .rb-bill-screen .rb-form,.rb-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important;gap:10px!important;min-height:0!important;overflow:visible!important}
  .rb-settlement{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:visible!important}
  .rb-items,.rb-item-scroll{width:100%;max-width:100%;max-height:none!important;min-height:0!important;overflow-x:auto!important;overflow-y:visible!important}
- #rbItemsTable{min-width:1050px!important}
+ #rbItemsTable{min-width:0!important}
  .rb-form .rb-totals-scroll{columns:1!important;max-height:none!important;overflow:visible!important}
  .rb-balance{width:100%!important;position:relative!important;bottom:auto!important;margin:12px 0!important;z-index:auto!important;box-shadow:0 4px 14px rgba(217,119,6,0.12)!important}
  .rb-bill-actions,.rb-record-columns .right,.rc-actions{display:grid!important;grid-template-columns:1fr!important;position:relative!important;bottom:auto!important;z-index:auto!important;background:transparent!important;padding:9px 0!important}
@@ -232,7 +232,7 @@
  .rp-controls{grid-template-columns:minmax(0,1fr)!important}
  .rc-item{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .rc-content .table,.rb-record-history .table,.rp-record-history .table{width:100%;max-width:100%;overflow-x:auto!important;overscroll-behavior-x:contain}
- .rc-content table:not(#rcQuoteTable),.rb-record-history table,.rp-record-history table{min-width:680px!important}
+ .rc-content table:not(#rcQuoteTable):not(#rbItemsTable),.rb-record-history table,.rp-record-history table{min-width:680px!important}
  .rc-section-title{flex-wrap:wrap}
  .rc-section-title>button{min-height:42px}
  .retail-modal-backdrop{padding:8px!important}
@@ -3823,3 +3823,672 @@ body.dark .rc-quote-rate-card input {
   color: #fef08a !important;
   border-color: #854d0e !important;
 }
+
+/* ==========================================================================
+   Customer Sale Entry - Mobile Compact Left & Right Cards (v2.10.40)
+   ========================================================================== */
+@media screen and (max-width: 760px) {
+  /* --- 1. BILL DETAILS COMPACT LEFT & RIGHT CARD GRID --- */
+  .rb-account.panel {
+    padding: 8px 10px !important;
+    border-radius: 9px !important;
+  }
+  .rb-account.panel .rb-section-head {
+    margin-bottom: 6px !important;
+  }
+  .rb-account.panel .rb-section-head h2 {
+    font-size: 13px !important;
+    font-weight: 750 !important;
+  }
+
+  .rb-account-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  .rb-account-grid > .rb-field {
+    grid-column: auto !important;
+    padding: 4px 6px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 7px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .rb-account-grid > .rb-field > span,
+  .rb-account-grid .rb-customer-field-label label {
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.1 !important;
+  }
+
+  .rb-account-grid .rb-customer-field-label {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .rb-account-grid .rb-customer-field-label button {
+    height: 18px !important;
+    min-height: 18px !important;
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    padding: 0 5px !important;
+    border-radius: 4px !important;
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    cursor: pointer !important;
+  }
+
+  .rb-account-grid input,
+  .rb-account-grid select {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    font-size: 11.5px !important;
+    padding: 2px 5px !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Compact City & Phone cards: arranged Left & Right in row 3 */
+  .rb-contact {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    min-height: 0 !important;
+  }
+
+  .rb-contact .rb-contact-card {
+    padding: 4px 6px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 7px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .rb-contact-lbl {
+    display: block !important;
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.1 !important;
+  }
+
+  .rb-contact span,
+  .rb-contact small {
+    display: block !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* More bill details accordion */
+  .rb-bill-details {
+    margin-top: 5px !important;
+    padding-top: 3px !important;
+    border-top: 1px dashed #e2e8f0 !important;
+  }
+
+  .rb-bill-details > summary {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #2563eb !important;
+    cursor: pointer !important;
+    padding: 2px 0 !important;
+  }
+
+  .rb-detail-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    margin-top: 5px !important;
+  }
+
+  .rb-detail-grid .rb-field {
+    padding: 4px 6px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 7px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    grid-column: auto !important;
+  }
+
+  .rb-detail-grid .rb-field:has(input[type=file]),
+  .rb-detail-grid .rb-field:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .rb-detail-grid .rb-field > span {
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .rb-detail-grid input,
+  .rb-detail-grid select {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    font-size: 11.5px !important;
+    padding: 2px 5px !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+
+  .rb-detail-grid input[type=file] {
+    padding: 2px !important;
+    font-size: 10px !important;
+  }
+
+  /* --- 2. JEWELLERY ITEMS COMPACT LEFT & RIGHT CARD GRID --- */
+  .rb-items.panel {
+    padding: 8px 10px !important;
+    border-radius: 9px !important;
+  }
+
+  .rb-items.panel .rb-section-head {
+    margin-bottom: 6px !important;
+  }
+
+  .rb-items.panel .rb-section-head h2 {
+    font-size: 13px !important;
+    font-weight: 750 !important;
+  }
+
+  .rb-items.panel .rb-section-head button {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    padding: 2px 8px !important;
+    border-radius: 5px !important;
+  }
+
+  .rb-tag-field-unified {
+    margin-bottom: 6px !important;
+    border-radius: 7px !important;
+  }
+
+  .rb-tag-field-unified input {
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  .rb-tag-field-unified .gl-scan-btn-embedded,
+  .rb-tag-field-unified .gl-add-tag-btn {
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 11px !important;
+  }
+
+  body[data-erp] .rb-items.panel,
+  body[data-erp] .rb-item-scroll,
+  .rb-items.panel,
+  .rb-item-scroll {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  body[data-erp] #rbItemsTable,
+  #rbItemsTable {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-sizing: border-box !important;
+  }
+
+  #rbItemsTable thead,
+  #rbItemsTable tfoot {
+    display: none !important;
+  }
+
+  /* Item Card Container */
+  body[data-erp] #rbItemsTable tbody.rb-item,
+  #rbItemsTable tbody.rb-item {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 9px !important;
+    padding: 6px !important;
+    margin: 0 0 8px 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2-column Left & Right grid inside each item card */
+  body[data-erp] #rbItemsTable tbody.rb-item > tr:first-child,
+  #rbItemsTable tbody.rb-item > tr:first-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Card Header: Item # and metal type badge */
+  #rbItemsTable td.rb-index {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 2px 4px 4px !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    margin-bottom: 2px !important;
+  }
+
+  #rbItemsTable td.rb-index .rb-index-num {
+    display: none !important;
+  }
+
+  #rbItemsTable td.rb-index .rb-index-badge {
+    display: inline-block !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+    color: #475569 !important;
+    background: #f1f5f9 !important;
+    padding: 2px 7px !important;
+    border-radius: 4px !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  #rbItemsTable td.rb-index::before {
+    display: none !important;
+  }
+
+  /* Each field cell: styled as a compact Left or Right mini-card */
+  #rbItemsTable tbody.rb-item > tr:first-child > td:not(.rb-index):not(.rb-line-amount):not(.rb-item-actions) {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 3px 5px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 7px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    grid-column: auto !important;
+  }
+
+  /* Dedicated semantic labels via ::before */
+  #rbItemsTable tbody.rb-item > tr:first-child > td::before {
+    display: block !important;
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.1 !important;
+  }
+
+  #rbItemsTable td.rb-tag-cell::before { content: 'TAG / CODE' !important; }
+  #rbItemsTable td.rb-product::before { content: 'PRODUCT *' !important; }
+  #rbItemsTable td.rb-huid-cell::before { content: 'HUID' !important; }
+  #rbItemsTable td.rb-pcs-cell::before { content: 'PIECES *' !important; }
+  #rbItemsTable td.rb-gross-cell::before { content: 'GROSS WT (g) *' !important; }
+  #rbItemsTable td.rb-less-cell::before { content: 'LESS WT (g)' !important; }
+  #rbItemsTable td.rb-net-cell::before { content: 'NET WT (g)' !important; }
+  #rbItemsTable td.rb-purity-cell::before { content: 'PURITY *' !important; }
+  #rbItemsTable td.rb-wastage-cell::before { content: 'WASTAGE' !important; }
+  #rbItemsTable td.rb-rate-cell::before { content: 'RATE / g (₹) *' !important; }
+  #rbItemsTable td.rb-making-cell::before { content: 'MAKING BASIS' !important; }
+  #rbItemsTable td.rb-making-rate-cell::before { content: 'MAKING CHARGE (₹)' !important; }
+
+  /* Compact item inputs and selects */
+  #rbItemsTable tbody.rb-item input,
+  #rbItemsTable tbody.rb-item select {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    font-size: 11.5px !important;
+    padding: 2px 5px !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Tag scan cell */
+  #rbItemsTable .rb-tag-cell .rc-scan-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    width: 100% !important;
+  }
+  #rbItemsTable .rb-tag-cell input {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  #rbItemsTable .rb-tag-cell .gl-scan-btn {
+    height: 26px !important;
+    min-height: 26px !important;
+    width: 26px !important;
+    padding: 2px !important;
+    flex-shrink: 0 !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Net weight badge */
+  #rbItemsTable .rb-net-cell output {
+    height: 26px !important;
+    line-height: 24px !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    text-align: center !important;
+    color: #1e293b !important;
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Wastage cell */
+  #rbItemsTable .rb-wastage-cell {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+  }
+  #rbItemsTable .rb-wastage-cell::before {
+    width: 100% !important;
+  }
+  #rbItemsTable .rb-wastage-cell > select {
+    width: 36px !important;
+    flex-shrink: 0 !important;
+  }
+  #rbItemsTable .rb-wastage-cell > input {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+
+  /* Item Amount highlight banner: spans both columns */
+  #rbItemsTable td.rb-line-amount {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: #ecfdf5 !important;
+    border: 1px solid #a7f3d0 !important;
+    border-radius: 7px !important;
+    padding: 5px 8px !important;
+    margin-top: 2px !important;
+    box-sizing: border-box !important;
+  }
+  #rbItemsTable td.rb-line-amount::before {
+    content: 'ITEM AMOUNT' !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    color: #047857 !important;
+    margin-bottom: 0 !important;
+    letter-spacing: 0.3px !important;
+  }
+  #rbItemsTable td.rb-line-amount output {
+    font-size: 13.5px !important;
+    font-weight: 850 !important;
+    color: #065f46 !important;
+  }
+
+  /* Action buttons: spans both columns */
+  #rbItemsTable td.rb-item-actions {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 0 0 !important;
+  }
+  #rbItemsTable td.rb-item-actions::before {
+    display: none !important;
+  }
+  #rbItemsTable td.rb-item-actions button {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+  #rbItemsTable td.rb-item-actions button:first-child {
+    flex: 1 !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    padding: 2px 8px !important;
+  }
+  #rbItemsTable td.rb-item-actions button:last-child {
+    height: 27px !important;
+    min-height: 27px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 6px !important;
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+  }
+
+  /* Expanded Item Details row */
+  #rbItemsTable tr.rb-item-details {
+    display: block !important;
+    grid-column: 1 / -1 !important;
+    border-top: 1px dashed #cbd5e1 !important;
+    margin-top: 4px !important;
+    padding: 6px 0 0 !important;
+    background: transparent !important;
+  }
+  #rbItemsTable tr.rb-item-details > td {
+    display: block !important;
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  #rbItemsTable tr.rb-item-details .rb-detail-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+  #rbItemsTable tr.rb-item-details .rb-field {
+    padding: 3px 5px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  #rbItemsTable tr.rb-item-details .rb-field > span {
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+  }
+  #rbItemsTable tr.rb-item-details input,
+  #rbItemsTable tr.rb-item-details select {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 11.5px !important;
+    padding: 2px 5px !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+}
+
+/* Dark mode for Customer Sale Entry compact cards */
+[data-theme="dark"] .rb-account-grid > .rb-field,
+[data-theme="dark"] .rb-contact .rb-contact-card,
+[data-theme="dark"] .rb-detail-grid .rb-field,
+body.dark .rb-account-grid > .rb-field,
+body.dark .rb-contact .rb-contact-card,
+body.dark .rb-detail-grid .rb-field {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .rb-account-grid > .rb-field > span,
+[data-theme="dark"] .rb-contact-lbl,
+[data-theme="dark"] .rb-detail-grid .rb-field > span,
+body.dark .rb-account-grid > .rb-field > span,
+body.dark .rb-contact-lbl,
+body.dark .rb-detail-grid .rb-field > span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .rb-account-grid input,
+[data-theme="dark"] .rb-account-grid select,
+[data-theme="dark"] .rb-detail-grid input,
+[data-theme="dark"] .rb-detail-grid select,
+body.dark .rb-account-grid input,
+body.dark .rb-account-grid select,
+body.dark .rb-detail-grid input,
+body.dark .rb-detail-grid select {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] .rb-contact span,
+[data-theme="dark"] .rb-contact small,
+body.dark .rb-contact span,
+body.dark .rb-contact small {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] #rbItemsTable tbody.rb-item,
+body.dark #rbItemsTable tbody.rb-item {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] #rbItemsTable tbody.rb-item > tr:first-child > td:not(.rb-index):not(.rb-line-amount):not(.rb-item-actions),
+body.dark #rbItemsTable tbody.rb-item > tr:first-child > td:not(.rb-index):not(.rb-line-amount):not(.rb-item-actions) {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] #rbItemsTable tbody.rb-item > tr:first-child > td::before,
+body.dark #rbItemsTable tbody.rb-item > tr:first-child > td::before {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] #rbItemsTable tbody.rb-item input,
+[data-theme="dark"] #rbItemsTable tbody.rb-item select,
+body.dark #rbItemsTable tbody.rb-item input,
+body.dark #rbItemsTable tbody.rb-item select {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] #rbItemsTable .rb-net-cell output,
+body.dark #rbItemsTable .rb-net-cell output {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] #rbItemsTable td.rb-index .rb-index-badge,
+body.dark #rbItemsTable td.rb-index .rb-index-badge {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] #rbItemsTable td.rb-line-amount,
+body.dark #rbItemsTable td.rb-line-amount {
+  background: #064e3b !important;
+  border-color: #059669 !important;
+}
+
+[data-theme="dark"] #rbItemsTable td.rb-line-amount::before,
+body.dark #rbItemsTable td.rb-line-amount::before {
+  color: #a7f3d0 !important;
+}
+
+[data-theme="dark"] #rbItemsTable td.rb-line-amount output,
+body.dark #rbItemsTable td.rb-line-amount output {
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] #rbItemsTable td.rb-item-actions button:first-child,
+body.dark #rbItemsTable td.rb-item-actions button:first-child {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
