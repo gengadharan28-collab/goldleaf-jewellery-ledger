@@ -33,9 +33,17 @@
  html[data-theme="dark"] body[data-erp] .side .nav>button:not(.more-button){color:#e5e0d5!important}
  html[data-theme="dark"] body[data-erp] .side .nav>button.active{background:#2d3531!important;color:#f3dfb6!important;box-shadow:inset 3.5px 0 0 #d4af37!important}
  body[data-erp] #app.main,body[data-erp] .main{position:relative!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:calc(100dvh - 54px)!important;height:auto!important;margin:0!important;padding:12px 12px calc(28px + env(safe-area-inset-bottom))!important;overflow-x:hidden!important;overflow-y:visible!important;scroll-padding-bottom:32px}
- body[data-erp] .top,body[data-erp] .rc-screen>.rb-header{display:flex;align-items:flex-start;gap:8px!important;flex-wrap:wrap;margin:0 0 11px!important;padding:12px!important;border:1px solid #e7dcc8!important;border-radius:16px!important;background:linear-gradient(135deg,#fffdf8,#f4eddf)!important;box-shadow:0 4px 14px #4637190c!important}
- body[data-erp] .top h1,body[data-erp] .rc-screen>.rb-header h1{font-size:21px!important;line-height:1.2;margin:2px 0 5px!important;color:#2f302b}
- body[data-erp] .top .header-actions,body[data-erp] .rc-screen>.rb-header .header-actions{display:flex;flex-wrap:wrap;gap:5px;max-width:100%}
+ /* Complete removal of workspace context banner layout in mobile view across all pages */
+ body[data-erp] .top,
+ body[data-erp] .rc-screen > .rb-header,
+ body[data-erp] .rc-screen > .rb-header:after,
+ body[data-erp] .rb-header,
+ body[data-erp] .rc-mobile-select,
+ body[data-erp] .rb-mobile-section,
+ body[data-erp] .retail-sale-top {
+   display: none !important;
+   content: none !important;
+ }
  body[data-erp] .panel,body[data-erp] .rc-content>.panel,body[data-erp] .rc-content>form>.panel{min-width:0;padding:12px!important;margin:0 0 10px!important;border:1px solid #e7decd!important;border-radius:14px!important;background:#fffefa!important;box-shadow:0 3px 12px #4637190c!important}
  body[data-erp] .panel h2{font-size:15px!important;line-height:1.3;margin:0 0 9px!important;padding-bottom:8px;border-bottom:1px solid #efe8dc;color:#38352e}
  body[data-erp] .grid,body[data-erp] .rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}

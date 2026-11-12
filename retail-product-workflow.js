@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.30';
+const GL_PRODUCT_VERSION = '2.10.31';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -212,15 +212,13 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.30');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.30</b> · 12 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.29 · 12 Nov 2026</h3>');
-  const v30Note = '<article class="release-note"><h3>v2.10.30 · 12 Nov 2026 · Current</h3><ul>'
-    + '<li>Quotation Multi-Method Split Advance Payments: Added full split payment method support (Cash, GPay, Card, Bank transfer, Cheque) in mobile estimation/quotation view, allowing payments like ₹2,000 Cash + ₹3,000 GPay with live total and automatic balance settling.</li>'
-    + '<li>Half-Size Old Gold Button (Mobile): Redesigned Old Gold Exchange toggle on mobile into a clean half-size button (50% width) with golden styling.</li>'
-    + '<li>Simple Left & Right Adjustment Cards (Mobile): Modern 2-column cards for Discount and GST Tax (Enable toggle + Rate %).</li>'
-    + '<li>Fintech Split Payment Cards (Option A): Clean card-based advance collection layout with per-payment reference and instant settlement indicator.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.31');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.31</b> · 12 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.30 · 12 Nov 2026</h3>');
+  const v31Note = '<article class="release-note"><h3>v2.10.31 · 12 Nov 2026 · Current</h3><ul>'
+    + '<li>Mobile Workspace Context Banner Removal: Completely removed redundant top workspace context banner ("GOLDLEAF · RETAIL", "RETAIL WORKSPACE", duplicate section selectors, and header identity cards) across all mobile pages.</li>'
+    + '<li>Screen Real Estate Maximization: Content cards, quotation forms, and dashboards start directly below the sticky navigation bar on mobile phones.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v30Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v31Note);
 };
 render();

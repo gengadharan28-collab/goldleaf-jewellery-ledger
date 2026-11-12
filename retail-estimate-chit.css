@@ -62,10 +62,9 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
 @media screen and (max-width:760px){
   body[data-erp]{--mobile-card:#fffdfa;--mobile-soft:#f4eddf;--mobile-accent:#b98b4e}
   body[data-erp] .rc-screen{padding:0 0 calc(112px + env(safe-area-inset-bottom));}
-  body[data-erp] .rc-screen>.rb-header{position:relative;padding:14px 14px 13px;margin:0 -2px 14px;border:1px solid #eadfca;border-radius:17px;background:linear-gradient(130deg,#fffdf8,#f3ead9);box-shadow:0 4px 14px #755a3010}
-  body[data-erp] .rc-screen>.rb-header:after{content:"RETAIL WORKSPACE";display:block;margin-top:6px;color:#9a7847;font-size:9px;font-weight:800;letter-spacing:1.2px}
-  body[data-erp] .rc-screen .rb-header h1{font-size:21px;line-height:1.2;margin:2px 0 4px;color:#302d27}
-  body[data-erp] .rc-screen .rb-header p{font-size:12px;line-height:1.4;margin:0;color:#777064}
+  body[data-erp] .rc-screen>.rb-header{display:none!important}
+  body[data-erp] .rc-screen>.rb-header:after{content:none!important;display:none!important}
+  body[data-erp] .rc-mobile-select{display:none!important}
   body[data-erp] .rc-screen>.rc-content{gap:11px}
   body[data-erp] .rc-content>.panel,body[data-erp] .rc-content>form>.panel{position:relative;padding:14px 13px;margin:0 0 11px;border:1px solid #e9e1d3;border-radius:16px;background:var(--mobile-card);box-shadow:0 3px 12px #49391a0a}
   body[data-erp] .rc-content .rc-section-title{align-items:center;gap:8px;margin:0 0 12px;padding:0 0 9px;border-bottom:1px solid #eee7da}
