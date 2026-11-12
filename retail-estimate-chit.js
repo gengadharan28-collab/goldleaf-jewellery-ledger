@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.29';
+const RC_VERSION='2.10.30';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -432,6 +432,15 @@ function rcQuoteForm(){
         oldGoldCredit = rbRound(goldGrossVal * goldTestingVal / 100 * goldRateVal),
         hasOldGold = goldGrossVal > 0;
 
+  let collections = [];
+  if(Array.isArray(q?.collections) && q.collections.length > 0){
+    collections = q.collections;
+  } else if(n(q?.collectedAmount) > 0){
+    collections = [{ method: q?.collectedMethod || 'Cash', amount: q.collectedAmount, reference: q?.collectedReference || '' }];
+  } else {
+    collections = [{ method: 'Cash', amount: '', reference: '' }];
+  }
+
   return '<form id="rcEstimateForm" class="rc-form" oninput="rcRecalc()" onchange="rcRecalc()" onsubmit="rcSaveEstimate(event)">'
     +'<input type="hidden" name="id" value="'+esc(q?.id||'')+'">'
     
@@ -548,19 +557,38 @@ function rcQuoteForm(){
     +'<datalist id="rcQuoteProdList">'+products.map(p=>'<option value="'+esc(p.name)+'">').join('')+'</datalist>'
     +'</section>'
 
-    // Adjustments & Old Gold
-    +'<section class="panel">'
-    +'<div class="rc-section-title"><h2>Adjustments & Old Gold Exchange</h2><label class="rc-check"><input name="gstEnabled" type="checkbox" '+(q?.gstEnabled!==false?'checked':'')+' onchange="rcRecalc()"> Enable GST (3%)</label></div>'
-    +'<div class="rc-grid">'
-    +'<label>Discount ₹<input name="discount" type="number" min="0" step=".01" value="'+(q?.discount||0)+'" oninput="rcRecalc()"></label>'
-    +'<label>GST Rate %<input name="gstRate" type="number" min="0" max="100" step=".01" value="'+(q?.gstRate||3)+'" oninput="rcRecalc()"></label>'
-    +'<label class="rc-wide">Quotation Notes / Terms<textarea name="notes" rows="2" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea></label>'
+    // Adjustments & Old Gold (Option A: Left & Right Simple Cards)
+    +'<section class="panel rc-quote-adjustments-panel">'
+    +'<div class="rc-section-title"><h2>Adjustments & Old Gold Exchange</h2></div>'
+    +'<div class="rc-adj-cards-row">'
+    +'<div class="rc-adj-card rc-adj-discount-card">'
+    +'<div class="rc-adj-card-head">'
+    +'<span class="rc-adj-card-title">🏷️ Discount</span>'
+    +'<b class="rc-adj-card-val" id="rcAdjDiscountVal">'+rateMoney(q?.discount||0)+'</b>'
+    +'</div>'
+    +'<label class="rc-adj-label">Discount ₹</label>'
+    +'<input name="discount" class="rc-adj-input" type="number" min="0" step=".01" placeholder="0.00" value="'+(q?.discount||'')+'" oninput="rcRecalc()">'
+    +'</div>'
+    +'<div class="rc-adj-card rc-adj-gst-card">'
+    +'<div class="rc-adj-card-head">'
+    +'<span class="rc-adj-card-title">🏛️ GST Tax</span>'
+    +'<label class="rc-adj-check-label"><input name="gstEnabled" type="checkbox" '+(q?.gstEnabled!==false?'checked':'')+' onchange="rcRecalc()"> <span>Enable</span></label>'
+    +'</div>'
+    +'<label class="rc-adj-label">GST Rate %</label>'
+    +'<input name="gstRate" class="rc-adj-input" type="number" min="0" max="100" step=".01" placeholder="3%" value="'+(q?.gstRate!==undefined?q.gstRate:3)+'" oninput="rcRecalc()">'
+    +'</div>'
+    +'</div>'
+    +'<div class="rc-notes-wrap" style="margin-bottom:8px">'
+    +'<label class="rc-notes-label" style="margin:0;display:block">'
+    +'<span style="font-size:11px;font-weight:700;color:#64748b">Quotation Notes / Terms</span>'
+    +'<textarea name="notes" class="rc-notes-input" rows="1" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea>'
+    +'</label>'
     +'</div>'
     +'<div class="rc-old-gold-wrap">'
     +'<button type="button" id="rcOldGoldToggleBtn" class="rc-old-gold-btn '+(hasOldGold?'active':'')+'" onclick="rcToggleOldGold()" aria-expanded="'+(hasOldGold?'true':'false')+'">'
     +'<div class="rc-old-gold-btn-left">'
     +'<span class="rc-old-gold-icon">🔄</span>'
-    +'<span class="rc-old-gold-title">Old Gold Exchange</span>'
+    +'<span class="rc-old-gold-title">Old Gold Exch.</span>'
     +'<b id="rcOldGoldBadge" class="rc-old-gold-badge">'+rateMoney(oldGoldCredit)+'</b>'
     +'</div>'
     +'<div class="rc-old-gold-btn-right">'
@@ -582,14 +610,19 @@ function rcQuoteForm(){
     +'</div>'
     +'</div>'
     +'<div class="rc-advance-collection-card">'
-    +'<div class="rc-advance-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
-    +'<div class="rc-advance-title-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE COLLECTION</span><h2 class="rc-advance-title" style="margin:0;font-size:14px;color:#18392a;font-weight:800">Advance / Collected Amount</h2></div>'
-    +'<div class="rc-advance-live-badge"><span class="rc-adv-badge-bill">Bill Total: <b id="rcAdvBillTotal">₹ 0.00</b></span> <span class="rc-adv-badge-sep">|</span> <span class="rc-adv-badge-col">Collected: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></span></div>'
+    +'<input type="hidden" name="collectedAmount" id="rcHiddenCollectedAmount" value="'+(q?.collectedAmount||0)+'">'
+    +'<input type="hidden" name="collectedMethod" id="rcHiddenCollectedMethod" value="'+esc(q?.collectedMethod||'Cash')+'">'
+    +'<input type="hidden" name="collectedReference" id="rcHiddenCollectedReference" value="'+esc(q?.collectedReference||'')+'">'
+    +'<div class="rc-advance-card-head">'
+    +'<div class="rc-advance-title-wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE</span><h2 class="rc-advance-title">Split Payments</h2></div>'
+    +'<div class="rc-advance-live-badge"><span class="rc-adv-badge-bill">Bill: <b id="rcAdvBillTotal">₹ 0.00</b></span> <span class="rc-adv-badge-sep">•</span> <span class="rc-adv-badge-col">Collected: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></span></div>'
     +'</div>'
-    +'<div class="rc-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:800;color:#18392a">Advance Collected · ₹ *</span><input name="collectedAmount" class="rc-advance-input" type="number" inputmode="decimal" min="0" step=".01" placeholder="0.00" value="'+(q?.collectedAmount||'')+'" oninput="rcRecalc()"></label>'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#18392a">Payment Method</span><select name="collectedMethod" style="height:38px;font-weight:600;border:1.5px solid #2e7d32;border-radius:6px" onchange="rcRecalc()">'+rbOptions(RB_METHODS, q?.collectedMethod||'Cash')+'</select></label>'
-    +'<label class="rc-wide" style="margin:0"><span style="font-size:12px;font-weight:700;color:#18392a">Payment Reference / Notes</span><input name="collectedReference" style="height:38px;border:1.5px solid #bbb;border-radius:6px" type="text" placeholder="UPI Ref / Cheque No / Cash receipt note" value="'+esc(q?.collectedReference||'')+'"></label>'
+    +'<div id="rcCollectionsList" class="rc-collections-list">'
+    +collections.map(c => rcCollectionRow(c)).join('')
+    +'</div>'
+    +'<div class="rc-collections-footer">'
+    +'<button type="button" class="rc-add-payment-btn" onclick="rcAddCollection()">＋ Add Payment Method</button>'
+    +'<div class="rc-collections-summary">Total Collected: <b id="rcCollectionsTotal">'+rateMoney(q?.collectedAmount||0)+'</b></div>'
     +'</div>'
     +'</div>'
 
@@ -702,11 +735,15 @@ function rcEstimateRead(form){
         gstRate = gstOn ? n(f.gstRate.value) : 0,
         gstAmt = rbRound(discounted * gstRate / 100),
         goldCredit = rbRound(n(f.exchangeGross.value) * n(f.exchangeTesting.value) / 100 * n(f.exchangeRate.value)),
-        finalAmount = rbRound(discounted + gstAmt - goldCredit),
-        collectedAmount = n(f.collectedAmount?.value),
-        collectedMethod = String(f.collectedMethod?.value||'Cash'),
-        collectedReference = String(f.collectedReference?.value||'').trim(),
-        balance = rbRound(Math.max(0, finalAmount - collectedAmount));
+        finalAmount = rbRound(discounted + gstAmt - goldCredit);
+
+  const colRows = rcReadCollections(form);
+  const collectedAmount = colRows.length > 0
+    ? rbRound(colRows.reduce((s, x) => s + (n(x.amount) || 0), 0))
+    : n(f.collectedAmount?.value);
+  const collectedMethod = colRows[0]?.method || String(f.collectedMethod?.value||'Cash');
+  const collectedReference = colRows.map(c => c.reference).filter(Boolean).join(', ') || String(f.collectedReference?.value||'').trim();
+  const balance = rbRound(Math.max(0, finalAmount - collectedAmount));
 
   return {
     id: f.id.value || crypto.randomUUID(),
@@ -728,6 +765,7 @@ function rcEstimateRead(form){
     exchangeTesting: n(f.exchangeTesting.value),
     goldRate: n(f.goldRate.value),
     exchangeRate: n(f.exchangeRate.value),
+    collections: colRows,
     collectedAmount: collectedAmount,
     collectedMethod: collectedMethod,
     collectedReference: collectedReference,
@@ -775,6 +813,9 @@ function rcQuoteModel(q){
         gstAmt = q.gstEnabled ? rbRound(discounted * (q.gstRate||3) / 100) : 0,
         exchangeCredit = n(q.exchangeGross) * n(q.exchangeTesting) / 100 * n(q.exchangeRate);
 
+  const hasSplitCol = Array.isArray(q.collections) && q.collections.length > 1;
+  const colRows = Array.isArray(q.collections) && q.collections.length > 0 ? q.collections : (n(q.collectedAmount) > 0 ? [{ method: q.collectedMethod || 'Cash', amount: q.collectedAmount, reference: q.collectedReference || '' }] : []);
+
   const totals = [
     ['Items total', rateMoney(subtotal)],
     ['Discount', rateMoney(discount)],
@@ -782,7 +823,15 @@ function rcQuoteModel(q){
     ...(q.exchangeGross ? [['Old gold · ' + (q.exchangeProduct||'Gold'), rateMoney(exchangeCredit)]] : []),
     ['ESTIMATE TOTAL', rateMoney(q.amount), true],
     ...(n(q.collectedAmount)>0 ? [
-      ['Advance collected · ' + (q.collectedMethod||'Cash') + (q.collectedReference ? ' (' + q.collectedReference + ')' : ''), '− ' + rateMoney(q.collectedAmount)],
+      ...(hasSplitCol ?
+        colRows.filter(x=>n(x.amount)>0).map(x => [
+          'Advance · ' + x.method + (x.reference ? ' (' + x.reference + ')' : ''),
+          '− ' + rateMoney(x.amount)
+        ]) : [
+          ['Advance collected · ' + (q.collectedMethod||'Cash') + (q.collectedReference ? ' (' + q.collectedReference + ')' : ''), '− ' + rateMoney(q.collectedAmount)]
+        ]
+      ),
+      ...(hasSplitCol ? [['Total advance collected', '− ' + rateMoney(q.collectedAmount)]] : []),
       ['Balance to pay', rateMoney(Math.max(0, n(q.amount) - n(q.collectedAmount))), true]
     ] : [])
   ];
@@ -854,6 +903,19 @@ window.rcShareQuoteWhatsApp = function(id){
   }
   msg += '--------------------------------\n';
   msg += '*GRAND TOTAL: ₹' + rateMoney(q.amount) + '*\n';
+  if(Array.isArray(q.collections) && q.collections.length > 1){
+    msg += 'Advance Collections:\n';
+    q.collections.filter(c => n(c.amount) > 0).forEach(c => {
+      msg += '  • ' + c.method + ': ₹' + rateMoney(c.amount) + (c.reference ? ' (' + c.reference + ')' : '') + '\n';
+    });
+    msg += 'Total Advance: ₹' + rateMoney(q.collectedAmount) + '\n';
+    const bal = Math.max(0, n(q.amount) - n(q.collectedAmount));
+    msg += '*Balance to Pay: ₹' + rateMoney(bal) + (bal === 0 && q.amount > 0 ? ' (Settled)' : '') + '*\n';
+  } else if(n(q.collectedAmount) > 0){
+    msg += 'Advance Collected: ₹' + rateMoney(q.collectedAmount) + ' (' + (q.collectedMethod||'Cash') + ')\n';
+    const bal = Math.max(0, n(q.amount) - n(q.collectedAmount));
+    msg += '*Balance to Pay: ₹' + rateMoney(bal) + (bal === 0 && q.amount > 0 ? ' (Settled)' : '') + '*\n';
+  }
   msg += '--------------------------------\n';
   if(q.notes) msg += 'Note: ' + q.notes + '\n';
   msg += '*Rates are subject to daily market fluctuation.*\nThank you for choosing ' + shop + '!';
@@ -903,7 +965,20 @@ window.rcConvert = function(id){
         row.querySelector('[data-exchange="rate"]').value = q.exchangeRate || q.goldRate;
       }
     }
-    if(n(q.collectedAmount) > 0){
+    if(Array.isArray(q.collections) && q.collections.length > 0){
+      const cBox = f.querySelector('#rbCollections');
+      if(cBox && typeof rbCollectionRow === 'function'){
+        cBox.innerHTML = q.collections.map(c => rbCollectionRow(c)).join('');
+      }
+      const dirAmt = f.querySelector('#rbDirectAmount');
+      if(dirAmt) dirAmt.value = q.collectedAmount;
+      const dirMeth = f.querySelector('#rbDirectMethod');
+      if(dirMeth && q.collections[0]) dirMeth.value = q.collections[0].method;
+      const dirRef = f.querySelector('#rbDirectRef');
+      if(dirRef) dirRef.value = q.collectedReference || ('Advance from Quote ' + q.documentNo);
+      const totIn = f.querySelector('#rbTotalCollectedInput');
+      if(totIn) totIn.value = q.collectedAmount;
+    } else if(n(q.collectedAmount) > 0){
       const cRow = f.querySelector('#rbCollections .rb-collection-row');
       if(cRow){
         const amtIn = cRow.querySelector('[data-collection="amount"]');
@@ -927,6 +1002,65 @@ window.rcConvert = function(id){
     say('Quotation ' + q.documentNo + ' successfully converted to Sales Bill. Review items and save.');
   }, 50);
 };
+
+window.rcCollectionRow = function(c){
+  const method = c?.method || 'Cash';
+  const amount = (c?.amount !== undefined && c?.amount !== null && c?.amount !== '') ? c.amount : '';
+  const ref = c?.reference || '';
+  const methods = (typeof RB_METHODS !== 'undefined' && Array.isArray(RB_METHODS)) ? RB_METHODS : ['Cash', 'Cheque', 'GPay', 'Bank transfer', 'Card'];
+  const methodOptions = methods.map(m => {
+    let icon = '💵 ';
+    if(m === 'GPay') icon = '📱 ';
+    else if(m === 'Card') icon = '💳 ';
+    else if(m === 'Cheque') icon = '📝 ';
+    else if(m === 'Bank transfer') icon = '🏦 ';
+    return '<option value="' + m + '" ' + (m === method ? 'selected' : '') + '>' + icon + m + '</option>';
+  }).join('');
+
+  return '<div class="rc-collection-row">'
+    + '<div class="rc-pay-top-line">'
+    + '<select class="rc-collection-method" onchange="rcRecalc()">' + methodOptions + '</select>'
+    + '<input type="number" class="rc-collection-amount" inputmode="decimal" placeholder="Amount (₹)" min="0" step="any" value="' + amount + '" oninput="rcRecalc()">'
+    + '<button type="button" class="rc-collection-remove" onclick="rcRemoveCollection(this)" title="Remove payment">✕</button>'
+    + '</div>'
+    + '<input type="text" class="rc-collection-ref" placeholder="Reference / Counter note / UPI ID" value="' + esc(ref) + '" oninput="rcRecalc()">'
+    + '</div>';
+};
+
+window.rcAddCollection = function(){
+  const container = document.getElementById('rcCollectionsList');
+  if(!container) return;
+  const existingRows = container.querySelectorAll('.rc-collection-row');
+  const nextMethod = existingRows.length === 1 ? 'GPay' : (existingRows.length === 2 ? 'Card' : 'Cash');
+  container.insertAdjacentHTML('beforeend', rcCollectionRow({ method: nextMethod, amount: '', reference: '' }));
+  rcRecalc();
+};
+
+window.rcRemoveCollection = function(btn){
+  const row = btn?.closest('.rc-collection-row');
+  const container = document.getElementById('rcCollectionsList');
+  if(row){
+    row.remove();
+    if(container && !container.querySelectorAll('.rc-collection-row').length){
+      container.insertAdjacentHTML('beforeend', rcCollectionRow({ method: 'Cash', amount: '', reference: '' }));
+    }
+    rcRecalc();
+  }
+};
+
+function rcReadCollections(form){
+  const f = form || document.getElementById('rcEstimateForm');
+  if(!f) return [];
+  const container = f.querySelector('#rcCollectionsList');
+  if(!container) return [];
+  const rows = [...container.querySelectorAll('.rc-collection-row')];
+  return rows.map(r => {
+    const meth = r.querySelector('.rc-collection-method')?.value || 'Cash';
+    const amt = n(r.querySelector('.rc-collection-amount')?.value);
+    const ref = String(r.querySelector('.rc-collection-ref')?.value || '').trim();
+    return { method: meth, amount: amt, reference: ref };
+  }).filter(x => x.amount > 0 || x.reference);
+}
 
 window.rcToggleOldGold = function() {
   const dropdown = document.getElementById('rcOldGoldDropdown');
@@ -961,7 +1095,28 @@ function rcRecalc(){
   const goldRate = n(form.elements.exchangeRate?.value);
   const goldCredit = rbRound(goldGross * goldTesting / 100 * goldRate);
   const finalVal = rbRound(Math.max(0, discounted + gst - goldCredit));
-  const collected = n(form.elements.collectedAmount?.value);
+
+  // Multi-method split payments calculation
+  let collected = 0;
+  const colAmounts = form.querySelectorAll('#rcCollectionsList .rc-collection-amount');
+  if(colAmounts.length > 0){
+    colAmounts.forEach(inp => {
+      collected += n(inp.value);
+    });
+  } else {
+    collected = n(form.elements.collectedAmount?.value);
+  }
+  collected = rbRound(collected);
+
+  // Sync hidden inputs
+  const hidAmt = form.querySelector('#rcHiddenCollectedAmount') || form.elements.collectedAmount;
+  if(hidAmt && hidAmt.type === 'hidden') hidAmt.value = collected;
+  const colRows = rcReadCollections(form);
+  const hidMeth = form.querySelector('#rcHiddenCollectedMethod');
+  if(hidMeth) hidMeth.value = colRows[0]?.method || 'Cash';
+  const hidRef = form.querySelector('#rcHiddenCollectedReference');
+  if(hidRef) hidRef.value = colRows.map(c => c.reference).filter(Boolean).join(', ');
+
   const balanceDue = rbRound(Math.max(0, finalVal - collected));
 
   const totGross = items.reduce((s,x)=>s+x.grossWeight, 0);
@@ -981,6 +1136,8 @@ function rcRecalc(){
   if(elSub) elSub.textContent = rateMoney(subtotal);
   const elDisc = document.getElementById('rcDiscount');
   if(elDisc) elDisc.textContent = rateMoney(discount);
+  const elAdjDisc = document.getElementById('rcAdjDiscountVal');
+  if(elAdjDisc) elAdjDisc.textContent = rateMoney(discount);
   const elGST = document.getElementById('rcGST');
   if(elGST) elGST.textContent = rateMoney(gst);
   const elGold = document.getElementById('rcOldGold');
@@ -993,6 +1150,8 @@ function rcRecalc(){
   if(elFinal) elFinal.textContent = rateMoney(finalVal);
   const elCol = document.getElementById('rcCollected');
   if(elCol) elCol.textContent = rateMoney(collected);
+  const elColTot = document.getElementById('rcCollectionsTotal');
+  if(elColTot) elColTot.textContent = rateMoney(collected);
   const elAdvBill = document.getElementById('rcAdvBillTotal');
   if(elAdvBill) elAdvBill.textContent = rateMoney(finalVal);
   const elAdvLive = document.getElementById('rcAdvanceLiveTotal');

@@ -1615,57 +1615,368 @@ body.dark .rc-bal-pipe {
 }
 
 /* ==========================================================================
+   Quotation Adjustments & Split Advance Collection (Option A)
+   ========================================================================== */
+.rc-adj-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.rc-adj-card {
+  background: #ffffff;
+  border: 1.5px solid #e2d9c8;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-sizing: border-box;
+}
+.rc-adj-discount-card {
+  border-left: 4px solid #0284c7;
+}
+.rc-adj-gst-card {
+  border-left: 4px solid #10b981;
+}
+.rc-adj-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.rc-adj-card-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #18392a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.rc-adj-card-val {
+  font-size: 11px;
+  font-weight: 750;
+  color: #0284c7;
+}
+.rc-adj-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: #475569;
+  display: block;
+  margin-bottom: 3px;
+}
+.rc-adj-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 750;
+  color: #166534;
+  cursor: pointer;
+}
+.rc-adj-check-label input {
+  margin: 0;
+  cursor: pointer;
+}
+.rc-adj-input {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+/* Advance Collection Card with Split Payments */
+.rc-advance-collection-card {
+  background: linear-gradient(180deg, #f8fbf9 0%, #f2f7f4 100%);
+  border: 1.5px solid #18392a;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 14px;
+  box-shadow: 0 2px 8px rgba(24, 57, 42, 0.08);
+}
+.rc-advance-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rc-advance-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rc-advance-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #18392a;
+}
+.rc-advance-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  border: 1px solid #81c784;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 750;
+  color: #1b5e20;
+}
+.rc-advance-live-badge b {
+  font-weight: 850;
+  color: #15803d;
+}
+.rc-adv-badge-sep {
+  opacity: 0.5;
+  color: #2e7d32;
+}
+
+.rc-collections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rc-collection-row {
+  background: #ffffff;
+  border: 1px solid #c9ded1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.rc-pay-top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.rc-collection-method {
+  flex: 1;
+  min-width: 110px;
+  height: 32px;
+  border: 1px solid #b8d5c3;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #18392a;
+  padding: 0 8px;
+  background: #fdfefe;
+}
+.rc-collection-amount {
+  width: 130px;
+  height: 32px;
+  border: 1.5px solid #18392a;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 850;
+  color: #18392a;
+  padding: 0 8px;
+  text-align: right;
+  box-sizing: border-box;
+}
+.rc-collection-remove {
+  height: 28px;
+  width: 28px;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+.rc-collection-remove:hover {
+  background: #fecaca;
+  color: #b91c1c;
+}
+.rc-collection-ref {
+  width: 100%;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: #64748b;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.rc-collections-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rc-add-payment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid #2e7d32;
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-size: 11.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.rc-add-payment-btn:hover {
+  background: #c8e6c9;
+}
+.rc-collections-summary {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.rc-collections-summary b {
+  font-size: 12.5px;
+  color: #15803d;
+}
+
+/* ==========================================================================
    Mobile-Only Quotation & Balance Layout (@media max-width: 760px)
-   1. Very small Old Gold Exchange toggle & dropdown
-   2. Compact Advance Collection with Bill Total & Collected Amount
-   3. Very simple, lineable, very small Balance to Pay layout
+   Option A: Modern Clean Fintech Cards
+   1. Left & Right simple cards (Discount & GST)
+   2. Half-size Old Gold Exchange button
+   3. Advance Collection Card with Split Payments
+   4. Very simple, lineable, very small Balance to Pay layout
    ========================================================================== */
 @media screen and (max-width: 760px) {
-  /* 1. Ultra-Compact Old Gold Exchange Layout (Mobile Only) */
-  body.optionc-mobile .rc-old-gold-wrap,
-  .rc-old-gold-wrap {
-    margin: 4px 0 !important;
-    border: 1px solid #d97706 !important;
-    border-radius: 6px !important;
-    box-shadow: none !important;
-    background: #fffdfa !important;
+  /* 1. Left & Right Simple Cards (Discount & GST) */
+  .rc-adj-cards-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
   }
-  body.optionc-mobile button.rc-old-gold-btn,
-  body.optionc-mobile .rc-old-gold-btn,
-  button.rc-old-gold-btn,
-  .rc-old-gold-btn {
-    min-height: 28px !important;
-    height: 28px !important;
-    padding: 2px 8px !important;
-    border-radius: 5px !important;
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  .rc-adj-card {
+    padding: 6px 8px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
   }
-  .rc-old-gold-btn-left {
-    gap: 4px !important;
+  .rc-adj-card-head {
+    margin-bottom: 2px !important;
   }
-  .rc-old-gold-icon {
-    font-size: 12px !important;
-  }
-  .rc-old-gold-title {
+  .rc-adj-card-title {
     font-size: 10.5px !important;
-    font-weight: 750 !important;
-    letter-spacing: 0 !important;
+    font-weight: 800 !important;
   }
-  .rc-old-gold-badge {
+  .rc-adj-card-val {
     font-size: 9.5px !important;
-    padding: 1px 4px !important;
-    border-radius: 3px !important;
-    margin-left: 2px !important;
   }
-  .rc-old-gold-hint {
-    display: none !important;
+  .rc-adj-label {
+    font-size: 9px !important;
+    margin-bottom: 1px !important;
   }
-  .rc-old-gold-chevron {
+  .rc-adj-check-label {
     font-size: 10px !important;
   }
-  .rc-old-gold-dropdown {
-    padding: 5px 8px !important;
+  body[data-erp] .rc-adj-input,
+  .rc-adj-input {
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    padding: 0 6px !important;
+    border-radius: 5px !important;
+  }
+  body[data-erp] .rc-notes-wrap textarea,
+  .rc-notes-wrap textarea {
+    min-height: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+  }
+
+  /* 2. Half-Size Button for Old Gold Exchange (Mobile Only) */
+  .rc-old-gold-wrap {
+    margin: 6px 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+  body[data-erp] button#rcOldGoldToggleBtn,
+  button#rcOldGoldToggleBtn,
+  #rcOldGoldToggleBtn {
+    width: 48% !important;
+    min-width: 145px !important;
+    max-width: 50% !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 8px !important;
+    border-radius: 8px !important;
+    border: 1.5px solid #d97706 !important;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    box-shadow: 0 2px 5px rgba(217, 119, 6, 0.16) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-btn-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-icon {
+    font-size: 11px !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-title {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #92400e !important;
+    white-space: nowrap !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-badge {
+    display: none !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-hint {
+    display: none !important;
+  }
+  #rcOldGoldToggleBtn .rc-old-gold-chevron {
+    font-size: 9.5px !important;
+    font-weight: 900 !important;
+    color: #92400e !important;
+    background: #fde68a !important;
+    padding: 1px 4px !important;
+    border-radius: 4px !important;
+  }
+  #rcOldGoldDropdown {
+    margin-top: 4px !important;
+    border: 1px solid #d97706 !important;
+    border-radius: 8px !important;
     background: #fffdf7 !important;
+    padding: 6px 8px !important;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.1) !important;
   }
   .rc-old-gold-dropdown-head {
     display: flex !important;
@@ -1691,7 +2002,6 @@ body.dark .rc-bal-pipe {
     font-size: 10px !important;
   }
   body[data-erp] .rc-old-gold-dropdown input:not([type="checkbox"]):not([type="radio"]),
-  body.optionc-mobile .rc-old-gold-dropdown input,
   .rc-old-gold-dropdown input {
     min-height: 27px !important;
     height: 27px !important;
@@ -1714,21 +2024,21 @@ body.dark .rc-bal-pipe {
     gap: 4px !important;
   }
 
-  /* 2. Compact Advance Collection Card with Bill Total (Mobile Only) */
+  /* 3. Split Advance Collection Card (Mobile Only) */
   body[data-erp] .rc-advance-collection-card,
-  body.optionc-mobile .rc-advance-collection-card,
   .rc-advance-collection-card {
     margin-top: 6px !important;
-    padding: 6px 8px !important;
+    padding: 8px 10px !important;
     border: 1.5px solid #18392a !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
+    border-radius: 10px !important;
+    background: linear-gradient(180deg, #f8fbf9 0%, #f2f7f4 100%) !important;
+    box-shadow: 0 2px 6px rgba(24, 57, 42, 0.08) !important;
   }
   .rc-advance-card-head {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 6px !important;
     gap: 4px !important;
     flex-wrap: wrap !important;
   }
@@ -1747,7 +2057,7 @@ body.dark .rc-bal-pipe {
     border-radius: 3px !important;
   }
   .rc-advance-live-badge {
-    padding: 2px 5px !important;
+    padding: 2px 6px !important;
     font-size: 9.5px !important;
     border-radius: 4px !important;
     white-space: nowrap !important;
@@ -1761,41 +2071,94 @@ body.dark .rc-bal-pipe {
   .rc-adv-badge-sep {
     font-size: 9px !important;
   }
-  body[data-erp] .rc-advance-collection-card input:not([type="checkbox"]):not([type="radio"]),
-  body[data-erp] .rc-advance-input,
-  body.optionc-mobile .rc-advance-collection-card input,
-  body.optionc-mobile .rc-advance-input,
-  .rc-advance-input {
-    min-height: 28px !important;
-    height: 28px !important;
-    font-size: 12px !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
+  .rc-collections-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    margin-bottom: 6px !important;
   }
-  body[data-erp] .rc-advance-collection-card select,
-  body.optionc-mobile .rc-advance-collection-card select,
-  .rc-advance-collection-card select {
+  .rc-collection-row {
+    background: #ffffff !important;
+    border: 1px solid #c9ded1 !important;
+    border-radius: 6px !important;
+    padding: 5px 6px !important;
+    gap: 4px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+  }
+  .rc-pay-top-line {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    width: 100% !important;
+  }
+  body[data-erp] .rc-collection-method,
+  .rc-collection-method {
+    flex: 1 !important;
+    min-width: 0 !important;
     min-height: 28px !important;
     height: 28px !important;
     font-size: 11px !important;
+    font-weight: 750 !important;
+    padding: 0 4px !important;
+    border-radius: 5px !important;
+    border: 1px solid #b8d5c3 !important;
+  }
+  body[data-erp] .rc-collection-amount,
+  .rc-collection-amount {
+    width: 100px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    font-size: 12.5px !important;
+    font-weight: 850 !important;
+    padding: 0 6px !important;
+    border-radius: 5px !important;
+    border: 1.5px solid #18392a !important;
+    text-align: right !important;
+  }
+  .rc-collection-remove {
+    width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 11px !important;
+    border-radius: 5px !important;
+    flex-shrink: 0 !important;
+  }
+  body[data-erp] .rc-collection-ref,
+  .rc-collection-ref {
+    width: 100% !important;
+    min-height: 24px !important;
+    height: 24px !important;
+    font-size: 10px !important;
+    padding: 0 6px !important;
+    border-radius: 4px !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  .rc-collections-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    border-top: 1px dashed #cbd5e1 !important;
+  }
+  .rc-add-payment-btn {
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    border-radius: 5px !important;
+  }
+  .rc-collections-summary {
+    font-size: 10px !important;
     padding: 2px 6px !important;
     border-radius: 4px !important;
   }
-  body.optionc-mobile .rc-advance-collection-card label,
-  .rc-advance-collection-card label {
-    margin: 0 !important;
-    gap: 2px !important;
-  }
-  body.optionc-mobile .rc-advance-collection-card label span,
-  .rc-advance-collection-card label span {
-    font-size: 9.5px !important;
-  }
-  .rc-advance-collection-card .rc-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 4px !important;
+  .rc-collections-summary b {
+    font-size: 10.5px !important;
   }
 
-  /* 3. Very Simple, Lineable, Very Small Balance to Pay (Mobile Only) */
+  /* 4. Very Simple, Lineable, Very Small Balance to Pay (Mobile Only) */
   body.optionc-mobile #rcBalanceBox,
   #rcBalanceBox,
   .rc-balance-box {

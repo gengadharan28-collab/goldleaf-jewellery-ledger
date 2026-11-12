@@ -1,6 +1,6 @@
 // Retail Product Group, Product and Model workflows. Records stay in the shop's
 // normal synced retailDocuments collection so phone and desktop share them.
-const GL_PRODUCT_VERSION = '2.10.29';
+const GL_PRODUCT_VERSION = '2.10.30';
 let glProductStep=['Group','Product','Model'].includes(sessionStorage.getItem('gl-product-step'))?sessionStorage.getItem('gl-product-step'):'Product';
 let glGroupEdit='',glModelEdit='';
 const glDocs=kind=>rcDocs(kind);
@@ -212,14 +212,15 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.29');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.29</b> · 12 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.28 · 11 Nov 2026</h3>');
-  const v29Note = '<article class="release-note"><h3>v2.10.29 · 12 Nov 2026 · Current</h3><ul>'
-    + '<li>Mobile View Ultra-Compact Old Gold Exchange: Minimized button, inputs, and dropdown padding on mobile to an ultra-compact size, saving screen space.</li>'
-    + '<li>Advance Collection Total Bill Display: Live Bill Total is now shown directly alongside Collected Amount in the Advance Collection card.</li>'
-    + '<li>Single-Line Streamlined Balance to Pay: Streamlined mobile Balance to Pay into a simple, lineable, and very small linear strip showing Quote Total, Advance, and Remaining Balance on a single line.</li>'
+  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.30');
+  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.30</b> · 12 Nov 2026</p>');
+  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.29 · 12 Nov 2026</h3>');
+  const v30Note = '<article class="release-note"><h3>v2.10.30 · 12 Nov 2026 · Current</h3><ul>'
+    + '<li>Quotation Multi-Method Split Advance Payments: Added full split payment method support (Cash, GPay, Card, Bank transfer, Cheque) in mobile estimation/quotation view, allowing payments like ₹2,000 Cash + ₹3,000 GPay with live total and automatic balance settling.</li>'
+    + '<li>Half-Size Old Gold Button (Mobile): Redesigned Old Gold Exchange toggle on mobile into a clean half-size button (50% width) with golden styling.</li>'
+    + '<li>Simple Left & Right Adjustment Cards (Mobile): Modern 2-column cards for Discount and GST Tax (Enable toggle + Rate %).</li>'
+    + '<li>Fintech Split Payment Cards (Option A): Clean card-based advance collection layout with per-payment reference and instant settlement indicator.</li>'
     + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v29Note);
+  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + v30Note);
 };
 render();
