@@ -2006,6 +2006,62 @@ body.dark .rc-bal-pipe {
   .rc-pos-row:only-child .rc-pos-remove-btn {
     display: none !important;
   }
+  .rc-pos-oldgold-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    border-left: 3px solid #d97706;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: #854d0e;
+  }
+  .rc-pos-oldgold-banner.hidden {
+    display: none !important;
+  }
+  .rc-pos-og-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rc-pos-og-badge {
+    font-weight: 750;
+    color: #92400e;
+  }
+  .rc-pos-og-val {
+    font-weight: 850;
+    color: #b45309;
+  }
+  .rc-pos-og-formula {
+    font-size: 11.5px;
+    color: #78350f;
+  }
+  .rc-pos-og-formula b {
+    color: #451a03;
+  }
+  .rc-pos-highlight-due {
+    color: #15803d !important;
+    font-weight: 850 !important;
+  }
+  .rc-pos-header-total {
+    font-weight: 800;
+    color: #113421;
+  }
+  .rc-pos-header-total b {
+    color: #113421 !important;
+  }
+  .rc-pos-header-paid {
+    font-weight: 800;
+    color: #15803d;
+  }
+  .rc-pos-header-paid b {
+    color: #15803d !important;
+  }
 }
 
 /* ==========================================================================
@@ -2246,6 +2302,64 @@ body.dark .rc-bal-pipe {
     box-shadow: none !important;
     text-decoration: none !important;
   }
+  .rc-pos-oldgold-banner {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    background: #fefce8 !important;
+    border: 1px solid #fef08a !important;
+    border-left: 3px solid #d97706 !important;
+    border-radius: 6px !important;
+    padding: 4px 7px !important;
+    margin-bottom: 6px !important;
+    font-size: 10.5px !important;
+    color: #854d0e !important;
+  }
+  .rc-pos-oldgold-banner.hidden {
+    display: none !important;
+  }
+  .rc-pos-og-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .rc-pos-og-badge {
+    font-weight: 750 !important;
+    color: #92400e !important;
+  }
+  .rc-pos-og-val {
+    font-weight: 850 !important;
+    color: #b45309 !important;
+  }
+  .rc-pos-og-formula {
+    font-size: 10px !important;
+    color: #78350f !important;
+  }
+  .rc-pos-og-formula b {
+    color: #451a03 !important;
+  }
+  .rc-pos-highlight-due {
+    color: #15803d !important;
+    font-weight: 850 !important;
+  }
+  .rc-pos-header-total {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    color: #113421 !important;
+  }
+  .rc-pos-header-total b {
+    color: #113421 !important;
+  }
+  .rc-pos-header-paid {
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    color: #15803d !important;
+  }
+  .rc-pos-header-paid b {
+    color: #15803d !important;
+  }
   .rc-pos-labels-row {
     display: grid !important;
     grid-template-columns: 1.15fr 0.95fr 1.25fr 24px !important;
@@ -2470,4 +2584,43 @@ body.dark .rc-pos-method-select,
 body.dark .rc-pos-ref-input {
   background: #1f2a22 !important;
   color: #f0fdf4 !important;
+}
+[data-theme="dark"] .rc-pos-oldgold-banner,
+body.dark .rc-pos-oldgold-banner {
+  background: #2a2215 !important;
+  border-color: #5c4419 !important;
+  border-left-color: #f59e0b !important;
+  color: #fef08a !important;
+}
+[data-theme="dark"] .rc-pos-og-badge,
+body.dark .rc-pos-og-badge {
+  color: #fde047 !important;
+}
+[data-theme="dark"] .rc-pos-og-val,
+body.dark .rc-pos-og-val {
+  color: #fde047 !important;
+}
+[data-theme="dark"] .rc-pos-og-formula,
+body.dark .rc-pos-og-formula {
+  color: #fef08a !important;
+}
+[data-theme="dark"] .rc-pos-og-formula b,
+body.dark .rc-pos-og-formula b {
+  color: #ffffff !important;
+}
+[data-theme="dark"] .rc-pos-highlight-due,
+body.dark .rc-pos-highlight-due {
+  color: #86efac !important;
+}
+[data-theme="dark"] .rc-pos-header-total,
+body.dark .rc-pos-header-total,
+[data-theme="dark"] .rc-pos-header-total b,
+body.dark .rc-pos-header-total b {
+  color: #d1fae5 !important;
+}
+[data-theme="dark"] .rc-pos-header-paid,
+body.dark .rc-pos-header-paid,
+[data-theme="dark"] .rc-pos-header-paid b,
+body.dark .rc-pos-header-paid b {
+  color: #6ee7b7 !important;
 }
