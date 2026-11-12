@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.43';
+const RC_VERSION='2.10.44';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -1159,7 +1159,11 @@ function rcQuoteForm(){
     // Actions
     +'<div class="rc-actions" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px">'
     +'<button type="button" onclick="rcResetEstimate()">＋ New Quote</button>'
-    +'<button type="button" onclick="rcPrintEstimate()">📄 View PDF / Print</button>'
+    +'<button type="button" onclick="rcPrintEstimate()">📄 Print (Default)</button>'
+    +'<button type="button" onclick="rcPrintEstimate(\'detailed-estimate\')">🖨️ A4 Detailed</button>'
+    +'<button type="button" onclick="rcPrintEstimate(\'compact-estimate-a5\')">📋 A5 Slip</button>'
+    +'<button type="button" onclick="rcPrintEstimate(\'thermal-estimate-80\')">🧾 80mm Thermal</button>'
+    +'<button type="button" onclick="rcPrintEstimate(\'thermal-estimate-58\')">📱 58mm Thermal</button>'
     +(q?.id ? '<button type="button" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')">📲 WhatsApp Quote</button>' : '')
     +(q?.id ? '<button type="button" style="background:#e88a1a;border-color:#e88a1a;color:#fff;font-weight:700" onclick="rcConvert(\''+esc(q.id)+'\')">⚡ Convert to Sales Bill</button>' : '')
     +'<button type="submit" class="primary" style="padding:0 20px;font-weight:750">'+(q?'Save Changes':'Save Quotation')+'</button>'
@@ -1212,6 +1216,7 @@ function rcEstimateHistory(){
     '<span class="pill">'+esc(q.status||'Draft')+'</span>',
     '<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\')">PDF</button> '
+    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm Thermal Slip">POS</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
     +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button>'
   ])) : '<p class="muted">Saved estimations and quotations will appear here.</p>';
@@ -1391,7 +1396,7 @@ function rcQuoteModel(q){
     : ((exchangeCredit > 0 || q.exchangeGross > 0) ? [{product: q.exchangeProduct||'Old Gold', weight: q.exchangeNet||q.exchangeGross||0, testingPurity: q.exchangeTesting||91.6, rate: q.exchangeRate||q.goldRate||0, amount: exchangeCredit}] : []);
 
   return {
-    kind: 'bill',
+    kind: 'estimate',
     retail: true,
     title: 'ESTIMATION / QUOTATION',
     entityLabel: 'Customer',
@@ -1399,6 +1404,7 @@ function rcQuoteModel(q){
     entityDetails: [c?.address, c?.city, c?.phone, q.chitNumber ? 'Chit: ' + q.chitNumber : ''].filter(Boolean).join(' · '),
     reference: q.documentNo,
     date: pdfDateText(q.when),
+    validUntil: q.validUntil || '',
     taxEnabled: q.gstEnabled,
     invoiceItems: items.map(x=>{
       const isSilver = String(x.metalType||'').toLowerCase()==='silver' || String(x.product||'').toLowerCase().includes('silver');
@@ -1410,19 +1416,19 @@ function rcQuoteModel(q){
   };
 }
 
-window.rcPrintEstimate = function(){
+window.rcPrintEstimate = function(forcedTemplate){
   const f = document.getElementById('rcEstimateForm');
   if(!f?.reportValidity()) return;
   const q = rcEstimateRead(f);
   if(!q.customerId || q.items.some(x=>!x.product || x.netWeight<=0)){
     return say('Complete the customer and jewellery items before printing.');
   }
-  pdfPrintModel(rcQuoteModel(q), 'retail');
+  pdfPrintModel(rcQuoteModel(q), 'retail', forcedTemplate);
 };
 
-window.rcPrintSavedEstimate = function(id){
+window.rcPrintSavedEstimate = function(id, forcedTemplate){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
-  if(q) pdfPrintModel(rcQuoteModel(q), 'retail');
+  if(q) pdfPrintModel(rcQuoteModel(q), 'retail', forcedTemplate);
 };
 
 window.rcShareQuoteWhatsApp = function(id){

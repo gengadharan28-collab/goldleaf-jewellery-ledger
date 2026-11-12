@@ -4492,3 +4492,168 @@ body.dark #rbItemsTable td.rb-item-actions button:first-child {
   color: #e2e8f0 !important;
 }
 
+
+/* Supplier Dual Balance Tracker & Purchase Extensions */
+.rp-dual-tracker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 6px;
+}
+.rp-dual-card {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--erp-soft, #f4f0e7);
+  border: 1px solid var(--line, #e2dcd2);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.rp-dual-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+.rp-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted, #7c7267);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.rp-card-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text, #26221c);
+}
+.rp-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.rp-card-badge.is-payable {
+  background: #fde8e8;
+  color: #9c1c1c;
+}
+.rp-card-badge.is-credit {
+  background: #def7ec;
+  color: #03543f;
+}
+.rp-card-badge.is-clear {
+  background: #e1effe;
+  color: #1e429f;
+}
+[data-theme="dark"] .rp-dual-card,
+body.dark .rp-dual-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+[data-theme="dark"] .rp-card-val,
+body.dark .rp-card-val {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .rp-card-badge.is-payable,
+body.dark .rp-card-badge.is-payable {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+[data-theme="dark"] .rp-card-badge.is-credit,
+body.dark .rp-card-badge.is-credit {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+[data-theme="dark"] .rp-card-badge.is-clear,
+body.dark .rp-card-badge.is-clear {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+/* Multi-Mode Settlement Grid */
+.rp-multimode-settle {
+  border: 1px solid var(--line, #e2dcd2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--paper, #fff);
+  margin-top: 8px;
+}
+.rp-multimode-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 750;
+  margin-bottom: 8px;
+  color: var(--erp-accent, #967247);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.rp-multimode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+[data-theme="dark"] .rp-multimode-settle,
+body.dark .rp-multimode-settle {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+/* Print Format Switcher Pills */
+.rp-print-actions, .rb-print-actions {
+  display: flex !important;
+  gap: 5px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+}
+.rp-pill-btn, .rb-pill-btn {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 4px 9px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  border-radius: 14px !important;
+  background: var(--erp-soft, #f4f0e7) !important;
+  border: 1px solid var(--line, #e2dcd2) !important;
+  color: var(--text, #26221c) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+}
+.rp-pill-btn:hover, .rb-pill-btn:hover {
+  background: var(--erp-accent, #967247) !important;
+  color: #fff !important;
+  border-color: var(--erp-accent, #967247) !important;
+}
+[data-theme="dark"] .rp-pill-btn,
+[data-theme="dark"] .rb-pill-btn,
+body.dark .rp-pill-btn,
+body.dark .rb-pill-btn {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .rp-pill-btn:hover,
+[data-theme="dark"] .rb-pill-btn:hover,
+body.dark .rp-pill-btn:hover,
+body.dark .rb-pill-btn:hover {
+  background: #d1b078 !important;
+  color: #1e293b !important;
+}
+
+@media (max-width: 760px) {
+  .rp-dual-tracker {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .rp-multimode-grid {
+    grid-template-columns: 1fr;
+  }
+  .rp-print-actions, .rb-print-actions {
+    gap: 4px !important;
+  }
+}
