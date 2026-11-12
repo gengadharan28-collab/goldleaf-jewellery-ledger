@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.45';
+const RC_VERSION='2.10.46';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -595,6 +595,23 @@ window.rcAddItem=function(item){document.querySelector('#rcQuoteTable tbody')?.i
 
 function rcChitOptions(customerId='',selected=''){const maps=rcDocs('retail-chit-mapping').filter(m=>!customerId||m.customerId===customerId);return '<option value="">No chit linked</option>'+maps.map(m=>{const t=rcDocs('retail-chit-type').find(z=>z.id===m.typeId);return '<option value="'+esc(m.id)+'" '+(m.id===selected?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(t?.name||'Chit')+'</option>'}).join('')}
 function rcChitSelect(customerId='',selected='',name='chitMappingId'){return '<label>Chit Info<select name="'+name+'"><option value="">No chit linked</option>'+rcDocs('retail-chit-mapping').filter(m=>!customerId||m.customerId===customerId).map(m=>{const t=rcDocs('retail-chit-type').find(z=>z.id===m.typeId);return '<option value="'+esc(m.id)+'" '+(m.id===selected?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(t?.name||'Chit')+'</option>'}).join('')+'</select></label>'}
+window.rcEstimateCustomerChanged = function(sel) {
+  const form = sel.closest('form');
+  if(!form) return;
+  const custId = sel.value;
+  const chitWrap = form.querySelector('.rc-quote-chit-card');
+  if(chitWrap) {
+    const prev = form.elements.chitMappingId?.value || '';
+    chitWrap.innerHTML = rcChitSelect(custId, prev);
+    const chitSel = chitWrap.querySelector('select[name="chitMappingId"]');
+    if(chitSel) {
+      chitSel.onchange = function(){
+        if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
+      };
+    }
+  }
+  if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
+};
 
 let rcQuoteMode = 'tag';
 window.rcSetQuoteMode = function(mode){
@@ -1134,7 +1151,7 @@ function rcQuoteForm(){
     +'</div>'
     +'<div class="rc-quote-meta-card rc-quote-customer-card">'
     +'<div class="rc-quote-meta-lbl-row"><label class="rc-quote-meta-lbl">Customer *</label><button type="button" class="rc-quote-card-btn" onclick="rbOpenCustomerAdd()">＋ New</button></div>'
-    +'<select name="customerId" required><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===q?.customerId?'selected':'')+'>'+esc(c.name)+(c.city?' ('+esc(c.city)+')':'')+'</option>').join('')+'</select>'
+    +'<select name="customerId" required onchange="rcEstimateCustomerChanged(this)"><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===q?.customerId?'selected':'')+'>'+esc(c.name)+(c.city?' ('+esc(c.city)+')':'')+'</option>').join('')+'</select>'
     +'</div>'
     +'<div class="rc-quote-meta-card rc-quote-chit-card">'
     +rcChitSelect(q?.customerId||'', q?.chitMappingId)
