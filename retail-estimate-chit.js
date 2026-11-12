@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.38';
+const RC_VERSION='2.10.39';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -884,23 +884,40 @@ function rcQuoteForm(){
   return '<form id="rcEstimateForm" class="rc-form" oninput="rcRecalc()" onchange="rcRecalc()" onsubmit="rcSaveEstimate(event)">'
     +'<input type="hidden" name="id" value="'+esc(q?.id||'')+'">'
     
-    // Top Card: Quotation Metadata & Customer
-    +'<section class="panel">'
-    +'<div class="rc-section-title">'
-    +'<div><h2>'+(q?'Edit Quotation :: '+esc(q.documentNo):'Quotation :: New')+'</h2><p class="muted">Live Rate Book prices, instant tag scanning and multi-mode quotation workflow.</p></div>'
+    // Top Card: Quotation Metadata & Customer (Small cards left & right layout)
+    +'<section class="panel rc-quote-top-card">'
+    +'<div class="rc-section-title rc-quote-meta-head">'
+    +'<div><h2>'+(q?'Edit Quotation :: '+esc(q.documentNo):'Quotation :: New')+'</h2><p class="muted">Live Rate Book prices & quotation details</p></div>'
     +'<span class="pill" style="font-weight:700">'+esc(q?.status||'Draft')+'</span>'
     +'</div>'
-    +'<div class="rc-grid">'
-    +'<label>Quotation Number<input name="documentNo" maxlength="60" value="'+esc(q?.documentNo||'Q-'+Date.now().toString(36).toUpperCase())+'" placeholder="Auto generated"></label>'
-    +'<label>Date & Time *<input required name="when" type="datetime-local" value="'+esc(q?.when||rbNow())+'"></label>'
-    +'<div class="rb-field">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center"><label>Customer *</label><button type="button" style="font-size:10px;padding:2px 6px" onclick="rbOpenCustomerAdd()">＋ New</button></div>'
+    +'<div class="rc-quote-meta-grid">'
+    +'<div class="rc-quote-meta-card">'
+    +'<label class="rc-quote-meta-lbl">Quotation No</label>'
+    +'<input name="documentNo" maxlength="60" value="'+esc(q?.documentNo||'Q-'+Date.now().toString(36).toUpperCase())+'" placeholder="Auto generated">'
+    +'</div>'
+    +'<div class="rc-quote-meta-card">'
+    +'<label class="rc-quote-meta-lbl">Date & Time *</label>'
+    +'<input required name="when" type="datetime-local" value="'+esc(q?.when||rbNow())+'">'
+    +'</div>'
+    +'<div class="rc-quote-meta-card rc-quote-customer-card">'
+    +'<div class="rc-quote-meta-lbl-row"><label class="rc-quote-meta-lbl">Customer *</label><button type="button" class="rc-quote-card-btn" onclick="rbOpenCustomerAdd()">＋ New</button></div>'
     +'<select name="customerId" required><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===q?.customerId?'selected':'')+'>'+esc(c.name)+(c.city?' ('+esc(c.city)+')':'')+'</option>').join('')+'</select>'
     +'</div>'
+    +'<div class="rc-quote-meta-card rc-quote-chit-card">'
     +rcChitSelect(q?.customerId||'', q?.chitMappingId)
-    +'<label>Valid Until<input name="validUntil" type="date" value="'+esc(q?.validUntil||new Date(Date.now()+86400000*2).toISOString().slice(0,10))+'"></label>'
-    +'<label>Reference<input name="reference" value="'+esc(q?.reference||'')+'" placeholder="Sales rep / notes"></label>'
-    +'<label>24K Base Rate ₹/g<input name="goldRate" type="number" min="0" step=".01" required value="'+(q?.goldRate??rates)+'" oninput="rcBaseGoldRateChanged(this)"></label>'
+    +'</div>'
+    +'<div class="rc-quote-meta-card">'
+    +'<label class="rc-quote-meta-lbl">Valid Until</label>'
+    +'<input name="validUntil" type="date" value="'+esc(q?.validUntil||new Date(Date.now()+86400000*2).toISOString().slice(0,10))+'">'
+    +'</div>'
+    +'<div class="rc-quote-meta-card rc-quote-rate-card">'
+    +'<label class="rc-quote-meta-lbl">24K Base Rate ₹/g</label>'
+    +'<input name="goldRate" type="number" min="0" step=".01" required value="'+(q?.goldRate??rates)+'" oninput="rcBaseGoldRateChanged(this)">'
+    +'</div>'
+    +'<div class="rc-quote-meta-card rc-quote-card-span">'
+    +'<label class="rc-quote-meta-lbl">Reference / Notes</label>'
+    +'<input name="reference" value="'+esc(q?.reference||'')+'" placeholder="Sales rep / notes">'
+    +'</div>'
     +'</div>'
     +'</section>'
 
@@ -2810,7 +2827,7 @@ window.render=function(){
   return result;
 };
 const rcStyle=document.createElement('link');rcStyle.rel='stylesheet';rcStyle.href='./retail-estimate-chit.css?v='+RC_VERSION;document.head.append(rcStyle);
-const rcHistoryPrevious=window.updateHistoryView;window.updateHistoryView=function(){return rcHistoryPrevious().replace('Goldleaf v2.7.0','Goldleaf v'+RC_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2><article class="release-note"><h3>v2.10.38 · Current</h3><ul><li>Added central Old Gold Types management to the Settings page with full view, edit, reset, delete and type creation controls.</li><li>Old Gold Exchange Details in Estimation & Quotation dynamically syncs with the central Old Gold Types settings.</li></ul></article>','<h2>Update history</h2><article class="release-note"><h3>v2.8.7 · 7 Nov 2026 · Current</h3><ul><li>Products and Chit are independent Retail sidebar pages below Sales and Purchase. Each page shows only its own workflow; returning to Sales restores sales content.</li></ul></article><article class="release-note"><h3>v2.8.5 · 7 Nov 2026</h3><ul><li>Added dedicated Retail Products, Tagging and Chit pages to the left navigation and kept them scrollable on mobile.</li></ul></article><article class="release-note"><h3>v2.8.4 · 7 Nov 2026</h3><ul><li>Added separate Retail toolbar pages for Estimation / Quotation, Tagging and Chit, with improved full-page scrolling.</li></ul></article><article class="release-note"><h3>v2.8.3 · 7 Nov 2026</h3><ul><li>Moved Retail Estimation / Quotation into the main navigation beside Rate Book for quicker access.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Rate-based Retail estimates now use saved purity-specific prices.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry now uses manually entered per-purity prices and a dated AM/PM history.</li><li>Retail sales and estimates use the saved purity-specific rates.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail now includes saved estimation and quotation, PDF printing, history and bill conversion.</li><li>Added Retail product master and item tagging with barcode, weights, purity, stock state and item details.</li><li>Added Retail chit groups, installment types, customer mappings, payment entry and printable receipts.</li><li>New Retail records sync in the shop cloud ledger and stay separate from Wholesale.</li></ul></article>')};
+const rcHistoryPrevious=window.updateHistoryView;window.updateHistoryView=function(){return rcHistoryPrevious().replace('Goldleaf v2.7.0','Goldleaf v'+RC_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2><article class="release-note"><h3>v2.10.39 · Current</h3><ul><li>Compact mobile Estimation & Quotation metadata layout: converted tall scrolling header into small neat cards arranged left and right in 2 columns.</li></ul></article><article class="release-note"><h3>v2.10.38 · Current</h3><ul><li>Added central Old Gold Types management to the Settings page with full view, edit, reset, delete and type creation controls.</li><li>Old Gold Exchange Details in Estimation & Quotation dynamically syncs with the central Old Gold Types settings.</li></ul></article>','<h2>Update history</h2><article class="release-note"><h3>v2.8.7 · 7 Nov 2026 · Current</h3><ul><li>Products and Chit are independent Retail sidebar pages below Sales and Purchase. Each page shows only its own workflow; returning to Sales restores sales content.</li></ul></article><article class="release-note"><h3>v2.8.5 · 7 Nov 2026</h3><ul><li>Added dedicated Retail Products, Tagging and Chit pages to the left navigation and kept them scrollable on mobile.</li></ul></article><article class="release-note"><h3>v2.8.4 · 7 Nov 2026</h3><ul><li>Added separate Retail toolbar pages for Estimation / Quotation, Tagging and Chit, with improved full-page scrolling.</li></ul></article><article class="release-note"><h3>v2.8.3 · 7 Nov 2026</h3><ul><li>Moved Retail Estimation / Quotation into the main navigation beside Rate Book for quicker access.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Rate-based Retail estimates now use saved purity-specific prices.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry now uses manually entered per-purity prices and a dated AM/PM history.</li><li>Retail sales and estimates use the saved purity-specific rates.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail now includes saved estimation and quotation, PDF printing, history and bill conversion.</li><li>Added Retail product master and item tagging with barcode, weights, purity, stock state and item details.</li><li>Added Retail chit groups, installment types, customer mappings, payment entry and printable receipts.</li><li>New Retail records sync in the shop cloud ledger and stay separate from Wholesale.</li></ul></article>')};
 render();
 const rcHistoryV2100=window.updateHistoryView;window.updateHistoryView=function(){let h=rcHistoryV2100().replace('Goldleaf v2.9.1','Goldleaf v'+RC_VERSION).replace('<h3>v2.10.0 · 8 Nov 2026 · Current</h3>','<h3>v2.10.0 · 8 Nov 2026</h3>');return h.replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.10.4 · 8 Nov 2026 · Current</h3><ul><li>Carry the shop reset token onto Retail document records so Product, Tagging and Chit writes pass the database reset guard.</li><li>Product, Tagging, Chit and quotation saves now show the actual cloud-write error when a save stays on the device.</li></ul></article><article class="release-note"><h3>v2.10.3 · 8 Nov 2026</h3><ul><li>Chit saves wait for cloud-sync completion before reporting success.</li><li>Cloud merge retains Retail documents across devices.</li></ul></article><article class="release-note"><h3>v2.10.2 · 8 Nov 2026</h3><ul><li>Cloud sync now merges Retail Chit, Products, Tagging and Estimation records.</li></ul></article><article class="release-note"><h3>v2.10.1 · 8 Nov 2026</h3><ul><li>Fixed Group, Type and Mapping forms being squeezed into a nested grid; compacted the Chit overview cards across desktop and mobile.</li><li>New Chit types no longer enforce a one-plan-per-customer limit unless a limit is entered.</li></ul></article><article class="release-note"><h3>v2.10.0 · 8 Nov 2026</h3><ul><li>Expanded Retail Chit with Digi Gold, Digi Silver, Fixed, Flexi, One Time Investment, Fixed Interest and Custom plans.</li><li>Added group and scheme rules, customer mapping, due tracking, manual metal testing, advance/bonus/refund/closure entries and printable receipts.</li></ul></article>')};
 

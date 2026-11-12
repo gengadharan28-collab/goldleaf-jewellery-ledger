@@ -3497,3 +3497,329 @@ body.dark .rc-og-rate-base {
     font-size: 12px;
   }
 }
+
+
+/* ==========================================================================
+   v2.10.39: Mobile Estimation & Quotation Top Card - Compact Left & Right Small Cards
+   ========================================================================== */
+.rc-quote-top-card {
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  background: var(--panel, #ffffff) !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+}
+
+.rc-quote-meta-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  padding-bottom: 6px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.rc-quote-meta-head h2 {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+  color: var(--text, #0f172a) !important;
+  line-height: 1.2 !important;
+}
+
+.rc-quote-meta-head p.muted {
+  font-size: 10.5px !important;
+  margin: 1px 0 0 0 !important;
+  color: var(--muted, #64748b) !important;
+}
+
+/* Desktop 4-column layout */
+.rc-quote-meta-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+/* Small Card styling */
+.rc-quote-meta-card {
+  background: #fbfcfe !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 5px 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+
+.rc-quote-meta-card:focus-within {
+  border-color: #3b82f6 !important;
+  background: #ffffff !important;
+}
+
+.rc-quote-meta-lbl,
+.rc-quote-meta-card > label,
+.rc-quote-chit-card label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 9.5px !important;
+  font-weight: 750 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  color: #64748b !important;
+  margin: 0 0 2px 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+.rc-quote-meta-lbl-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 2px !important;
+}
+
+.rc-quote-meta-lbl-row label {
+  margin: 0 !important;
+}
+
+.rc-quote-card-btn {
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  background: #e0f2fe !important;
+  border: 1px solid #bae6fd !important;
+  color: #0369a1 !important;
+  cursor: pointer !important;
+  line-height: 1.3 !important;
+  min-height: 0 !important;
+  height: 17px !important;
+}
+
+.rc-quote-card-btn:hover {
+  background: #bae6fd !important;
+}
+
+.rc-quote-meta-card input,
+.rc-quote-meta-card select {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 2px 7px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  line-height: normal !important;
+}
+
+.rc-quote-meta-card input:focus,
+.rc-quote-meta-card select:focus {
+  border-color: #2563eb !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px #2563eb !important;
+}
+
+/* 24K Rate Card highlight */
+.rc-quote-rate-card {
+  background: #fffdf5 !important;
+  border-color: #fde047 !important;
+}
+
+.rc-quote-rate-card label,
+.rc-quote-rate-card .rc-quote-meta-lbl {
+  color: #b45309 !important;
+}
+
+.rc-quote-rate-card input {
+  font-weight: 750 !important;
+  color: #92400e !important;
+  background: #fefce8 !important;
+  border-color: #fcd34d !important;
+}
+
+/* Chit Info select inside card - vertical stack matching Customer card */
+.rc-quote-chit-card > label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  margin: 0 !important;
+  font-size: 9.5px !important;
+  font-weight: 750 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  color: #64748b !important;
+  line-height: 1.2 !important;
+}
+
+.rc-quote-chit-card > label > select {
+  margin-top: 2px !important;
+  width: 100% !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 2px 7px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-sizing: border-box !important;
+}
+
+/* Desktop reference card spans 2 columns */
+@media (min-width: 761px) {
+  .rc-quote-card-span {
+    grid-column: span 2 !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile-First: Left and Right small cards arrangement
+   ========================================================================== */
+@media screen and (max-width: 760px) {
+  #rcEstimateForm .rc-quote-top-card,
+  .rc-quote-top-card {
+    padding: 7px 9px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .rc-quote-meta-head {
+    margin-bottom: 5px !important;
+    padding-bottom: 3px !important;
+  }
+
+  .rc-quote-meta-head h2 {
+    font-size: 13px !important;
+  }
+
+  .rc-quote-meta-head p.muted {
+    display: none !important; /* Hide long crawling subtitle on mobile to keep card small */
+  }
+
+  /* Force 2-column Left and Right layout on mobile, overriding any 1-column generic overrides */
+  #rcEstimateForm .rc-quote-meta-grid,
+  .rc-quote-meta-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  /* Make sure each card sits on 1 column (Left or Right) */
+  #rcEstimateForm .rc-quote-meta-grid > .rc-quote-meta-card,
+  .rc-quote-meta-grid > .rc-quote-meta-card {
+    grid-column: auto !important;
+    padding: 4px 6px !important;
+    border-radius: 7px !important;
+  }
+
+  /* Reference / Notes card spans across both columns at the bottom */
+  #rcEstimateForm .rc-quote-meta-grid > .rc-quote-card-span,
+  .rc-quote-meta-grid > .rc-quote-card-span {
+    grid-column: 1 / -1 !important;
+  }
+
+  .rc-quote-meta-lbl,
+  .rc-quote-meta-card label,
+  .rc-quote-chit-card label {
+    font-size: 8.5px !important;
+    margin-bottom: 1px !important;
+  }
+
+  .rc-quote-chit-card > label > select {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    padding: 2px 5px !important;
+    font-size: 11px !important;
+    border-radius: 5px !important;
+  }
+
+  .rc-quote-meta-card input,
+  .rc-quote-meta-card select {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    padding: 2px 5px !important;
+    font-size: 11px !important;
+    border-radius: 5px !important;
+  }
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .rc-quote-top-card,
+body.dark .rc-quote-top-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-head,
+body.dark .rc-quote-meta-head {
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-head h2,
+body.dark .rc-quote-meta-head h2 {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-card,
+body.dark .rc-quote-meta-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-card:focus-within,
+body.dark .rc-quote-meta-card:focus-within {
+  border-color: #3b82f6 !important;
+  background: #1e293b !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-lbl,
+[data-theme="dark"] .rc-quote-meta-card label,
+body.dark .rc-quote-meta-lbl,
+body.dark .rc-quote-meta-card label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .rc-quote-meta-card input,
+[data-theme="dark"] .rc-quote-meta-card select,
+body.dark .rc-quote-meta-card input,
+body.dark .rc-quote-meta-card select {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] .rc-quote-rate-card,
+body.dark .rc-quote-rate-card {
+  background: #272115 !important;
+  border-color: #5c4419 !important;
+}
+
+[data-theme="dark"] .rc-quote-rate-card label,
+body.dark .rc-quote-rate-card label {
+  color: #fde047 !important;
+}
+
+[data-theme="dark"] .rc-quote-rate-card input,
+body.dark .rc-quote-rate-card input {
+  background: #362c16 !important;
+  color: #fef08a !important;
+  border-color: #854d0e !important;
+}
