@@ -1,4 +1,4 @@
-const CACHE='goldleaf-shell-v2151';
+const CACHE='goldleaf-shell-v2152';
 const SHELL=['./','./qrcode.min.js?v=2.10.46','./html5-qrcode.min.js?v=2.10.46','./qr-scanner.js?v=2.10.46','./app-v2.js?v=2.10.46','./admin-panel.js?v=2.10.46','./pdf-templates.js?v=2.10.46','./erp-ui.js?v=2.10.46','./erp-theme.css?v=2.10.46','./mobile-erp-layout.css?v=2.10.46','./retail-sales.js?v=2.10.46','./retail-purchases.js?v=2.10.46','./retail-estimate-chit.js?v=2.10.46','./retail-product-workflow.js?v=2.10.46','./retail-estimate-chit.css?v=2.10.46','./retail-sales.css?v=2.10.46','./manifest.webmanifest?v=2.10.46','./icon-192.png?v=2.10.46','./icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(

@@ -3146,7 +3146,7 @@ window.rcConfirmSettleChit=function(e){
   if(mIdx>=0)db.retailDocuments[mIdx]={...m,status:'Closed',settledAt:today,settleMethod:d.settleMethod,settleAmount:net,updatedAt:new Date().toISOString()};
   if(d.settleMethod==='advance'&&net>0){
     const advId=crypto.randomUUID();
-    db.payments.push({id:advId,kind:'advance',retailKind:'advance',accountType:'customer',partyId:m.customerId,amount:net,date:today,notes:'Chit Settlement Transfer - Passbook #'+m.chitNumber,method:'Chit Transfer',reference:m.chitNumber,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    db.payments.push({id:advId,kind:'advance',retailKind:'advance',accountType:'customer',partyId:m.customerId,amount:net,date:today,when:today+'T00:00:00',documentNo:'ADV-'+m.chitNumber,notes:'Chit Settlement Transfer - Passbook #'+m.chitNumber,method:'Chit Transfer',reference:m.chitNumber,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
   }
   rcCloseSettleModal();
   save();
