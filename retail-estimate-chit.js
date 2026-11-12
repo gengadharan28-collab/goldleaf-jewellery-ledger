@@ -606,11 +606,13 @@ window.rcEstimateCustomerChanged = function(sel) {
     const chitSel = chitWrap.querySelector('select[name="chitMappingId"]');
     if(chitSel) {
       chitSel.onchange = function(){
-        if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
+        if(typeof rcRecalc === 'function') rcRecalc(form);
+        else if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
       };
     }
   }
-  if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
+  if(typeof rcRecalc === 'function') rcRecalc(form);
+  else if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
 };
 
 let rcQuoteMode = 'tag';

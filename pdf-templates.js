@@ -477,7 +477,9 @@ function pdfDateText(value){return value?new Date(value).toLocaleString('en-IN')
 
 function pdfBillModel(form,retail){
   const f=form.elements,type=retail?'customer':'party',entity=account(f.partyId.value,type),weight=n(f.weight.value),purity=n(f.purity.value),pieces=n(f.pieces.value),wastage=n(f.wastage.value),reference=f.id.value?'Bill ref: '+f.id.value.slice(0,12).toUpperCase():'DRAFT · unsaved entry';
-  const model={kind:'bill',retail,title:retail?'JEWELLERY SALES BILL':'WHOLESALE PARTY SALES BILL',entityLabel:retail?'Customer':'Party',entityName:entity.name,entityDetails:[entity.address,accountCity(entity.id,type),entity.phone||entity.mobile].filter(Boolean).join(' · '),reference,date:pdfDateText(f.when.value)};
+  const chitDoc=(window.rcDocs?window.rcDocs('retail-chit-mapping'):[]).find(m=>m.id===f.chitMappingId?.value);
+  const chitLabel=chitDoc?'Chit Passbook: '+chitDoc.chitNumber:(f.chitMappingId?.value?'Chit Passbook: '+f.chitMappingId.value:'');
+  const model={kind:'bill',retail,title:retail?'JEWELLERY SALES BILL':'WHOLESALE PARTY SALES BILL',entityLabel:retail?'Customer':'Party',entityName:entity.name,entityDetails:[entity.address,accountCity(entity.id,type),entity.phone||entity.mobile,chitLabel].filter(Boolean).join(' · '),reference,date:pdfDateText(f.when.value)};
   if(retail){
     const t=pdfRetailTotals(form);model.taxEnabled=t.gstEnabled;
     const lines=exchangeRows(form).filter(x=>x.hasEntry),exchange=pdfRound(lines.reduce((sum,x)=>sum+x.amount,0)),collected=n(f.collectedAmount.value),balance=pdfRound(t.final-exchange-collected);
