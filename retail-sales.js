@@ -1,6 +1,6 @@
 // Retail Sales: itemised invoices, returns, receipts and tracked advances.
 // All records use the existing shop-owned sales/payments cloud collections.
-const RB_VERSION='2.10.33';
+const RB_VERSION='2.10.34';
 const rbStyle=document.createElement('link');rbStyle.rel='stylesheet';rbStyle.href='./retail-sales.css?v='+RB_VERSION;document.head.append(rbStyle);
 let rbSection='Bill',rbSaving=false;
 const RB_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
@@ -9,8 +9,8 @@ const rbRound=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
 const rbGrams=value=>Math.round((Number(value)+Number.EPSILON)*1000)/1000;
 const rbNow=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 function rbItemCalc(x){
-  const grossWeight=n(x.grossWeight??x.weight),lessWeight=n(x.lessWeight),netWeight=rbGrams(grossWeight-lessWeight),pieces=n(x.pieces||1),purity=n(x.purity||22),rate=n(x.rate??x.ratePerGram),wastage=n(x.wastage),wastageMode=x.wastageMode==='grams'?'grams':'percent',wastageGrams=wastageMode==='grams'?wastage:netWeight*wastage/100;
-  const makingMode=['piece','gram','fixed'].includes(x.makingMode)?x.makingMode:'piece',makingRate=n(x.makingRate??x.makingPerPiece),goldAmount=rbRound(netWeight*rate),wastageAmount=rbRound(wastageGrams*rate),makingTotal=rbRound(makingRate*(makingMode==='piece'?pieces:makingMode==='gram'?netWeight:1)),stoneAmount=rbRound(n(x.stoneWeight)*n(x.stoneRate)+n(x.certificateCharge)),otherAmount=n(x.otherAmount);
+  const grossWeight=n(x.grossWeight??x.weight),lessWeight=n(x.lessWeight??x.stoneWeight??0),netWeight=rbGrams(grossWeight-lessWeight),pieces=n(x.pieces||1),purity=n(x.purity||22),rate=n(x.rate??x.ratePerGram),wastage=n(x.wastage),wastageMode=x.wastageMode==='grams'?'grams':'percent',wastageGrams=wastageMode==='grams'?wastage:netWeight*wastage/100;
+  const makingMode=['piece','gram','fixed','percent'].includes(x.makingMode)?x.makingMode:'piece',makingRate=n(x.makingRate??x.makingPerPiece),goldAmount=rbRound(netWeight*rate),wastageAmount=rbRound(wastageGrams*rate),makingTotal=rbRound(makingMode==='percent'?(goldAmount*makingRate/100):(makingRate*(makingMode==='piece'?pieces:makingMode==='gram'?netWeight:1))),stoneAmount=rbRound(n(x.stoneAmount??(n(x.stoneWeight)*n(x.stoneRate)+n(x.certificateCharge)))),otherAmount=n(x.otherAmount);
   return Object.assign({},x,{id:x.id||crypto.randomUUID(),product:String(x.product||'').trim(),grossWeight,lessWeight,netWeight,weight:netWeight,pieces,purity,rate,wastage,wastageMode,wastageGrams:rbGrams(wastageGrams),makingMode,makingRate,goldAmount,wastageAmount,makingTotal,stoneAmount,otherAmount,pureGold:(String(x.metalType||'').toLowerCase()==='silver'||String(x.product||'').toLowerCase().includes('silver')?0:netWeight*(purity>24?purity/100:purity/24)),subtotal:rbRound(goldAmount+wastageAmount+makingTotal+stoneAmount+otherAmount)});
 }
 function rbBillCalc(items,options={}){
