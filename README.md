@@ -115,7 +115,7 @@ The referenced conversation did not include the Excel workbook file. These calcu
 
 From this folder, run python -m http.server 8765, then visit http://127.0.0.1:8765/.
 
-- **v2.8.1 · 7 Nov 2026:** Retail rate entry now follows a dated JewelGrow-style flow with manual 24K, 22K, 18K, 14K, silver and diamond rates, AM/PM entry, display and rate history. Retail bill pricing uses the saved matching karat rate when available.
+- **v2.8.1 · 7 Nov 2026:** Retail rate entry now follows a dated multi-karat rate flow with manual 24K, 22K, 18K, 14K, silver and diamond rates, AM/PM entry, display and rate history. Retail bill pricing uses the saved matching karat rate when available.
 
 - **v2.8.2 · 7 Nov 2026:** Finalised manual Retail rates and defaulted the Silver Board field from the saved silver price where no separate board rate exists.
 
@@ -141,7 +141,7 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 
 - **v2.10.5 · 8 Nov 2026:** Remember each signed-in shop's active workspace and page so Retail or Wholesale reopens to the same screen after refresh; also remember the selected Retail sales tab.
 
-- **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with JewelGrow-inspired gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
+- **v2.10.9 · 8 Nov 2026:** Expanded Retail Products and Tagging with comprehensive gram/item workflows, MC and wastage modes, manual purity percentage, weight and stone fields, HUID, barcode scanning and improved mobile scrolling.
 
 - **v2.10.10 · 8 Nov 2026:** Fixed Retail Sales screens stretching past phone width. Bill forms stay within the screen, with wide jewellery tables scrolling inside their own panels.
 
@@ -154,9 +154,9 @@ From this folder, run python -m http.server 8765, then visit http://127.0.0.1:87
 - **v2.10.18 · 11 Nov 2026:** Added ornament/metal selection and Rate Book integration to tag creation (auto-fetches gold 24K/22K/18K/14K and silver board/pure rates based on metal and purity). Added live estimated line total calculation on tags. In Sales Entry, entering or scanning a tag number automatically populates product, purity, metal rate, weights, and calculates line subtotal and bill totals immediately. Added quick tag scan bar in Sales bill items table.
 
 
-- **v2.10.19 · 11 Nov 2026:** JewelGrow Estimation & Quotation workflow parity (Tag Mode, Manual Mode, Multi-Tag batch selection with in-stock datalist, HUID/rate lookup, Rate+Tax, Old Gold credit, 1-click Convert to Sales Bill, WhatsApp share, PDF export). Rate Book toggle for Automatic purity calculation vs Manual rate entry (Old Gold tab removed). Sales Entry ERP invoice look with multi-payment modes (Cash, Cheque, GPay, Card, Bank) and high-contrast dynamic balance indicator. Customer Ledger KPI summary cards and party ledger table reports. Realtime Supabase cross-device sync.
+- **v2.10.19 · 11 Nov 2026:** Complete Estimation & Quotation workflow (Tag Mode, Manual Mode, Multi-Tag batch selection with in-stock datalist, HUID/rate lookup, Rate+Tax, Old Gold credit, 1-click Convert to Sales Bill, WhatsApp share, PDF export). Rate Book toggle for Automatic purity calculation vs Manual rate entry (Old Gold tab removed). Sales Entry ERP invoice look with multi-payment modes (Cash, Cheque, GPay, Card, Bank) and high-contrast dynamic balance indicator. Customer Ledger KPI summary cards and party ledger table reports. Realtime Supabase cross-device sync.
 - **v2.10.20 · 11 Nov 2026:** Modernized QR & Barcode Camera Scanner across all Retail modules (Sales Entry, Estimation & Quotation, and Tagging). Streamlined all scan buttons to crisp icon-only buttons with zero text clutter, perfectly optimized for both mobile and desktop views. Integrated dual-engine detection (`Html5Qrcode` with native `BarcodeDetector` acceleration) supporting QR, Code128, EAN13, UPC, and Code39 with front/rear camera flip, torch toggle, gallery photo upload fallback, and audio/haptic scan confirmation. Enhanced mobile ERP responsiveness with single-row quick tag bar and contained card layouts without horizontal overflow.
-  - **Quotation / Estimation Workflow (JewelGrow Parity):** Added Tag Mode (instant tag scan/search by code or HUID), Manual Mode (metal, purity, weights, wastage, making charges, rate+tax), and Multi-Tag Mode (batch tag selection from stock). Includes live metal rate lookup from Rate Book, Rate+Tax (auto 3% GST), Value Added per gram, items table with live recalculation, Old Gold exchange credit, 1-click "Convert to Sales Bill", and instant WhatsApp Share!
+  - **Quotation / Estimation Workflow:** Added Tag Mode (instant tag scan/search by code or HUID), Manual Mode (metal, purity, weights, wastage, making charges, rate+tax), and Multi-Tag Mode (batch tag selection from stock). Includes live metal rate lookup from Rate Book, Rate+Tax (auto 3% GST), Value Added per gram, items table with live recalculation, Old Gold exchange credit, 1-click "Convert to Sales Bill", and instant WhatsApp Share!
   - **Rate Book Automatic vs Manual Toggle:** Added one-click toggle between `Automatic Calculation` (auto-deriving 22K, 18K and 14K from 24K pure gold rate) and `Manual Rate Entry`. Removed Old Gold tab from Rate Book.
   - **Sales Entry ERP Experience & Payment:** Completely removed 24K rate box from customer sales; rates are pulled per metal/purity from Rate Book. Added multi-mode collections (Cash, Cheque, GPay/UPI, Card, Bank transfer) and high-contrast dynamic badge styling for balance amounts (emerald for paid/settled, amber for balance due).
   - **Customer Ledger Detailed Table & Reports:** Added comprehensive KPI cards (Total Grams Taken, Purchase Value, Old Gold Given, Amount Paid, Pending Balance) and complete transaction table view with multi-item breakdowns, old gold details, collection breakdown, and direct WhatsApp / PDF export actions.

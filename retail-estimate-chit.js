@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.34';
+const RC_VERSION='2.10.35';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -625,7 +625,7 @@ function rcQuoteForm(){
 
     // Mobile Horizontal Pills Row (matches mockup 1 Single-Row POS Strip)
     +'<div class="rc-pos-pills-bar">'
-    +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+')':'+ Old Gold')+'</button>'
+    +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+') ▾':'+ Old Gold ▾')+'</button>'
     +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
     +'<button type="button" id="rcPill_gst" class="rc-pos-pill '+(q?.gstEnabled!==false?'active':'')+'" onclick="rcTogglePosDrawer(\'gst\')">💰 GST '+(q?.gstEnabled!==false?((q?.gstRate!==undefined?q.gstRate:3)+'%'):'(Off)')+'</button>'
     +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
@@ -670,12 +670,12 @@ function rcQuoteForm(){
     +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Credit = Gross weight × Testing % ÷ 100 × Rate</small></div>'
     +'<div class="rc-old-gold-credit-pill">Credit: <b id="rcOldGoldCreditSummary">'+rateMoney(oldGoldCredit)+'</b></div>'
     +'</div>'
-    +'<div class="rc-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
-    +'<label class="rc-wide" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Item Description</span><input name="exchangeProduct" value="'+esc(q?.exchangeProduct||'')+'" placeholder="Old Jewellery description"></label>'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Amount ₹ *</span><input name="exchangeAmount" id="rcExchangeAmountInput" type="number" min="0" step=".01" placeholder="0.00" value="'+(oldGoldCredit>0?oldGoldCredit:(q?.exchangeAmount||''))+'" oninput="rcOldGoldAmountChanged()"></label>'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Gross g</span><input name="exchangeGross" type="number" min="0" step=".001" placeholder="0.000" value="'+(q?.exchangeGross||'')+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Testing Purity %</span><input name="exchangeTesting" type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+(q?.exchangeTesting||91.6)+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Rate ₹/g</span><input name="exchangeRate" type="number" min="0" step=".01" placeholder="Rate/g" value="'+(q?.exchangeRate??rates)+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<div class="rc-grid rc-old-gold-fields-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'
+    +'<label class="rc-wide rc-og-field rc-og-desc" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Item Description</span><input name="exchangeProduct" value="'+esc(q?.exchangeProduct||'')+'" placeholder="Old Jewellery description"></label>'
+    +'<label class="rc-og-field rc-og-gross" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Gross g</span><input name="exchangeGross" type="number" min="0" step=".001" placeholder="0.000" value="'+(q?.exchangeGross||'')+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-purity" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Testing Purity %</span><input name="exchangeTesting" type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+(q?.exchangeTesting||91.6)+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-rate" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Rate ₹/g</span><input name="exchangeRate" type="number" min="0" step=".01" placeholder="Rate/g" value="'+(q?.exchangeRate??rates)+'" oninput="rcOldGoldFieldChanged()"></label>'
+    +'<label class="rc-og-field rc-og-amount" style="margin:0"><span style="font-size:12px;font-weight:700;color:#78350f">Old Gold Amount ₹</span><input name="exchangeAmount" id="rcExchangeAmountInput" type="number" min="0" step=".01" placeholder="0.00" value="'+(oldGoldCredit>0?oldGoldCredit:(q?.exchangeAmount||''))+'" oninput="rcOldGoldAmountChanged()"></label>'
     +'</div>'
     +'</div>'
     +'</div>'
@@ -728,19 +728,19 @@ function rcQuoteForm(){
     +'<span>Purchase Value <b id="rcPurchaseVal" style="display:block;font-size:14px;color:#1e293b;font-weight:700">'+rateMoney(quotePurchaseValue)+'</b></span>'
     +'<span>Old Gold Credit <b id="rcOldGold" style="display:block;font-size:14px;color:#854d0e">'+(oldGoldCredit>0?'− '+rateMoney(oldGoldCredit):'₹ 0.00')+'</b></span>'
     +'<span>Net Estimate Payable <b id="rcFinal" style="display:block;font-size:15px;color:var(--green,#18392a);font-weight:800">'+rateMoney(quoteFinalVal)+'</b></span>'
-    +'<span class="rc-advance-total-badge">💵 Advance Collected <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
+    +'<span class="rc-advance-total-badge">💵 Collected Amount <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
     +'</div>'
     +'<div id="rcBalanceBox" class="rc-balance-box rc-balance-due">'
     +'<div class="rc-balance-desktop-head">'
     +'<span class="rc-balance-icon" style="font-size:24px">⚖️</span>'
-    +'<div><span id="rcBalanceLabel" class="rc-balance-title" style="font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small class="rc-balance-sub" style="font-size:11px;color:#b45309;font-weight:600">Net balance after advance collection</small></div>'
+    +'<div><span id="rcBalanceLabel" class="rc-balance-title" style="font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;display:block">BALANCE TO PAY</span><small class="rc-balance-sub" style="font-size:11px;color:#b45309;font-weight:600">Net balance after payment collection</small></div>'
     +'</div>'
     +'<div class="rc-balance-linear-bar">'
-    +'<span class="rc-bal-item rc-bal-quote">Net Total: <b id="rcBalGrandTotal">'+rateMoney(quoteFinalVal)+'</b></span>'
+    +'<span class="rc-bal-item rc-bal-quote"><span class="rc-bal-lbl">Net Total: </span><b id="rcBalGrandTotal">'+rateMoney(quoteFinalVal)+'</b></span>'
     +'<span class="rc-bal-pipe">|</span>'
-    +'<span class="rc-bal-item rc-bal-advance">Adv Paid: <b id="rcBalAdvance">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
+    +'<span class="rc-bal-item rc-bal-advance"><span class="rc-bal-lbl">Paid Amount: </span><b id="rcBalAdvance">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
     +'<span class="rc-bal-pipe">|</span>'
-    +'<span class="rc-bal-item rc-bal-remaining"><span class="rc-bal-rem-text">Remaining: </span><b id="rcBalanceDue">'+rateMoney(Math.abs(quoteFinalVal - (q?.collectedAmount||0)))+'</b></span>'
+    +'<span class="rc-bal-item rc-bal-remaining"><span class="rc-bal-lbl rc-bal-rem-text">Remaining: </span><b id="rcBalanceDue">'+rateMoney(Math.abs(quoteFinalVal - (q?.collectedAmount||0)))+'</b></span>'
     +'</div>'
     +'</div>'
     +'</section>'
@@ -1185,6 +1185,7 @@ window.rcTogglePosDrawer = function(type){
   if(isCurrentlyOpen){
     drawer.classList.remove('rc-drawer-open');
     if(pill) pill.classList.remove('active');
+    rcRecalc();
   } else {
     document.querySelectorAll('.rc-pos-drawer.rc-drawer-open').forEach(d => {
       d.classList.remove('rc-drawer-open');
@@ -1199,6 +1200,7 @@ window.rcTogglePosDrawer = function(type){
         if(typeof window.rcToggleOldGold === 'function') window.rcToggleOldGold();
       }
     }
+    rcRecalc();
     const firstInput = drawer.querySelector('input:not([type="hidden"]), select, textarea');
     if(firstInput) setTimeout(() => firstInput.focus(), 50);
   }
@@ -1252,7 +1254,7 @@ window.rcToggleOldGold = function() {
   if (chev) chev.textContent = isHidden ? '▼' : '▲';
   if (hint) hint.textContent = isHidden ? 'Click to enter Old Gold data' : 'Click to collapse';
   if (!isHidden) {
-    dropdown.querySelector('input[name="exchangeGross"]')?.focus({ preventScroll: true });
+    dropdown.querySelector('input[name="exchangeProduct"]')?.focus({ preventScroll: true });
   }
 };
 
@@ -1373,24 +1375,26 @@ function rcRecalc(){
       balBox.classList.add('rc-balance-paid');
       if(balLbl) balLbl.textContent = '✓ BALANCE FULLY SETTLED';
       if(balRemText) balRemText.textContent = 'Settled: ';
-    } else if(bill.balance > 0){
-      balBox.classList.add('rc-balance-due');
-      if(balLbl) balLbl.textContent = 'BALANCE TO PAY';
-      if(balRemText) balRemText.textContent = 'Remaining: ';
-    } else {
+    } else if(bill.balance < 0){
       balBox.classList.add('rc-balance-credit');
       if(balLbl) balLbl.textContent = 'CUSTOMER CREDIT';
       if(balRemText) balRemText.textContent = 'Excess: ';
+    } else {
+      balBox.classList.add('rc-balance-due');
+      if(balLbl) balLbl.textContent = 'BALANCE TO PAY';
+      if(balRemText) balRemText.textContent = 'Remaining: ';
     }
   }
   // Dynamic mobile pills update
   const pOldGold = document.getElementById('rcPill_oldgold');
   if(pOldGold){
+    const isOgOpen = document.getElementById('rcPosDrawer_oldgold')?.classList.contains('rc-drawer-open');
+    const ogCaret = isOgOpen ? ' ▴' : ' ▾';
     if(goldCredit > 0){
-      pOldGold.textContent = '🪙 Old Gold (' + rateMoney(goldCredit) + ')';
+      pOldGold.textContent = '🪙 Old Gold (' + rateMoney(goldCredit) + ')' + ogCaret;
       pOldGold.classList.add('has-value');
     } else {
-      pOldGold.textContent = '+ Old Gold';
+      pOldGold.textContent = '+ Old Gold' + ogCaret;
       pOldGold.classList.remove('has-value');
     }
   }
