@@ -1,6 +1,6 @@
 // Retail Sales: itemised invoices, returns, receipts and tracked advances.
 // All records use the existing shop-owned sales/payments cloud collections.
-const RB_VERSION='2.10.31';
+const RB_VERSION='2.10.32';
 const rbStyle=document.createElement('link');rbStyle.rel='stylesheet';rbStyle.href='./retail-sales.css?v='+RB_VERSION;document.head.append(rbStyle);
 let rbSection='Bill',rbSaving=false;
 const RB_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];

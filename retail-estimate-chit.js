@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.31';
+const RC_VERSION='2.10.32';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
 function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
@@ -557,20 +557,31 @@ function rcQuoteForm(){
     +'<datalist id="rcQuoteProdList">'+products.map(p=>'<option value="'+esc(p.name)+'">').join('')+'</datalist>'
     +'</section>'
 
-    // Adjustments & Old Gold (Option A: Left & Right Simple Cards)
-    +'<section class="panel rc-quote-adjustments-panel">'
-    +'<div class="rc-section-title"><h2>Adjustments & Old Gold Exchange</h2></div>'
-    +'<div class="rc-adj-cards-row">'
-    +'<div class="rc-adj-card rc-adj-discount-card">'
-    +'<div class="rc-adj-card-head">'
+    // Adjustments & Old Gold (Single-Row POS Strip for Mobile + Preserved Desktop Layout)
+    +'<section class="panel rc-quote-adjustments-panel rc-pos-strip-container">'
+    +'<div class="rc-section-title rc-pos-desktop-head"><h2>Adjustments & Old Gold Exchange</h2></div>'
+
+    // Mobile Horizontal Pills Row (matches mockup 1 Single-Row POS Strip)
+    +'<div class="rc-pos-pills-bar">'
+    +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🔄 Old Gold ('+rateMoney(oldGoldCredit)+')':'+ Old Gold')+'</button>'
+    +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
+    +'<button type="button" id="rcPill_gst" class="rc-pos-pill '+(q?.gstEnabled!==false?'active':'')+'" onclick="rcTogglePosDrawer(\'gst\')">💰 GST '+(q?.gstEnabled!==false?((q?.gstRate!==undefined?q.gstRate:3)+'%'):'(Off)')+'</button>'
+    +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
+    +'<button type="button" id="rcPill_discount" class="rc-pos-pill '+(q?.discount>0?'has-value':'')+'" onclick="rcTogglePosDrawer(\'discount\')">'+(q?.discount>0?'🏷️ Disc ('+rateMoney(q.discount)+')':'🏷️ Discount')+'</button>'
+    +'</div>'
+
+    // Drawers / Cards: on Desktop, these render in the 2-column grid; on Mobile, they are drawers toggled by pills
+    +'<div class="rc-adj-cards-row rc-pos-drawers-wrap">'
+    +'<div id="rcPosDrawer_discount" class="rc-adj-card rc-adj-discount-card rc-pos-drawer">'
+    +'<div class="rc-adj-card-head rc-pos-drawer-head">'
     +'<span class="rc-adj-card-title">🏷️ Discount</span>'
     +'<b class="rc-adj-card-val" id="rcAdjDiscountVal">'+rateMoney(q?.discount||0)+'</b>'
     +'</div>'
     +'<label class="rc-adj-label">Discount ₹</label>'
     +'<input name="discount" class="rc-adj-input" type="number" min="0" step=".01" placeholder="0.00" value="'+(q?.discount||'')+'" oninput="rcRecalc()">'
     +'</div>'
-    +'<div class="rc-adj-card rc-adj-gst-card">'
-    +'<div class="rc-adj-card-head">'
+    +'<div id="rcPosDrawer_gst" class="rc-adj-card rc-adj-gst-card rc-pos-drawer">'
+    +'<div class="rc-adj-card-head rc-pos-drawer-head">'
     +'<span class="rc-adj-card-title">🏛️ GST Tax</span>'
     +'<label class="rc-adj-check-label"><input name="gstEnabled" type="checkbox" '+(q?.gstEnabled!==false?'checked':'')+' onchange="rcRecalc()"> <span>Enable</span></label>'
     +'</div>'
@@ -578,13 +589,9 @@ function rcQuoteForm(){
     +'<input name="gstRate" class="rc-adj-input" type="number" min="0" max="100" step=".01" placeholder="3%" value="'+(q?.gstRate!==undefined?q.gstRate:3)+'" oninput="rcRecalc()">'
     +'</div>'
     +'</div>'
-    +'<div class="rc-notes-wrap" style="margin-bottom:8px">'
-    +'<label class="rc-notes-label" style="margin:0;display:block">'
-    +'<span style="font-size:11px;font-weight:700;color:#64748b">Quotation Notes / Terms</span>'
-    +'<textarea name="notes" class="rc-notes-input" rows="1" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea>'
-    +'</label>'
-    +'</div>'
-    +'<div class="rc-old-gold-wrap">'
+
+    // Old Gold Exchange Drawer / Block
+    +'<div id="rcPosDrawer_oldgold" class="rc-old-gold-wrap rc-pos-drawer '+(hasOldGold?'has-old-gold':'')+'">'
     +'<button type="button" id="rcOldGoldToggleBtn" class="rc-old-gold-btn '+(hasOldGold?'active':'')+'" onclick="rcToggleOldGold()" aria-expanded="'+(hasOldGold?'true':'false')+'">'
     +'<div class="rc-old-gold-btn-left">'
     +'<span class="rc-old-gold-icon">🔄</span>'
@@ -609,24 +616,37 @@ function rcQuoteForm(){
     +'</div>'
     +'</div>'
     +'</div>'
-    +'<div class="rc-advance-collection-card">'
+
+    // Payment Received Card (Single-Row POS Strip from mockup)
+    +'<div class="rc-advance-collection-card rc-pos-payment-card">'
     +'<input type="hidden" name="collectedAmount" id="rcHiddenCollectedAmount" value="'+(q?.collectedAmount||0)+'">'
     +'<input type="hidden" name="collectedMethod" id="rcHiddenCollectedMethod" value="'+esc(q?.collectedMethod||'Cash')+'">'
     +'<input type="hidden" name="collectedReference" id="rcHiddenCollectedReference" value="'+esc(q?.collectedReference||'')+'">'
-    +'<div class="rc-advance-card-head">'
-    +'<div class="rc-advance-title-wrap"><span class="rb-collection-highlight-badge">💰 ADVANCE</span><h2 class="rc-advance-title">Split Payments</h2></div>'
-    +'<div class="rc-advance-live-badge"><span class="rc-adv-badge-bill">Bill: <b id="rcAdvBillTotal">₹ 0.00</b></span> <span class="rc-adv-badge-sep">•</span> <span class="rc-adv-badge-col">Collected: <b id="rcAdvanceLiveTotal">'+rateMoney(q?.collectedAmount||0)+'</b></span></div>'
+    +'<div class="rc-advance-card-head rc-pos-payment-head">'
+    +'<div class="rc-pos-head-left">'
+    +'<span class="rc-pos-payment-title">Payment Received</span>'
     +'</div>'
-    +'<div id="rcCollectionsList" class="rc-collections-list">'
+    +'<div class="rc-pos-payment-total-wrap">'
+    +'<span>Total: <b id="rcCollectionsTotal">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
+    +'<span class="rc-pos-pipe">|</span>'
+    +'<button type="button" class="rc-pos-split-btn" onclick="rcAddCollection()">+ Split</button>'
+    +'</div>'
+    +'</div>'
+    +'<div class="rc-pos-labels-row">'
+    +'<span>Collected (₹)</span><span>Method</span><span>Ref / Txn #</span><span></span>'
+    +'</div>'
+    +'<div id="rcCollectionsList" class="rc-collections-list rc-pos-collections-list">'
     +collections.map(c => rcCollectionRow(c)).join('')
-    +'</div>'
-    +'<div class="rc-collections-footer">'
-    +'<button type="button" class="rc-add-payment-btn" onclick="rcAddCollection()">＋ Add Payment Method</button>'
-    +'<div class="rc-collections-summary">Total Collected: <b id="rcCollectionsTotal">'+rateMoney(q?.collectedAmount||0)+'</b></div>'
     +'</div>'
     +'</div>'
 
     // Summary Totals
+    +'<div class="rc-notes-wrap" style="margin-top:10px;margin-bottom:8px">'
+    +'<label class="rc-notes-label" style="margin:0;display:block">'
+    +'<span style="font-size:11px;font-weight:700;color:#64748b">Quotation Notes / Terms</span>'
+    +'<textarea name="notes" class="rc-notes-input" rows="1" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea>'
+    +'</label>'
+    +'</div>'
     +'<div class="rc-totals" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;background:#fbfaf6;padding:12px;border-radius:6px;margin-top:14px;border:1px solid var(--line,#ddd)">'
     +'<span>Items Subtotal <b id="rcSubtotal" style="display:block;font-size:14px;color:#222">₹ 0.00</b></span>'
     +'<span>Discount <b id="rcDiscount" style="display:block;font-size:14px;color:#888">₹ 0.00</b></span>'
@@ -1007,23 +1027,14 @@ window.rcCollectionRow = function(c){
   const method = c?.method || 'Cash';
   const amount = (c?.amount !== undefined && c?.amount !== null && c?.amount !== '') ? c.amount : '';
   const ref = c?.reference || '';
-  const methods = (typeof RB_METHODS !== 'undefined' && Array.isArray(RB_METHODS)) ? RB_METHODS : ['Cash', 'Cheque', 'GPay', 'Bank transfer', 'Card'];
-  const methodOptions = methods.map(m => {
-    let icon = '💵 ';
-    if(m === 'GPay') icon = '📱 ';
-    else if(m === 'Card') icon = '💳 ';
-    else if(m === 'Cheque') icon = '📝 ';
-    else if(m === 'Bank transfer') icon = '🏦 ';
-    return '<option value="' + m + '" ' + (m === method ? 'selected' : '') + '>' + icon + m + '</option>';
-  }).join('');
+  const methods = ['Cash', 'GPay', 'PhonePe', 'Card', 'Bank transfer', 'Cheque'];
+  const methodOptions = methods.map(m => '<option value="' + m + '" ' + (m === method ? 'selected' : '') + '>' + m + '</option>').join('');
 
-  return '<div class="rc-collection-row">'
-    + '<div class="rc-pay-top-line">'
-    + '<select class="rc-collection-method" onchange="rcRecalc()">' + methodOptions + '</select>'
-    + '<input type="number" class="rc-collection-amount" inputmode="decimal" placeholder="Amount (₹)" min="0" step="any" value="' + amount + '" oninput="rcRecalc()">'
-    + '<button type="button" class="rc-collection-remove" onclick="rcRemoveCollection(this)" title="Remove payment">✕</button>'
-    + '</div>'
-    + '<input type="text" class="rc-collection-ref" placeholder="Reference / Counter note / UPI ID" value="' + esc(ref) + '" oninput="rcRecalc()">'
+  return '<div class="rc-collection-row rc-pos-row">'
+    + '<input type="number" class="rc-collection-amount rc-pos-amount-input" inputmode="decimal" placeholder="0.00" min="0" step="any" value="' + amount + '" oninput="rcRecalc()">'
+    + '<select class="rc-collection-method rc-pos-method-select" onchange="rcRecalc()">' + methodOptions + '</select>'
+    + '<input type="text" class="rc-collection-ref rc-pos-ref-input" placeholder="UPI / Cheque" value="' + esc(ref) + '" oninput="rcRecalc()">'
+    + '<button type="button" class="rc-collection-remove rc-pos-remove-btn" onclick="rcRemoveCollection(this)" title="Remove payment">✕</button>'
     + '</div>';
 };
 
@@ -1031,9 +1042,57 @@ window.rcAddCollection = function(){
   const container = document.getElementById('rcCollectionsList');
   if(!container) return;
   const existingRows = container.querySelectorAll('.rc-collection-row');
-  const nextMethod = existingRows.length === 1 ? 'GPay' : (existingRows.length === 2 ? 'Card' : 'Cash');
+  const nextMethod = existingRows.length === 1 ? 'GPay' : (existingRows.length === 2 ? 'PhonePe' : (existingRows.length === 3 ? 'Card' : 'Cash'));
   container.insertAdjacentHTML('beforeend', rcCollectionRow({ method: nextMethod, amount: '', reference: '' }));
   rcRecalc();
+  const allAmounts = container.querySelectorAll('.rc-collection-amount');
+  if(allAmounts.length > 0) allAmounts[allAmounts.length - 1].focus();
+};
+
+window.rcTogglePosDrawer = function(type){
+  if(type === 'chit'){
+    const topChit = document.querySelector('select[name="chitMappingId"]');
+    if(topChit){
+      topChit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      topChit.focus();
+      const wrap = topChit.closest('label') || topChit;
+      wrap.classList.add('rc-highlight-pulse');
+      setTimeout(() => wrap.classList.remove('rc-highlight-pulse'), 1500);
+      return;
+    }
+  }
+  const drawer = document.getElementById('rcPosDrawer_' + type);
+  const pill = document.getElementById('rcPill_' + type);
+  if(!drawer) return;
+  const isCurrentlyOpen = drawer.classList.contains('rc-drawer-open');
+  if(isCurrentlyOpen){
+    drawer.classList.remove('rc-drawer-open');
+    if(pill) pill.classList.remove('active');
+  } else {
+    document.querySelectorAll('.rc-pos-drawer.rc-drawer-open').forEach(d => {
+      d.classList.remove('rc-drawer-open');
+      const otherType = d.id.replace('rcPosDrawer_', '');
+      document.getElementById('rcPill_' + otherType)?.classList.remove('active');
+    });
+    drawer.classList.add('rc-drawer-open');
+    if(pill) pill.classList.add('active');
+    if(type === 'oldgold'){
+      const dd = document.getElementById('rcOldGoldDropdown');
+      if(dd && dd.classList.contains('hidden')){
+        if(typeof window.rcToggleOldGold === 'function') window.rcToggleOldGold();
+      }
+    }
+    const firstInput = drawer.querySelector('input:not([type="hidden"]), select, textarea');
+    if(firstInput) setTimeout(() => firstInput.focus(), 50);
+  }
+};
+
+window.rcFocusAdvance = function(){
+  const inp = document.querySelector('#rcCollectionsList .rc-pos-amount-input');
+  if(inp){
+    inp.focus();
+    inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 };
 
 window.rcRemoveCollection = function(btn){
@@ -1175,6 +1234,43 @@ function rcRecalc(){
       balBox.classList.add('rc-balance-due');
       if(balLbl) balLbl.textContent = 'BALANCE TO PAY';
       if(balRemText) balRemText.textContent = 'Remaining: ';
+    }
+  }
+  // Dynamic mobile pills update
+  const pOldGold = document.getElementById('rcPill_oldgold');
+  if(pOldGold){
+    if(goldCredit > 0){
+      pOldGold.textContent = '🔄 Old Gold (' + rateMoney(goldCredit) + ')';
+      pOldGold.classList.add('has-value');
+    } else {
+      pOldGold.textContent = '+ Old Gold';
+      pOldGold.classList.remove('has-value');
+    }
+  }
+  const pDisc = document.getElementById('rcPill_discount');
+  if(pDisc){
+    if(discount > 0){
+      pDisc.textContent = '🏷️ Disc (' + rateMoney(discount) + ')';
+      pDisc.classList.add('has-value');
+    } else {
+      pDisc.textContent = '🏷️ Discount';
+      pDisc.classList.remove('has-value');
+    }
+  }
+  const pGST = document.getElementById('rcPill_gst');
+  if(pGST){
+    pGST.textContent = '💰 GST ' + (gstOn ? ((gstRate || 3) + '%') : '(Off)');
+    pGST.classList.toggle('active', gstOn);
+  }
+  const pChit = document.getElementById('rcPill_chit');
+  if(pChit){
+    const chitVal = form.elements.chitMappingId?.value;
+    if(chitVal){
+      pChit.textContent = '✓ Chit';
+      pChit.classList.add('has-value');
+    } else {
+      pChit.textContent = '+ Chit';
+      pChit.classList.remove('has-value');
     }
   }
   const elCount = document.getElementById('rcQuoteItemCount');

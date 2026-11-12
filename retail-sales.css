@@ -1860,28 +1860,240 @@ body.dark .rc-bal-pipe {
 }
 
 /* ==========================================================================
-   Mobile-Only Quotation & Balance Layout (@media max-width: 760px)
-   Option A: Modern Clean Fintech Cards
-   1. Left & Right simple cards (Discount & GST)
-   2. Half-size Old Gold Exchange button
-   3. Advance Collection Card with Split Payments
-   4. Very simple, lineable, very small Balance to Pay layout
+   Single-Row POS Strip (Estimation & Quotation)
+   Desktop layout preserved; Mobile uses the exact wireframe from mockup
+   ========================================================================== */
+.rc-pos-strip-container {
+  box-sizing: border-box;
+}
+.rc-notes-wrap {
+  width: 100%;
+}
+.rc-notes-wrap textarea,
+.rc-notes-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: #334155;
+  background: #ffffff;
+}
+
+/* Desktop defaults (> 760px) */
+@media screen and (min-width: 761px) {
+  .rc-pos-pills-bar {
+    display: none !important;
+  }
+  .rc-pos-drawer {
+    display: block !important;
+  }
+  .rc-pos-payment-card {
+    background: linear-gradient(180deg, #f8fbf9 0%, #f2f7f4 100%);
+    border: 1.5px solid #18392a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 14px;
+    box-shadow: 0 2px 8px rgba(24, 57, 42, 0.08);
+  }
+  .rc-pos-payment-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .rc-pos-payment-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #18392a;
+  }
+  .rc-pos-payment-total-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #1b5e20;
+  }
+  .rc-pos-pipe {
+    opacity: 0.5;
+    color: #1b5e20;
+    margin: 0 2px;
+  }
+  .rc-pos-split-btn {
+    background: transparent;
+    border: none;
+    color: #1b5e20;
+    font-size: 12px;
+    font-weight: 850;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .rc-pos-labels-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.3fr 32px;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1b4d32;
+    padding: 0 4px;
+  }
+  .rc-pos-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.3fr 32px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    background: #ffffff;
+    border: 1px solid #c9ded1;
+    border-radius: 8px;
+    padding: 6px 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .rc-pos-amount-input {
+    width: 100%;
+    height: 32px;
+    border: 1.5px solid #18392a;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 850;
+    color: #18392a;
+    padding: 0 8px;
+    box-sizing: border-box;
+  }
+  .rc-pos-method-select {
+    width: 100%;
+    height: 32px;
+    border: 1px solid #b8d5c3;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #18392a;
+    padding: 0 8px;
+    background: #fff;
+    box-sizing: border-box;
+  }
+  .rc-pos-ref-input {
+    width: 100%;
+    height: 32px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 11.5px;
+    padding: 0 8px;
+    background: #fff;
+    box-sizing: border-box;
+  }
+  .rc-pos-remove-btn {
+    height: 28px;
+    width: 28px;
+    border-radius: 6px;
+    border: 1px solid #fca5a5;
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .rc-pos-collections-list:has(.rc-pos-row:only-child) .rc-pos-remove-btn,
+  .rc-pos-row:only-child .rc-pos-remove-btn {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile-Only Single-Row POS Strip (@media max-width: 760px)
+   Matches exact wireframe in user uploaded mockup
    ========================================================================== */
 @media screen and (max-width: 760px) {
-  /* 1. Left & Right Simple Cards (Discount & GST) */
-  .rc-adj-cards-row {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+  .rc-pos-strip-container {
+    padding: 10px 12px !important;
+    border-radius: 14px !important;
+    background: #fffdfa !important;
+    border: 1.5px solid #e9e1d3 !important;
+    box-shadow: 0 2px 8px rgba(60,50,30,0.04) !important;
+  }
+  .rc-pos-desktop-head {
+    display: none !important;
+  }
+
+  /* 1. Horizontal Pills Bar */
+  .rc-pos-pills-bar {
+    display: flex !important;
+    align-items: center !important;
     gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 2px 1px 6px !important;
+    margin-bottom: 4px !important;
+  }
+  .rc-pos-pills-bar::-webkit-scrollbar { display: none !important; }
+  .rc-pos-pill {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    padding: 5px 12px !important;
+    border-radius: 999px !important;
+    background: #fbf6ed !important;
+    border: 1px solid #e2d5c2 !important;
+    color: #383126 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    min-height: 29px !important;
+    touch-action: manipulation !important;
+    transition: all 0.15s ease !important;
+  }
+  .rc-pos-pill:active,
+  .rc-pos-pill.active {
+    background: #eef5f0 !important;
+    border-color: #8ebba2 !important;
+    color: #164e2e !important;
+    font-weight: 800 !important;
+  }
+  .rc-pos-pill.has-value {
+    background: #fef3c7 !important;
+    border-color: #d97706 !important;
+    color: #92400e !important;
+    font-weight: 800 !important;
+  }
+
+  /* 2. Collapsible Drawers (Discount, GST, Old Gold) */
+  .rc-pos-drawers-wrap {
+    display: contents !important;
+  }
+  .rc-pos-drawer {
+    display: none !important;
     margin-bottom: 6px !important;
+  }
+  .rc-pos-drawer.rc-drawer-open {
+    display: block !important;
+    animation: rcDrawerSlide 0.18s ease-out !important;
+  }
+  @keyframes rcDrawerSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rc-pos-drawer-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 4px !important;
   }
   .rc-adj-card {
     padding: 6px 8px !important;
     border-radius: 8px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
-  }
-  .rc-adj-card-head {
-    margin-bottom: 2px !important;
   }
   .rc-adj-card-title {
     font-size: 10.5px !important;
@@ -1914,64 +2126,18 @@ body.dark .rc-bal-pipe {
     border-radius: 4px !important;
   }
 
-  /* 2. Half-Size Button for Old Gold Exchange (Mobile Only) */
+  /* Old Gold in Mobile Drawer */
   .rc-old-gold-wrap {
-    margin: 6px 0 !important;
+    margin: 4px 0 !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
   }
-  body[data-erp] button#rcOldGoldToggleBtn,
-  button#rcOldGoldToggleBtn,
   #rcOldGoldToggleBtn {
-    width: 48% !important;
-    min-width: 145px !important;
-    max-width: 50% !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    padding: 0 8px !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #d97706 !important;
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
-    box-shadow: 0 2px 5px rgba(217, 119, 6, 0.16) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    margin: 0 !important;
-    cursor: pointer !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-btn-left {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    overflow: hidden !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-icon {
-    font-size: 11px !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-title {
-    font-size: 10px !important;
-    font-weight: 800 !important;
-    color: #92400e !important;
-    white-space: nowrap !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-badge {
     display: none !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-hint {
-    display: none !important;
-  }
-  #rcOldGoldToggleBtn .rc-old-gold-chevron {
-    font-size: 9.5px !important;
-    font-weight: 900 !important;
-    color: #92400e !important;
-    background: #fde68a !important;
-    padding: 1px 4px !important;
-    border-radius: 4px !important;
   }
   #rcOldGoldDropdown {
+    display: block !important;
     margin-top: 4px !important;
     border: 1px solid #d97706 !important;
     border-radius: 8px !important;
@@ -2025,138 +2191,157 @@ body.dark .rc-bal-pipe {
     gap: 4px !important;
   }
 
-  /* 3. Split Advance Collection Card (Mobile Only) */
+  /* 3. Payment Received Card (Single-Row POS Strip) */
+  body[data-erp] .rc-pos-payment-card,
   body[data-erp] .rc-advance-collection-card,
+  .rc-pos-payment-card,
   .rc-advance-collection-card {
-    margin-top: 6px !important;
-    padding: 8px 10px !important;
-    border: 1.5px solid #18392a !important;
-    border-radius: 10px !important;
-    background: linear-gradient(180deg, #f8fbf9 0%, #f2f7f4 100%) !important;
-    box-shadow: 0 2px 6px rgba(24, 57, 42, 0.08) !important;
+    background: #edf6f0 !important;
+    border: 1.5px solid #8ebba2 !important;
+    border-radius: 12px !important;
+    padding: 9px 10px 11px !important;
+    margin-top: 4px !important;
+    box-shadow: none !important;
   }
-  .rc-advance-card-head {
+  .rc-pos-payment-head {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     margin-bottom: 6px !important;
-    gap: 4px !important;
-    flex-wrap: wrap !important;
   }
-  .rc-advance-title-wrap {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-  }
-  .rc-advance-title {
-    font-size: 11.5px !important;
+  .rc-pos-payment-title {
+    font-size: 13.5px !important;
     font-weight: 800 !important;
+    color: #113421 !important;
+    letter-spacing: -0.2px !important;
   }
-  .rb-collection-highlight-badge {
-    font-size: 8.5px !important;
-    padding: 1px 4px !important;
-    border-radius: 3px !important;
-  }
-  .rc-advance-live-badge {
-    padding: 2px 6px !important;
-    font-size: 9.5px !important;
-    border-radius: 4px !important;
-    white-space: nowrap !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 3px !important;
-  }
-  .rc-advance-live-badge b {
-    font-size: 10.5px !important;
-  }
-  .rc-adv-badge-sep {
-    font-size: 9px !important;
-  }
-  .rc-collections-list {
+  .rc-pos-payment-total-wrap {
     display: flex !important;
-    flex-direction: column !important;
-    gap: 5px !important;
-    margin-bottom: 6px !important;
-  }
-  .rc-collection-row {
-    background: #ffffff !important;
-    border: 1px solid #c9ded1 !important;
-    border-radius: 6px !important;
-    padding: 5px 6px !important;
+    align-items: center !important;
     gap: 4px !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
-  }
-  .rc-pay-top-line {
-    display: flex !important;
-    align-items: center !important;
-    gap: 5px !important;
-    width: 100% !important;
-  }
-  body[data-erp] .rc-collection-method,
-  .rc-collection-method {
-    flex: 1 !important;
-    min-width: 0 !important;
-    min-height: 28px !important;
-    height: 28px !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 750 !important;
-    padding: 0 4px !important;
-    border-radius: 5px !important;
-    border: 1px solid #b8d5c3 !important;
+    color: #185e38 !important;
   }
-  body[data-erp] .rc-collection-amount,
-  .rc-collection-amount {
-    width: 100px !important;
-    min-height: 28px !important;
-    height: 28px !important;
-    font-size: 12.5px !important;
+  .rc-pos-payment-total-wrap b {
     font-weight: 850 !important;
-    padding: 0 6px !important;
-    border-radius: 5px !important;
-    border: 1.5px solid #18392a !important;
-    text-align: right !important;
+    color: #185e38 !important;
   }
-  .rc-collection-remove {
-    width: 26px !important;
-    height: 26px !important;
-    min-height: 26px !important;
+  .rc-pos-pipe {
+    opacity: 0.5 !important;
     font-size: 11px !important;
-    border-radius: 5px !important;
-    flex-shrink: 0 !important;
+    color: #185e38 !important;
+    margin: 0 1px !important;
   }
-  body[data-erp] .rc-collection-ref,
-  .rc-collection-ref {
-    width: 100% !important;
-    min-height: 24px !important;
-    height: 24px !important;
-    font-size: 10px !important;
-    padding: 0 6px !important;
-    border-radius: 4px !important;
-    border: 1px solid #e2e8f0 !important;
+  .rc-pos-split-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #185e38 !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
   }
-  .rc-collections-footer {
-    display: flex !important;
-    justify-content: space-between !important;
+  .rc-pos-labels-row {
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.95fr 1.25fr 24px !important;
+    gap: 5px !important;
+    margin-bottom: 4px !important;
+    padding: 0 2px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #243f30 !important;
+  }
+  .rc-pos-row {
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.95fr 1.25fr 24px !important;
+    gap: 5px !important;
     align-items: center !important;
-    margin-top: 6px !important;
-    padding-top: 6px !important;
-    border-top: 1px dashed #cbd5e1 !important;
+    margin-bottom: 5px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
   }
-  .rc-add-payment-btn {
-    height: 26px !important;
-    min-height: 26px !important;
-    padding: 0 8px !important;
-    font-size: 10px !important;
+  body[data-erp] .rc-pos-amount-input,
+  .rc-pos-amount-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 4px 7px !important;
+    border: 1.5px solid #233b2d !important;
+    border-radius: 7px !important;
+    background: #ffffff !important;
+    font-size: 13.5px !important;
     font-weight: 750 !important;
-    border-radius: 5px !important;
+    color: #12281c !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
   }
-  .rc-collections-summary {
-    font-size: 10px !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
+  body[data-erp] .rc-pos-method-select,
+  .rc-pos-method-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 4px 5px !important;
+    border: 1.5px solid #77a88c !important;
+    border-radius: 7px !important;
+    background: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    color: #183324 !important;
+    box-sizing: border-box !important;
   }
-  .rc-collections-summary b {
-    font-size: 10.5px !important;
+  body[data-erp] .rc-pos-ref-input,
+  .rc-pos-ref-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 4px 7px !important;
+    border: 1.5px solid #d0dcd4 !important;
+    border-radius: 7px !important;
+    background: #ffffff !important;
+    font-size: 11.5px !important;
+    color: #222222 !important;
+    box-sizing: border-box !important;
+  }
+  .rc-pos-ref-input::placeholder {
+    color: #94a3b8 !important;
+  }
+  .rc-pos-remove-btn {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    border: 1px solid #e8c4c4 !important;
+    background: #fff5f5 !important;
+    color: #dc2626 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    display: grid !important;
+    place-items: center !important;
+    cursor: pointer !important;
+  }
+  .rc-pos-collections-list:has(.rc-pos-row:only-child) .rc-pos-remove-btn,
+  .rc-pos-row:only-child .rc-pos-remove-btn {
+    display: none !important;
+  }
+  .rc-highlight-pulse {
+    animation: rcPulseGold 1.2s ease-in-out !important;
+  }
+  @keyframes rcPulseGold {
+    0% { outline: 3px solid #d97706; background-color: #fef3c7; }
+    50% { outline: 3px solid #f59e0b; background-color: #fde68a; }
+    100% { outline: none; }
   }
 
   /* 4. Very Simple, Lineable, Very Small Balance to Pay (Mobile Only) */
@@ -2238,4 +2423,51 @@ body.dark .rc-bal-pipe {
   #rcBalanceBox.rc-balance-paid .rc-bal-remaining b {
     color: #15803d !important;
   }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .rc-pos-strip-container,
+body.dark .rc-pos-strip-container {
+  background: #1e2420 !important;
+  border-color: #313d35 !important;
+}
+[data-theme="dark"] .rc-pos-pill,
+body.dark .rc-pos-pill {
+  background: #252d28 !important;
+  border-color: #3a473f !important;
+  color: #d1dbd4 !important;
+}
+[data-theme="dark"] .rc-pos-pill.active,
+body.dark .rc-pos-pill.active {
+  background: #1b3827 !important;
+  border-color: #3b7754 !important;
+  color: #a7f3d0 !important;
+}
+[data-theme="dark"] .rc-pos-payment-card,
+body.dark .rc-pos-payment-card {
+  background: #16241b !important;
+  border-color: #2b573a !important;
+}
+[data-theme="dark"] .rc-pos-payment-title,
+body.dark .rc-pos-payment-title {
+  color: #a7f3d0 !important;
+}
+[data-theme="dark"] .rc-pos-payment-total-wrap,
+body.dark .rc-pos-payment-total-wrap,
+[data-theme="dark"] .rc-pos-split-btn,
+body.dark .rc-pos-split-btn {
+  color: #6ee7b7 !important;
+}
+[data-theme="dark"] .rc-pos-labels-row,
+body.dark .rc-pos-labels-row {
+  color: #a7f3d0 !important;
+}
+[data-theme="dark"] .rc-pos-amount-input,
+[data-theme="dark"] .rc-pos-method-select,
+[data-theme="dark"] .rc-pos-ref-input,
+body.dark .rc-pos-amount-input,
+body.dark .rc-pos-method-select,
+body.dark .rc-pos-ref-input {
+  background: #1f2a22 !important;
+  color: #f0fdf4 !important;
 }
