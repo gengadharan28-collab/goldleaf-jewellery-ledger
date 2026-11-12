@@ -506,3 +506,97 @@ html[data-theme="dark"] .erp-side-install-btn {
   }
 }
 
+/* ==========================================================================
+   The Office Up to Speed Update Promotion System
+   ========================================================================== */
+.erp-update-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  min-height: 28px !important;
+  padding: 3px 9px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5) !important;
+  border: 1px solid #10b981 !important;
+  color: #065f46 !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+}
+.erp-update-pill:hover {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35) !important;
+}
+.erp-update-pill.hidden {
+  display: none !important;
+}
+
+html[data-theme="dark"] .erp-update-pill,
+body.dark .erp-update-pill {
+  background: linear-gradient(135deg, #064e3b, #065f46) !important;
+  border-color: #10b981 !important;
+  color: #a7f3d0 !important;
+}
+
+/* Modal dark mode & responsive */
+html[data-theme="dark"] #glUpdateModal .gl-update-modal-body,
+body.dark #glUpdateModal .gl-update-modal-body {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-callout,
+body.dark #glUpdateModal .gl-update-callout {
+  background: #064e3b !important;
+  border-color: #059669 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-callout b,
+body.dark #glUpdateModal .gl-update-callout b {
+  color: #a7f3d0 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-callout span,
+body.dark #glUpdateModal .gl-update-callout span {
+  color: #d1fae5 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-feature-card,
+body.dark #glUpdateModal .gl-update-feature-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-feature-card b,
+body.dark #glUpdateModal .gl-update-feature-card b {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-feature-card div:last-child,
+body.dark #glUpdateModal .gl-update-feature-card div:last-child {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-not-now-btn,
+body.dark #glUpdateModal .gl-update-not-now-btn {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] #glUpdateModal .gl-update-modal-actions,
+body.dark #glUpdateModal .gl-update-modal-actions {
+  border-top-color: #334155 !important;
+}
+
+@media (max-width: 480px) {
+  #glUpdateModal .gl-update-features-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
