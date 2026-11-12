@@ -599,4 +599,26 @@ body.dark #glUpdateModal .gl-update-modal-actions {
   }
 }
 
+.erp-update-pill.hidden,
+#erpUpdatePill.hidden,
+button#erpUpdatePill.hidden {
+  display: none !important;
+}
+
+@keyframes glFadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.gl-update-success-banner {
+  animation: glFadeSlideDown 0.35s ease-out;
+}
+
+
 
