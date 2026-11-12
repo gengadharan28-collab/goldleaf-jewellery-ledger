@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.37';
+const RC_VERSION='2.10.38';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -12,7 +12,7 @@ const RC_DEFAULT_OLD_GOLD_TYPES=[
   { name: 'Old Silver', metal: 'Silver', touch: 80 }
 ];
 
-function rcGetOldGoldTypeDefs(){
+function rcGetCustomOldGoldTypes(){
   let custom = [];
   try {
     const raw = JSON.parse(localStorage.getItem('goldleaf-oldgold-types') || '[]');
@@ -20,22 +20,114 @@ function rcGetOldGoldTypeDefs(){
   } catch(e){}
   if(Array.isArray(db?.oldGoldTypes)){
     for(const item of db.oldGoldTypes){
-      if(item && item.name && !custom.some(c => c.name.toLowerCase() === item.name.toLowerCase())){
+      if(item && item.name && !custom.some(c => String(c.name).toLowerCase() === String(item.name).toLowerCase())){
         custom.push(item);
       }
     }
   }
-  const all = [...RC_DEFAULT_OLD_GOLD_TYPES];
-  for(const c of custom){
-    if(c && c.name && !all.some(x => x.name.toLowerCase() === String(c.name).trim().toLowerCase())){
-      all.push({
-        name: String(c.name).trim(),
-        metal: c.metal === 'Silver' ? 'Silver' : 'Gold',
-        touch: n(c.touch) > 0 ? n(c.touch) : 91.6
+  return custom;
+}
+
+function rcSaveCustomOldGoldTypes(list){
+  try {
+    localStorage.setItem('goldleaf-oldgold-types', JSON.stringify(list));
+  } catch(e){}
+  if(typeof db === 'object' && db){
+    db.oldGoldTypes = list;
+  }
+  if(typeof save === 'function') save();
+}
+
+function rcGetAllOldGoldTypesForSettings(){
+  const custom = rcGetCustomOldGoldTypes();
+  const list = [];
+  for(const def of RC_DEFAULT_OLD_GOLD_TYPES){
+    const customMatch = custom.find(c => String(c.name || '').toLowerCase() === def.name.toLowerCase());
+    if(customMatch){
+      if(!customMatch.deleted){
+        list.push({
+          name: customMatch.name,
+          metal: customMatch.metal === 'Silver' ? 'Silver' : 'Gold',
+          touch: n(customMatch.touch) > 0 ? n(customMatch.touch) : def.touch,
+          isBuiltin: true,
+          isCustomized: true,
+          deleted: false
+        });
+      }
+    } else {
+      list.push({
+        name: def.name,
+        metal: def.metal,
+        touch: def.touch,
+        isBuiltin: true,
+        isCustomized: false,
+        deleted: false
       });
     }
   }
-  return all;
+  for(const c of custom){
+    if(c && c.name && !c.deleted && !RC_DEFAULT_OLD_GOLD_TYPES.some(d => d.name.toLowerCase() === String(c.name).trim().toLowerCase())){
+      list.push({
+        name: String(c.name).trim(),
+        metal: c.metal === 'Silver' ? 'Silver' : 'Gold',
+        touch: n(c.touch) > 0 ? n(c.touch) : 91.6,
+        isBuiltin: false,
+        isCustomized: false,
+        deleted: false
+      });
+    }
+  }
+  return list;
+}
+
+function rcSaveOldGoldType(name, metal, touch, originalName = ''){
+  const cleanName = String(name || '').trim();
+  if(!cleanName) throw new Error('Name cannot be empty');
+  const cleanTouch = n(touch) > 0 ? n(touch) : 91.6;
+  const cleanMetal = metal === 'Silver' ? 'Silver' : 'Gold';
+  
+  let custom = rcGetCustomOldGoldTypes();
+  const origClean = String(originalName || '').trim();
+  
+  if(origClean){
+    const def = RC_DEFAULT_OLD_GOLD_TYPES.find(d => d.name.toLowerCase() === origClean.toLowerCase());
+    custom = custom.filter(c => String(c.name || '').toLowerCase() !== origClean.toLowerCase());
+    if(def && origClean.toLowerCase() !== cleanName.toLowerCase()){
+      custom.push({ name: def.name, deleted: true });
+    }
+  }
+  
+  const existingIdx = custom.findIndex(c => String(c.name || '').toLowerCase() === cleanName.toLowerCase());
+  if(existingIdx >= 0){
+    custom[existingIdx] = { name: cleanName, metal: cleanMetal, touch: cleanTouch, deleted: false };
+  } else {
+    custom.push({ name: cleanName, metal: cleanMetal, touch: cleanTouch, deleted: false });
+  }
+  rcSaveCustomOldGoldTypes(custom);
+}
+
+function rcDeleteOldGoldType(name){
+  const clean = String(name || '').trim();
+  let custom = rcGetCustomOldGoldTypes();
+  const def = RC_DEFAULT_OLD_GOLD_TYPES.find(d => d.name.toLowerCase() === clean.toLowerCase());
+  if(def){
+    custom = custom.filter(c => String(c.name || '').toLowerCase() !== clean.toLowerCase());
+    custom.push({ name: def.name, deleted: true });
+  } else {
+    custom = custom.filter(c => String(c.name || '').toLowerCase() !== clean.toLowerCase());
+  }
+  rcSaveCustomOldGoldTypes(custom);
+}
+
+function rcResetOldGoldType(name){
+  const clean = String(name || '').trim();
+  let custom = rcGetCustomOldGoldTypes();
+  custom = custom.filter(c => String(c.name || '').toLowerCase() !== clean.toLowerCase());
+  rcSaveCustomOldGoldTypes(custom);
+}
+
+function rcGetOldGoldTypeDefs(){
+  return rcGetAllOldGoldTypesForSettings().filter(t => !t.deleted);
 }
 
 function rcOldGoldTypeOptions(selected='Old Gold'){
@@ -1740,57 +1832,47 @@ window.rcOldGoldTypeChanged = function(sel){
   window.rcOldGoldFieldChanged();
 };
 
-window.rcOldGoldCreateNewType = function(directName='', directMetal='Gold', directTouch=91.6){
-  const form = document.getElementById('rcEstimateForm');
-  if(directName && typeof directName === 'string' && directName.trim()){
-    const cleanName = directName.trim();
-    const metal = directMetal === 'Silver' ? 'Silver' : 'Gold';
-    const touch = n(directTouch) > 0 ? n(directTouch) : 91.6;
-    let custom = [];
-    try {
-      custom = JSON.parse(localStorage.getItem('goldleaf-oldgold-types') || '[]');
-      if(!Array.isArray(custom)) custom = [];
-    } catch(e){ custom = []; }
-    const existingIdx = custom.findIndex(x => String(x.name||'').toLowerCase() === cleanName.toLowerCase());
-    if(existingIdx >= 0) custom[existingIdx] = { name: cleanName, metal, touch };
-    else custom.push({ name: cleanName, metal, touch });
-    try { localStorage.setItem('goldleaf-oldgold-types', JSON.stringify(custom)); } catch(e){}
-    if(typeof db === 'object' && db){
-      db.oldGoldTypes = custom;
+window.rcOpenOldGoldTypeModal = function(editingName = ''){
+  document.getElementById('rcNewOldGoldTypeModal')?.remove();
+  
+  let currentName = '';
+  let currentMetal = 'Gold';
+  let currentTouch = 91.6;
+  const isEditing = !!(editingName && typeof editingName === 'string');
+  
+  if(isEditing){
+    const all = rcGetAllOldGoldTypesForSettings();
+    const found = all.find(t => t.name.toLowerCase() === editingName.trim().toLowerCase());
+    if(found){
+      currentName = found.name;
+      currentMetal = found.metal === 'Silver' ? 'Silver' : 'Gold';
+      currentTouch = n(found.touch) > 0 ? found.touch : (currentMetal === 'Silver' ? 80 : 91.6);
+    } else {
+      currentName = editingName.trim();
     }
-    if(form){
-      rcOldGoldFormLocked = false;
-      if(form.elements.exchangeType){
-        form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(cleanName);
-        form.elements.exchangeType.value = cleanName;
-      }
-      if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = touch;
-      const bookPure = rcGetPureRateFromRateBook(cleanName, form);
-      if(bookPure > 0 && form.elements.exchangePureRate) form.elements.exchangePureRate.value = bookPure;
-      rcSyncOldGoldUI();
-      window.rcOldGoldFieldChanged();
-    }
-    say('Created Old Gold Type: ' + cleanName);
-    return cleanName;
   }
 
-  document.getElementById('rcNewOldGoldTypeModal')?.remove();
   const modalHtml = '<div id="rcNewOldGoldTypeModal" class="rc-og-type-modal-backdrop" onclick="if(event.target===this)this.remove()">'
     + '<div class="rc-og-type-modal-card">'
     + '<div class="rc-og-type-modal-head">'
-    + '<h3>＋ Create New Old Gold Type</h3>'
+    + '<h3>' + (isEditing ? '✎ Edit Old Gold Type' : '＋ Create New Old Gold Type') + '</h3>'
     + '<button type="button" class="rc-og-type-modal-close" onclick="document.getElementById(\'rcNewOldGoldTypeModal\')?.remove()">✕</button>'
     + '</div>'
     + '<div class="rc-og-type-modal-body">'
-    + '<label>Type Name *<input id="rcNewOgTypeName" type="text" placeholder="e.g. 916 Coin Gold, 18K Gold, Antique Gold" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rcOldGoldSaveNewTypeModal()}"></label>'
+    + '<input type="hidden" id="rcOgModalOriginalName" value="' + esc(isEditing ? currentName : '') + '">'
+    + '<label>Type Name *<input id="rcNewOgTypeName" type="text" value="' + esc(currentName) + '" placeholder="e.g. 916 Coin Gold, 18K Antique Gold" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rcOldGoldSaveNewTypeModal()}"></label>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">'
-    + '<label>Metal Category<select id="rcNewOgTypeMetal" onchange="document.getElementById(\'rcNewOgTypeTouch\').value=this.value===\'Silver\'?80:91.6"><option value="Gold">Gold (24K Pure Rate)</option><option value="Silver">Silver (Pure Rate)</option></select></label>'
-    + '<label>Default Touch(%)<input id="rcNewOgTypeTouch" type="number" min="1" max="100" step=".01" value="91.6"></label>'
+    + '<label>Metal Category<select id="rcNewOgTypeMetal" onchange="document.getElementById(\'rcNewOgTypeTouch\').value=this.value===\'Silver\'?80:91.6">'
+    + '<option value="Gold" ' + (currentMetal === 'Gold' ? 'selected' : '') + '>Gold (24K Pure Rate)</option>'
+    + '<option value="Silver" ' + (currentMetal === 'Silver' ? 'selected' : '') + '>Silver (Pure Rate)</option>'
+    + '</select></label>'
+    + '<label>Default Touch(%)<input id="rcNewOgTypeTouch" type="number" min="1" max="100" step=".01" value="' + esc(currentTouch) + '"></label>'
     + '</div>'
+    + '<p style="margin:10px 0 0 0;font-size:11.5px;color:#64748b">Pure rate is automatically fetched from Rate Book (24K Gold or Pure Silver) based on the chosen metal category.</p>'
     + '</div>'
     + '<div class="rc-og-type-modal-foot">'
     + '<button type="button" onclick="document.getElementById(\'rcNewOldGoldTypeModal\')?.remove()">Cancel</button>'
-    + '<button type="button" class="primary" onclick="rcOldGoldSaveNewTypeModal()">💾 Save Type</button>'
+    + '<button type="button" class="primary" onclick="rcOldGoldSaveNewTypeModal()">💾 ' + (isEditing ? 'Save Changes' : 'Save Type') + '</button>'
     + '</div>'
     + '</div>'
     + '</div>';
@@ -1798,7 +1880,32 @@ window.rcOldGoldCreateNewType = function(directName='', directMetal='Gold', dire
   setTimeout(() => document.getElementById('rcNewOgTypeName')?.focus(), 40);
 };
 
+window.rcSettingsOpenTypeModal = window.rcOpenOldGoldTypeModal;
+
+window.rcOldGoldCreateNewType = function(directName='', directMetal='Gold', directTouch=91.6){
+  if(directName && typeof directName === 'string' && directName.trim()){
+    rcSaveOldGoldType(directName, directMetal, directTouch);
+    const form = document.getElementById('rcEstimateForm');
+    if(form){
+      rcOldGoldFormLocked = false;
+      if(form.elements.exchangeType){
+        form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(directName.trim());
+        form.elements.exchangeType.value = directName.trim();
+      }
+      if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = directTouch;
+      const bookPure = rcGetPureRateFromRateBook(directName.trim(), form);
+      if(bookPure > 0 && form.elements.exchangePureRate) form.elements.exchangePureRate.value = bookPure;
+      rcSyncOldGoldUI();
+      window.rcOldGoldFieldChanged();
+    }
+    say('Saved Old Gold Type: ' + directName.trim());
+    return directName.trim();
+  }
+  window.rcOpenOldGoldTypeModal('');
+};
+
 window.rcOldGoldSaveNewTypeModal = function(){
+  const origIn = document.getElementById('rcOgModalOriginalName');
   const nameIn = document.getElementById('rcNewOgTypeName');
   const metalIn = document.getElementById('rcNewOgTypeMetal');
   const touchIn = document.getElementById('rcNewOgTypeTouch');
@@ -1808,10 +1915,55 @@ window.rcOldGoldSaveNewTypeModal = function(){
     nameIn?.focus();
     return;
   }
+  const origName = String(origIn?.value || '').trim();
   const metal = metalIn?.value === 'Silver' ? 'Silver' : 'Gold';
-  const touch = n(touchIn?.value) > 0 ? n(touchIn.value) : 91.6;
+  const touch = n(touchIn?.value) > 0 ? n(touchIn.value) : (metal === 'Silver' ? 80 : 91.6);
   document.getElementById('rcNewOldGoldTypeModal')?.remove();
-  window.rcOldGoldCreateNewType(name, metal, touch);
+  
+  rcSaveOldGoldType(name, metal, touch, origName);
+  
+  if(typeof page !== 'undefined' && page === 'Settings'){
+    render();
+  }
+  const form = document.getElementById('rcEstimateForm');
+  if(form && form.elements.exchangeType){
+    form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(name);
+    form.elements.exchangeType.value = name;
+    if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = touch;
+    const bookPure = rcGetPureRateFromRateBook(name, form);
+    if(bookPure > 0 && form.elements.exchangePureRate) form.elements.exchangePureRate.value = bookPure;
+    rcSyncOldGoldUI();
+    window.rcOldGoldFieldChanged();
+  }
+  say('Saved Old Gold Type: ' + name);
+};
+
+window.rcDeleteOldGoldTypeAction = function(name){
+  const clean = String(name || '').trim();
+  if(!clean) return;
+  if(!confirm('Are you sure you want to remove the Old Gold Type "' + clean + '"?')) return;
+  rcDeleteOldGoldType(clean);
+  if(typeof page !== 'undefined' && page === 'Settings') render();
+  const form = document.getElementById('rcEstimateForm');
+  if(form && form.elements.exchangeType){
+    form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions('Old Gold');
+    rcOldGoldTypeChanged(form.elements.exchangeType);
+  }
+  say('Removed Old Gold Type: ' + clean);
+};
+
+window.rcResetOldGoldTypeAction = function(name){
+  const clean = String(name || '').trim();
+  if(!clean) return;
+  if(!confirm('Reset "' + clean + '" to default purity and settings?')) return;
+  rcResetOldGoldType(clean);
+  if(typeof page !== 'undefined' && page === 'Settings') render();
+  const form = document.getElementById('rcEstimateForm');
+  if(form && form.elements.exchangeType){
+    form.elements.exchangeType.innerHTML = rcOldGoldTypeOptions(clean);
+    rcOldGoldTypeChanged(form.elements.exchangeType);
+  }
+  say('Reset Old Gold Type: ' + clean);
 };
 
 window.rcBaseGoldRateChanged = function(inp){
@@ -2658,7 +2810,7 @@ window.render=function(){
   return result;
 };
 const rcStyle=document.createElement('link');rcStyle.rel='stylesheet';rcStyle.href='./retail-estimate-chit.css?v='+RC_VERSION;document.head.append(rcStyle);
-const rcHistoryPrevious=window.updateHistoryView;window.updateHistoryView=function(){return rcHistoryPrevious().replace('Goldleaf v2.7.0','Goldleaf v'+RC_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.8.7 · 7 Nov 2026 · Current</h3><ul><li>Products and Chit are independent Retail sidebar pages below Sales and Purchase. Each page shows only its own workflow; returning to Sales restores sales content.</li></ul></article><article class="release-note"><h3>v2.8.5 · 7 Nov 2026</h3><ul><li>Added dedicated Retail Products, Tagging and Chit pages to the left navigation and kept them scrollable on mobile.</li></ul></article><article class="release-note"><h3>v2.8.4 · 7 Nov 2026</h3><ul><li>Added separate Retail toolbar pages for Estimation / Quotation, Tagging and Chit, with improved full-page scrolling.</li></ul></article><article class="release-note"><h3>v2.8.3 · 7 Nov 2026</h3><ul><li>Moved Retail Estimation / Quotation into the main navigation beside Rate Book for quicker access.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Rate-based Retail estimates now use saved purity-specific prices.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry now uses manually entered per-purity prices and a dated AM/PM history.</li><li>Retail sales and estimates use the saved purity-specific rates.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail now includes saved estimation and quotation, PDF printing, history and bill conversion.</li><li>Added Retail product master and item tagging with barcode, weights, purity, stock state and item details.</li><li>Added Retail chit groups, installment types, customer mappings, payment entry and printable receipts.</li><li>New Retail records sync in the shop cloud ledger and stay separate from Wholesale.</li></ul></article>')};
+const rcHistoryPrevious=window.updateHistoryView;window.updateHistoryView=function(){return rcHistoryPrevious().replace('Goldleaf v2.7.0','Goldleaf v'+RC_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2><article class="release-note"><h3>v2.10.38 · Current</h3><ul><li>Added central Old Gold Types management to the Settings page with full view, edit, reset, delete and type creation controls.</li><li>Old Gold Exchange Details in Estimation & Quotation dynamically syncs with the central Old Gold Types settings.</li></ul></article>','<h2>Update history</h2><article class="release-note"><h3>v2.8.7 · 7 Nov 2026 · Current</h3><ul><li>Products and Chit are independent Retail sidebar pages below Sales and Purchase. Each page shows only its own workflow; returning to Sales restores sales content.</li></ul></article><article class="release-note"><h3>v2.8.5 · 7 Nov 2026</h3><ul><li>Added dedicated Retail Products, Tagging and Chit pages to the left navigation and kept them scrollable on mobile.</li></ul></article><article class="release-note"><h3>v2.8.4 · 7 Nov 2026</h3><ul><li>Added separate Retail toolbar pages for Estimation / Quotation, Tagging and Chit, with improved full-page scrolling.</li></ul></article><article class="release-note"><h3>v2.8.3 · 7 Nov 2026</h3><ul><li>Moved Retail Estimation / Quotation into the main navigation beside Rate Book for quicker access.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Rate-based Retail estimates now use saved purity-specific prices.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry now uses manually entered per-purity prices and a dated AM/PM history.</li><li>Retail sales and estimates use the saved purity-specific rates.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail now includes saved estimation and quotation, PDF printing, history and bill conversion.</li><li>Added Retail product master and item tagging with barcode, weights, purity, stock state and item details.</li><li>Added Retail chit groups, installment types, customer mappings, payment entry and printable receipts.</li><li>New Retail records sync in the shop cloud ledger and stay separate from Wholesale.</li></ul></article>')};
 render();
 const rcHistoryV2100=window.updateHistoryView;window.updateHistoryView=function(){let h=rcHistoryV2100().replace('Goldleaf v2.9.1','Goldleaf v'+RC_VERSION).replace('<h3>v2.10.0 · 8 Nov 2026 · Current</h3>','<h3>v2.10.0 · 8 Nov 2026</h3>');return h.replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.10.4 · 8 Nov 2026 · Current</h3><ul><li>Carry the shop reset token onto Retail document records so Product, Tagging and Chit writes pass the database reset guard.</li><li>Product, Tagging, Chit and quotation saves now show the actual cloud-write error when a save stays on the device.</li></ul></article><article class="release-note"><h3>v2.10.3 · 8 Nov 2026</h3><ul><li>Chit saves wait for cloud-sync completion before reporting success.</li><li>Cloud merge retains Retail documents across devices.</li></ul></article><article class="release-note"><h3>v2.10.2 · 8 Nov 2026</h3><ul><li>Cloud sync now merges Retail Chit, Products, Tagging and Estimation records.</li></ul></article><article class="release-note"><h3>v2.10.1 · 8 Nov 2026</h3><ul><li>Fixed Group, Type and Mapping forms being squeezed into a nested grid; compacted the Chit overview cards across desktop and mobile.</li><li>New Chit types no longer enforce a one-plan-per-customer limit unless a limit is entered.</li></ul></article><article class="release-note"><h3>v2.10.0 · 8 Nov 2026</h3><ul><li>Expanded Retail Chit with Digi Gold, Digi Silver, Fixed, Flexi, One Time Investment, Fixed Interest and Custom plans.</li><li>Added group and scheme rules, customer mapping, due tracking, manual metal testing, advance/bonus/refund/closure entries and printable receipts.</li></ul></article>')};
 
@@ -2666,3 +2818,73 @@ const rcHistoryV2100=window.updateHistoryView;window.updateHistoryView=function(
 
 
 
+
+
+function rcSettingsOldGoldTypesPanel(){
+  const types = rcGetAllOldGoldTypesForSettings();
+  const rows = types.map((t) => {
+    const isGold = t.metal !== 'Silver';
+    const metalBadge = isGold 
+      ? '<span class="rc-og-badge rc-og-badge-gold">🪙 Gold (24K)</span>' 
+      : '<span class="rc-og-badge rc-og-badge-silver">🥈 Silver (Pure)</span>';
+    const originBadge = t.isBuiltin
+      ? (t.isCustomized ? '<span class="rc-og-badge rc-og-badge-builtin" title="Default type modified">Default (Modified)</span>' : '<span class="rc-og-badge rc-og-badge-builtin">Default</span>')
+      : '<span class="rc-og-badge rc-og-badge-custom">Custom</span>';
+    const rateSource = isGold ? 'Rate Book 24K Gold' : 'Rate Book Pure Silver';
+    
+    let actionButtons = '<button type="button" class="rc-og-table-btn rc-og-table-btn-edit" onclick="rcOpenOldGoldTypeModal(\'' + esc(t.name) + '\')">✎ Edit</button>';
+    if(!t.isBuiltin){
+      actionButtons += '<button type="button" class="rc-og-table-btn rc-og-table-btn-del" onclick="rcDeleteOldGoldTypeAction(\'' + esc(t.name) + '\')">✕ Delete</button>';
+    } else if(t.isCustomized){
+      actionButtons += '<button type="button" class="rc-og-table-btn rc-og-table-btn-reset" onclick="rcResetOldGoldTypeAction(\'' + esc(t.name) + '\')">↺ Reset</button>';
+    }
+    
+    return '<tr>'
+      + '<td><b class="rc-og-type-title">' + esc(t.name) + '</b></td>'
+      + '<td>' + metalBadge + '</td>'
+      + '<td><span class="rc-og-touch-val">' + Number(t.touch).toFixed(t.touch % 1 ? 2 : 1) + '%</span></td>'
+      + '<td><span class="rc-og-rate-base">' + rateSource + '</span></td>'
+      + '<td>' + originBadge + '</td>'
+      + '<td><div class="rc-og-settings-actions">' + actionButtons + '</div></td>'
+      + '</tr>';
+  }).join('');
+
+  return '<section class="panel rc-settings-og-panel">'
+    + '<div class="rc-settings-og-head">'
+    + '<div>'
+    + '<h2>🪙 Old Gold Types</h2>'
+    + '<p class="hint">Manage Old Gold Exchange types, metal category (Gold 24K pure rate / Silver pure rate), and default touch purity (%) used across Estimation & Quotation.</p>'
+    + '</div>'
+    + '<button type="button" class="rc-settings-add-btn" onclick="rcOpenOldGoldTypeModal(\'\')">＋ Add Old Gold Type</button>'
+    + '</div>'
+    + '<div class="rc-og-settings-table-wrap">'
+    + '<table class="rc-og-settings-table">'
+    + '<thead>'
+    + '<tr>'
+    + '<th>Type Name</th>'
+    + '<th>Metal Category</th>'
+    + '<th>Default Touch (%)</th>'
+    + '<th>Pure Rate Source</th>'
+    + '<th>Type Origin</th>'
+    + '<th style="text-align:right">Actions</th>'
+    + '</tr>'
+    + '</thead>'
+    + '<tbody>'
+    + (rows || '<tr><td colspan="6" style="text-align:center;padding:16px;color:#94a3b8">No types configured</td></tr>')
+    + '</tbody>'
+    + '</table>'
+    + '</div>'
+    + '</section>';
+}
+
+const rcSettingsPrevious = window.settingsView;
+window.settingsView = function(){
+  let html = rcSettingsPrevious ? rcSettingsPrevious() : '';
+  const ogPanel = rcSettingsOldGoldTypesPanel();
+  if(html.includes('<section class="panel"><h2>Backup & setup</h2>')){
+    html = html.replace('<section class="panel"><h2>Backup & setup</h2>', ogPanel + '<section class="panel"><h2>Backup & setup</h2>');
+  } else {
+    html += ogPanel;
+  }
+  return html;
+};

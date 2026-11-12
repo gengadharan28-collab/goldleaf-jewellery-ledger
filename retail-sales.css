@@ -3258,3 +3258,242 @@ body.dark .rc-pos-header-paid,
 body.dark .rc-pos-header-paid b {
   color: #6ee7b7 !important;
 }
+
+
+/* ==========================================================================
+   v2.10.38: Old Gold Types Settings Panel & Table
+   ========================================================================== */
+.rc-settings-og-panel {
+  margin-top: 18px;
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.rc-settings-og-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.rc-settings-og-head h2 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #111827);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rc-settings-og-head .hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+}
+.rc-settings-add-btn {
+  background: #15803d !important;
+  color: #ffffff !important;
+  border: 1px solid #166534 !important;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: all 0.15s ease;
+}
+.rc-settings-add-btn:hover {
+  background: #166534 !important;
+}
+.rc-og-settings-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface, #ffffff);
+}
+.rc-og-settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.rc-og-settings-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 750;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.rc-og-settings-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+.rc-og-settings-table tr:last-child td {
+  border-bottom: none;
+}
+.rc-og-settings-table tr:hover td {
+  background: #f8fafc;
+}
+.rc-og-type-title {
+  font-weight: 750;
+  color: #0f172a;
+}
+.rc-og-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rc-og-badge-gold {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+.rc-og-badge-silver {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.rc-og-badge-builtin {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.rc-og-badge-custom {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.rc-og-touch-val {
+  font-family: monospace, sans-serif;
+  font-weight: 750;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+.rc-og-rate-base {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 550;
+}
+.rc-og-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+.rc-og-table-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.rc-og-table-btn-edit {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  color: #b45309;
+}
+.rc-og-table-btn-edit:hover {
+  background: #fef3c7;
+}
+.rc-og-table-btn-del {
+  background: #fff1f2;
+  border: 1px solid #f43f5e;
+  color: #be123c;
+}
+.rc-og-table-btn-del:hover {
+  background: #ffe4e6;
+}
+.rc-og-table-btn-reset {
+  background: #f3f4f6;
+  border: 1px solid #9ca3af;
+  color: #4b5563;
+}
+.rc-og-table-btn-reset:hover {
+  background: #e5e7eb;
+}
+
+/* Dark mode for Settings Old Gold Types */
+[data-theme="dark"] .rc-settings-og-panel,
+body.dark .rc-settings-og-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+[data-theme="dark"] .rc-settings-og-head h2,
+body.dark .rc-settings-og-head h2 {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .rc-settings-og-head .hint,
+body.dark .rc-settings-og-head .hint {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .rc-og-settings-table-wrap,
+body.dark .rc-og-settings-table-wrap {
+  border-color: #334155 !important;
+  background: #0f172a !important;
+}
+[data-theme="dark"] .rc-og-settings-table th,
+body.dark .rc-og-settings-table th {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-bottom-color: #334155 !important;
+}
+[data-theme="dark"] .rc-og-settings-table td,
+body.dark .rc-og-settings-table td {
+  border-bottom-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .rc-og-settings-table tr:hover td,
+body.dark .rc-og-settings-table tr:hover td {
+  background: #1e293b !important;
+}
+[data-theme="dark"] .rc-og-type-title,
+body.dark .rc-og-type-title {
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .rc-og-touch-val,
+body.dark .rc-og-touch-val {
+  background: #334155 !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .rc-og-rate-base,
+body.dark .rc-og-rate-base {
+  color: #94a3b8 !important;
+}
+
+@media (max-width: 768px) {
+  .rc-settings-og-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rc-settings-add-btn {
+    justify-content: center;
+    width: 100%;
+  }
+  .rc-og-settings-table th, .rc-og-settings-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
