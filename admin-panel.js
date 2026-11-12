@@ -156,7 +156,7 @@ function platformLoginView() {
     : adminEntry
       ? '<span><a href="./">← Showroom Login</a></span>'
       : '<span>New Showroom? <a href="?signup=1">Register shop</a></span>';
-  return `<section class="c2-auth-card platform-login"><div class="c2-rate-bar"><div class="c2-rate-items"><span>24K <b id="glLoginRate24">${esc(rates.g24)}</b></span><span class="c2-rate-dot">•</span><span>22K <b id="glLoginRate22">${esc(rates.g22)}</b></span><span class="c2-rate-dot">•</span><span>Silver <b id="glLoginRateSilver">${esc(rates.slv)}</b></span></div><span class="c2-live-pill"><span class="c2-live-dot"></span>Live Rate</span></div><div class="c2-body"><div class="c2-header"><div class="c2-logo-mark" aria-hidden="true">${window.glBrandLogoSvg}</div><h1 class="c2-title">GOLDLEAF</h1><p class="c2-sub">${subText}</p></div>${tabsHtml}<form onsubmit="platformLogin(event)"><div class="c2-group"><label class="c2-label" id="glLoginEmailLabel" for="email">${emailLabel}</label><input class="c2-input" id="email" name="email" type="email" value="${esc(emailVal)}" placeholder="${emailPlaceholder}" autocomplete="username" required></div><div class="c2-group"><label class="c2-label" for="password">${passLabel}</label><input class="c2-input" id="password" name="password" type="password" placeholder="••••••••••••" autocomplete="current-password" required minlength="8"></div>${extraSignupFields}<input id="url" hidden value="${esc(db.cloud.url)}"><input id="key" hidden value="${esc(db.cloud.key)}"><button type="submit" id="glLoginSubmitBtn" class="c2-btn primary">${submitLabel}</button><p id="cloudMsg" class="c2-msg" role="status">${esc(platformError)}</p></form><div class="c2-links">${footerLeft}<a href="javascript:void(0)" onclick="glRefreshLoginRates()">Refresh Rates</a></div></div></section>`;
+  return `<section class="c2-auth-card platform-login"><div class="c2-rate-bar"><div class="c2-rate-items"><span>24K <b id="glLoginRate24">${esc(rates.g24)}</b></span><span class="c2-rate-dot">•</span><span>22K <b id="glLoginRate22">${esc(rates.g22)}</b></span><span class="c2-rate-dot">•</span><span>Silver <b id="glLoginRateSilver">${esc(rates.slv)}</b></span></div><span class="c2-live-pill"><span class="c2-live-dot"></span>Live Rate</span></div><div class="c2-body"><div class="c2-header"><div class="c2-logo-mark" aria-hidden="true">${window.glBrandLogoSvg}</div><h1 class="c2-title">GOLDLEAF</h1><p class="c2-sub">${subText}</p></div>${tabsHtml}<form onsubmit="platformLogin(event)"><div class="c2-group"><label class="c2-label" id="glLoginEmailLabel" for="email">${emailLabel}</label><input class="c2-input" id="email" name="email" type="email" value="${esc(emailVal)}" placeholder="${emailPlaceholder}" autocomplete="username" required></div><div class="c2-group"><label class="c2-label" for="password">${passLabel}</label><input class="c2-input" id="password" name="password" type="password" placeholder="••••••••••••" autocomplete="current-password" required minlength="8"></div>${extraSignupFields}<input id="url" hidden value="${esc(db.cloud.url)}"><input id="key" hidden value="${esc(db.cloud.key)}"><button type="submit" id="glLoginSubmitBtn" class="c2-btn primary">${submitLabel}</button>${!signup ? '<button type="button" class="c2-btn" onclick="localStorage.setItem(\'goldleaf_demo_active\',\'1\');location.search=\'?chit=1\'" style="margin-top:8px;background:#18392a;color:#f3ead9;border:1px solid #d4af37;font-weight:750">✨ Open Demo Showroom &amp; Chit Workflow</button>' : ''}<p id="cloudMsg" class="c2-msg" role="status">${esc(platformError)}</p></form><div class="c2-links">${footerLeft}<a href="javascript:void(0)" onclick="glRefreshLoginRates()">Refresh Rates</a></div></div></section>`;
 }
 window.platformLoginView = platformLoginView;
 window.platformLogin=async function(event){event.preventDefault();await window.auth(new URLSearchParams(location.search).has('signup')||window.goldleafShopInvite?'signup':'login');};
@@ -177,7 +177,23 @@ window.dash=function(){
   return html;
 };
 window.render=function(){
-  const adminLink=new URLSearchParams(location.search).has('admin')||/super-admin\.html$/i.test(location.pathname),signupLink=new URLSearchParams(location.search).has('signup')||!!window.goldleafShopInvite;
+  const urlParams=new URLSearchParams(location.search);
+  const adminLink=urlParams.has('admin')||/super-admin\.html$/i.test(location.pathname),signupLink=urlParams.has('signup')||!!window.goldleafShopInvite;
+  if(!session && (urlParams.has('demo') || urlParams.has('chit') || localStorage.getItem('goldleaf_demo_active') === '1')){
+    session = { user: { id: 'demo-shop-1', email: 'owner@goldleaf.com' }, access_token: 'demo' };
+    goldleafContext = {
+      shop_id: 'demo-shop-1',
+      has_access: true,
+      is_super_admin: false,
+      retail_enabled: true,
+      wholesale_enabled: true,
+      shop_name: 'Goldleaf Jewellery Atelier'
+    };
+    workspaceMode = 'retail';
+    localStorage.setItem('goldleaf_demo_active', '1');
+    localStorage.setItem('goldleaf-workspace-mode', 'retail');
+    if(!page || page === 'Dashboard' || urlParams.has('chit')) page = 'Chit';
+  }
   if(!session){document.body.classList.add('gl-auth-active');document.body.classList.remove('rb-active','rc-active','compact-customer-sale');document.getElementById('nav').innerHTML='<button class="active">'+(signupLink?'Shop registration':adminLink?'Super Admin':'Sign in')+'</button>';document.getElementById('app').innerHTML=platformLoginView();return;}document.body.classList.remove('gl-auth-active');
   if(session&&!goldleafContext){document.getElementById('nav').innerHTML='';document.getElementById('app').innerHTML=platformTop('Loading your account','Checking your shop and access permissions…')+'<section class="panel"><p role="status">'+esc(platformError||'Connecting to Goldleaf cloud…')+'</p><button onclick="platformRefresh()">Try again</button><button onclick="platformSignOut()">Sign out</button></section>';return;}
   if(session&&goldleafContext){

@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.44';
+const RC_VERSION='2.10.45';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -349,7 +349,240 @@ function rcRenderOldGoldItemsMarkup(form){
     + '</div>';
 }
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
-function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];}
+function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];rcSeedSampleChits();}
+
+function rcSeedSampleChits(force = false){
+  if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];
+  if(!Array.isArray(db.customers))db.customers=[];
+  
+  let c1 = db.customers.find(c => c.name === 'Ananya Sharma' || c.id === 'cust-sample-ananya');
+  if(!c1){
+    c1 = { id: 'cust-sample-ananya', name: 'Ananya Sharma', phone: '9840123456', city: 'Chennai', address: '14, T. Nagar', openingAmount: 0, openingWeight: 0, createdAt: new Date().toISOString() };
+    db.customers.push(c1);
+  }
+  let c2 = db.customers.find(c => c.name === 'Ramesh Kumar' || c.id === 'cust-sample-ramesh');
+  if(!c2){
+    c2 = { id: 'cust-sample-ramesh', name: 'Ramesh Kumar', phone: '9840987654', city: 'Coimbatore', address: 'Cross Cut Road', openingAmount: 0, openingWeight: 0, createdAt: new Date().toISOString() };
+    db.customers.push(c2);
+  }
+
+  const hasChit = db.retailDocuments.some(x => x.kind === 'retail-chit-type' && (x.id === 'type-amount-swarna-nidhi' || x.chitCode === 'SN-11-AMT' || x.chitCode === 'DGW-METAL'));
+  if(hasChit && !force) return;
+
+  const now = new Date().toISOString();
+
+  // 1. Group
+  if(!db.retailDocuments.some(x => x.kind === 'retail-chit-group' && x.id === 'group-festive-2026')){
+    db.retailDocuments.push({
+      id: 'group-festive-2026',
+      kind: 'retail-chit-group',
+      accountType: 'customer',
+      name: 'Festive Gold Savings Group 2026',
+      groupCode: 'FEST-2026',
+      orderPosition: 1,
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      memberLimit: 250,
+      status: 'Active',
+      notes: '2026 Annual Jewellery Savings & Festive Gold Schemes',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  // 2. Amount Chit Type (Sample 1)
+  if(!db.retailDocuments.some(x => x.kind === 'retail-chit-type' && x.id === 'type-amount-swarna-nidhi')){
+    db.retailDocuments.push({
+      id: 'type-amount-swarna-nidhi',
+      kind: 'retail-chit-type',
+      accountType: 'customer',
+      name: 'Swarna Nidhi 11+1 (Amount Scheme)',
+      chitCode: 'SN-11-AMT',
+      scheme: 'Fixed',
+      frequency: 'Monthly',
+      mode: 'Amount',
+      ornamentType: 'Gold',
+      installmentAmount: 5000,
+      installments: 11,
+      durationDays: 330,
+      dueDay: 10,
+      graceDays: 5,
+      penaltyRate: 0,
+      bonusType: 'Duration / Installment Waiver (11+1)',
+      bonusValue: 5000,
+      benefitPercent: 9.09,
+      wastageBenefitPercent: 50,
+      mcBenefitRate: 50,
+      benefitProductGroups: 'Plain Gold, Antique, Temple Jewellery',
+      giftItem: '5g Fine Silver Coin',
+      limitedDueType: 'Allow Multiple Due',
+      maxDueAtOnce: 1,
+      paymentCondition: 'Any Time',
+      maturityDateMode: 'From Join Date',
+      coolingDays: 0,
+      maxPerCustomer: 0,
+      ledgerName: 'Swarna Nidhi Deposit Liability',
+      allowPartial: false,
+      allowMultiple: true,
+      allowChange: false,
+      alwaysPayment: false,
+      allowCustomer: true,
+      incentiveApplicable: false,
+      disableCustomerPayment: false,
+      proofRequired: true,
+      aadhaarRequired: true,
+      panRequired: false,
+      isBonusEntryEnabled: true,
+      isGiftApplicable: true,
+      status: 'Active',
+      notes: 'Fixed ₹5,000 monthly deposit for 11 months. 12th installment (₹5,000) credited free by showroom as bonus + 50% discount on wastage/VA.',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  // 3. Gold Weight Chit Type (Sample 2)
+  if(!db.retailDocuments.some(x => x.kind === 'retail-chit-type' && x.id === 'type-gold-digi-weight')){
+    db.retailDocuments.push({
+      id: 'type-gold-digi-weight',
+      kind: 'retail-chit-type',
+      accountType: 'customer',
+      name: 'Digi Gold Weight Accumulator (Metal Scheme)',
+      chitCode: 'DGW-METAL',
+      scheme: 'Digi Gold',
+      frequency: 'Monthly',
+      mode: 'Digital Gold',
+      ornamentType: 'Gold',
+      installmentAmount: 5000,
+      minAmount: 1000,
+      maxAmount: 50000,
+      installments: 11,
+      durationDays: 330,
+      dueDay: 15,
+      graceDays: 7,
+      penaltyRate: 0,
+      bonusType: 'Percentage',
+      bonusValue: 5,
+      benefitPercent: 5,
+      wastageBenefitPercent: 100,
+      mcBenefitRate: 100,
+      benefitProductGroups: 'All Gold Jewellery',
+      giftItem: 'Gold Plated Welcome Coin',
+      limitedDueType: 'Allow Multiple Due',
+      maxDueAtOnce: 2,
+      paymentCondition: 'Any Time',
+      maturityDateMode: 'From Join Date',
+      coolingDays: 0,
+      maxPerCustomer: 0,
+      ledgerName: 'Digital Gold Metal Liability',
+      allowPartial: true,
+      allowMultiple: true,
+      allowChange: true,
+      alwaysPayment: false,
+      allowCustomer: true,
+      incentiveApplicable: false,
+      disableCustomerPayment: false,
+      proofRequired: true,
+      aadhaarRequired: false,
+      panRequired: true,
+      isBonusEntryEnabled: true,
+      isGiftApplicable: true,
+      status: 'Active',
+      notes: 'Every installment locks gold weight (g) based on 22K/24K daily board rate. Zero wastage (100% waiver) upon maturity + 5% bonus.',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  // 4. Mappings (Passbooks)
+  if(!db.retailDocuments.some(x => x.kind === 'retail-chit-mapping' && x.id === 'map-sample-amount-01')){
+    db.retailDocuments.push({
+      id: 'map-sample-amount-01',
+      kind: 'retail-chit-mapping',
+      accountType: 'customer',
+      customerId: c1.id,
+      groupId: 'group-festive-2026',
+      typeId: 'type-amount-swarna-nidhi',
+      chitNumber: 'SN-AMT-2026-01',
+      joinName: c1.name,
+      startDate: '2026-01-10',
+      maturityDate: '2026-12-10',
+      installmentAmount: 5000,
+      targetAmount: 55000,
+      totalDues: 11,
+      customerReference: 'PB-ANANYA-01',
+      referredBy: 'Pooja (Counter 1)',
+      status: 'Active',
+      nomineeName: 'Rajesh Sharma',
+      nomineeRelation: 'Spouse',
+      nomineePhone: '9840999888',
+      aadhaar: '987654321012',
+      proofType: 'Aadhaar',
+      proofDocNo: '9876-5432-1012',
+      isSmsEnabled: true,
+      isFixedRate: false,
+      notes: 'Sample Amount Chit: ₹5,000/month with 11+1 benefit.',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  if(!db.retailDocuments.some(x => x.kind === 'retail-chit-mapping' && x.id === 'map-sample-gold-02')){
+    db.retailDocuments.push({
+      id: 'map-sample-gold-02',
+      kind: 'retail-chit-mapping',
+      accountType: 'customer',
+      customerId: c2.id,
+      groupId: 'group-festive-2026',
+      typeId: 'type-gold-digi-weight',
+      chitNumber: 'DGW-GLD-2026-02',
+      joinName: c2.name,
+      startDate: '2026-01-15',
+      maturityDate: '2026-12-15',
+      installmentAmount: 5000,
+      targetAmount: 55000,
+      totalDues: 11,
+      customerReference: 'PB-RAMESH-02',
+      referredBy: 'Suresh (Sales Exec)',
+      status: 'Active',
+      nomineeName: 'Meena Kumar',
+      nomineeRelation: 'Spouse',
+      nomineePhone: '9840888777',
+      pan: 'BKMPR5678G',
+      proofType: 'PAN',
+      proofDocNo: 'BKMPR5678G',
+      isSmsEnabled: true,
+      isFixedRate: false,
+      notes: 'Sample Gold Chit: Daily board rate conversion to pure gold grams.',
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  // 5. Payment Entries
+  const amountEntries = [
+    { id: 'entry-amt-01', mappingId: 'map-sample-amount-01', customerId: c1.id, when: '2026-01-10', installmentNo: 1, amount: 5000, goldRate: 0, metalWeight: 0, drawerLedger: 'Main Cash Drawer', method: 'Cash', reference: 'RCPT-0101', remarks: 'Due 1 of 11 - Cash Deposit' },
+    { id: 'entry-amt-02', mappingId: 'map-sample-amount-01', customerId: c1.id, when: '2026-02-10', installmentNo: 2, amount: 5000, goldRate: 0, metalWeight: 0, drawerLedger: 'Shop UPI QR', method: 'UPI', reference: 'UPI/98401/02', remarks: 'Due 2 of 11 - GPay transfer' },
+    { id: 'entry-amt-03', mappingId: 'map-sample-amount-01', customerId: c1.id, when: '2026-03-10', installmentNo: 3, amount: 5000, goldRate: 0, metalWeight: 0, drawerLedger: 'HDFC Bank Current A/c', method: 'Bank', reference: 'NEFT49281', remarks: 'Due 3 of 11 - Bank transfer' }
+  ];
+  amountEntries.forEach(e => {
+    if(!db.retailDocuments.some(x => x.id === e.id)){
+      db.retailDocuments.push({ ...e, kind: 'retail-chit-entry', accountType: 'customer', entryType: 'Instalment', createdAt: now, updatedAt: now });
+    }
+  });
+
+  const goldEntries = [
+    { id: 'entry-gld-01', mappingId: 'map-sample-gold-02', customerId: c2.id, when: '2026-01-15', installmentNo: 1, amount: 5000, goldRate: 7150, metalWeight: 0.699, drawerLedger: 'Shop UPI QR', method: 'UPI', reference: 'UPI/GLD-01', remarks: 'Due 1 of 11 - 0.699 g credited at ₹7,150/g' },
+    { id: 'entry-gld-02', mappingId: 'map-sample-gold-02', customerId: c2.id, when: '2026-02-15', installmentNo: 2, amount: 5000, goldRate: 7200, metalWeight: 0.694, drawerLedger: 'Main Cash Drawer', method: 'Cash', reference: 'RCPT-GLD-02', remarks: 'Due 2 of 11 - 0.694 g credited at ₹7,200/g' },
+    { id: 'entry-gld-03', mappingId: 'map-sample-gold-02', customerId: c2.id, when: '2026-03-15', installmentNo: 3, amount: 5000, goldRate: 7250, metalWeight: 0.690, drawerLedger: 'Shop UPI QR', method: 'UPI', reference: 'UPI/GLD-03', remarks: 'Due 3 of 11 - 0.690 g credited at ₹7,250/g' }
+  ];
+  goldEntries.forEach(e => {
+    if(!db.retailDocuments.some(x => x.id === e.id)){
+      db.retailDocuments.push({ ...e, kind: 'retail-chit-entry', accountType: 'customer', entryType: 'Instalment', createdAt: now, updatedAt: now });
+    }
+  });
+}
+window.rcSeedSampleChits = rcSeedSampleChits;
 function rcSaveStatus(promise,label){const show=()=>{const status=document.getElementById('cloudState')?.textContent||'';say(/^Cloud(?: sync)? ·/.test(status)?label+' saved to cloud.':(status.startsWith('Sync issue')||status.startsWith('Entry saved here'))?'Saved on this device only. Cloud sync failed: '+(window.v2LastSyncError||'check Settings → Cloud account.'):label+' saved on this device. Sign in to sync across devices.')};if(promise&&typeof promise.then==='function')promise.then(show);else show()}
 function rcDocs(kind){rcEnsure();return db.retailDocuments.filter(x=>x.kind===kind)}
 function rcRows(){return typeof rcQuoteReadRows==='function'?rcQuoteReadRows():[];}
@@ -2801,6 +3034,10 @@ window.rcRecalcEntryMetal=function(){
 };
 window.rcEntryPlan=function(id){
   const m=rcDocs('retail-chit-mapping').find(x=>x.id===id),t=rcDocs('retail-chit-type').find(x=>x.id===m?.typeId),entries=rcDocs('retail-chit-entry').filter(p=>p.mappingId===id),paid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0),metalPaid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.metalWeight),0),due=n(m?.targetAmount)>0?n(m.targetAmount):n(m?.installmentAmount||t?.installmentAmount)*n(m?.totalDues||t?.installments);
+  const custSel = document.querySelector('select[name="customerId"]');
+  if(custSel && m?.customerId && custSel.value !== m.customerId) {
+    custSel.value = m.customerId;
+  }
   const put=(key,text)=>{const el=document.getElementById(key);if(el)el.textContent=text};
   put('rcPlanAmount',rateMoney(m?.installmentAmount||t?.installmentAmount||0));
   put('rcPaidToDate',rateMoney(paid));
@@ -2812,7 +3049,7 @@ window.rcEntryPlan=function(id){
     const duesPaid=entries.filter(p=>['Instalment','Advance Due Payment'].includes(p.entryType)).length;
     const totalDues=n(m.totalDues||t?.installments||11);
     const remDues=Math.max(0,totalDues-duesPaid);
-    const goldRate=n(db?.rates?.gold24)?(typeof rate24Purity==='function'?rate24Purity(91.6):n(db.rates.gold24)*0.916):(typeof rcGetPureRateFromRateBook==='function'?rcGetPureRateFromRateBook('Old Gold')*0.916:7200);
+    const goldRate=n(db?.rates?.gold22)||(n(db?.rates?.gold24)?(typeof v2RateForPurity==='function'?v2RateForPurity(22):n(db.rates.gold24)*22/24):(typeof rcGetPureRateFromRateBook==='function'?rcGetPureRateFromRateBook('Old Gold')*0.916:7210));
     document.getElementById('rcCardScheme').textContent=(t?.name||'Standard Scheme')+(t?.chitCode?' ('+t.chitCode+')':'');
     document.getElementById('rcCardInst').textContent=rateMoney(m.installmentAmount||t?.installmentAmount||0);
     document.getElementById('rcCardDues').textContent=duesPaid+' of '+totalDues+' paid ('+remDues+' left)';
@@ -2820,7 +3057,7 @@ window.rcEntryPlan=function(id){
     document.getElementById('rcCardWeight').textContent=fmt(metalPaid)+' g';
     document.getElementById('rcCardRate').textContent=rateMoney(goldRate)+'/g';
     const rateInp=document.getElementById('rcEntryGoldRate');
-    if(rateInp&&(!n(rateInp.value)||rateInp.value==='0'))rateInp.value=goldRate.toFixed(2);
+    if(rateInp)rateInp.value=goldRate.toFixed(2);
     const nextDueInp=document.getElementById('rcEntryInstNo');
     if(nextDueInp)nextDueInp.value=duesPaid+1;
     const amtInp=document.getElementById('rcEntryAmount');
