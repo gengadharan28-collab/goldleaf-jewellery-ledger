@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.47';
+const RC_VERSION='2.10.48';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -649,12 +649,27 @@ function rcChitSummary(mappingId, overrides = {}) {
 }
 window.rcChitSummary = rcChitSummary;
 
+function rcChitSavingsShortText(bill) {
+  const ben = n(bill?.chitTotalBenefit), wt = n(bill?.chitUsedWeight);
+  if (!(wt > 0 || ben !== 0)) return '';
+  const prefix = wt > 0 ? fmt(wt) + 'g · ' : '';
+  if (ben > 0) return prefix + 'Saved ' + rateMoney(ben);
+  if (ben < 0) return prefix + 'Rate diff −' + rateMoney(Math.abs(ben));
+  return fmt(wt) + 'g · Waivers applied';
+}
+
 function rcChitLivePreviewText(c, bill) {
   if (!c) return '';
   const parts = [];
   if (bill) {
     if (n(bill.chitUsedWeight) > 0) {
-      parts.push('Chit Wt Lessed: <b>' + fmt(bill.chitUsedWeight) + ' g</b> (' + esc(bill.chitOrnamentType) + ' @ Avg ' + (c.avgRate > 0 ? rateMoney(c.avgRate) + '/g' : '—') + ' · Rate Protection Saved <b>' + rateMoney(bill.chitRateBenefit) + '</b>)');
+      const rb = n(bill.chitRateBenefit);
+      const rateNote = rb > 0
+        ? 'Rate Protection Saved <b>' + rateMoney(rb) + '</b>'
+        : (rb < 0
+          ? 'Rate Diff <b style="color:#b45309">− ' + rateMoney(Math.abs(rb)) + '</b> <span class="hint">(Purchase rate &lt; avg rate; uncheck Consider Chit Weight to use cash credit)</span>'
+          : 'Rate Match <b>' + rateMoney(0) + '</b>');
+      parts.push('Chit Wt Lessed: <b>' + fmt(bill.chitUsedWeight) + ' g</b> (' + esc(bill.chitOrnamentType) + ' @ Avg ' + (c.avgRate > 0 ? rateMoney(c.avgRate) + '/g' : '—') + ' · ' + rateNote + ')');
     } else if (c.metalWeight > 0) {
       if (!c.considerChitWeight) {
         parts.push('Weight Protection: <b>OFF</b> (Post-tax ₹ credit only)');
@@ -1530,7 +1545,7 @@ function rcQuoteForm(){
     +'<span>GST Tax <b id="rcGST" style="display:block;font-size:14px;color:#222">'+rateMoney(quoteGst)+'</b></span>'
     +'<span>Purchase Value <b id="rcPurchaseVal" style="display:block;font-size:14px;color:#1e293b;font-weight:700">'+rateMoney(quotePurchaseValue)+'</b></span>'
     +'<span>Old Gold Credit <b id="rcOldGold" style="display:block;font-size:14px;color:#854d0e">'+(oldGoldCredit>0?'− '+rateMoney(oldGoldCredit):'₹ 0.00')+'</b></span>'
-    +'<span id="rcChitCreditWrap" class="'+(initBill.chitAmount>0||initBill.chitUsedWeight>0||initBill.chitTotalBenefit>0?'':'hidden')+'">Chit Less <b id="rcChitCredit" style="display:block;font-size:14px;color:#15803d">'+(initBill.chitAmount>0?'− '+rateMoney(initBill.chitAmount):'₹ 0.00')+'</b><small id="rcChitSavingsSub" style="font-size:10px;color:#166534;display:block">'+(initBill.chitTotalBenefit>0||initBill.chitUsedWeight>0?(fmt(initBill.chitUsedWeight)+'g · Saved '+rateMoney(initBill.chitTotalBenefit)):'')+'</small></span>'
+    +'<span id="rcChitCreditWrap" class="'+(initBill.chitAmount>0||initBill.chitUsedWeight>0||n(initBill.chitTotalBenefit)!==0?'':'hidden')+'">Chit Less <b id="rcChitCredit" style="display:block;font-size:14px;color:#15803d">'+(initBill.chitAmount>0?'− '+rateMoney(initBill.chitAmount):'₹ 0.00')+'</b><small id="rcChitSavingsSub" style="font-size:10px;color:'+(n(initBill.chitTotalBenefit)<0?'#b45309':'#166534')+';display:block">'+rcChitSavingsShortText(initBill)+'</small></span>'
     +'<span>Net Estimate Payable <b id="rcFinal" style="display:block;font-size:15px;color:var(--green,#18392a);font-weight:800">'+rateMoney(quoteFinalVal)+'</b></span>'
     +'<span class="rc-advance-total-badge">💵 Collected Amount <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
     +'</div>'
@@ -2699,11 +2714,14 @@ function rcRecalc(){
   const elGold = document.getElementById('rcOldGold');
   if(elGold) elGold.textContent = bill.exchangeAmount > 0 ? '− ' + rateMoney(bill.exchangeAmount) : rateMoney(0);
   const elChitWrap = document.getElementById('rcChitCreditWrap');
-  if(elChitWrap) elChitWrap.classList.toggle('hidden', !(bill.chitAmount > 0 || bill.chitUsedWeight > 0 || bill.chitTotalBenefit > 0));
+  if(elChitWrap) elChitWrap.classList.toggle('hidden', !(bill.chitAmount > 0 || bill.chitUsedWeight > 0 || n(bill.chitTotalBenefit) !== 0));
   const elChitCredit = document.getElementById('rcChitCredit');
   if(elChitCredit) elChitCredit.textContent = bill.chitAmount > 0 ? '− ' + rateMoney(bill.chitAmount) : rateMoney(0);
   const elChitSavSub = document.getElementById('rcChitSavingsSub');
-  if(elChitSavSub) elChitSavSub.textContent = (bill.chitTotalBenefit > 0 || bill.chitUsedWeight > 0) ? (fmt(bill.chitUsedWeight) + 'g · Saved ' + rateMoney(bill.chitTotalBenefit)) : '';
+  if(elChitSavSub) {
+    elChitSavSub.textContent = rcChitSavingsShortText(bill);
+    elChitSavSub.style.color = n(bill.chitTotalBenefit) < 0 ? '#b45309' : '#166534';
+  }
   if(typeof window.rcUpdateChitLiveBox === 'function') window.rcUpdateChitLiveBox(form, bill, 'est');
   const elBadge = document.getElementById('rcOldGoldBadge');
   if(elBadge) elBadge.textContent = rateMoney(bill.exchangeAmount);
