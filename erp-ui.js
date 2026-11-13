@@ -1,5 +1,5 @@
 // Shared ERP presentation and reliable Retail entry dialogs.
-const erpThemeLink=document.createElement('link');erpThemeLink.rel='stylesheet';erpThemeLink.href='./erp-theme.css?v=2.10.52';document.head.append(erpThemeLink);
+const erpThemeLink=document.createElement('link');erpThemeLink.rel='stylesheet';erpThemeLink.href='./erp-theme.css?v=2.10.53';document.head.append(erpThemeLink);
 window.toggleTheme=function(){appTheme=appTheme==='dark'?'light':'dark';document.documentElement.dataset.theme=appTheme;localStorage.setItem('goldleaf-theme',appTheme);document.querySelectorAll('[onclick="toggleTheme()"]') .forEach(button=>{button.textContent=appTheme==='dark'?'☀'+(button.closest('.retail-sale-tools')?'':' Light'):'☾'+(button.closest('.retail-sale-tools')?'':' Dark');button.setAttribute('aria-label',appTheme==='dark'?'Switch to light theme':'Switch to dark theme');});erpSyncToolbarTheme();};
 function erpMarkEntryDirty(form=document.getElementById('customerSaleForm')){if(form?.dataset)form.dataset.entryDirty='1';}
 for(const eventName of ['input','change'])document.addEventListener(eventName,event=>{const form=event.target.closest?.('#customerSaleForm');if(form)erpMarkEntryDirty(form);},true);
