@@ -759,13 +759,13 @@ function rpLedgerModel(id){
     const amount=(sale.oldGoldItems||[]).filter(x=>rpDocs('old-purchase',id).some(d=>d.id===x.purchaseDocId)).reduce((s,x)=>s+n(x.amount),0);
     if(amount)events.push({id:sale.id,when:sale.when,createdAt:sale.createdAt,kind:'Sales exchange settlement',ref:sale.documentNo||sale.id.slice(0,8),details:accountName(sale.partyId,'customer'),amount:-amount,gold:0,silver:0});
   }
-  events.sort((a,b)=>a.when.localeCompare(b.when)||(a.createdAt||'').localeCompare(b.createdAt||'')||a.id.localeCompare(b.id));
+  events.sort((a,b)=>whenStr(a).localeCompare(whenStr(b))||(a.createdAt||'').localeCompare(b.createdAt||'')||String(a.id||'').localeCompare(String(b.id||'')));
   let amount=n(supplier.openingAmount),gold=n(supplier.openingGold),silver=n(supplier.openingSilver);
   const rows=events.map(x=>{
     amount=rbRound(amount+x.amount);
     gold=rbGrams(gold+x.gold);
     silver=rbGrams(silver+x.silver);
-    return [x.when.replace('T',' '),x.kind,x.ref,x.details,rateMoney(x.amount),fmt(x.gold),fmt(x.silver),rateMoney(amount),fmt(gold),fmt(silver)];
+    return [whenShow(x),x.kind,x.ref,x.details,rateMoney(x.amount),fmt(x.gold),fmt(x.silver),rateMoney(amount),fmt(gold),fmt(silver)];
   });
   return {
     kind:'ledger',retail:true,title:'RETAIL SUPPLIER LEDGER',entityLabel:'Supplier / seller',entityName:supplier.name,
@@ -921,9 +921,9 @@ window.rpPrintCurrent=function(forcedTemplate=null){
 window.rpHistory=function(){
   document.getElementById('rpHistoryPanel')?.remove();
   const kind=RP_KINDS[RP_SECTIONS.indexOf(rpSection)];
-  const rows=rpDocs(kind).sort((a,b)=>b.when.localeCompare(a.when)).map(d=>[
+  const rows=rpDocs(kind).sort(whenCmp).map(d=>[
     d.documentNo,
-    d.when.replace('T',' '),
+    whenShow(d),
     esc(rpSupplier(d.supplierId)?.name||'Shop conversion'),
     esc(d.reference||d.product||(d.items||[]).map(x=>x.product).join(' + ')),
     d.kind==='conversion'?fmt(d.pureReceived)+' pure g':rateMoney(d.totalAmount??d.creditAmount??d.amountCredit),
@@ -951,7 +951,7 @@ window.rpChooseOldPurchase=function(){
   if(!customer)return say('Select the billing customer first.');
   document.getElementById('rpOldChooser')?.remove();
   const docs=rpDocs('old-purchase').filter(x=>x.basis==='amount'&&x.metal==='Gold'&&rpSupplier(x.supplierId)?.customerId===customer&&rpOldAvailable(x,form.elements.id.value).amount>0);
-  document.body.insertAdjacentHTML('beforeend',rbModal('rpOldChooser','Apply an existing old-gold purchase','<p class="hint">Only this customer’s linked, unpaid Gold purchases are listed. Amounts already paid, returned or applied are excluded.</p>'+(docs.length?table(['Purchase','Date','Unpaid credit','Net weight',''],docs.map(d=>{const a=rpOldAvailable(d,form.elements.id.value);return [d.documentNo,d.when.replace('T',' '),rateMoney(a.amount),fmt(a.weight)+' g','<button type="button" onclick="rpApplyOldPurchase(\''+d.id+'\')">Apply to bill</button>'];})):'<div class="empty">No eligible old purchases. Link the seller’s supplier profile to this Retail customer when recording Old Jewel Purchase.</div>')));
+  document.body.insertAdjacentHTML('beforeend',rbModal('rpOldChooser','Apply an existing old-gold purchase','<p class="hint">Only this customer’s linked, unpaid Gold purchases are listed. Amounts already paid, returned or applied are excluded.</p>'+(docs.length?table(['Purchase','Date','Unpaid credit','Net weight',''],docs.map(d=>{const a=rpOldAvailable(d,form.elements.id.value);return [d.documentNo,whenShow(d),rateMoney(a.amount),fmt(a.weight)+' g','<button type="button" onclick="rpApplyOldPurchase(\''+d.id+'\')">Apply to bill</button>'];})):'<div class="empty">No eligible old purchases. Link the seller’s supplier profile to this Retail customer when recording Old Jewel Purchase.</div>')));
   rbDialog('rpOldChooser');
 };
 window.rpApplyOldPurchase=function(id){

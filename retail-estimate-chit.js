@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.48';
+const RC_VERSION='2.10.49';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -3209,7 +3209,7 @@ function rcChitView(){
  const actions=id=>'<button type="button" onclick="rcEditChit(\''+esc(id)+'\')">Edit</button>';
  const mappingActions=r=>'<button type="button" onclick="rcEditChit(\''+esc(r.id)+'\')">Edit</button> <button type="button" class="rc-btn-settle" onclick="rcOpenSettleChit(\''+esc(r.id)+'\')" title="Settle & Close Chit" style="margin-left:4px;font-weight:750;color:#18392a">'+((r.status||'Active')==='Closed'?'Closed':'Settle')+'</button>';
  const rows=all.filter(r=>rcChitTab!=='Entry').map(r=>rcChitTab==='Group'?[esc(r.orderPosition||'—'),esc(r.name),esc(r.groupCode||'—'),esc([r.startDate,r.endDate].filter(Boolean).join(' – ')||'—'),esc(r.memberLimit||'—'),esc(r.status||'Active'),actions(r.id)]:rcChitTab==='Type'?[esc(r.name),esc(r.scheme||'Fixed'),esc(r.frequency),esc(r.mode||'Cash / Metal'),rateMoney(r.installmentAmount),esc(r.installments||'—'),esc((r.bonusType&&r.bonusType!=='None'?r.bonusType+' ':'')+(r.benefitPercent||r.bonusValue||0)+'%'+(r.wastageBenefitPercent?' · VA: '+r.wastageBenefitPercent+'%':'')+(r.noMakingChargeOnChit?' · Free MC':(r.mcBenefitRate?' · MC -₹'+r.mcBenefitRate+'/g':''))),actions(r.id)]:(()=>{let t=types.find(z=>z.id===r.typeId),s=rcChitSummary(r.id),totTarget=n(r.targetAmount)>0?n(r.targetAmount):n(r.installmentAmount||t?.installmentAmount||0)*n(r.totalDues||t?.installments||0);return [esc(r.chitNumber),esc(accountName(r.customerId,'customer')),esc(groups.find(g=>g.id===r.groupId)?.name||'—'),esc(t?.name||'—'),rateMoney(r.installmentAmount||t?.installmentAmount||0),rateMoney(s?.paid||0)+' / '+rateMoney(totTarget)+(s?.metalWeight>0?'<br><small style="color:#15803d;font-weight:700">'+fmt(s.metalWeight)+' g · Avg '+rateMoney(s.avgRate)+'/g</small>':''),esc(r.nomineeName?'Nom: '+r.nomineeName:r.pan?'PAN: '+r.pan:'—'),esc(r.status||'Active'),mappingActions(r)]})());
- const entryRows=entries.sort((a,b)=>String(b.when).localeCompare(String(a.when))).map(p=>{let m=maps.find(z=>z.id===p.mappingId);return [esc(p.when),esc(accountName(p.customerId,'customer')),esc(m?.chitNumber||'—'),esc(p.entryType||'Instalment'),p.installmentNo,rateMoney(p.amount),p.goldRate?rateMoney(p.goldRate):'—',fmt(p.metalWeight||0)+' g',esc(p.method||'—'),esc([p.drawerLedger,p.reference].filter(Boolean).join(' · ')||'—'),'<button type="button" onclick="rcEditChit(\''+esc(p.id)+'\')">Edit</button> <button type="button" onclick="rcPrintChit(\''+esc(p.id)+'\')">Receipt</button>']});
+ const entryRows=entries.sort(whenCmp).map(p=>{let m=maps.find(z=>z.id===p.mappingId);return [esc(whenShow(p)),esc(accountName(p.customerId,'customer')),esc(m?.chitNumber||'—'),esc(p.entryType||'Instalment'),p.installmentNo,rateMoney(p.amount),p.goldRate?rateMoney(p.goldRate):'—',fmt(p.metalWeight||0)+' g',esc(p.method||'—'),esc([p.drawerLedger,p.reference].filter(Boolean).join(' · ')||'—'),'<button type="button" onclick="rcEditChit(\''+esc(p.id)+'\')">Edit</button> <button type="button" onclick="rcPrintChit(\''+esc(p.id)+'\')">Receipt</button>']});
  const body=rcChitTab==='Entry'?entryForm:'<form class="rc-form rc-chit-definition-form rc-chit-'+rcChitTab.toLowerCase()+'-form" onsubmit="rcSaveChitDefinition(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'">'+form+'<button class="primary">'+(x?'Save changes':'Save '+rcChitTab.toLowerCase())+'</button></form>';
  const list=rcChitTab==='Entry'?(entryRows.length?table(headers,entryRows):'<p class="muted">No chit entries recorded yet.</p>'):(rows.length?table(headers,rows):'<p class="muted">No '+rcChitTab.toLowerCase()+' entries yet.</p>');
  const collectedEntries=entries.filter(p=>p.entryType!=='Closure');
@@ -3433,7 +3433,7 @@ function rcNavigation(){
 }
 const rcPreviousRender=window.render;
 window.render=function(){
-  if(!session||!goldleafContext?.has_access){
+  if(!session||typeof goldleafContext==='undefined'||!goldleafContext?.has_access){
     rcNavigation();
     return rcPreviousRender();
   }
