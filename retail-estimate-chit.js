@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.46';
+const RC_VERSION='2.10.47';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -593,26 +593,157 @@ window.rcApplyProduct=function(select){const form=select.closest('form'),row=sel
 window.rcRemoveItem=function(b){if(document.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row').length<2)return say('Keep at least one jewellery item.');b.closest('tr.rc-quote-row')?.remove();rcRecalc()};
 window.rcAddItem=function(item){document.querySelector('#rcQuoteTable tbody')?.insertAdjacentHTML('beforeend',rcQuoteItemRow(item||{},document.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row').length));rcRecalc()};
 
-function rcChitOptions(customerId='',selected=''){const maps=rcDocs('retail-chit-mapping').filter(m=>!customerId||m.customerId===customerId);return '<option value="">No chit linked</option>'+maps.map(m=>{const t=rcDocs('retail-chit-type').find(z=>z.id===m.typeId);return '<option value="'+esc(m.id)+'" '+(m.id===selected?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(t?.name||'Chit')+'</option>'}).join('')}
-function rcChitSelect(customerId='',selected='',name='chitMappingId'){return '<label>Chit Info<select name="'+name+'"><option value="">No chit linked</option>'+rcDocs('retail-chit-mapping').filter(m=>!customerId||m.customerId===customerId).map(m=>{const t=rcDocs('retail-chit-type').find(z=>z.id===m.typeId);return '<option value="'+esc(m.id)+'" '+(m.id===selected?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(t?.name||'Chit')+'</option>'}).join('')+'</select></label>'}
+function rcChitSummary(mappingId, overrides = {}) {
+  if (!mappingId) return null;
+  const m = rcDocs('retail-chit-mapping').find(x => x.id === mappingId);
+  if (!m) return null;
+  const t = rcDocs('retail-chit-type').find(z => z.id === m.typeId) || {};
+  const entries = rcDocs('retail-chit-entry').filter(p => p.mappingId === m.id && p.entryType !== 'Closure');
+  const paid = rbRound(entries.reduce((s, p) => s + (p.entryType === 'Refund' ? -1 : 1) * n(p.amount), 0));
+  const metalWeight = rbGrams(entries.reduce((s, p) => s + (p.entryType === 'Refund' ? -1 : 1) * n(p.metalWeight), 0));
+  const avgRate = metalWeight > 0 ? rbRound(paid / metalWeight) : 0;
+  const duesPaid = entries.filter(p => ['Instalment', 'Advance Due Payment'].includes(p.entryType)).length;
+  const totalDues = n(m.totalDues || t.installments || 11);
+  const isMatured = m.status === 'Matured' || (totalDues > 0 && duesPaid >= totalDues);
+  const mode = t.mode || (t.scheme === 'Digi Gold' ? 'Digital Gold' : t.scheme === 'Digi Silver' ? 'Digital Silver' : 'Cash / Metal');
+  const ornamentType = t.ornamentType || (mode === 'Digital Silver' || t.scheme === 'Digi Silver' ? 'Silver' : 'Gold');
+  const isWeightScheme = mode !== 'Amount' && (metalWeight > 0 || ['Metal', 'Cash / Metal', 'Digital Gold', 'Digital Silver', 'Weight'].includes(mode) || ['Digi Gold', 'Digi Silver', 'Weight'].includes(t.scheme));
+  let schemeBonus = 0;
+  if (t.bonusType === 'Duration / Installment Waiver (11+1)' || t.bonusType === '11+1 Installment Waiver') schemeBonus = n(m.installmentAmount || t.installmentAmount || 0);
+  else if (t.bonusType === 'Percentage' && n(t.benefitPercent || t.bonusValue) > 0) schemeBonus = paid * (n(t.benefitPercent || t.bonusValue) / 100);
+  else if (t.bonusType === 'Fixed Amount') schemeBonus = n(t.bonusValue || 0);
+  schemeBonus = rbRound(schemeBonus);
+  const defaultBonus = (isMatured || m.status === 'Closed') ? (m.settleBonus !== undefined ? n(m.settleBonus) : schemeBonus) : 0;
+  const hasBonusOverride = overrides.bonus !== undefined && overrides.bonus !== null && overrides.bonus !== '';
+  const hasDedOverride = overrides.deduction !== undefined && overrides.deduction !== null && overrides.deduction !== '';
+  const bonus = rbRound(Math.max(0, hasBonusOverride ? n(overrides.bonus) : defaultBonus));
+  const deduction = rbRound(Math.max(0, hasDedOverride ? n(overrides.deduction) : n(m.settleDeduction || 0)));
+  const considerChitWeight = (overrides.considerChitWeight !== undefined && overrides.considerChitWeight !== null) ? !!overrides.considerChitWeight : (metalWeight > 0);
+  const totalChitAmount = rbRound(Math.max(0, paid + bonus - deduction));
+  return {
+    mappingId: m.id,
+    chitNumber: m.chitNumber || '',
+    status: m.status || 'Active',
+    typeId: m.typeId || '',
+    typeName: t.name || 'Chit',
+    scheme: t.scheme || 'Fixed',
+    mode,
+    ornamentType,
+    isWeightScheme,
+    paid,
+    metalWeight,
+    avgRate,
+    duesPaid,
+    totalDues,
+    isMatured,
+    schemeBonus,
+    defaultBonus,
+    bonus,
+    deduction,
+    totalChitAmount,
+    wastageBenefitPercent: n(t.wastageBenefitPercent),
+    mcBenefitRate: n(t.mcBenefitRate),
+    noMakingCharge: !!(t.noMakingChargeOnChit ?? t.noMakingCharge),
+    considerChitWeight
+  };
+}
+window.rcChitSummary = rcChitSummary;
+
+function rcChitLivePreviewText(c, bill) {
+  if (!c) return '';
+  const parts = [];
+  if (bill) {
+    if (n(bill.chitUsedWeight) > 0) {
+      parts.push('Chit Wt Lessed: <b>' + fmt(bill.chitUsedWeight) + ' g</b> (' + esc(bill.chitOrnamentType) + ' @ Avg ' + (c.avgRate > 0 ? rateMoney(c.avgRate) + '/g' : '—') + ' · Rate Protection Saved <b>' + rateMoney(bill.chitRateBenefit) + '</b>)');
+    } else if (c.metalWeight > 0) {
+      if (!c.considerChitWeight) {
+        parts.push('Weight Protection: <b>OFF</b> (Post-tax ₹ credit only)');
+      } else if ((bill.rows || []).some(r => r.netWeight > 0)) {
+        parts.push('No ' + esc(c.ornamentType) + ' weight matched on bill — <b>' + fmt(c.metalWeight) + ' g</b> not lessed; ₹ credit deducted post-tax.');
+      }
+    } else {
+      parts.push('Amount Plan · Post-tax credit deduction');
+    }
+    if (n(bill.chitWastageDiscount) > 0 || n(bill.chitMakingDiscount) > 0) {
+      parts.push('Waivers Saved: VA <b>' + rateMoney(bill.chitWastageDiscount) + '</b> · MC <b>' + rateMoney(bill.chitMakingDiscount) + '</b>');
+    }
+    parts.push('Post-Tax Chit Less: <b style="color:#15803d">− ' + rateMoney(bill.chitAmount) + '</b>');
+  } else {
+    parts.push(c.metalWeight > 0 ? ('Accumulated ' + esc(c.ornamentType) + ': <b>' + fmt(c.metalWeight) + ' g</b> @ Avg ' + (c.avgRate > 0 ? rateMoney(c.avgRate) + '/g' : '—')) : 'Amount Plan');
+    parts.push('Post-Tax Chit Less: <b style="color:#15803d">− ' + rateMoney(c.totalChitAmount) + '</b>');
+  }
+  return parts.join(' &nbsp;|&nbsp; ');
+}
+
+window.rcChitDetailsMarkup = function(mappingId, state = {}, scope = 'est', initialBill = null) {
+  if (!mappingId) return '';
+  const c = rcChitSummary(mappingId, { considerChitWeight: state.considerChitWeight, bonus: state.bonus, deduction: state.deduction });
+  if (!c) return '';
+  const onChg = scope === 'bill' ? 'if(window.rbRecalc){rbMarkDirty(this.form);rbRecalc(this.form);}' : 'if(window.rcRecalc)rcRecalc();';
+  const waiverTags = [];
+  if (c.wastageBenefitPercent > 0) waiverTags.push('VA Waiver ' + c.wastageBenefitPercent + '%');
+  if (c.noMakingCharge) waiverTags.push('Zero MC on Chit Wt');
+  else if (c.mcBenefitRate > 0) waiverTags.push('MC −' + rateMoney(c.mcBenefitRate) + '/g');
+  return '<div class="rc-chit-details-panel" style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0">'
+    + '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px;font-size:12px">'
+    + '<div><strong style="color:#166534">' + esc(c.chitNumber) + '</strong> · ' + esc(c.typeName) + ' (' + esc(c.ornamentType) + ' · ' + esc(c.mode) + ')' + (waiverTags.length ? ' · <span style="color:#b45309;font-weight:700">' + esc(waiverTags.join(' · ')) + '</span>' : '') + '</div>'
+    + '<div style="color:#1e293b">Paid: <b>' + rateMoney(c.paid) + '</b> · Wt: <b>' + (c.metalWeight > 0 ? fmt(c.metalWeight) + ' g' : '—') + '</b>' + (c.avgRate > 0 ? ' · Avg: <b>' + rateMoney(c.avgRate) + '/g</b>' : '') + ' · Dues: <b>' + c.duesPaid + '/' + c.totalDues + '</b></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;align-items:end">'
+    + (c.metalWeight > 0
+      ? '<label class="rc-check" style="margin:0;padding:6px 8px;background:#fff;border:1px solid #d1fae5;border-radius:6px;font-size:12px;font-weight:600"><input type="checkbox" name="considerChitWeight" ' + (c.considerChitWeight ? 'checked' : '') + ' onchange="' + onChg + '"> Consider Chit Weight (' + fmt(c.metalWeight) + ' g)</label>'
+      : '<div style="padding:6px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#475569">Amount Plan · ₹ Credit Only</div>')
+    + '<label style="margin:0;font-size:11px;font-weight:600">Chit Bonus ₹<input type="number" name="chitBonus" min="0" step=".01" value="' + c.bonus.toFixed(2) + '" oninput="' + onChg + '"></label>'
+    + '<label style="margin:0;font-size:11px;font-weight:600">Deduction ₹<input type="number" name="chitDeduction" min="0" step=".01" value="' + c.deduction.toFixed(2) + '" oninput="' + onChg + '"></label>'
+    + '<div style="padding:6px 10px;background:#dcfce7;border-radius:6px;font-size:12px;text-align:right">Net Chit Less<br><b id="rcChitLiveCredit_' + esc(scope) + '" style="font-size:14px;color:#14532d">− ' + rateMoney(c.totalChitAmount) + '</b></div>'
+    + '</div>'
+    + '<div id="rcChitLivePreview_' + esc(scope) + '" class="rc-chit-live-preview" style="margin-top:8px;padding-top:6px;border-top:1px dashed #86efac;font-size:11.5px;color:#14532d">' + rcChitLivePreviewText(c, initialBill) + '</div>'
+    + '</div>';
+};
+
+window.rcUpdateChitLiveBox = function(form, bill, scope = 'est') {
+  if (!form || !bill) return;
+  const creditEl = form.querySelector('#rcChitLiveCredit_' + scope);
+  if (creditEl) creditEl.textContent = '− ' + rateMoney(bill.chitAmount);
+  const prevEl = form.querySelector('#rcChitLivePreview_' + scope);
+  if (prevEl && bill.chitMappingId) {
+    const c = rcChitSummary(bill.chitMappingId, { considerChitWeight: bill.considerChitWeight, bonus: bill.chitBonus, deduction: bill.chitDeduction });
+    prevEl.innerHTML = rcChitLivePreviewText(c, bill);
+  }
+};
+
+function rcChitOptions(customerId = '', selected = '') {
+  const maps = rcDocs('retail-chit-mapping').filter(m => (!customerId || m.customerId === customerId) && ((m.status || 'Active') !== 'Closed' || m.id === selected));
+  return '<option value="">No chit linked</option>' + maps.map(m => {
+    const s = rcChitSummary(m.id);
+    const meta = s ? (' · ' + rateMoney(s.paid) + (s.metalWeight > 0 ? ' · ' + fmt(s.metalWeight) + 'g' : '')) : '';
+    return '<option value="' + esc(m.id) + '" ' + (m.id === selected ? 'selected' : '') + '>' + esc(m.chitNumber) + ' · ' + esc(s?.typeName || 'Chit') + meta + '</option>';
+  }).join('');
+}
+function rcChitSelect(customerId = '', selected = '', name = 'chitMappingId', onChangeAttr = '') {
+  return '<label>Chit Info<select name="' + name + '"' + (onChangeAttr ? ' onchange="' + onChangeAttr + '"' : '') + '>' + rcChitOptions(customerId, selected) + '</select></label>';
+}
+window.rcEstChitChanged = function(sel) {
+  const form = sel?.closest('form');
+  if (!form) return;
+  const box = form.querySelector('#rcEstChitBox');
+  if (box) box.innerHTML = rcChitDetailsMarkup(sel.value || '', {}, 'est');
+  if (typeof rcRecalc === 'function') rcRecalc(form);
+};
 window.rcEstimateCustomerChanged = function(sel) {
   const form = sel.closest('form');
-  if(!form) return;
+  if (!form) return;
   const custId = sel.value;
   const chitWrap = form.querySelector('.rc-quote-chit-card');
-  if(chitWrap) {
+  if (chitWrap) {
     const prev = form.elements.chitMappingId?.value || '';
-    chitWrap.innerHTML = rcChitSelect(custId, prev);
-    const chitSel = chitWrap.querySelector('select[name="chitMappingId"]');
-    if(chitSel) {
-      chitSel.onchange = function(){
-        if(typeof rcRecalc === 'function') rcRecalc(form);
-        else if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
-      };
-    }
+    const keep = prev && rcDocs('retail-chit-mapping').some(m => m.id === prev && m.customerId === custId);
+    chitWrap.innerHTML = rcChitSelect(custId, keep ? prev : '', 'chitMappingId', 'rcEstChitChanged(this)');
+    const box = form.querySelector('#rcEstChitBox');
+    if (box) box.innerHTML = keep ? rcChitDetailsMarkup(prev, {}, 'est') : '';
   }
-  if(typeof rcRecalc === 'function') rcRecalc(form);
-  else if(typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
+  if (typeof rcRecalc === 'function') rcRecalc(form);
+  else if (typeof rcSyncPosPills === 'function') rcSyncPosPills(form);
 };
 
 let rcQuoteMode = 'tag';
@@ -663,7 +794,7 @@ function rcQuoteItemRow(x={}, i=0){
     otherAmount: rbRound(valAdded * net),
     pieces: pcs
   });
-  const lineTotal = calc.subtotal;
+  const lineTotal = x._displaySubtotal !== undefined ? n(x._displaySubtotal) : calc.subtotal;
   const form = document.getElementById('rcEstimateForm');
   const gstRate = (form?.elements.gstEnabled?.checked !== false) ? n(form?.elements.gstRate?.value || 3) : 0;
   const rateTax = rbRound(rateVal * (1 + gstRate / 100));
@@ -1110,12 +1241,20 @@ function rcQuoteForm(){
   const quoteDiscount = n(q?.discount||0),
         quoteGstOn = q?.gstEnabled !== false,
         quoteGstRate = quoteGstOn ? n(q?.gstRate !== undefined ? q.gstRate : 3) : 0,
+        quoteChitId = q?.chitMappingId || '',
+        quoteConsiderChit = q?.considerChitWeight,
+        quoteChitBonus = q?.chitBonus,
+        quoteChitDeduction = q?.chitDeduction,
         initBill = rbBillCalc(items, {
           discountValue: quoteDiscount,
           discountMode: 'amount',
           gstEnabled: quoteGstOn,
           gstRate: quoteGstRate,
           exchangeAmount: oldGoldCredit,
+          chitMappingId: quoteChitId,
+          considerChitWeight: quoteConsiderChit,
+          chitBonus: quoteChitBonus,
+          chitDeduction: quoteChitDeduction,
           collectedAmount: n(q?.collectedAmount||0)
         }),
         quoteSubtotal = initBill.subtotal,
@@ -1156,7 +1295,7 @@ function rcQuoteForm(){
     +'<select name="customerId" required onchange="rcEstimateCustomerChanged(this)"><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===q?.customerId?'selected':'')+'>'+esc(c.name)+(c.city?' ('+esc(c.city)+')':'')+'</option>').join('')+'</select>'
     +'</div>'
     +'<div class="rc-quote-meta-card rc-quote-chit-card">'
-    +rcChitSelect(q?.customerId||'', q?.chitMappingId)
+    +rcChitSelect(q?.customerId||'', quoteChitId, 'chitMappingId', 'rcEstChitChanged(this)')
     +'</div>'
     +'<div class="rc-quote-meta-card">'
     +'<label class="rc-quote-meta-lbl">Valid Until</label>'
@@ -1171,6 +1310,7 @@ function rcQuoteForm(){
     +'<input name="reference" value="'+esc(q?.reference||'')+'" placeholder="Sales rep / notes">'
     +'</div>'
     +'</div>'
+    +'<div id="rcEstChitBox" class="rc-est-chit-box">'+rcChitDetailsMarkup(quoteChitId, { considerChitWeight: quoteConsiderChit, bonus: quoteChitBonus, deduction: quoteChitDeduction }, 'est', initBill)+'</div>'
     +'</section>'
 
     // Segmented Mode Switcher Bar
@@ -1248,7 +1388,7 @@ function rcQuoteForm(){
     +'</tr>'
     +'</thead>'
     +'<tbody>'
-    +items.map(rcQuoteItemRow).join('')
+    +items.map((x, idx) => rcQuoteItemRow(Object.assign({}, x, { _displaySubtotal: initBill.rows[idx]?.subtotal }), idx)).join('')
     +'</tbody>'
     +'<tfoot class="rc-quote-tfoot">'
     +'<tr class="rc-quote-totals-row">'
@@ -1390,6 +1530,7 @@ function rcQuoteForm(){
     +'<span>GST Tax <b id="rcGST" style="display:block;font-size:14px;color:#222">'+rateMoney(quoteGst)+'</b></span>'
     +'<span>Purchase Value <b id="rcPurchaseVal" style="display:block;font-size:14px;color:#1e293b;font-weight:700">'+rateMoney(quotePurchaseValue)+'</b></span>'
     +'<span>Old Gold Credit <b id="rcOldGold" style="display:block;font-size:14px;color:#854d0e">'+(oldGoldCredit>0?'− '+rateMoney(oldGoldCredit):'₹ 0.00')+'</b></span>'
+    +'<span id="rcChitCreditWrap" class="'+(initBill.chitAmount>0||initBill.chitUsedWeight>0||initBill.chitTotalBenefit>0?'':'hidden')+'">Chit Less <b id="rcChitCredit" style="display:block;font-size:14px;color:#15803d">'+(initBill.chitAmount>0?'− '+rateMoney(initBill.chitAmount):'₹ 0.00')+'</b><small id="rcChitSavingsSub" style="font-size:10px;color:#166534;display:block">'+(initBill.chitTotalBenefit>0||initBill.chitUsedWeight>0?(fmt(initBill.chitUsedWeight)+'g · Saved '+rateMoney(initBill.chitTotalBenefit)):'')+'</small></span>'
     +'<span>Net Estimate Payable <b id="rcFinal" style="display:block;font-size:15px;color:var(--green,#18392a);font-weight:800">'+rateMoney(quoteFinalVal)+'</b></span>'
     +'<span class="rc-advance-total-badge">💵 Collected Amount <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
     +'</div>'
@@ -1507,12 +1648,21 @@ function rcEstimateRead(form){
     ? rbRound(colRows.reduce((s, x) => s + (n(x.amount) || 0), 0))
     : n(f.collectedAmount?.value);
 
+  const chitMappingId = f.chitMappingId?.value || '';
+  const considerChitWeight = f.considerChitWeight ? !!f.considerChitWeight.checked : undefined;
+  const chitBonus = f.chitBonus ? f.chitBonus.value : undefined;
+  const chitDeduction = f.chitDeduction ? f.chitDeduction.value : undefined;
+
   const billCalc = rbBillCalc(items, {
     discountValue: discount,
     discountMode: 'amount',
     gstEnabled: gstOn,
     gstRate: gstRate,
     exchangeAmount: goldCredit,
+    chitMappingId: chitMappingId,
+    considerChitWeight: considerChitWeight,
+    chitBonus: chitBonus,
+    chitDeduction: chitDeduction,
     collectedAmount: collectedAmount
   });
 
@@ -1528,8 +1678,19 @@ function rcEstimateRead(form){
     when: f.when.value,
     validUntil: f.validUntil.value,
     reference: f.reference.value.trim(),
-    chitMappingId: f.chitMappingId?.value || '',
-    chitNumber: rcDocs('retail-chit-mapping').find(m=>m.id===f.chitMappingId?.value)?.chitNumber || '',
+    chitMappingId: billCalc.chitMappingId || chitMappingId,
+    chitNumber: billCalc.chitNumber || rcDocs('retail-chit-mapping').find(m=>m.id===chitMappingId)?.chitNumber || '',
+    considerChitWeight: billCalc.considerChitWeight,
+    chitPaid: billCalc.chitPaid,
+    chitBonus: billCalc.chitBonus,
+    chitDeduction: billCalc.chitDeduction,
+    chitAmount: billCalc.chitAmount,
+    chitMetalWeight: billCalc.chitMetalWeight,
+    chitUsedWeight: billCalc.chitUsedWeight,
+    chitRateBenefit: billCalc.chitRateBenefit,
+    chitWastageDiscount: billCalc.chitWastageDiscount,
+    chitMakingDiscount: billCalc.chitMakingDiscount,
+    chitTotalBenefit: billCalc.chitTotalBenefit,
     items: items,
     discount: discount,
     discountMode: 'amount',
@@ -1607,6 +1768,10 @@ function rcQuoteModel(q){
           gstEnabled: !!q.gstEnabled,
           gstRate: q.gstEnabled ? n(q.gstRate||3) : 0,
           exchangeAmount: exchangeCredit,
+          chitMappingId: q.chitMappingId || '',
+          considerChitWeight: q.considerChitWeight,
+          chitBonus: q.chitBonus,
+          chitDeduction: q.chitDeduction,
           collectedAmount: n(q.collectedAmount)
         });
 
@@ -1619,6 +1784,7 @@ function rcQuoteModel(q){
     ...(bill.gstEnabled ? [['GST ' + (bill.gstRate) + '%', rateMoney(bill.gstAmount)]] : []),
     ['Purchase value', rateMoney(bill.saleBeforeRound)],
     ...(bill.exchangeAmount > 0 ? [['Old gold exchange (' + ogLabel + ')', '− ' + rateMoney(bill.exchangeAmount)]] : []),
+    ...(bill.chitAmount > 0 ? [['Chit deduction' + (bill.chitNumber ? ' (' + bill.chitNumber + ')' : ''), '− ' + rateMoney(bill.chitAmount)]] : []),
     ['NET ESTIMATE PAYABLE', rateMoney(bill.amount), true],
     ...(bill.collectedAmount > 0 ? [
       ...(hasSplitCol ?
@@ -1653,12 +1819,12 @@ function rcQuoteModel(q){
     title: 'ESTIMATION / QUOTATION',
     entityLabel: 'Customer',
     entityName: c?.name || 'Customer',
-    entityDetails: [c?.address, c?.city, c?.phone, q.chitNumber ? 'Chit: ' + q.chitNumber : ''].filter(Boolean).join(' · '),
+    entityDetails: [c?.address, c?.city, c?.phone, q.chitNumber ? 'Chit: ' + q.chitNumber : '', bill.chitUsedWeight > 0 ? 'Chit Wt: ' + fmt(bill.chitUsedWeight) + ' g' : '', bill.chitTotalBenefit > 0 ? 'Chit Savings: ' + rateMoney(bill.chitTotalBenefit) : ''].filter(Boolean).join(' · '),
     reference: q.documentNo,
     date: pdfDateText(q.when),
     validUntil: q.validUntil || '',
     taxEnabled: q.gstEnabled,
-    invoiceItems: items.map(x=>{
+    invoiceItems: bill.rows.map(x=>{
       const isSilver = String(x.metalType||'').toLowerCase()==='silver' || String(x.product||'').toLowerCase().includes('silver');
       return Object.assign({}, x, {purity: isSilver ? '—' : x.purity + '%'});
     }),
@@ -1772,7 +1938,13 @@ window.rcConvert = function(id){
     if(f.elements.discountValue) f.elements.discountValue.value = q.discount;
     if(f.elements.gstEnabled) f.elements.gstEnabled.checked = q.gstEnabled;
     if(f.elements.gstRate) f.elements.gstRate.value = q.gstRate || 3;
-    if(f.elements.chitMappingId) f.elements.chitMappingId.value = q.chitMappingId || '';
+    if(f.elements.chitMappingId) {
+      f.elements.chitMappingId.value = q.chitMappingId || '';
+      if(typeof window.rbSyncChitUI === 'function') window.rbSyncChitUI(f, false);
+      if(f.elements.considerChitWeight && q.considerChitWeight !== undefined) f.elements.considerChitWeight.checked = !!q.considerChitWeight;
+      if(f.elements.chitBonus && q.chitBonus !== undefined) f.elements.chitBonus.value = n(q.chitBonus).toFixed(2);
+      if(f.elements.chitDeduction && q.chitDeduction !== undefined) f.elements.chitDeduction.value = n(q.chitDeduction).toFixed(2);
+    }
     
     const ogItems = rcNormalizeOldGoldItems(q);
     if(ogItems.length > 0){
@@ -2489,7 +2661,16 @@ function rcRecalc(){
     gstEnabled: gstOn,
     gstRate: gstRate,
     exchangeAmount: goldCredit,
+    chitMappingId: form.elements.chitMappingId?.value || '',
+    considerChitWeight: form.elements.considerChitWeight ? !!form.elements.considerChitWeight.checked : undefined,
+    chitBonus: form.elements.chitBonus ? form.elements.chitBonus.value : undefined,
+    chitDeduction: form.elements.chitDeduction ? form.elements.chitDeduction.value : undefined,
     collectedAmount: collected
+  });
+
+  form.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row').forEach((row, idx) => {
+    const lineEl = row.querySelector('.rc-q-lineamount');
+    if (lineEl && bill.rows[idx]) lineEl.textContent = rateMoney(bill.rows[idx].subtotal);
   });
 
   const totGross = bill.grossWeight;
@@ -2516,7 +2697,14 @@ function rcRecalc(){
   const elPurchValSummary = document.getElementById('rcPurchaseVal');
   if(elPurchValSummary) elPurchValSummary.textContent = rateMoney(bill.saleBeforeRound);
   const elGold = document.getElementById('rcOldGold');
-  if(elGold) elGold.textContent = rateMoney(bill.exchangeAmount);
+  if(elGold) elGold.textContent = bill.exchangeAmount > 0 ? '− ' + rateMoney(bill.exchangeAmount) : rateMoney(0);
+  const elChitWrap = document.getElementById('rcChitCreditWrap');
+  if(elChitWrap) elChitWrap.classList.toggle('hidden', !(bill.chitAmount > 0 || bill.chitUsedWeight > 0 || bill.chitTotalBenefit > 0));
+  const elChitCredit = document.getElementById('rcChitCredit');
+  if(elChitCredit) elChitCredit.textContent = bill.chitAmount > 0 ? '− ' + rateMoney(bill.chitAmount) : rateMoney(0);
+  const elChitSavSub = document.getElementById('rcChitSavingsSub');
+  if(elChitSavSub) elChitSavSub.textContent = (bill.chitTotalBenefit > 0 || bill.chitUsedWeight > 0) ? (fmt(bill.chitUsedWeight) + 'g · Saved ' + rateMoney(bill.chitTotalBenefit)) : '';
+  if(typeof window.rcUpdateChitLiveBox === 'function') window.rcUpdateChitLiveBox(form, bill, 'est');
   const elBadge = document.getElementById('rcOldGoldBadge');
   if(elBadge) elBadge.textContent = rateMoney(bill.exchangeAmount);
   const elCreditSum = document.getElementById('rcOldGoldCreditSummary');
@@ -2605,7 +2793,7 @@ function rcRecalc(){
   if(pChit){
     const chitVal = form.elements.chitMappingId?.value;
     if(chitVal){
-      pChit.textContent = '✓ Chit';
+      pChit.textContent = '✓ Chit' + (bill.chitAmount > 0 ? ' (−' + rateMoney(bill.chitAmount) + ')' : '');
       pChit.classList.add('has-value');
     } else {
       pChit.textContent = '+ Chit';
@@ -2995,18 +3183,19 @@ function rcChitView(){
  const val=(key,fallback='')=>esc(x?.[key]??fallback),num=(key,fallback=0)=>x?.[key]??fallback,check=key=>x?.[key]?'checked':'';
  let form='';
  if(rcChitTab==='Group')form='<div class="rc-grid"><label>Group name *<input name="name" required value="'+val('name')+'" placeholder="e.g. DIWALI 2026 GOLD SCHEME"></label><label>Group code<input name="groupCode" value="'+val('groupCode')+'" placeholder="Auto or enter code (e.g. D26)"></label><label>Display sequence / order<input name="orderPosition" type="number" min="0" step="1" value="'+num('orderPosition',1)+'"></label><label>Start date<input name="startDate" type="date" value="'+val('startDate')+'"></label><label>End date<input name="endDate" type="date" value="'+val('endDate')+'"></label><label>Member limit<input name="memberLimit" type="number" min="1" step="1" value="'+num('memberLimit','')+'" placeholder="No limit"></label><label>Status<select name="status">'+rbOptions(['Active','Closed','Upcoming'],x?.status||'Active')+'</select></label><label class="rc-wide">Internal notes & scheme rules<input name="notes" value="'+val('notes')+'" placeholder="Cohort details, internal remarks"></label></div>';
- if(rcChitTab==='Type')form='<div class="rc-grid"><label>Scheme *<select name="scheme" required>'+rbOptions(RC_SCHEMES,x?.scheme||'Fixed')+'</select></label><label>Chit type name *<input name="name" required value="'+val('name')+'" placeholder="e.g. Swarna Nidhi 11+1"></label><label>Chit code<input name="chitCode" value="'+val('chitCode')+'" placeholder="e.g. SN11M"></label><label>Frequency *<select name="frequency">'+rbOptions(['Daily','Weekly','Monthly','Flexible'],x?.frequency||'Monthly')+'</select></label><label>Duration / instalments<input name="installments" type="number" min="1" step="1" value="'+num('installments',11)+'"></label><label>Plan duration (days)<input name="durationDays" type="number" min="1" value="'+num('durationDays',330)+'"></label><label>Mode *<select name="mode">'+rbOptions(['Amount','Metal','Cash / Metal','Digital Gold','Digital Silver'],x?.mode||(x?.scheme==='Digi Gold'?'Digital Gold':x?.scheme==='Digi Silver'?'Digital Silver':'Cash / Metal'))+'</select></label><label>Metal / ornament<select name="ornamentType">'+rbOptions(['Gold','Silver','Diamond','Platinum','Other'],x?.ornamentType||(x?.scheme==='Digi Silver'?'Silver':'Gold'))+'</select></label><label>Fixed instalment ₹<input name="installmentAmount" type="number" min="0" step=".01" value="'+num('installmentAmount')+'"></label><label>Flexi minimum ₹<input name="minAmount" type="number" min="0" step=".01" value="'+num('minAmount')+'"></label><label>Flexi maximum ₹<input name="maxAmount" type="number" min="0" step=".01" value="'+num('maxAmount')+'"></label><label>Pay cycle / due day<input name="dueDay" type="number" min="1" max="31" step="1" value="'+num('dueDay',10)+'" placeholder="e.g. 10th of month"></label><label>Grace period (days)<input name="graceDays" type="number" min="0" step="1" value="'+num('graceDays',5)+'"></label><label>Late penalty fine ₹<input name="penaltyRate" type="number" min="0" step=".01" value="'+num('penaltyRate',0)+'"></label><label>Bonus type<select name="bonusType">'+rbOptions(['None','Duration / Installment Waiver (11+1)','Percentage','Fixed Amount','Gold Weight','Silver Weight'],x?.bonusType||'Duration / Installment Waiver (11+1)')+'</select></label><label>Bonus value / amount<input name="bonusValue" type="number" min="0" step=".001" value="'+num('bonusValue')+'" placeholder="Value or waiver count"></label><label>Bonus benefit %<input name="benefitPercent" type="number" min="0" max="100" step=".01" value="'+num('benefitPercent')+'"></label><label>Wastage benefit (%)<input name="wastageBenefitPercent" type="number" min="0" max="100" step=".01" value="'+num('wastageBenefitPercent',0)+'" placeholder="0% or discount on VA"></label><label>Making charge benefit<input name="mcBenefitRate" type="number" min="0" step=".01" value="'+num('mcBenefitRate',0)+'" placeholder="₹/g discount on MC"></label><label>Eligible product groups<input name="benefitProductGroups" value="'+val('benefitProductGroups')+'" placeholder="All, Plain Gold, etc."></label><label>Welcome gift item<input name="giftItem" value="'+val('giftItem')+'" placeholder="e.g. 5g Silver Coin"></label><label>Annual interest %<input name="interestRate" type="number" min="0" max="100" step=".01" value="'+num('interestRate')+'"></label><label>Limited dues<select name="limitedDueType">'+rbOptions(['Allow Multiple Due','One Due Only','Limited Due','Unlimited'],x?.limitedDueType||'Allow Multiple Due')+'</select></label><label>Maximum dues at once<input name="maxDueAtOnce" type="number" min="1" step="1" value="'+num('maxDueAtOnce',1)+'"></label><label>Payment condition<select name="paymentCondition">'+rbOptions(['Any Time','Strict Due Date','One Per Month','Multi Payment','Single Payment'],x?.paymentCondition||'Any Time')+'</select></label><label>Maturity date mode<select name="maturityDateMode">'+rbOptions(['From Join Date','From First Payment Date','From Last Due Date','Fixed'],x?.maturityDateMode||'From Join Date')+'</select></label><label>Cooling days<input name="coolingDays" type="number" min="0" step="1" value="'+num('coolingDays')+'"></label><label>Max plans per customer<input name="maxPerCustomer" type="number" min="0" step="1" value="'+num('maxPerCustomer',0)+'" placeholder="No limit"></label><label>Ledger name<input name="ledgerName" value="'+val('ledgerName')+'" placeholder="Chit Deposit Liability A/c"></label><label class="rc-check"><input name="allowPartial" type="checkbox" '+check('allowPartial')+'> Allow partial instalment</label><label class="rc-check"><input name="allowMultiple" type="checkbox" '+(x?.allowMultiple!==false?'checked':'')+'> Allow multiple due payments</label><label class="rc-check"><input name="allowChange" type="checkbox" '+check('allowChange')+'> Allow customer to change amount</label><label class="rc-check"><input name="alwaysPayment" type="checkbox" '+check('alwaysPayment')+'> Keep payment enabled</label><label class="rc-check"><input name="allowCustomer" type="checkbox" '+(x?.allowCustomer!==false?'checked':'')+'> Allow customer payments</label><label class="rc-check"><input name="incentiveApplicable" type="checkbox" '+check('incentiveApplicable')+'> Incentive applicable</label><label class="rc-check"><input name="disableCustomerPayment" type="checkbox" '+check('disableCustomerPayment')+'> Disable customer self-pay</label><label class="rc-check"><input name="proofRequired" type="checkbox" '+check('proofRequired')+'> Proof required at joining</label><label class="rc-check"><input name="aadhaarRequired" type="checkbox" '+check('aadhaarRequired')+'> Aadhaar required</label><label class="rc-check"><input name="panRequired" type="checkbox" '+check('panRequired')+'> PAN required</label><label class="rc-check"><input name="isBonusEntryEnabled" type="checkbox" '+(x?.isBonusEntryEnabled!==false?'checked':'')+'> Auto bonus entry upon maturity</label><label class="rc-check"><input name="isGiftApplicable" type="checkbox" '+check('isGiftApplicable')+'> Welcome gift applicable</label></div>';
+ if(rcChitTab==='Type')form='<div class="rc-grid"><label>Scheme *<select name="scheme" required>'+rbOptions(RC_SCHEMES,x?.scheme||'Fixed')+'</select></label><label>Chit type name *<input name="name" required value="'+val('name')+'" placeholder="e.g. Swarna Nidhi 11+1"></label><label>Chit code<input name="chitCode" value="'+val('chitCode')+'" placeholder="e.g. SN11M"></label><label>Frequency *<select name="frequency">'+rbOptions(['Daily','Weekly','Monthly','Flexible'],x?.frequency||'Monthly')+'</select></label><label>Duration / instalments<input name="installments" type="number" min="1" step="1" value="'+num('installments',11)+'"></label><label>Plan duration (days)<input name="durationDays" type="number" min="1" value="'+num('durationDays',330)+'"></label><label>Mode *<select name="mode">'+rbOptions(['Amount','Metal','Cash / Metal','Digital Gold','Digital Silver'],x?.mode||(x?.scheme==='Digi Gold'?'Digital Gold':x?.scheme==='Digi Silver'?'Digital Silver':'Cash / Metal'))+'</select></label><label>Metal / ornament<select name="ornamentType">'+rbOptions(['Gold','Silver','Diamond','Platinum','Other'],x?.ornamentType||(x?.scheme==='Digi Silver'?'Silver':'Gold'))+'</select></label><label>Fixed instalment ₹<input name="installmentAmount" type="number" min="0" step=".01" value="'+num('installmentAmount')+'"></label><label>Flexi minimum ₹<input name="minAmount" type="number" min="0" step=".01" value="'+num('minAmount')+'"></label><label>Flexi maximum ₹<input name="maxAmount" type="number" min="0" step=".01" value="'+num('maxAmount')+'"></label><label>Pay cycle / due day<input name="dueDay" type="number" min="1" max="31" step="1" value="'+num('dueDay',10)+'" placeholder="e.g. 10th of month"></label><label>Grace period (days)<input name="graceDays" type="number" min="0" step="1" value="'+num('graceDays',5)+'"></label><label>Late penalty fine ₹<input name="penaltyRate" type="number" min="0" step=".01" value="'+num('penaltyRate',0)+'"></label><label>Bonus type<select name="bonusType">'+rbOptions(['None','Duration / Installment Waiver (11+1)','Percentage','Fixed Amount','Gold Weight','Silver Weight'],x?.bonusType||'Duration / Installment Waiver (11+1)')+'</select></label><label>Bonus value / amount<input name="bonusValue" type="number" min="0" step=".001" value="'+num('bonusValue')+'" placeholder="Value or waiver count"></label><label>Bonus benefit %<input name="benefitPercent" type="number" min="0" max="100" step=".01" value="'+num('benefitPercent')+'"></label><label>Wastage benefit (%)<input name="wastageBenefitPercent" type="number" min="0" max="100" step=".01" value="'+num('wastageBenefitPercent',0)+'" placeholder="0% or discount on VA"></label><label>Making charge benefit<input name="mcBenefitRate" type="number" min="0" step=".01" value="'+num('mcBenefitRate',0)+'" placeholder="₹/g discount on MC"></label><label>Eligible product groups<input name="benefitProductGroups" value="'+val('benefitProductGroups')+'" placeholder="All, Plain Gold, etc."></label><label>Welcome gift item<input name="giftItem" value="'+val('giftItem')+'" placeholder="e.g. 5g Silver Coin"></label><label>Annual interest %<input name="interestRate" type="number" min="0" max="100" step=".01" value="'+num('interestRate')+'"></label><label>Limited dues<select name="limitedDueType">'+rbOptions(['Allow Multiple Due','One Due Only','Limited Due','Unlimited'],x?.limitedDueType||'Allow Multiple Due')+'</select></label><label>Maximum dues at once<input name="maxDueAtOnce" type="number" min="1" step="1" value="'+num('maxDueAtOnce',1)+'"></label><label>Payment condition<select name="paymentCondition">'+rbOptions(['Any Time','Strict Due Date','One Per Month','Multi Payment','Single Payment'],x?.paymentCondition||'Any Time')+'</select></label><label>Maturity date mode<select name="maturityDateMode">'+rbOptions(['From Join Date','From First Payment Date','From Last Due Date','Fixed'],x?.maturityDateMode||'From Join Date')+'</select></label><label>Cooling days<input name="coolingDays" type="number" min="0" step="1" value="'+num('coolingDays')+'"></label><label>Max plans per customer<input name="maxPerCustomer" type="number" min="0" step="1" value="'+num('maxPerCustomer',0)+'" placeholder="No limit"></label><label>Ledger name<input name="ledgerName" value="'+val('ledgerName')+'" placeholder="Chit Deposit Liability A/c"></label><label class="rc-check"><input name="noMakingChargeOnChit" type="checkbox" '+check('noMakingChargeOnChit')+'> No making charge on chit weight</label><label class="rc-check"><input name="allowPartial" type="checkbox" '+check('allowPartial')+'> Allow partial instalment</label><label class="rc-check"><input name="allowMultiple" type="checkbox" '+(x?.allowMultiple!==false?'checked':'')+'> Allow multiple due payments</label><label class="rc-check"><input name="allowChange" type="checkbox" '+check('allowChange')+'> Allow customer to change amount</label><label class="rc-check"><input name="alwaysPayment" type="checkbox" '+check('alwaysPayment')+'> Keep payment enabled</label><label class="rc-check"><input name="allowCustomer" type="checkbox" '+(x?.allowCustomer!==false?'checked':'')+'> Allow customer payments</label><label class="rc-check"><input name="incentiveApplicable" type="checkbox" '+check('incentiveApplicable')+'> Incentive applicable</label><label class="rc-check"><input name="disableCustomerPayment" type="checkbox" '+check('disableCustomerPayment')+'> Disable customer self-pay</label><label class="rc-check"><input name="proofRequired" type="checkbox" '+check('proofRequired')+'> Proof required at joining</label><label class="rc-check"><input name="aadhaarRequired" type="checkbox" '+check('aadhaarRequired')+'> Aadhaar required</label><label class="rc-check"><input name="panRequired" type="checkbox" '+check('panRequired')+'> PAN required</label><label class="rc-check"><input name="isBonusEntryEnabled" type="checkbox" '+(x?.isBonusEntryEnabled!==false?'checked':'')+'> Auto bonus entry upon maturity</label><label class="rc-check"><input name="isGiftApplicable" type="checkbox" '+check('isGiftApplicable')+'> Welcome gift applicable</label></div>';
  if(rcChitTab==='Mapping')form='<div class="rc-grid"><label>Retail customer *<select name="customerId" required><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===x?.customerId?'selected':'')+'>'+esc(c.name)+' · '+esc(c.phone||'No phone')+'</option>').join('')+'</select></label><label>Group<select name="groupId"><option value="">Select group</option>'+groups.map(g=>'<option value="'+esc(g.id)+'" '+(g.id===x?.groupId?'selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select></label><label>Chit type *<select name="typeId" required><option value="">Select type</option>'+types.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===x?.typeId?'selected':'')+'>'+esc(t.name)+' · '+esc(t.scheme||'Fixed')+' · '+esc(t.frequency||'Monthly')+'</option>').join('')+'</select></label><label>Chit passbook number *<input name="chitNumber" required value="'+val('chitNumber')+'" placeholder="e.g. M8000-1"></label><label>Account display / join name<input name="joinName" value="'+val('joinName')+'" placeholder="Defaults to customer name"></label><label>Join date *<input name="startDate" type="date" required value="'+val('startDate',new Date().toISOString().slice(0,10))+'"></label><label>Maturity date<input name="maturityDate" type="date" value="'+val('maturityDate')+'"></label><label>Instalment ₹<input name="installmentAmount" type="number" min="0" step=".01" value="'+num('installmentAmount')+'"></label><label>Flexi target ₹<input name="targetAmount" type="number" min="0" step=".01" value="'+num('targetAmount')+'"></label><label>Total dues<input name="totalDues" type="number" min="1" step="1" value="'+num('totalDues',types.find(t=>t.id===x?.typeId)?.installments||11)+'"></label><label>Passbook / physical ref<input name="customerReference" value="'+val('customerReference')+'"></label><label>Sales staff / referred by<input name="referredBy" value="'+val('referredBy')+'" placeholder="Staff / sales rep"></label><label>Status<select name="status">'+rbOptions(['Active','Matured','Closed','Suspended'],x?.status||'Active')+'</select></label><label>Nominee name<input name="nomineeName" value="'+val('nomineeName')+'" placeholder="Nominee full name"></label><label>Nominee relationship<select name="nomineeRelation">'+rbOptions(['None','Spouse','Son','Daughter','Father','Mother','Brother','Sister','Other'],x?.nomineeRelation||'None')+'</select></label><label>Nominee phone<input name="nomineePhone" type="tel" value="'+val('nomineePhone')+'" placeholder="10-digit mobile"></label><label>PAN number<input name="pan" maxlength="10" autocapitalize="characters" value="'+val('pan')+'" placeholder="ABCDE1234F"></label><label>Aadhaar number<input name="aadhaar" maxlength="14" inputmode="numeric" value="'+val('aadhaar')+'" placeholder="12 digits"></label><label>Application form no<input name="appFormNo" value="'+val('appFormNo')+'" placeholder="Physical paper form #"></label><label>ID proof type<select name="proofType">'+rbOptions(['Aadhaar','PAN','Passport','Driving License','Voter ID','Other'],x?.proofType||'Aadhaar')+'</select></label><label>Proof document no<input name="proofDocNo" value="'+val('proofDocNo')+'" placeholder="Document ID"></label><label class="rc-check"><input name="isSmsEnabled" type="checkbox" '+(x?.isSmsEnabled!==false?'checked':'')+'> SMS & WhatsApp payment alerts</label><label class="rc-check"><input name="isFixedRate" type="checkbox" '+check('isFixedRate')+'> Lock gold rate on enrollment</label><label class="rc-wide">Internal notes<input name="notes" value="'+val('notes')+'" placeholder="Customer instructions, special remarks"></label></div>';
  let entryForm='';
- if(rcChitTab==='Entry')entryForm='<form class="rc-grid" onsubmit="rcSaveChitEntry(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'"><label>Customer *<select name="customerId" required onchange="rcEntryCustomer(this.value)"><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===x?.customerId?'selected':'')+'>'+esc(c.name)+' · '+esc(c.phone||'No phone')+'</option>').join('')+'</select></label><label>Chit passbook *<select id="rcEntryMapping" name="mappingId" required onchange="rcEntryPlan(this.value)"><option value="">Select chit passbook</option>'+maps.map(m=>'<option value="'+esc(m.id)+'" data-customer="'+esc(m.customerId)+'" '+(m.id===x?.mappingId?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(accountName(m.customerId,'customer'))+'</option>').join('')+'</select></label><div id="rcChitInfoCard" class="rc-wide rc-chit-card hidden"><div class="rc-chit-card-head"><div><small>Active Scheme</small><b id="rcCardScheme">—</b></div><div><small>Plan Instalment</small><b id="rcCardInst">—</b></div><div><small>Due Progress</small><b id="rcCardDues">—</b></div></div><div class="rc-chit-card-body"><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Total Deposited ₹:</span><b id="rcCardPaid">—</b></div><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Accumulated Metal:</span><b id="rcCardWeight" style="color:#2e7d32">—</b></div><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Today’s Board Rate:</span><b id="rcCardRate" style="color:#b45309">—</b></div></div></div><label>Entry type<select name="entryType">'+rbOptions(['Instalment','Advance Due Payment','Penalty Payment','Bonus Credit','Refund','Closure'], x?.entryType||'Instalment')+'</select></label><label>Payment date *<input name="when" type="date" required value="'+esc(x?.when||new Date().toISOString().slice(0,10))+'"></label><label>Due / instalment no. *<input id="rcEntryInstNo" name="installmentNo" type="number" min="1" step="1" required value="'+(x?.installmentNo||1)+'"></label><label>Amount paid ₹ *<input id="rcEntryAmount" name="amount" type="number" min=".01" step=".01" required value="'+(x?.amount||'')+'" oninput="rcRecalcEntryMetal()"></label><label>Applicable gold rate ₹/g<input id="rcEntryGoldRate" name="goldRate" type="number" min="0" step=".01" value="'+(x?.goldRate||'')+'" oninput="rcRecalcEntryMetal()" placeholder="Board rate"></label><label>Gold / silver weight g<input id="rcEntryMetalWeight" name="metalWeight" type="number" min="0" step=".001" value="'+(x?.metalWeight||0)+'"></label><label>Manual testing purity %<input name="testingPurity" type="number" min="0" max="100" step=".01" value="'+(x?.testingPurity??'')+'" placeholder="Optional"></label><label>Payment method<select name="method">'+rbOptions(['Cash','Bank','Card','UPI','Advance Adjustment'],x?.method||'Cash')+'</select></label><label>Drawer / Bank ledger<select name="drawerLedger">'+rbOptions(['Main Cash Drawer','HDFC Bank Current A/c','SBI Current A/c','Shop UPI QR','Petty Cash Drawer'],x?.drawerLedger||'Main Cash Drawer')+'</select></label><label>Reference / receipt / UTR no.<input name="reference" value="'+val('reference')+'" placeholder="Bank ref, UTR, slip #"></label><label class="rc-wide">Remarks / receipt note<input name="remarks" value="'+val('remarks')+'" placeholder="Payment remarks"></label><div class="rc-wide rc-totals"><span>Plan instalment <b id="rcPlanAmount">—</b></span><span>Received to date <b id="rcPaidToDate">—</b></span><span>Remaining plan balance <b id="rcRemaining">—</b></span></div><button class="primary">'+(x?'Save entry changes':'Save chit entry')+'</button></form>';
- const headers=rcChitTab==='Group'?['Seq','Group','Code','Period','Members','Status','']:rcChitTab==='Type'?['Type','Scheme','Frequency','Mode','Instalment','Dues','Bonus / Benefits','']:rcChitTab==='Mapping'?['Chit no.','Customer','Group','Type','Instalment','Paid / Total','KYC / Nominee','Status','']:['Date','Customer','Chit','Entry','Due no.','Amount ₹','Rate ₹/g','Metal g','Method','Drawer / Ref','Receipt'];
+ if(rcChitTab==='Entry')entryForm='<form class="rc-grid" onsubmit="rcSaveChitEntry(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'"><label>Customer *<select name="customerId" required onchange="rcEntryCustomer(this.value)"><option value="">Select customer</option>'+db.customers.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===x?.customerId?'selected':'')+'>'+esc(c.name)+' · '+esc(c.phone||'No phone')+'</option>').join('')+'</select></label><label>Chit passbook *<select id="rcEntryMapping" name="mappingId" required onchange="rcEntryPlan(this.value)"><option value="">Select chit passbook</option>'+maps.map(m=>'<option value="'+esc(m.id)+'" data-customer="'+esc(m.customerId)+'" '+(m.id===x?.mappingId?'selected':'')+'>'+esc(m.chitNumber)+' · '+esc(accountName(m.customerId,'customer'))+(m.status&&m.status!=='Active'?' ['+esc(m.status)+']':'')+'</option>').join('')+'</select></label><div id="rcChitInfoCard" class="rc-wide rc-chit-card hidden"><div class="rc-chit-card-head"><div><small>Active Scheme</small><b id="rcCardScheme">—</b></div><div><small>Plan Instalment</small><b id="rcCardInst">—</b></div><div><small>Due Progress</small><b id="rcCardDues">—</b></div></div><div class="rc-chit-card-body"><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Total Deposited ₹:</span><b id="rcCardPaid">—</b></div><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Accumulated Metal:</span><b id="rcCardWeight" style="color:#2e7d32">—</b></div><div class="rc-chit-stat"><span class="rc-chit-stat-lbl">Board Rate / Mode:</span><b id="rcCardRate" style="color:#b45309">—</b></div></div></div><label>Entry type<select name="entryType">'+rbOptions(['Instalment','Advance Due Payment','Penalty Payment','Bonus Credit','Refund','Closure'], x?.entryType||'Instalment')+'</select></label><label>Payment date *<input name="when" type="date" required value="'+esc(x?.when||new Date().toISOString().slice(0,10))+'"></label><label>Due / instalment no. *<input id="rcEntryInstNo" name="installmentNo" type="number" min="1" step="1" required value="'+(x?.installmentNo||1)+'"></label><label>Amount paid ₹ *<input id="rcEntryAmount" name="amount" type="number" min=".01" step=".01" required value="'+(x?.amount||'')+'" oninput="rcRecalcEntryMetal()"></label><label>Applicable metal rate ₹/g<input id="rcEntryGoldRate" name="goldRate" type="number" min="0" step=".01" value="'+(x?.goldRate||'')+'" oninput="this.dataset.manual=\'1\';rcRecalcEntryMetal()" placeholder="Board rate"></label><label>Gold / silver weight g<input id="rcEntryMetalWeight" name="metalWeight" type="number" min="0" step=".001" value="'+(x?.metalWeight||0)+'"></label><label>Manual testing purity %<input name="testingPurity" type="number" min="0" max="100" step=".01" value="'+(x?.testingPurity??'')+'" placeholder="Optional"></label><label>Payment method<select name="method">'+rbOptions(['Cash','Bank','Card','UPI','Advance Adjustment'],x?.method||'Cash')+'</select></label><label>Drawer / Bank ledger<select name="drawerLedger">'+rbOptions(['Main Cash Drawer','HDFC Bank Current A/c','SBI Current A/c','Shop UPI QR','Petty Cash Drawer'],x?.drawerLedger||'Main Cash Drawer')+'</select></label><label>Reference / receipt / UTR no.<input name="reference" value="'+val('reference')+'" placeholder="Bank ref, UTR, slip #"></label><label class="rc-wide">Remarks / receipt note<input name="remarks" value="'+val('remarks')+'" placeholder="Payment remarks"></label><div class="rc-wide rc-totals"><span>Plan instalment <b id="rcPlanAmount">—</b></span><span>Received to date <b id="rcPaidToDate">—</b></span><span>Remaining plan balance <b id="rcRemaining">—</b></span></div><button class="primary">'+(x?'Save entry changes':'Save chit entry')+'</button></form>';
+ const headers=rcChitTab==='Group'?['Seq','Group','Code','Period','Members','Status','']:rcChitTab==='Type'?['Type','Scheme','Frequency','Mode','Instalment','Dues','Bonus / Benefits','']:rcChitTab==='Mapping'?['Chit no.','Customer','Group','Type','Instalment','Paid / Weight / Total','KYC / Nominee','Status','']:['Date','Customer','Chit','Entry','Due no.','Amount ₹','Rate ₹/g','Metal g','Method','Drawer / Ref','Receipt'];
  const actions=id=>'<button type="button" onclick="rcEditChit(\''+esc(id)+'\')">Edit</button>';
- const mappingActions=r=>'<button type="button" onclick="rcEditChit(\''+esc(r.id)+'\')">Edit</button> <button type="button" class="rc-btn-settle" onclick="rcOpenSettleChit(\''+esc(r.id)+'\')" title="Settle & Close Chit" style="margin-left:4px;font-weight:750;color:#18392a">'+((r.status||'Active')==='Closed'?'View / Closed':'Settle')+'</button>';
- const rows=all.filter(r=>rcChitTab!=='Entry').map(r=>rcChitTab==='Group'?[esc(r.orderPosition||'—'),esc(r.name),esc(r.groupCode||'—'),esc([r.startDate,r.endDate].filter(Boolean).join(' – ')||'—'),esc(r.memberLimit||'—'),esc(r.status||'Active'),actions(r.id)]:rcChitTab==='Type'?[esc(r.name),esc(r.scheme||'Fixed'),esc(r.frequency),esc(r.mode||'Cash / Metal'),rateMoney(r.installmentAmount),esc(r.installments||'—'),esc((r.bonusType&&r.bonusType!=='None'?r.bonusType+' ':'')+(r.benefitPercent||r.bonusValue||0)+'%'+(r.wastageBenefitPercent?' · VA: '+r.wastageBenefitPercent+'%':'')),actions(r.id)]:(()=>{let t=types.find(z=>z.id===r.typeId),paid=entries.filter(p=>p.mappingId===r.id&&p.entryType!=='Refund').reduce((s,p)=>s+n(p.amount),0)-entries.filter(p=>p.mappingId===r.id&&p.entryType==='Refund').reduce((s,p)=>s+n(p.amount),0),totTarget=n(r.targetAmount)>0?n(r.targetAmount):n(r.installmentAmount||t?.installmentAmount||0)*n(r.totalDues||t?.installments||0);return [esc(r.chitNumber),esc(accountName(r.customerId,'customer')),esc(groups.find(g=>g.id===r.groupId)?.name||'—'),esc(t?.name||'—'),rateMoney(r.installmentAmount||t?.installmentAmount||0),rateMoney(paid)+' / '+rateMoney(totTarget),esc(r.nomineeName?'Nom: '+r.nomineeName:r.pan?'PAN: '+r.pan:'—'),esc(r.status||'Active'),mappingActions(r)]})());
+ const mappingActions=r=>'<button type="button" onclick="rcEditChit(\''+esc(r.id)+'\')">Edit</button> <button type="button" class="rc-btn-settle" onclick="rcOpenSettleChit(\''+esc(r.id)+'\')" title="Settle & Close Chit" style="margin-left:4px;font-weight:750;color:#18392a">'+((r.status||'Active')==='Closed'?'Closed':'Settle')+'</button>';
+ const rows=all.filter(r=>rcChitTab!=='Entry').map(r=>rcChitTab==='Group'?[esc(r.orderPosition||'—'),esc(r.name),esc(r.groupCode||'—'),esc([r.startDate,r.endDate].filter(Boolean).join(' – ')||'—'),esc(r.memberLimit||'—'),esc(r.status||'Active'),actions(r.id)]:rcChitTab==='Type'?[esc(r.name),esc(r.scheme||'Fixed'),esc(r.frequency),esc(r.mode||'Cash / Metal'),rateMoney(r.installmentAmount),esc(r.installments||'—'),esc((r.bonusType&&r.bonusType!=='None'?r.bonusType+' ':'')+(r.benefitPercent||r.bonusValue||0)+'%'+(r.wastageBenefitPercent?' · VA: '+r.wastageBenefitPercent+'%':'')+(r.noMakingChargeOnChit?' · Free MC':(r.mcBenefitRate?' · MC -₹'+r.mcBenefitRate+'/g':''))),actions(r.id)]:(()=>{let t=types.find(z=>z.id===r.typeId),s=rcChitSummary(r.id),totTarget=n(r.targetAmount)>0?n(r.targetAmount):n(r.installmentAmount||t?.installmentAmount||0)*n(r.totalDues||t?.installments||0);return [esc(r.chitNumber),esc(accountName(r.customerId,'customer')),esc(groups.find(g=>g.id===r.groupId)?.name||'—'),esc(t?.name||'—'),rateMoney(r.installmentAmount||t?.installmentAmount||0),rateMoney(s?.paid||0)+' / '+rateMoney(totTarget)+(s?.metalWeight>0?'<br><small style="color:#15803d;font-weight:700">'+fmt(s.metalWeight)+' g · Avg '+rateMoney(s.avgRate)+'/g</small>':''),esc(r.nomineeName?'Nom: '+r.nomineeName:r.pan?'PAN: '+r.pan:'—'),esc(r.status||'Active'),mappingActions(r)]})());
  const entryRows=entries.sort((a,b)=>String(b.when).localeCompare(String(a.when))).map(p=>{let m=maps.find(z=>z.id===p.mappingId);return [esc(p.when),esc(accountName(p.customerId,'customer')),esc(m?.chitNumber||'—'),esc(p.entryType||'Instalment'),p.installmentNo,rateMoney(p.amount),p.goldRate?rateMoney(p.goldRate):'—',fmt(p.metalWeight||0)+' g',esc(p.method||'—'),esc([p.drawerLedger,p.reference].filter(Boolean).join(' · ')||'—'),'<button type="button" onclick="rcEditChit(\''+esc(p.id)+'\')">Edit</button> <button type="button" onclick="rcPrintChit(\''+esc(p.id)+'\')">Receipt</button>']});
  const body=rcChitTab==='Entry'?entryForm:'<form class="rc-form rc-chit-definition-form rc-chit-'+rcChitTab.toLowerCase()+'-form" onsubmit="rcSaveChitDefinition(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'">'+form+'<button class="primary">'+(x?'Save changes':'Save '+rcChitTab.toLowerCase())+'</button></form>';
  const list=rcChitTab==='Entry'?(entryRows.length?table(headers,entryRows):'<p class="muted">No chit entries recorded yet.</p>'):(rows.length?table(headers,rows):'<p class="muted">No '+rcChitTab.toLowerCase()+' entries yet.</p>');
- const dashboard='<section class="panel rc-chit-overview"><h2>Chit overview</h2><div class="rc-totals"><span>Active plans <b>'+maps.filter(m=>(m.status||'Active')==='Active').length+'</b></span><span>Customers enrolled <b>'+new Set(maps.map(m=>m.customerId)).size+'</b></span><span>Entries received <b>'+entries.length+'</b></span><span>Total collected <b>'+rateMoney(entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0))+'</b></span></div></section>';
+ const collectedEntries=entries.filter(p=>p.entryType!=='Closure');
+ const dashboard='<section class="panel rc-chit-overview"><h2>Chit overview</h2><div class="rc-totals"><span>Active plans <b>'+maps.filter(m=>(m.status||'Active')!=='Closed').length+'</b></span><span>Customers enrolled <b>'+new Set(maps.map(m=>m.customerId)).size+'</b></span><span>Entries received <b>'+collectedEntries.length+'</b></span><span>Total collected <b>'+rateMoney(collectedEntries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0))+'</b></span></div></section>';
  return dashboard+'<section class="panel"><h2>Retail Chit</h2><p class="muted">Create groups and scheme types, enrol customers, collect dues, track progress and print receipts.</p>'+rcChitNav()+'</section><section class="panel"><h2>'+ (rcChitTab==='Entry'?'Record chit payment or adjustment':(x?'Edit ':'Create ')+'chit '+rcChitTab.toLowerCase())+'</h2>'+body+'</section><section class="panel"><h2>'+(rcChitTab==='Entry'?'Chit entry history':rcChitTab+' list')+'</h2>'+list+'</section>'
 }
 window.rcEditChit=id=>{rcChitEdit=id;render()};
@@ -3014,7 +3203,7 @@ window.rcSaveChitDefinition=function(e){
   e.preventDefault();
   const f=e.target,d=Object.fromEntries(new FormData(f)),old=rcDocs('retail-chit-'+rcChitTab.toLowerCase()).find(x=>x.id===d.id);
   if(d.id&&!confirm('Save changes to this chit '+rcChitTab.toLowerCase()+'?'))return;
-  const checkbox=['allowPartial','allowMultiple','allowChange','alwaysPayment','allowCustomer','incentiveApplicable','disableCustomerPayment','proofRequired','aadhaarRequired','panRequired','isBonusEntryEnabled','isGiftApplicable','isSmsEnabled','isFixedRate'];
+  const checkbox=['noMakingChargeOnChit','allowPartial','allowMultiple','allowChange','alwaysPayment','allowCustomer','incentiveApplicable','disableCustomerPayment','proofRequired','aadhaarRequired','panRequired','isBonusEntryEnabled','isGiftApplicable','isSmsEnabled','isFixedRate'];
   checkbox.forEach(k=>d[k]=f.elements[k]?.checked||false);
   const numeric=['installmentAmount','installments','benefitPercent','durationDays','minAmount','maxAmount','bonusValue','interestRate','maxDueAtOnce','coolingDays','maxPerCustomer','memberLimit','targetAmount','totalDues','orderPosition','dueDay','graceDays','penaltyRate','wastageBenefitPercent','mcBenefitRate'];
   numeric.forEach(k=>{if(k in d)d[k]=n(d[k])});
@@ -3046,13 +3235,17 @@ window.rcEntryCustomer=function(id){
   window.rcEntryPlan(s?.value||'');
 };
 window.rcRecalcEntryMetal=function(){
-  const amtInp=document.getElementById('rcEntryAmount'),rateInp=document.getElementById('rcEntryGoldRate'),wtInp=document.getElementById('rcEntryMetalWeight');
+  const amtInp=document.getElementById('rcEntryAmount'),rateInp=document.getElementById('rcEntryGoldRate'),wtInp=document.getElementById('rcEntryMetalWeight'),mapSel=document.getElementById('rcEntryMapping');
   if(!amtInp||!rateInp||!wtInp)return;
+  const m=mapSel?.value?rcDocs('retail-chit-mapping').find(x=>x.id===mapSel.value):null;
+  const t=m?rcDocs('retail-chit-type').find(z=>z.id===m.typeId):null;
+  const mode=t?.mode||(t?.scheme==='Digi Gold'?'Digital Gold':t?.scheme==='Digi Silver'?'Digital Silver':'Cash / Metal');
+  if(mode==='Amount'){wtInp.value='0.000';return;}
   const amt=n(amtInp.value),rate=n(rateInp.value);
   if(amt>0&&rate>0){wtInp.value=(amt/rate).toFixed(3);}
 };
 window.rcEntryPlan=function(id){
-  const m=rcDocs('retail-chit-mapping').find(x=>x.id===id),t=rcDocs('retail-chit-type').find(x=>x.id===m?.typeId),entries=rcDocs('retail-chit-entry').filter(p=>p.mappingId===id),paid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0),metalPaid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.metalWeight),0),due=n(m?.targetAmount)>0?n(m.targetAmount):n(m?.installmentAmount||t?.installmentAmount)*n(m?.totalDues||t?.installments);
+  const m=rcDocs('retail-chit-mapping').find(x=>x.id===id),t=rcDocs('retail-chit-type').find(x=>x.id===m?.typeId),s=id?rcChitSummary(id):null,paid=s?s.paid:0,metalPaid=s?s.metalWeight:0,due=n(m?.targetAmount)>0?n(m.targetAmount):n(m?.installmentAmount||t?.installmentAmount)*n(m?.totalDues||t?.installments);
   const custSel = document.querySelector('select[name="customerId"]');
   if(custSel && m?.customerId && custSel.value !== m.customerId) {
     custSel.value = m.customerId;
@@ -3062,28 +3255,38 @@ window.rcEntryPlan=function(id){
   put('rcPaidToDate',rateMoney(paid));
   put('rcRemaining',rateMoney(Math.max(0,due-paid)));
   const card=document.getElementById('rcChitInfoCard');
+  const rateInp=document.getElementById('rcEntryGoldRate'),wtInp=document.getElementById('rcEntryMetalWeight');
+  if(rateInp)rateInp.dataset.manual='';
   if(card){
-    if(!m){card.classList.add('hidden');return;}
+    if(!m){card.classList.add('hidden');if(rateInp){rateInp.readOnly=false;rateInp.value='';}if(wtInp){wtInp.readOnly=false;wtInp.value='0';}return;}
     card.classList.remove('hidden');
-    const duesPaid=entries.filter(p=>['Instalment','Advance Due Payment'].includes(p.entryType)).length;
-    const totalDues=n(m.totalDues||t?.installments||11);
+    const duesPaid=s?s.duesPaid:0;
+    const totalDues=s?s.totalDues:n(m.totalDues||t?.installments||11);
     const remDues=Math.max(0,totalDues-duesPaid);
-    const goldRate=n(db?.rates?.gold22)||(n(db?.rates?.gold24)?(typeof v2RateForPurity==='function'?v2RateForPurity(22):n(db.rates.gold24)*22/24):(typeof rcGetPureRateFromRateBook==='function'?rcGetPureRateFromRateBook('Old Gold')*0.916:7210));
-    document.getElementById('rcCardScheme').textContent=(t?.name||'Standard Scheme')+(t?.chitCode?' ('+t.chitCode+')':'');
+    const mode=s?s.mode:(t?.mode||'Cash / Metal');
+    const ornType=s?s.ornamentType:(t?.ornamentType||'Gold');
+    const isAmountOnly=mode==='Amount';
+    const boardRate=isAmountOnly?0:(ornType==='Silver'?(typeof rcRateForMetal==='function'?rcRateForMetal('Silver',92.5):(n(db?.rates?.silverBoard)||n(db?.rates?.silver)||0)):(n(db?.rates?.gold22)||(n(db?.rates?.gold24)?(typeof v2RateForPurity==='function'?v2RateForPurity(22):n(db.rates.gold24)*22/24):(typeof rcGetPureRateFromRateBook==='function'?rcGetPureRateFromRateBook('Old Gold')*0.916:7210))));
+    document.getElementById('rcCardScheme').textContent=(t?.name||'Standard Scheme')+(t?.chitCode?' ('+t.chitCode+')':'')+' · '+ornType+' · '+mode;
     document.getElementById('rcCardInst').textContent=rateMoney(m.installmentAmount||t?.installmentAmount||0);
     document.getElementById('rcCardDues').textContent=duesPaid+' of '+totalDues+' paid ('+remDues+' left)';
     document.getElementById('rcCardPaid').textContent=rateMoney(paid);
-    document.getElementById('rcCardWeight').textContent=fmt(metalPaid)+' g';
-    document.getElementById('rcCardRate').textContent=rateMoney(goldRate)+'/g';
-    const rateInp=document.getElementById('rcEntryGoldRate');
-    if(rateInp)rateInp.value=goldRate.toFixed(2);
+    document.getElementById('rcCardWeight').textContent=isAmountOnly?'N/A (Amount Plan)':(metalPaid>0?(fmt(metalPaid)+' g (Avg '+(s.avgRate>0?rateMoney(s.avgRate)+'/g':'—')+')'):'0.000 g');
+    document.getElementById('rcCardRate').textContent=isAmountOnly?'Amount Plan (₹ Only)':(rateMoney(boardRate)+'/g ('+ornType+')');
+    if(isAmountOnly){
+      if(rateInp){rateInp.value='';rateInp.readOnly=true;}
+      if(wtInp){wtInp.value='0.000';wtInp.readOnly=true;}
+    }else{
+      if(rateInp){rateInp.readOnly=false;rateInp.value=boardRate>0?boardRate.toFixed(2):'';}
+      if(wtInp){wtInp.readOnly=false;}
+    }
     const nextDueInp=document.getElementById('rcEntryInstNo');
     if(nextDueInp)nextDueInp.value=duesPaid+1;
     const amtInp=document.getElementById('rcEntryAmount');
     if(amtInp&&(!n(amtInp.value)||amtInp.value==='0')&&n(m.installmentAmount||t?.installmentAmount)>0){
       amtInp.value=n(m.installmentAmount||t?.installmentAmount);
-      rcRecalcEntryMetal();
     }
+    if(!isAmountOnly)rcRecalcEntryMetal();
   }
 };
 window.rcSaveChitEntry=function(e){
@@ -3091,10 +3294,13 @@ window.rcSaveChitEntry=function(e){
   const f=e.target,d=Object.fromEntries(new FormData(f)),old=rcDocs('retail-chit-entry').find(x=>x.id===d.id),map=rcDocs('retail-chit-mapping').find(x=>x.id===d.mappingId),type=rcDocs('retail-chit-type').find(x=>x.id===map?.typeId);
   if(old&&!confirm('Save changes to this chit entry?'))return;
   if(!map||map.customerId!==d.customerId)return say('Select the customer assigned to this chit.');
-  const row={...(old||{}),id:d.id||crypto.randomUUID(),kind:'retail-chit-entry',accountType:'customer',customerId:d.customerId,mappingId:d.mappingId,when:d.when,entryType:d.entryType||'Instalment',installmentNo:n(d.installmentNo),amount:n(d.amount),goldRate:n(d.goldRate),metalWeight:n(d.metalWeight),drawerLedger:String(d.drawerLedger||'').trim(),testingPurity:d.testingPurity===''?null:n(d.testingPurity),method:d.method,reference:String(d.reference||'').trim(),remarks:String(d.remarks||'').trim(),createdAt:old?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  if(!old&&(map.status||'Active')==='Closed'&&d.entryType!=='Refund')return say('This chit passbook is already closed.');
+  const mode=type?.mode||(type?.scheme==='Digi Gold'?'Digital Gold':type?.scheme==='Digi Silver'?'Digital Silver':'Cash / Metal');
+  const isAmountOnly=mode==='Amount';
+  const row={...(old||{}),id:d.id||crypto.randomUUID(),kind:'retail-chit-entry',accountType:'customer',customerId:d.customerId,mappingId:d.mappingId,when:d.when,entryType:d.entryType||'Instalment',installmentNo:n(d.installmentNo),amount:n(d.amount),goldRate:isAmountOnly?0:n(d.goldRate),metalWeight:isAmountOnly?0:n(d.metalWeight),drawerLedger:String(d.drawerLedger||'').trim(),testingPurity:d.testingPurity===''?null:n(d.testingPurity),method:d.method,reference:String(d.reference||'').trim(),remarks:String(d.remarks||'').trim(),createdAt:old?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
   if(row.amount<=0||row.installmentNo<1)return say('Enter a positive amount and due number.');
   if(row.testingPurity!==null&&(row.testingPurity<0||row.testingPurity>100))return say('Testing purity must be between 0 and 100%.');
-  if(row.metalWeight>0&&!['Metal','Cash / Metal','Digital Gold','Digital Silver'].includes(type?.mode||'Cash / Metal'))return say('This plan does not accept metal payments.');
+  if(row.metalWeight>0&&!['Metal','Cash / Metal','Digital Gold','Digital Silver','Weight'].includes(mode))return say('This plan does not accept metal payments.');
   if(d.entryType==='Instalment'&&!type?.allowPartial&&n(map.installmentAmount||type?.installmentAmount)>0&&row.amount+0.005<n(map.installmentAmount||type.installmentAmount))return say('This plan requires the full instalment amount.');
   if(d.entryType==='Instalment'&&type?.limitedDueType==='One Due Only'&&rcDocs('retail-chit-entry').some(p=>p.id!==row.id&&p.mappingId===map.id&&p.installmentNo===row.installmentNo&&p.entryType==='Instalment'))return say('This due already has a payment recorded.');
   const i=db.retailDocuments.findIndex(p=>p.id===row.id);
@@ -3108,7 +3314,7 @@ window.rcPrintChit=function(id){
   const p=rcDocs('retail-chit-entry').find(x=>x.id===id),m=rcDocs('retail-chit-mapping').find(x=>x.id===p?.mappingId),t=rcDocs('retail-chit-type').find(x=>x.id===m?.typeId);
   if(!p)return;
   const heads=['Payment Details','Information'],rows=[['Passbook / Chit No',m?.chitNumber||'—'],['Scheme Name',t?.name||'—'],['Payment Method',p.method||'Cash'],['Cashier Drawer',p.drawerLedger||'Main Cash'],['Reference / UTR',p.reference||'—']];
-  if(p.goldRate)rows.push(['Gold Rate / g',rateMoney(p.goldRate)]);
+  if(p.goldRate)rows.push(['Metal Rate / g',rateMoney(p.goldRate)]);
   if(p.metalWeight)rows.push(['Credited Metal',fmt(p.metalWeight)+' g']);
   pdfPrintModel({kind:'ledger',retail:true,title:'RETAIL CHIT RECEIPT',entityLabel:'Customer',entityName:accountName(p.customerId,'customer'),entityDetails:'Passbook '+(m?.chitNumber||''),reference:'Due #'+p.installmentNo,date:pdfDateText(p.when),heads,rows,totals:[['Amount received',rateMoney(p.amount),true]]},'retail');
 };
@@ -3117,20 +3323,15 @@ window.rcOpenSettleChit=function(id){
   const m=rcDocs('retail-chit-mapping').find(x=>x.id===id);
   if(!m)return say('Chit passbook not found.');
   rcSettleTargetId=id;
-  const t=rcDocs('retail-chit-type').find(x=>x.id===m.typeId),entries=rcDocs('retail-chit-entry').filter(p=>p.mappingId===id),paid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0),metal=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.metalWeight),0);
-  let bonus=0;
-  if(t?.bonusType==='Duration / Installment Waiver (11+1)'||t?.bonusType==='11+1 Installment Waiver')bonus=n(m.installmentAmount||t.installmentAmount||0);
-  else if(t?.bonusType==='Percentage'&&n(t.benefitPercent||t.bonusValue)>0)bonus=paid*(n(t.benefitPercent||t.bonusValue)/100);
-  else if(t?.bonusType==='Fixed Amount')bonus=n(t.bonusValue||0);
-  const net=Math.max(0,paid+bonus);
+  const s=rcChitSummary(id),paid=s?s.paid:0,metal=s?s.metalWeight:0,bonus=s?s.schemeBonus:0,net=Math.max(0,paid+bonus);
   
-  const modalHtml='<div id="rcSettleModal" class="retail-modal-backdrop" role="dialog" aria-modal="true" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px"><section class="retail-modal" style="background:var(--white,#fff);border-radius:14px;max-width:540px;width:100%;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,0.25)"><div class="retail-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px"><div><h2 style="margin:0 0 4px;font-size:18px;color:#18392a">Settle & Close Chit Passbook</h2><p style="margin:0;font-size:12px;color:var(--muted,#666)">Passbook: <b style="color:#000">'+esc(m.chitNumber)+'</b> · '+esc(accountName(m.customerId,'customer'))+'</p></div><button type="button" onclick="rcCloseSettleModal()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">✕</button></div><form class="rc-form" onsubmit="rcConfirmSettleChit(event)"><div class="rc-totals" style="grid-template-columns:repeat(3,1fr);margin:0 0 14px;display:grid;gap:8px"><span>Principal Paid <b>'+rateMoney(paid)+'</b></span><span>Metal Weight <b>'+fmt(metal)+' g</b></span><span>Eligible Bonus <b>+ '+rateMoney(bonus)+'</b></span></div><div class="rc-grid" style="grid-template-columns:repeat(2,1fr);gap:10px;display:grid"><label>Bonus Amount ₹<input id="rcSettleBonus" name="bonusAmount" type="number" step=".01" value="'+bonus.toFixed(2)+'" oninput="rcRecalcSettleNet()"></label><label>Deductions / Fine ₹<input id="rcSettleDeduction" name="deductionAmount" type="number" step=".01" value="0.00" oninput="rcRecalcSettleNet()"></label><label class="rc-wide" style="grid-column:1/-1;font-size:12px;font-weight:750;color:#18392a">Net Settlement Amount ₹<input id="rcSettleNet" name="netAmount" type="number" step=".01" readonly style="font-weight:800;font-size:16px;background:#f0fdf4;border:1.5px solid #86efac;padding:8px" value="'+net.toFixed(2)+'"></label><label class="rc-wide" style="grid-column:1/-1">Settlement Method *<select name="settleMethod" required style="width:100%;height:38px"><option value="advance">Transfer to Customer Advance (Spendable in Sales Bill)</option><option value="payout">Cash / Bank Payout (Refund to Customer)</option><option value="jewellery">Mark Matured for Jewellery Purchase</option></select></label><label class="rc-wide" style="grid-column:1/-1">Settlement Remarks<input name="remarks" value="Settlement on maturity - Passbook '+esc(m.chitNumber)+'" style="width:100%;padding:8px"></label></div><div class="rc-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button type="button" onclick="rcCloseSettleModal()">Cancel</button><button type="submit" class="primary" style="background:#18392a;color:#fff;font-weight:750;padding:8px 16px;border-radius:8px">Confirm & Settle Chit</button></div></form></section></div>';
+  const modalHtml='<div id="rcSettleModal" class="retail-modal-backdrop" role="dialog" aria-modal="true" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px"><section class="retail-modal" style="background:var(--white,#fff);border-radius:14px;max-width:540px;width:100%;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,0.25)"><div class="retail-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px"><div><h2 style="margin:0 0 4px;font-size:18px;color:#18392a">Settle & Close Chit Passbook</h2><p style="margin:0;font-size:12px;color:var(--muted,#666)">Passbook: <b style="color:#000">'+esc(m.chitNumber)+'</b> · '+esc(accountName(m.customerId,'customer'))+(s?.ornamentType?' · '+esc(s.ornamentType)+' ('+esc(s.mode)+')':'')+'</p></div><button type="button" onclick="rcCloseSettleModal()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">✕</button></div><form class="rc-form" onsubmit="rcConfirmSettleChit(event)"><div class="rc-totals" style="grid-template-columns:repeat(3,1fr);margin:0 0 14px;display:grid;gap:8px"><span>Principal Paid <b>'+rateMoney(paid)+'</b></span><span>Metal Weight <b>'+fmt(metal)+' g'+(s?.avgRate>0?'<small style="display:block;font-weight:500">Avg '+rateMoney(s.avgRate)+'/g</small>':'')+'</b></span><span>Eligible Bonus <b>+ '+rateMoney(bonus)+'</b></span></div><div class="rc-grid" style="grid-template-columns:repeat(2,1fr);gap:10px;display:grid"><label>Bonus Amount ₹<input id="rcSettleBonus" name="bonusAmount" type="number" step=".01" value="'+bonus.toFixed(2)+'" oninput="rcRecalcSettleNet()"></label><label>Deductions / Fine ₹<input id="rcSettleDeduction" name="deductionAmount" type="number" step=".01" value="0.00" oninput="rcRecalcSettleNet()"></label><label class="rc-wide" style="grid-column:1/-1;font-size:12px;font-weight:750;color:#18392a">Net Settlement Amount ₹<input id="rcSettleNet" name="netAmount" type="number" step=".01" readonly style="font-weight:800;font-size:16px;background:#f0fdf4;border:1.5px solid #86efac;padding:8px" value="'+net.toFixed(2)+'"></label><label class="rc-wide" style="grid-column:1/-1">Settlement Method *<select name="settleMethod" required style="width:100%;height:38px"><option value="jewellery">Mark Matured for Jewellery Purchase (Use in Estimation / Sales Bill)</option>'+(metal>0?'<option value="metal_advance">Transfer Accumulated Weight ('+fmt(metal)+' g) to Metal Advance</option>':'')+'<option value="advance">Transfer to Customer Cash Advance (Spendable in Sales Bill)</option><option value="payout">Cash / Bank Payout (Refund to Customer)</option></select></label><label class="rc-wide" style="grid-column:1/-1">Settlement Remarks<input name="remarks" value="Settlement on maturity - Passbook '+esc(m.chitNumber)+'" style="width:100%;padding:8px"></label></div><div class="rc-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button type="button" onclick="rcCloseSettleModal()">Cancel</button><button type="submit" class="primary" style="background:#18392a;color:#fff;font-weight:750;padding:8px 16px;border-radius:8px">Confirm Settlement</button></div></form></section></div>';
   document.getElementById('rcSettleModal')?.remove();
   document.body.insertAdjacentHTML('beforeend',modalHtml);
 };
 window.rcCloseSettleModal=function(){document.getElementById('rcSettleModal')?.remove();rcSettleTargetId='';};
 window.rcRecalcSettleNet=function(){
-  const m=rcDocs('retail-chit-mapping').find(x=>x.id===rcSettleTargetId),entries=rcDocs('retail-chit-entry').filter(p=>p.mappingId===rcSettleTargetId),paid=entries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0);
+  const s=rcChitSummary(rcSettleTargetId),paid=s?s.paid:0;
   const b=n(document.getElementById('rcSettleBonus')?.value||0),d=n(document.getElementById('rcSettleDeduction')?.value||0),net=Math.max(0,paid+b-d);
   const netInp=document.getElementById('rcSettleNet');
   if(netInp)netInp.value=net.toFixed(2);
@@ -3139,19 +3340,30 @@ window.rcConfirmSettleChit=function(e){
   e.preventDefault();
   const f=e.target,d=Object.fromEntries(new FormData(f)),m=rcDocs('retail-chit-mapping').find(x=>x.id===rcSettleTargetId);
   if(!m)return say('Chit passbook not found.');
-  const net=n(d.netAmount);
-  const entryId=crypto.randomUUID(),today=new Date().toISOString().slice(0,10);
-  db.retailDocuments.push({id:entryId,kind:'retail-chit-entry',accountType:'customer',customerId:m.customerId,mappingId:m.id,when:today,entryType:'Closure',installmentNo:999,amount:net,method:d.settleMethod==='advance'?'Advance Transfer':'Cash',reference:'SETTLE-'+m.chitNumber,remarks:String(d.remarks||'').trim(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  const s=rcChitSummary(m.id),metal=s?s.metalWeight:0,net=n(d.netAmount),bonusAmt=n(d.bonusAmount),dedAmt=n(d.deductionAmount);
+  const today=new Date().toISOString().slice(0,10),nowIso=new Date().toISOString();
   const mIdx=db.retailDocuments.findIndex(x=>x.id===m.id);
-  if(mIdx>=0)db.retailDocuments[mIdx]={...m,status:'Closed',settledAt:today,settleMethod:d.settleMethod,settleAmount:net,updatedAt:new Date().toISOString()};
-  if(d.settleMethod==='advance'&&net>0){
-    const advId=crypto.randomUUID();
-    db.payments.push({id:advId,kind:'advance',retailKind:'advance',accountType:'customer',partyId:m.customerId,amount:net,date:today,when:today+'T00:00:00',documentNo:'ADV-'+m.chitNumber,notes:'Chit Settlement Transfer - Passbook #'+m.chitNumber,method:'Chit Transfer',reference:m.chitNumber,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  if(d.settleMethod==='jewellery'){
+    if(mIdx>=0)db.retailDocuments[mIdx]={...m,status:'Matured',settleMethod:'jewellery',settleBonus:bonusAmt,settleDeduction:dedAmt,settleAmount:net,settleWeight:metal,updatedAt:nowIso};
+    rcCloseSettleModal();
+    save();
+    render();
+    say('Chit passbook '+m.chitNumber+' marked Matured. Select it in Estimation or Sales Bill to redeem.');
+    return;
+  }
+  const entryId=crypto.randomUUID();
+  db.retailDocuments.push({id:entryId,kind:'retail-chit-entry',accountType:'customer',customerId:m.customerId,mappingId:m.id,when:today,entryType:'Closure',installmentNo:999,amount:net,goldRate:0,metalWeight:d.settleMethod==='metal_advance'?metal:0,method:d.settleMethod==='advance'?'Advance Transfer':d.settleMethod==='metal_advance'?'Metal Advance Transfer':'Cash',reference:'SETTLE-'+m.chitNumber,remarks:String(d.remarks||'').trim(),createdAt:nowIso,updatedAt:nowIso});
+  if(mIdx>=0)db.retailDocuments[mIdx]={...m,status:'Closed',settledAt:today,settleMethod:d.settleMethod,settleBonus:bonusAmt,settleDeduction:dedAmt,settleAmount:net,settleWeight:metal,updatedAt:nowIso};
+  if(d.settleMethod==='metal_advance'&&metal>0){
+    const orn=s?.ornamentType||'Gold',purity=orn==='Silver'?92.5:91.67,pureGrams=rbGrams(metal*(orn==='Silver'?0.925:(22/24)));
+    db.payments.push({id:crypto.randomUUID(),kind:'Metal weight advance',retailKind:'metal',accountType:'customer',partyId:m.customerId,product:orn+' Chit Transfer ('+m.chitNumber+')',weight:metal,lessWeight:0,netWeight:metal,purity,pureGrams,amount:0,date:today,when:today+'T00:00:00',documentNo:'MADV-'+m.chitNumber,notes:'Chit Weight Settlement Transfer - Passbook #'+m.chitNumber+' ('+fmt(metal)+'g)',method:'Chit Transfer',reference:m.chitNumber,createdAt:nowIso,updatedAt:nowIso});
+  }else if(d.settleMethod==='advance'&&net>0){
+    db.payments.push({id:crypto.randomUUID(),kind:'advance',retailKind:'advance',accountType:'customer',partyId:m.customerId,amount:net,date:today,when:today+'T00:00:00',documentNo:'ADV-'+m.chitNumber,notes:'Chit Settlement Transfer - Passbook #'+m.chitNumber,method:'Chit Transfer',reference:m.chitNumber,createdAt:nowIso,updatedAt:nowIso});
   }
   rcCloseSettleModal();
   save();
   render();
-  say('Chit passbook '+m.chitNumber+' settled successfully.'+(d.settleMethod==='advance'?' ₹'+net.toFixed(2)+' transferred to customer advance.':''));
+  say('Chit passbook '+m.chitNumber+' settled successfully.'+(d.settleMethod==='metal_advance'?' '+fmt(metal)+' g ('+fmt(rbGrams(metal*((s?.ornamentType==='Silver')?0.925:(22/24))))+' pure g) transferred to metal advance.':d.settleMethod==='advance'?' ₹'+net.toFixed(2)+' transferred to customer cash advance.':''));
 };
 function rcBody(){rbSection=rcSection;return salesView().replace(/<header class="rb-header">[\s\S]*?<\/header>/,'').replace(/<label class="rb-mobile-section">[\s\S]*?<\/label>/,'').replace(/<nav class="rb-tabs"[\s\S]*?<\/nav>/,'')}
 function rcRetailScreen(){const labels=RC_SECTIONS.map(x=>'<option '+(x===rcSection?'selected':'')+'>'+x+'</option>').join('');return '<div class="rc-screen rb-screen"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(rcSection==='Bill'?'Sales entry':rcSection)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><label class="rc-mobile-select">Retail workspace<select aria-label="Retail workspace" onchange="rcOpen(this.value)">'+labels+'</select></label><nav class="rc-tabs" aria-label="Retail workspace sections">'+RC_SECTIONS.map(x=>'<button type="button" class="'+(x===rcSection?'active':'')+'" onclick="rcOpen(\''+x+'\')">'+esc(x)+'</button>').join('')+'</nav><main class="rc-content">'+rcBody()+'</main></div>'}
