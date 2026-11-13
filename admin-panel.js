@@ -308,7 +308,7 @@ window.pullCloud=async function(){
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
     else {const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
     ensureExtendedData();db.rates=shared.data||{};v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
-    setCloudStatus('Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
+    setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
   finally{v2CloudBusy=false;}
 };
@@ -332,9 +332,9 @@ window.pushCloud=async function(){
         }
       }
       if(!written)throw new Error('Records changed on another device. Your entry is saved here and will retry.');
-      platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
+      platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
     }while(v2CloudQueuedPush);
-  }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Entry saved here · waiting to sync');}
+  }catch(error){const rawMsg=String(error?.message||'');const needsSql=/Retail supplier is missing/i.test(rawMsg)&&(db.retailDocuments||[]).some(d=>d?.kind==='retail-product-group'||d?.kind==='retail-model');platformError=needsSql?'Cloud Retail schema needs supabase_retail_features.sql update to sync Product Group / Model records.':rawMsg;window.v2LastSyncError=platformError;const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title=platformError;setCloudStatus('Entry saved here · waiting to sync');}
   finally{v2CloudBusy=false;}
 };
 window.v2CheckCloudForChanges=async function(){if(!session||!client||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
