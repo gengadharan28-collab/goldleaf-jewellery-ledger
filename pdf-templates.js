@@ -1,6 +1,7 @@
 // Shop-owned PDF layouts, branding, and optional Retail GST.
 const pdfPreviousFocusedEdit=window.v2HasFocusedEdit;
-window.v2HasFocusedEdit=function(){return pdfPreviousFocusedEdit()||!!document.querySelector('.more-menu.open,#pdfTemplatePreview,#pdfSettingsForm[data-dirty="1"]');};
+window.v2HasFocusedEdit=function(){return pdfPreviousFocusedEdit()||!!document.querySelector('.more-menu.open,#pdfTemplatePreview,#pdfDocumentPreview,#pdfSettingsForm[data-dirty="1"]');};
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){const d=document.getElementById('pdfDocumentPreview')||document.getElementById('pdfTemplatePreview');if(d){event.preventDefault();d.remove();}}});
 
 const PDF_LAYOUTS = {
   classic: { name: 'Classic Invoice', description: 'Traditional bordered tax invoice · A4 portrait', size: 'A4 portrait', kind: 'sales' },
@@ -296,6 +297,14 @@ function pdfBankAndQRMarkup(c){
     +'</div>';
 }
 
+function pdfBillChitTag(item){
+  const parts=[];
+  if(n(item.chitWeight)>0)parts.push('Chit '+fmt(item.chitWeight)+'g');
+  if(n(item.wastageDiscountAmount)>0)parts.push('VA−'+pdfMoney(item.wastageDiscountAmount));
+  if(n(item.makingDiscountAmount)>0)parts.push('MC−'+pdfMoney(item.makingDiscountAmount));
+  return parts.length?' ['+parts.join(' · ')+']':'';
+}
+
 function pdfBillColumns(item,template,retail,c={}){
   const showGrossLess = c.showGrossLess ?? true;
   const showNet = c.showNetWeight ?? true;
@@ -309,9 +318,11 @@ function pdfBillColumns(item,template,retail,c={}){
     return {heads:['Product','Weight g','Pcs','Purity %','Wastage %','Pure payable g','Hallmark','Fee / pc ₹','Hallmark total ₹'],row:[item.product,fmt(item.weight),item.pieces,item.purity,item.wastage,fmt(item.pure),item.hallmarkType||'—',pdfMoney(item.hallmarkRate),pdfMoney(item.hallmark)]};
   }
 
+  const chitTag = pdfBillChitTag(item);
+
   if(template==='detailed' || template==='detailed-estimate'){
     const heads=['Item / Description'];
-    const row=[item.product + (showHuid && item.huid ? ' [HUID: ' + item.huid + ']' : (showHuid && item.tagCode ? ' [' + item.tagCode + ']' : ''))];
+    const row=[item.product + (showHuid && item.huid ? ' [HUID: ' + item.huid + ']' : (showHuid && item.tagCode ? ' [' + item.tagCode + ']' : '')) + chitTag];
     if(item.hsn){ heads.push('HSN'); row.push(item.hsn); }
     heads.push('Pcs'); row.push(item.pieces||1);
     if(showGrossLess){ heads.push('Gross g','Less g'); row.push(fmt(item.grossWeight||item.weight), fmt(item.lessWeight||0)); }
@@ -325,16 +336,16 @@ function pdfBillColumns(item,template,retail,c={}){
   }
 
   if(template==='compact-a5-p' || template==='compact-a5-l' || template==='compact-estimate-a5' || template==='compact-estimate-a5l'){
-    return {heads:['Item','Weight / Purity','Pcs','Making ₹','Value ₹'],row:[item.product + (showHuid && item.huid ? ' ('+item.huid+')' : ''),fmt(item.netWeight||item.weight)+' g · '+(item.purity||22)+'K',item.pieces||1,pdfMoney(item.makingTotal||item.making||0),pdfMoney(item.subtotal)]};
+    return {heads:['Item','Weight / Purity','Pcs','Making ₹','Value ₹'],row:[item.product + (showHuid && item.huid ? ' ('+item.huid+')' : '') + chitTag,fmt(item.netWeight||item.weight)+' g · '+(item.purity||22)+'K',item.pieces||1,pdfMoney(item.makingTotal||item.making||0),pdfMoney(item.subtotal)]};
   }
 
   if(template==='modern'){
-    return {heads:['Jewellery','Net Weight g','Purity','Rate / g ₹','Wastage %','Making ₹','Value ₹'],row:[item.product,fmt(item.netWeight||item.weight),(item.purity||22)+'K',pdfMoney(item.rate),item.wastage||'0',pdfMoney(item.makingTotal||item.making||0),pdfMoney(item.subtotal)]};
+    return {heads:['Jewellery','Net Weight g','Purity','Rate / g ₹','Wastage %','Making ₹','Value ₹'],row:[item.product + chitTag,fmt(item.netWeight||item.weight),(item.purity||22)+'K',pdfMoney(item.rate),item.wastage||'0',pdfMoney(item.makingTotal||item.making||0),pdfMoney(item.subtotal)]};
   }
 
   // Classic default
   const heads=['Description'];
-  const row=[item.product + (showHuid && item.huid ? ' · HUID: '+item.huid : '')];
+  const row=[item.product + (showHuid && item.huid ? ' · HUID: '+item.huid : '') + chitTag];
   heads.push('Pcs'); row.push(item.pieces||1);
   if(showGrossLess){ heads.push('Gross g'); row.push(fmt(item.grossWeight||item.weight)); }
   if(showNet){ heads.push('Net g'); row.push(fmt(item.netWeight||item.weight)); }
@@ -397,6 +408,29 @@ function pdfThermalMarkup(model,c,size='80mm'){
     }
   }
 
+  // Chit Gold Scheme Breakdown
+  if(model.chit){
+    const ch = model.chit;
+    const covWt = (ch.items||[]).reduce((s,x)=>s+n(x.coveredWeight||x.chitWeight),0) || ch.usedWeight;
+    html += '<div class="thermal-divider">'+divider+'</div>'
+      +'<div class="thermal-center thermal-bold">CHIT GOLD SCHEME'+(ch.passbook?' ('+esc(ch.passbook)+')':'')+'</div>';
+    if(ch.schemeName || ch.duesText){
+      html += '<div class="thermal-row"><span>'+esc(ch.schemeName||ch.mode||'Chit Plan')+'</span><span class="thermal-right">'+esc(ch.duesText?'Dues '+ch.duesText:'')+'</span></div>';
+    }
+    if(ch.accumWeight>0 || ch.usedWeight>0){
+      html += '<div class="thermal-row"><span>Wt Adj: '+fmt(ch.usedWeight)+' / '+fmt(ch.accumWeight)+'g</span><span class="thermal-right">'+(ch.avgRate>0?'Avg '+pdfMoney(ch.avgRate)+'/g':'')+'</span></div>';
+      const rb = n(ch.rateBenefit);
+      html += '<div class="thermal-row"><span>'+(rb<0?'Rate Diff':'Rate Protection')+'</span><span class="thermal-right">'+(rb<0?'− ':'+')+pdfMoney(Math.abs(rb))+'</span></div>';
+    } else if(ch.accumWeight>0 && !ch.considerChitWeight){
+      html += '<div class="thermal-row"><span>Weight Protection</span><span class="thermal-right">OFF (Cash Credit)</span></div>';
+    }
+    if(ch.wastageDiscount>0 || ch.makingDiscount>0){
+      html += '<div class="thermal-row"><span>Waivers ('+fmt(covWt)+'g)</span><span class="thermal-right">VA '+pdfMoney(ch.wastageDiscount)+' | MC '+pdfMoney(ch.makingDiscount)+'</span></div>';
+    }
+    html += '<div class="thermal-row"><span>Paid'+(ch.bonus>0?' + Bonus':'')+(ch.deduction>0?' − Ded':'')+'</span><span class="thermal-right">'+pdfMoney(ch.paid)+(ch.bonus>0?' +'+pdfMoney(ch.bonus):'')+(ch.deduction>0?' −'+pdfMoney(ch.deduction):'')+'</span></div>';
+    html += '<div class="thermal-row thermal-bold"><span>Chit Less (Post-Tax)</span><span class="thermal-right">− '+pdfMoney(ch.amount)+'</span></div>';
+  }
+
   // Totals
   html += '<div class="thermal-divider">'+doubleDivider+'</div>';
   for(const [label, val, highlight] of (model.totals||[])){
@@ -428,6 +462,71 @@ function pdfThermalMarkup(model,c,size='80mm'){
   return html;
 }
 
+function pdfChitMarkup(model){
+  const ch = model?.chit;
+  if(!ch) return '';
+  const covWt = (ch.items||[]).reduce((s,x)=>s+n(x.coveredWeight||x.chitWeight),0) || n(ch.usedWeight);
+  const rb = n(ch.rateBenefit);
+  const preTaxNet = pdfRound(rb + n(ch.wastageDiscount) + n(ch.makingDiscount));
+  const modeLabel = ch.usedWeight>0
+    ? fmt(ch.usedWeight)+' g (Weight ON)'
+    : (ch.accumWeight>0 ? '0.000 g ('+(ch.considerChitWeight?'No Metal Match':'Weight OFF · Cash Only')+')' : 'Cash / Amount Plan');
+  const metaParts = [
+    ch.passbook ? 'Passbook: '+ch.passbook : '',
+    ch.schemeName ? ch.schemeName : '',
+    ch.mode ? ch.mode : '',
+    ch.ornamentType ? ch.ornamentType : '',
+    ch.duesText ? 'Dues: '+ch.duesText : ''
+  ].filter(Boolean);
+
+  const compRows = [];
+  if(ch.usedWeight>0 || rb!==0){
+    const rbNote = rb>0 ? '+ '+pdfMoney(rb)+' saved' : rb<0 ? '− '+pdfMoney(Math.abs(rb))+' (Bill rate < Chit avg)' : '₹ 0.00 (Matched)';
+    const rbCls = rb>0 ? 'pdf-chit-pos' : rb<0 ? 'pdf-chit-neg' : '';
+    compRows.push('<tr><th>Gold Rate Protection (Pre-Tax)</th><td>'+esc(fmt(ch.usedWeight)+' g covered @ Avg '+(ch.avgRate>0?pdfMoney(ch.avgRate)+'/g':'—')+' vs bill gold rate')+'</td><td class="'+rbCls+'">'+esc(rbNote)+'</td></tr>');
+  } else if(ch.accumWeight>0 && !ch.considerChitWeight){
+    compRows.push('<tr><th>Weight Protection Mode</th><td>'+esc('Consider Chit Weight OFF — full item priced at bill rate; cash paid credited post-tax')+'</td><td>Cash Credit Only</td></tr>');
+  }
+  if(ch.wastageDiscount>0 || ch.wastageBenefitPercent>0){
+    compRows.push('<tr><th>Wastage (VA) Waiver (Pre-Tax)</th><td>'+esc((ch.wastageBenefitPercent>0?ch.wastageBenefitPercent+'% VA waiver':'Scheme VA waiver')+(covWt>0?' on '+fmt(covWt)+' g':''))+'</td><td class="pdf-chit-pos">'+esc('+ '+pdfMoney(ch.wastageDiscount)+' saved')+'</td></tr>');
+  }
+  if(ch.makingDiscount>0 || ch.noMakingCharge || ch.mcBenefitRate>0){
+    const mcBasis = ch.noMakingCharge ? ('Zero MC on '+fmt(covWt)+' g covered') : (ch.mcBenefitRate>0 ? 'MC −'+pdfMoney(ch.mcBenefitRate)+'/g on '+fmt(covWt)+' g' : 'Scheme MC waiver');
+    compRows.push('<tr><th>Making Charge (MC) Waiver (Pre-Tax)</th><td>'+esc(mcBasis)+'</td><td class="pdf-chit-pos">'+esc('+ '+pdfMoney(ch.makingDiscount)+' saved')+'</td></tr>');
+  }
+  if(ch.usedWeight>0 || rb!==0 || ch.wastageDiscount>0 || ch.makingDiscount>0){
+    const preTxt = preTaxNet>=0 ? ('+ '+pdfMoney(preTaxNet)+' saved pre-tax') : ('− '+pdfMoney(Math.abs(preTaxNet))+' net rate diff');
+    compRows.push('<tr><th>Pre-Tax Scheme Net Impact</th><td>Already adjusted in item Gold / Wastage / Making totals above before GST</td><td class="'+(preTaxNet>=0?'pdf-chit-pos':'pdf-chit-neg')+'">'+esc(preTxt)+'</td></tr>');
+  }
+  compRows.push('<tr><th>Chit Paid Principal</th><td>'+esc(ch.passbook?'Passbook '+ch.passbook+' total paid':'Accumulated chit paid')+'</td><td>'+esc(pdfMoney(ch.paid))+'</td></tr>');
+  if(ch.bonus>0) compRows.push('<tr><th>Chit Bonus (+)</th><td>Scheme / maturity bonus added</td><td class="pdf-chit-pos">'+esc('+ '+pdfMoney(ch.bonus))+'</td></tr>');
+  if(ch.deduction>0) compRows.push('<tr><th>Chit Deduction (−)</th><td>Scheme / closure deduction</td><td class="pdf-chit-neg">'+esc('− '+pdfMoney(ch.deduction))+'</td></tr>');
+  compRows.push('<tr class="pdf-chit-highlight"><th>Post-Tax Chit Credit Deducted</th><td>'+esc('Paid'+(ch.bonus>0?' + Bonus':'')+(ch.deduction>0?' − Deduction':'')+' (lessed after GST)')+'</td><td>'+esc('− '+pdfMoney(ch.amount))+'</td></tr>');
+
+  let itemHtml = '';
+  if(ch.items?.length && (ch.usedWeight>0 || ch.wastageDiscount>0 || ch.makingDiscount>0)){
+    itemHtml = '<table class="gl-pdf-table pdf-chit-subtable"><thead><tr><th>Item (Chit Split)</th><th>Net g</th><th>Chit g</th><th>Non-Chit g</th><th>Chit Paid ₹</th><th>Rate ±₹</th><th>VA Waiver ₹</th><th>MC Waiver ₹</th><th>Adj Total ₹</th></tr></thead><tbody>'
+      +ch.items.map(it=>{
+        const irb = n(it.rateBenefit);
+        const irbStr = irb>0 ? '+ '+pdfMoney(irb) : irb<0 ? '− '+pdfMoney(Math.abs(irb)) : pdfMoney(0);
+        return '<tr><td>'+esc(it.product)+'</td><td>'+esc(fmt(it.netWeight))+'</td><td>'+esc(fmt(it.chitWeight))+'</td><td>'+esc(fmt(it.nonChitWeight))+'</td><td>'+esc(pdfMoney(it.chitPaidAmount))+'</td><td class="'+(irb>0?'pdf-chit-pos':irb<0?'pdf-chit-neg':'')+'">'+esc(irbStr)+'</td><td>'+esc(pdfMoney(it.wastageDiscountAmount))+'</td><td>'+esc(pdfMoney(it.makingDiscountAmount))+'</td><td>'+esc(pdfMoney(it.subtotal))+'</td></tr>';
+      }).join('')
+      +'</tbody></table>';
+  }
+
+  return '<section class="pdf-chit-section">'
+    +'<div class="pdf-chit-head"><b>Chit Gold Scheme Adjustment</b><span>'+esc(metaParts.join(' · '))+'</span></div>'
+    +'<div class="pdf-chit-kpis">'
+    +'<div class="pdf-chit-kpi"><small>Passbook / Accumulated</small><strong>'+esc((ch.accumWeight>0?fmt(ch.accumWeight)+' g · ':'')+pdfMoney(ch.paid))+'</strong></div>'
+    +'<div class="pdf-chit-kpi"><small>Chit Avg Rate</small><strong>'+esc(ch.avgRate>0?pdfMoney(ch.avgRate)+'/g':'Amount Plan')+'</strong></div>'
+    +'<div class="pdf-chit-kpi"><small>Weight Adjusted</small><strong>'+esc(modeLabel)+'</strong></div>'
+    +'<div class="pdf-chit-kpi"><small>Post-Tax Chit Less</small><strong>'+esc('− '+pdfMoney(ch.amount))+'</strong></div>'
+    +'</div>'
+    +'<table class="gl-pdf-table pdf-chit-table"><thead><tr><th>Scheme Component</th><th>Calculation / Basis</th><th>Impact / Amount</th></tr></thead><tbody>'+compRows.join('')+'</tbody></table>'
+    +itemHtml
+    +'</section>';
+}
+
 function pdfBillMarkup(model,c,template){
   const items = model.invoiceItems?.length ? model.invoiceItems : (model.item ? [model.item] : []);
   let heads = [];
@@ -440,6 +539,7 @@ function pdfBillMarkup(model,c,template){
   }
 
   let content = pdfTable(heads, rows);
+  content += pdfChitMarkup(model);
 
   if(c.showExchange && model.exchange?.length){
     content += '<h3 class="pdf-section-title">Old Gold Exchange</h3>'
@@ -512,21 +612,22 @@ function pdfLedgerModel(type,template){
   return {kind:'ledger',retail,title:retail?'CUSTOMER TRANSACTION LEDGER':'PARTY TRANSACTION LEDGER',entityLabel:retail?'Customer':'Party',entityName:entity.name,entityDetails:[accountCity(entity.id,type),entity.phone||entity.mobile].filter(Boolean).join(' · '),reference:filter.mode||'All Dates',date:filter.mode==='Single Date'?filter.date:filter.mode==='Date Range'?[filter.from,filter.to].filter(Boolean).join(' to '):filter.mode==='Monthly'?filter.month:'All dates',heads,rows:data,totals};
 }
 
-async function pdfPrintModel(model,mode,forcedTemplate=null){
-  await pdfLoadProfile();const c=pdfConfig(mode);
-  if(model.retail&&model.taxEnabled&&!/^[A-Za-z0-9]{15}$/.test(c.gstNumber))return say('Set the shop GSTIN in Retail PDF Settings before printing a GST bill.');
-  
+let pdfActiveDocPreview = null;
+
+function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
+  const c=pdfConfig(mode);
+  if(!allowMissingGst&&model.retail&&model.taxEnabled&&!/^[A-Za-z0-9]{15}$/.test(c.gstNumber))return say('Set the shop GSTIN in Retail PDF Settings before printing a GST bill.');
+
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
   const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
-  
+
   let root=document.getElementById('goldleafPdfRoot');
   if(!root){root=document.createElement('div');root.id='goldleafPdfRoot';document.body.append(root);}
   root.innerHTML=pdfDocument(model, c, template);
-  
+
   let pageStyle=document.getElementById('goldleafPdfPageStyle');
   if(!pageStyle){pageStyle=document.createElement('style');pageStyle.id='goldleafPdfPageStyle';document.head.append(pageStyle);}
-  
-  // Set accurate print page dimensions
+
   let pageSize = 'A4 portrait';
   let pageMargin = '10mm';
   if(template === 'detailed' || template === 'compact-estimate-a5l' || template === 'compact-a5-l'){
@@ -542,11 +643,89 @@ async function pdfPrintModel(model,mode,forcedTemplate=null){
     pageSize = '58mm auto';
     pageMargin = '1mm 2mm';
   }
-  
+
   pageStyle.textContent='@page goldleafDocument{size:'+pageSize+';margin:'+pageMargin+'}.gl-pdf{page:goldleafDocument}';
   document.body.classList.add('goldleaf-pdf-printing');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   setTimeout(()=>window.print(),100);
+}
+
+function pdfRenderDocumentModal(){
+  const state = pdfActiveDocPreview;
+  if(!state) return;
+  const { model, mode, template, config } = state;
+  const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
+  const layouts = isEstimate ? PDF_ESTIMATE_LAYOUTS : PDF_LAYOUTS;
+  const chosen = layouts[template] ? template : (isEstimate ? 'detailed-estimate' : 'classic');
+  state.template = chosen;
+  const missingGstin = !!(model.retail && model.taxEnabled && !/^[A-Za-z0-9]{15}$/.test(config.gstNumber));
+
+  document.getElementById('pdfTemplatePreview')?.remove();
+  document.getElementById('pdfDocumentPreview')?.remove();
+  const modal=document.createElement('div');
+  modal.id='pdfDocumentPreview';
+  modal.className='retail-modal-backdrop pdf-preview-overlay';
+  modal.addEventListener('click',e=>{if(e.target===modal){modal.remove();pdfActiveDocPreview=null;}});
+
+  const pillHtml = Object.entries(layouts).map(([id,item])=>{
+    const shortName = item.name.replace(' Manufacturing','').replace(' Branded','').replace(' Bill ',' ').replace(' Quote ',' ').replace('Slip ','').replace(' Portrait',' P').replace(' Landscape',' L').replace('Receipt ','').replace('Estimate ','');
+    return '<button type="button" class="pdf-preview-pill '+(id===chosen?'active':'')+'" data-pdf-layout="'+esc(id)+'" onclick="pdfSwitchDocumentPreview(\''+esc(id)+'\')">'+esc(shortName)+'</button>';
+  }).join('');
+
+  modal.innerHTML='<section class="retail-modal pdf-preview-modal" role="dialog" aria-modal="true" aria-label="PDF document preview">'
+    +'<div class="retail-modal-head">'
+    +'<div><h2>'+esc(model.title||'DOCUMENT PDF')+' · <span id="pdfPreviewLayoutTitle">'+esc(layouts[chosen]?.name||chosen)+'</span></h2>'
+    +'<p>'+esc((model.reference||'Live view')+' · '+(model.entityName||'')+(model.chit?.passbook?' · Chit '+model.chit.passbook:''))+'</p></div>'
+    +'<div class="pdf-preview-head-actions">'
+    +'<button type="button" class="primary" onclick="pdfPrintPreviewActive()">Print / Save PDF</button>'
+    +'<button type="button" onclick="document.getElementById(\'pdfDocumentPreview\')?.remove()">Close</button>'
+    +'</div></div>'
+    +(missingGstin?'<div class="pdf-preview-warning">GST is enabled on this bill, but Shop GSTIN (15 chars) is not set in Retail PDF Settings — showing draft preview.</div>':'')
+    +'<div class="pdf-preview-toolbar"><div class="pdf-preview-pills">'+pillHtml+'</div></div>'
+    +'<iframe title="Live PDF preview"></iframe>'
+    +'</section>';
+
+  document.body.append(modal);
+  const frame=modal.querySelector('iframe');
+  if(frame){
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
+  }
+}
+
+window.pdfSwitchDocumentPreview=function(layoutId){
+  if(!pdfActiveDocPreview)return;
+  const { model, config } = pdfActiveDocPreview;
+  const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
+  const layouts = isEstimate ? PDF_ESTIMATE_LAYOUTS : PDF_LAYOUTS;
+  if(!layouts[layoutId])return;
+  pdfActiveDocPreview.template = layoutId;
+  const modal=document.getElementById('pdfDocumentPreview');
+  if(!modal)return pdfRenderDocumentModal();
+  const titleEl=modal.querySelector('#pdfPreviewLayoutTitle');
+  if(titleEl)titleEl.textContent=layouts[layoutId].name||layoutId;
+  modal.querySelectorAll('.pdf-preview-pill').forEach(btn=>btn.classList.toggle('active',btn.dataset.pdfLayout===layoutId));
+  const frame=modal.querySelector('iframe');
+  if(frame){
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,layoutId)+'</body></html>';
+  }
+};
+
+window.pdfPrintPreviewActive=function(){
+  if(!pdfActiveDocPreview)return;
+  const { model, mode, template } = pdfActiveDocPreview;
+  const isDraft = !!(model.sample || String(model.reference||'').startsWith('DRAFT'));
+  pdfTriggerPrint(model, mode, template, isDraft);
+};
+
+async function pdfPrintModel(model,mode,forcedTemplate=null,options={}){
+  await pdfLoadProfile();const c=pdfConfig(mode);
+  const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
+  const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
+  if(options?.directPrint){
+    return pdfTriggerPrint(model, mode, template, false);
+  }
+  pdfActiveDocPreview = { model, mode, template, config: c };
+  pdfRenderDocumentModal();
 }
 
 window.printCustomerSaleBill=function(forcedTemplate=null){
@@ -742,11 +921,26 @@ const PDF_DOCUMENT_CSS=`
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
 .pdf-ledger .pdf-totals{width:65%!important}
+.pdf-chit-section{margin:12px 0 8px;padding:10px 12px;border:1.5px solid #2e6b4e;border-radius:6px;background:#f7fcf9;break-inside:avoid;page-break-inside:avoid}
+.pdf-chit-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #cde4d6;padding-bottom:6px;margin-bottom:8px}
+.pdf-chit-head b{font-size:10.5px;color:#14532d;letter-spacing:.3px;text-transform:uppercase}
+.pdf-chit-head span{font-size:9px;color:#334155;font-weight:600}
+.pdf-chit-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.pdf-chit-kpi{background:#fff;border:1px solid #d5e8dc;border-radius:4px;padding:5px 7px}
+.pdf-chit-kpi small{display:block;font-size:7.5px;color:#475569;text-transform:uppercase;letter-spacing:.2px}
+.pdf-chit-kpi strong{display:block;font-size:9.5px;color:#111827;margin-top:1px}
+.pdf-chit-section table{margin:6px 0 2px!important}
+.pdf-chit-section th{background:#e4f2ea!important;color:#134e2a!important;font-size:8px}
+.pdf-chit-subtable th,.pdf-chit-subtable td{font-size:7.5px!important;padding:4px!important}
+.pdf-chit-pos{color:#15803d;font-weight:700}
+.pdf-chit-neg{color:#b45309;font-weight:700}
+.pdf-chit-highlight th,.pdf-chit-highlight td{background:#e6f6ec!important;border-color:#2e6b4e!important;font-weight:700!important;color:#14532d!important}
+.pdf-compact-a5-p .pdf-chit-kpis,.pdf-compact-estimate-a5 .pdf-chit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 @media print{
   .gl-pdf{box-shadow:none!important;margin:0!important;padding:0!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .pdf-meta,.pdf-brand{break-inside:avoid}
-  .pdf-totals,.pdf-bank-section,.pdf-signatures{break-inside:avoid}
+  .pdf-totals,.pdf-bank-section,.pdf-signatures,.pdf-chit-section{break-inside:avoid}
 }
 `;
 
@@ -777,7 +971,14 @@ pdfStyle.textContent=PDF_DOCUMENT_CSS+`
 .pdf-checkbox{display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer}
 .pdf-settings-panel textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px}
 .pdf-preview-overlay{z-index:60}
-.pdf-preview-modal{width:min(1180px,100%);height:92dvh;display:flex;flex-direction:column;gap:10px}
+.pdf-preview-modal{width:min(1180px,100%);height:92dvh;display:flex;flex-direction:column;gap:8px}
+.pdf-preview-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pdf-preview-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:#f4f7f5;border:1px solid #dbe4de;border-radius:8px;flex-wrap:wrap}
+.pdf-preview-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pdf-preview-pill{background:#fff;color:#1e293b;border:1px solid #cbd5e1;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
+.pdf-preview-pill:hover{border-color:#2e6b4e;color:#14532d}
+.pdf-preview-pill.active{background:#18392a;color:#fff;border-color:#18392a}
+.pdf-preview-warning{padding:7px 10px;border-radius:6px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;font-size:12px;font-weight:600}
 .pdf-preview-modal iframe{flex:1;width:100%;min-height:0;border:1px solid #ddd;background:#fff;border-radius:6px}
 @media(max-width:850px){
   .pdf-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}

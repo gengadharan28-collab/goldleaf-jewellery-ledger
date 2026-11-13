@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.49';
+const RC_VERSION='2.10.50';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -1828,13 +1828,16 @@ function rcQuoteModel(q){
       }))
     : ((exchangeCredit > 0 || q.exchangeGross > 0) ? [{product: q.exchangeProduct||'Old Gold', weight: q.exchangeNet||q.exchangeGross||0, testingPurity: q.exchangeTesting||91.6, rate: q.exchangeRate||q.goldRate||0, amount: exchangeCredit}] : []);
 
+  const chitPdfData = typeof window.rbBuildChitPdfData === 'function'
+    ? window.rbBuildChitPdfData(Object.assign({}, q, bill, { chitNumber: bill.chitNumber || q.chitNumber }), bill.rows)
+    : null;
   return {
     kind: 'estimate',
     retail: true,
     title: 'ESTIMATION / QUOTATION',
     entityLabel: 'Customer',
     entityName: c?.name || 'Customer',
-    entityDetails: [c?.address, c?.city, c?.phone, q.chitNumber ? 'Chit: ' + q.chitNumber : '', bill.chitUsedWeight > 0 ? 'Chit Wt: ' + fmt(bill.chitUsedWeight) + ' g' : '', bill.chitTotalBenefit > 0 ? 'Chit Savings: ' + rateMoney(bill.chitTotalBenefit) : ''].filter(Boolean).join(' · '),
+    entityDetails: [c?.address, c?.city, c?.phone, q.chitNumber ? 'Chit: ' + q.chitNumber : '', bill.chitUsedWeight > 0 ? 'Chit Wt: ' + fmt(bill.chitUsedWeight) + ' g' : '', bill.chitTotalBenefit > 0 ? 'Chit Savings: ' + rateMoney(bill.chitTotalBenefit) : (bill.chitTotalBenefit < 0 ? 'Chit Rate Diff: −' + rateMoney(Math.abs(bill.chitTotalBenefit)) : '')].filter(Boolean).join(' · '),
     reference: q.documentNo,
     date: pdfDateText(q.when),
     validUntil: q.validUntil || '',
@@ -1844,6 +1847,7 @@ function rcQuoteModel(q){
       return Object.assign({}, x, {purity: isSilver ? '—' : x.purity + '%'});
     }),
     exchange: exchangeRowsPdf,
+    chit: chitPdfData,
     totals: totals,
     notes: [q.validUntil ? 'Valid until: ' + q.validUntil : '', q.reference, q.notes].filter(Boolean).join(' · ')
   };

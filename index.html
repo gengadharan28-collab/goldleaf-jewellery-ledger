@@ -503,7 +503,7 @@ window.glTryNativeInstall=function(){
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed on your Desktop.')});
-window.GL_APP_VERSION = '2.10.49';
+window.GL_APP_VERSION = '2.10.50';
 let glPendingWorker = null;
 let glUpdateAvailable = false;
 
@@ -1251,6 +1251,6 @@ window.render=function(){
 };
 window.setInterval(()=>{if(session)window.checkRateReminder()},30000);window.addEventListener('focus',()=>{if(session)checkRateReminder()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)checkRateReminder()});
 render();
-</script><script src="./qrcode.min.js?v=2.10.49"></script><script src="./html5-qrcode.min.js?v=2.10.49"></script><script src="./app-v2.js?v=2.10.49"></script><script src="./admin-panel.js?v=2.10.49"></script><script src="./pdf-templates.js?v=2.10.49"></script><script src="./erp-ui.js?v=2.10.49"></script><script src="./retail-sales.js?v=2.10.49"></script><script src="./retail-purchases.js?v=2.10.49"></script><script src="./retail-estimate-chit.js?v=2.10.49"></script><script src="./retail-product-workflow.js?v=2.10.49"></script><script src="./qr-scanner.js?v=2.10.49"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.49"></body></html>
+</script><script src="./qrcode.min.js?v=2.10.50"></script><script src="./html5-qrcode.min.js?v=2.10.50"></script><script src="./app-v2.js?v=2.10.50"></script><script src="./admin-panel.js?v=2.10.50"></script><script src="./pdf-templates.js?v=2.10.50"></script><script src="./erp-ui.js?v=2.10.50"></script><script src="./retail-sales.js?v=2.10.50"></script><script src="./retail-purchases.js?v=2.10.50"></script><script src="./retail-estimate-chit.js?v=2.10.50"></script><script src="./retail-product-workflow.js?v=2.10.50"></script><script src="./qr-scanner.js?v=2.10.50"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.50"></body></html>
 
 
