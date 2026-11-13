@@ -5,7 +5,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){const d=doc
 
 const PDF_LAYOUTS = {
   classic: { name: 'Classic Invoice', description: 'Traditional bordered tax invoice · A4 portrait', size: 'A4 portrait', kind: 'sales' },
-  detailed: { name: 'Detailed Manufacturing', description: 'Full line-item calculations & weights · A4 landscape', size: 'A4 landscape', kind: 'sales' },
+  detailed: { name: 'A4 Detailed Invoice', description: 'Full line-item weights, HUID, wastage, making & chit breakdown · A4 landscape', size: 'A4 landscape', kind: 'sales' },
   modern: { name: 'Modern Branded', description: 'Clean jewel-tone header with branded cards · A4 portrait', size: 'A4 portrait', kind: 'sales' },
   'compact-a5-p': { name: 'Compact Bill (A5 Portrait)', description: 'Clean half-sheet slip for laser/deskjet · A5 portrait', size: 'A5 portrait', kind: 'sales' },
   'compact-a5-l': { name: 'Compact Bill (A5 Landscape)', description: 'Wide half-sheet invoice format · A5 landscape', size: 'A5 landscape', kind: 'sales' },
@@ -668,7 +668,7 @@ function pdfRenderDocumentModal(){
   modal.addEventListener('click',e=>{if(e.target===modal){modal.remove();pdfActiveDocPreview=null;}});
 
   const pillHtml = Object.entries(layouts).map(([id,item])=>{
-    const shortName = item.name.replace(' Manufacturing','').replace(' Branded','').replace(' Bill ',' ').replace(' Quote ',' ').replace('Slip ','').replace(' Portrait',' P').replace(' Landscape',' L').replace('Receipt ','').replace('Estimate ','');
+    const shortName = id==='detailed' ? 'A4 Detailed' : item.name.replace(' Branded','').replace(' Bill ',' ').replace(' Quote ',' ').replace('Slip ','').replace(' Portrait',' P').replace(' Landscape',' L').replace('Receipt ','').replace('Estimate ','');
     return '<button type="button" class="pdf-preview-pill '+(id===chosen?'active':'')+'" data-pdf-layout="'+esc(id)+'" onclick="pdfSwitchDocumentPreview(\''+esc(id)+'\')">'+esc(shortName)+'</button>';
   }).join('');
 
