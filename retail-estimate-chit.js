@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.54';
+const RC_VERSION='2.10.55';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -349,9 +349,13 @@ function rcRenderOldGoldItemsMarkup(form){
     + '</div>';
 }
 function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafContext.retail_enabled&&!erpIsAdmin()&&workspaceMode==='retail')}
-function rcEnsure(){if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];rcSeedSampleChits();}
+function rcEnsure() {
+  if (!Array.isArray(db.retailDocuments)) db.retailDocuments = [];
+  if (platformIsDemo()) rcSeedSampleChits();
+}
 
 function rcSeedSampleChits(force = false){
+  if (!platformIsDemo()) return;
   if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];
   if(!Array.isArray(db.customers))db.customers=[];
   

@@ -20,6 +20,7 @@ function platformShopExpiryState(s) {
   return { ms, isExpired, statusActive, hasWorkspace, canEnter: statusActive && !isExpired && hasWorkspace };
 }
 const platformModules = shop => [shop.retail_enabled && 'Retail', shop.wholesale_enabled && 'Wholesale'].filter(Boolean).join(' + ') || 'Awaiting approval';
+const platformIsDemo = () => session?.user?.id === 'demo-shop-1' && session.access_token === 'demo';
 const platformLink = () => location.origin + location.pathname;
 const platformInput = (label, name, type = 'text', value = '', extra = '') => `<div class="field"><label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label></div>`;
 function platformNav(active) {
@@ -29,6 +30,18 @@ function platformNav(active) {
 window.platformOpen = function(target = 'Dashboard') { platformPage = target; window.history.replaceState(null, '', platformLink() + '?admin=1'); render(); };
 window.platformWorkspace = function() { platformPage = ''; window.history.replaceState(null, '', platformLink()); page = 'Dashboard'; render(); };
 window.platformSignOut = async function() {
+  if (platformIsDemo()) {
+    localStorage.removeItem('goldleaf_demo_active');
+    session = null;
+    goldleafContext = null;
+    platformLoadedUser = '';
+    platformPage = '';
+    db = init();
+    ensureExtendedData();
+    window.history.replaceState(null, '', platformLink());
+    render();
+    return;
+  }
   try {
     const result = await client.auth.signOut();
     if (result.error) throw result.error;
@@ -254,6 +267,12 @@ window.render=function(){
       wholesale_enabled: true,
       shop_name: 'Goldleaf Jewellery Atelier'
     };
+    db = init();
+    try {
+      db = Object.assign(db, JSON.parse(localStorage.getItem(platformStorageKey()) || 'null'));
+    } catch {}
+    ensureExtendedData();
+    setCloudStatus('Demo · this device');
     workspaceMode = 'retail';
     localStorage.setItem('goldleaf_demo_active', '1');
     localStorage.setItem('goldleaf-workspace-mode', 'retail');
@@ -278,7 +297,20 @@ let platformLedgerShop='';
 const platformPreviousSave=window.save;
 const platformPreviousAuthForm=window.authForm;
 window.authForm=function(){if(session){goldleafContext=null;platformLoadedUser='';platformLedgerShop='';}return platformPreviousAuthForm();};
-window.save=function(){if(db.recordsResetToken)for(const key of ['parties','customers','sales','payments','retailSuppliers','retailDocuments'])for(const row of db[key]||[])row.recordsResetToken=db.recordsResetToken;const result=platformPreviousSave();if(session&&platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));return result;};
+window.save = function () {
+  if (platformIsDemo()) {
+    localStorage.setItem(platformStorageKey(), JSON.stringify(db));
+    return;
+  }
+  if (db.recordsResetToken) {
+    for (const key of ['parties', 'customers', 'sales', 'payments', 'retailSuppliers', 'retailDocuments']) {
+      for (const row of db[key] || []) row.recordsResetToken = db.recordsResetToken;
+    }
+  }
+  const result = platformPreviousSave();
+  if (session && platformStorageKey()) localStorage.setItem(platformStorageKey(), JSON.stringify(db));
+  return result;
+};
 function platformStoreLedger(){localStorage.setItem(dbkey,JSON.stringify(db));if(platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));}
 function platformAdoptCloudReset(payload){
   if(!payload?.recordsResetToken||payload.recordsResetToken===db.recordsResetToken)return false;
@@ -287,7 +319,7 @@ function platformAdoptCloudReset(payload){
   localStorage.removeItem(V2_CLOUD_PENDING_KEY);platformStoreLedger();return true;
 }
 window.pullCloud=async function(){
-  if(!session||!client||v2CloudBusy)return;
+  if(!session||!client||v2CloudBusy||platformIsDemo())return;
   v2CloudBusy=true;
   try{
     const context=await client.rpc('goldleaf_my_context');if(context.error)throw context.error;
@@ -313,7 +345,7 @@ window.pullCloud=async function(){
   finally{v2CloudBusy=false;}
 };
 window.pushCloud=async function(){
-  if(!session||!client||!goldleafContext?.shop_id||!goldleafContext.has_access)return;
+  if(!session||!client||!goldleafContext?.shop_id||!goldleafContext.has_access||platformIsDemo())return;
   if(v2CloudBusy){v2CloudQueuedPush=true;return;}v2CloudBusy=true;localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
   try{
     do{v2CloudQueuedPush=false;let written=false;
@@ -337,7 +369,7 @@ window.pushCloud=async function(){
   }catch(error){const rawMsg=String(error?.message||'');const needsSql=/Retail supplier is missing/i.test(rawMsg)&&(db.retailDocuments||[]).some(d=>d?.kind==='retail-product-group'||d?.kind==='retail-model');platformError=needsSql?'Cloud Retail schema needs supabase_retail_features.sql update to sync Product Group / Model records.':rawMsg;window.v2LastSyncError=platformError;const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title=platformError;setCloudStatus('Entry saved here · waiting to sync');}
   finally{v2CloudBusy=false;}
 };
-window.v2CheckCloudForChanges=async function(){if(!session||!client||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
+window.v2CheckCloudForChanges=async function(){if(!session||!client||platformIsDemo()||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
 // Prevent rate reminders from covering the platform sign-in and control screens.
 const platformCheckRateReminder=window.checkRateReminder;
 window.checkRateReminder=function(){if(platformPage||new URLSearchParams(location.search).has('signup'))return;return platformCheckRateReminder();};
