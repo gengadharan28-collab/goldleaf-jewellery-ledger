@@ -156,7 +156,7 @@ window.rbQuickTagScan=function(code,triggerEl){
     window.rbApplyTagData(targetRow,tag);
     const qIn=document.getElementById('rbQuickTagInput');
     if(qIn){qIn.value='';qIn.focus();}
-    say('✓ Loaded '+(tag.metalType||'Gold')+' tag '+tag.tagCode+': '+(tag.product||'item')+' · Rate ₹'+rateMoney(tag.rate||row.querySelector('[data-item="rate"]')?.value||0)+'/g');
+    say('✓ Loaded '+(tag.metalType||'Gold')+' tag '+tag.tagCode+': '+(tag.product||'item')+' · Rate '+rateMoney(tag.rate||targetRow.querySelector('[data-item="rate"]')?.value||0)+'/g');
   }
 };
 

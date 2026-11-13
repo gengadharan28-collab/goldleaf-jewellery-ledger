@@ -1,5 +1,5 @@
-const CACHE='goldleaf-shell-v2157';
-const SHELL=['./','./qrcode.min.js?v=2.10.51','./html5-qrcode.min.js?v=2.10.51','./qr-scanner.js?v=2.10.51','./app-v2.js?v=2.10.51','./admin-panel.js?v=2.10.51','./pdf-templates.js?v=2.10.51','./erp-ui.js?v=2.10.51','./erp-theme.css?v=2.10.51','./mobile-erp-layout.css?v=2.10.51','./retail-sales.js?v=2.10.51','./retail-purchases.js?v=2.10.51','./retail-estimate-chit.js?v=2.10.51','./retail-product-workflow.js?v=2.10.51','./retail-estimate-chit.css?v=2.10.51','./retail-sales.css?v=2.10.51','./manifest.webmanifest?v=2.10.51','./icon-192.png?v=2.10.51','./icon-512.png'];
+const CACHE='goldleaf-shell-v2158';
+const SHELL=['./','./qrcode.min.js?v=2.10.52','./html5-qrcode.min.js?v=2.10.52','./qr-scanner.js?v=2.10.52','./app-v2.js?v=2.10.52','./admin-panel.js?v=2.10.52','./pdf-templates.js?v=2.10.52','./erp-ui.js?v=2.10.52','./erp-theme.css?v=2.10.52','./mobile-erp-layout.css?v=2.10.52','./retail-sales.js?v=2.10.52','./retail-purchases.js?v=2.10.52','./retail-estimate-chit.js?v=2.10.52','./retail-product-workflow.js?v=2.10.52','./retail-estimate-chit.css?v=2.10.52','./retail-sales.css?v=2.10.52','./manifest.webmanifest?v=2.10.52','./icon-192.png?v=2.10.52','./icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{}).then(()=>self.skipWaiting())

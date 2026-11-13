@@ -620,5 +620,130 @@ button#erpUpdatePill.hidden {
   animation: glFadeSlideDown 0.35s ease-out;
 }
 
+/* Global Retail / Wholesale workspace switcher across all screens & viewports */
+.erp-workbar-mode {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px !important;
+  padding: 3px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 9px !important;
+  background: var(--white) !important;
+  flex-shrink: 0 !important;
+}
+.erp-workbar-mode button {
+  min-height: 28px !important;
+  padding: 4px 11px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.erp-workbar-mode button.active {
+  background: var(--green) !important;
+  color: #fff !important;
+}
+.erp-side-mode {
+  margin: 4px 4px 10px;
+}
+.erp-side-mode .erp-side-mode-nav {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px !important;
+  padding: 3px !important;
+  width: 100%;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+.erp-side-mode .erp-side-mode-nav.erp-mode-single {
+  grid-template-columns: 1fr;
+}
+.erp-side-mode .erp-side-mode-nav button {
+  min-height: 32px !important;
+  padding: 5px 8px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  text-align: center;
+}
+.erp-side-mode .erp-side-mode-nav button.active {
+  background: var(--green) !important;
+  color: #fff !important;
+}
+body.erp-sidebar-collapsed .erp-side-mode,
+body.gl-auth-active .erp-side-mode,
+body.gl-auth-active .erp-workbar-mode {
+  display: none !important;
+}
+html[data-theme="dark"] .erp-workbar-mode,
+html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav {
+  background: #1b201e !important;
+  border-color: #3b423e !important;
+}
+html[data-theme="dark"] .erp-workbar-mode button,
+html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button {
+  color: #b7b5ad !important;
+}
+html[data-theme="dark"] .erp-workbar-mode button.active,
+html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button.active {
+  background: #c3a06c !important;
+  color: #171a19 !important;
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .erp-shortcuts {
+    display: none !important;
+  }
+  .erp-page-tab span {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 760px) {
+  body[data-erp] .erp-workbar {
+    height: auto !important;
+    min-height: var(--erp-toolbar) !important;
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    padding: 6px 10px !important;
+  }
+  body[data-erp] .erp-bar-left {
+    order: 1 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  body[data-erp] .erp-bar-right {
+    order: 2 !important;
+    flex-shrink: 0 !important;
+  }
+  body[data-erp] .erp-workbar-mode {
+    order: 3 !important;
+    flex: 1 0 100% !important;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  body[data-erp] .erp-workbar-mode.erp-mode-single {
+    grid-template-columns: 1fr !important;
+  }
+  body[data-erp] .erp-workbar-mode button {
+    width: 100% !important;
+    min-height: 31px !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+}
+
+
 
 
