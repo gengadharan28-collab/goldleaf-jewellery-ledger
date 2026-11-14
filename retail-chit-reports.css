@@ -25,6 +25,37 @@
   min-width: 720px;
 }
 
+.chit-report-link {
+  border: 0;
+  background: transparent;
+  color: #2457a5;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.chit-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.chit-detail-metric {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid #dde5ee;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.chit-detail-metric small,
+.chit-detail-metric strong { display: block; overflow-wrap: anywhere; }
+.chit-detail-metric small { color: #596579; }
+.chit-detail-metric strong { margin-top: 3px; font-size: 14px; }
+.chit-detail-totals .chit-detail-metric { background: #edf5f7; }
+.chit-detail-tabs { margin: 16px 0; }
+
 @media (max-width: 760px) {
   .chit-report-tabs {
     display: grid;
@@ -43,6 +74,8 @@
   .chit-report-panel .rc-grid label:first-child {
     grid-column: 1 / -1;
   }
+
+  .chit-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media print {

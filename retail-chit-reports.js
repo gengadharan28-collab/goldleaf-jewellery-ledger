@@ -10,6 +10,8 @@ let chitReportFrom = '';
 let chitReportTo = '';
 let chitReportType = '';
 let chitReportStatus = '';
+let chitReportDetailId = '';
+let chitReportDetailTab = 'Details';
 
 function chitMoney(value) {
   return '₹ ' + n(value).toLocaleString('en-IN', {
@@ -183,6 +185,7 @@ function chitReportRows() {
 }
 
 function chitReportsView() {
+  if (chitReportDetailId) return chitReportDetailView();
   const data = chitReportRows();
   const types = rcDocs('retail-chit-type');
   const filter = '<div class="rc-grid"><label>Search<input value="' + esc(chitReportSearch) + '" onchange="chitReportSearch=this.value;render()" placeholder="Customer, phone, Chit#"></label>' +
@@ -192,12 +195,86 @@ function chitReportsView() {
     types.map(row => '<option value="' + esc(row.id) + '" ' + (chitReportType === row.id ? 'selected' : '') + '>' + esc(row.name) + '</option>').join('') + '</select></label>' +
     '<label>Status<select onchange="chitReportStatus=this.value;render()"><option value="">All statuses</option>' +
     ['Active', 'Matured', 'Closed'].map(value => '<option ' + (chitReportStatus === value ? 'selected' : '') + '>' + value + '</option>').join('') + '</select></label></div>';
-  const tableHtml = data.rows.length ? table(data.columns, data.rows.map(row => row.map(value => esc(value)))) : '<p class="muted">No matching Chit records.</p>';
+  const mappingByNumber = new Map(rcDocs('retail-chit-mapping').map(row => [row.chitNumber, row.id]));
+  const tableHtml = data.rows.length ? table(data.columns, data.rows.map(row => row.map((value, index) => {
+    if (chitReportName === 'Chit Report' && index === 6 && mappingByNumber.has(value)) {
+      return '<button type="button" class="chit-report-link" onclick="chitReportOpen(\'' + esc(mappingByNumber.get(value)) + '\')">' + esc(value) + '</button>';
+    }
+    return esc(value);
+  }))) : '<p class="muted">No matching Chit records.</p>';
   return '<section class="panel"><h2>Chit Reports</h2><div class="chit-report-tabs">' +
     chitReportNames.map(name => '<button type="button" class="' + (chitReportName === name ? 'primary' : '') + '" onclick="chitReportName=\'' + name + '\';render()">' + name + '</button>').join('') +
     '</div></section><section class="panel chit-report-panel"><div class="rc-section-title"><h2>' + esc(chitReportName) + '</h2><span>' + data.rows.length + ' rows</span></div>' +
     filter + '<div class="chit-report-actions"><button type="button" onclick="chitReportSearch=chitReportFrom=chitReportTo=chitReportType=chitReportStatus=\'\';render()">Reset</button>' +
     '<button type="button" onclick="chitReportCsv()">Export CSV</button><button type="button" onclick="window.print()">Print / PDF</button></div>' + tableHtml + '</section>';
+}
+
+window.chitReportOpen = function (id) {
+  if (!rcDocs('retail-chit-mapping').some(row => row.id === id)) return;
+  chitReportDetailId = id;
+  chitReportDetailTab = 'Details';
+  render();
+};
+
+window.chitReportClose = function () { chitReportDetailId = ''; render(); };
+window.chitReportDetailSelect = function (name) { chitReportDetailTab = name; render(); };
+
+function chitReportDetailView() {
+  const data = chitReportData();
+  const mapping = data.mappingById.get(chitReportDetailId);
+  if (!mapping) { chitReportDetailId = ''; return chitReportsView(); }
+  const customer = data.customerById.get(mapping.customerId) || {};
+  const group = data.groupById.get(mapping.groupId) || {};
+  const type = data.typeById.get(mapping.typeId) || {};
+  const summary = rcChitSummary(mapping.id) || {};
+  const entries = [...(data.entriesByMapping.get(mapping.id) || [])].sort((a, b) => String(a.when || a.createdAt || '').localeCompare(String(b.when || b.createdAt || '')));
+  const payments = entries.filter(row => row.entryType !== 'Closure');
+  const target = n(mapping.targetAmount) || n(mapping.installmentAmount || type.installmentAmount) * n(mapping.totalDues || type.installments);
+  const lastPaid = payments.map(row => String(row.when || row.createdAt || '').slice(0, 10)).sort().at(-1) || '—';
+  const weightUnit = (summary.ornamentType || 'Gold') + ' g';
+  const metric = (label, value) => '<div class="chit-detail-metric"><small>' + esc(label) + '</small><strong>' + esc(value) + '</strong></div>';
+  const detailFields = [
+    ['Customer', customer.name || '—'], ['Mobile', customer.phone || '—'], ['City', customer.city || customer.place || '—'],
+    ['Group', group.name || '—'], ['Chit Type', type.name || '—'], ['Scheme', type.scheme || '—'],
+    ['Chit #', mapping.chitNumber || '—'], ['Status', mapping.status || 'Active'],
+    ['Join Date', mapping.startDate || '—'], ['Maturity Date', mapping.maturityDate || '—'],
+    ['Plan Instalment', chitMoney(mapping.installmentAmount || type.installmentAmount)],
+    ['Plan Target', chitMoney(target)], ['Last Paid On', lastPaid],
+    ['Settlement Date', mapping.settledAt || '—']
+  ];
+  let content = '<div class="chit-detail-grid">' + detailFields.map(([label, value]) => metric(label, value)).join('') + '</div>';
+  if (chitReportDetailTab === 'Chit Entries') {
+    let amount = 0, weight = 0;
+    const rows = payments.map((entry, index) => {
+      amount += chitEntryAmount(entry);
+      weight += chitEntryWeight(entry);
+      return [index + 1, String(entry.when || entry.createdAt || '').slice(0, 10), entry.entryType || 'Instalment',
+        n(entry.installmentNo) || '—', entry.method || '—', chitMoney(chitEntryAmount(entry)),
+        fmt(chitEntryWeight(entry)) + ' g', chitMoney(amount), fmt(weight) + ' g',
+        entry.goldRate ? chitMoney(entry.goldRate) + '/g' : '—', entry.reference || '—'];
+    });
+    rows.push(['', 'Total', '', '', '', chitMoney(summary.paid), fmt(summary.metalWeight) + ' g',
+      chitMoney(summary.paid), fmt(summary.metalWeight) + ' g', '', '']);
+    content = '<p class="muted">Payment and accumulated totals for this chit passbook.</p>' +
+      (payments.length ? table(['No.', 'Date', 'Entry', 'Due No.', 'Payment Mode', 'Amount', 'Weight', 'Acc. Amount', 'Acc. Weight', 'Rate', 'Reference'], rows.map(row => row.map(value => esc(value)))) : '<p class="muted">No payments recorded yet.</p>');
+  }
+  if (chitReportDetailTab === 'History') {
+    content = entries.length ? table(['Date', 'Entry', 'Due No.', 'Amount', 'Weight', 'Rate', 'Method', 'Reference', 'Remarks'],
+      entries.map(entry => [String(entry.when || entry.createdAt || '').slice(0, 10), entry.entryType || 'Instalment',
+        n(entry.installmentNo) || '—', chitMoney(chitEntryAmount(entry)), fmt(chitEntryWeight(entry)) + ' g',
+        entry.goldRate ? chitMoney(entry.goldRate) + '/g' : '—', entry.method || '—', entry.reference || '—', entry.remarks || '—'].map(value => esc(value)))) : '<p class="muted">No chit history yet.</p>';
+  }
+  return '<section class="panel chit-report-panel chit-detail"><div class="rc-section-title"><h2>Customer Chit Summary · ' + esc(mapping.chitNumber || '') + '</h2><button type="button" onclick="chitReportClose()">← Chit Report</button></div>' +
+    '<p class="muted">' + esc(customer.name || 'Customer') + ' · ' + esc(type.name || 'Chit') + ' · ' + esc(mapping.status || 'Active') + '</p>' +
+    '<div class="chit-detail-grid chit-detail-totals">' +
+    metric('Total Paid', chitMoney(summary.paid)) + metric('Accumulated ' + weightUnit, fmt(summary.metalWeight) + ' g') +
+    metric('Paid Dues', n(summary.duesPaid) + ' / ' + n(summary.totalDues)) +
+    metric('Pending Plan Amount', chitMoney(Math.max(0, target - n(summary.paid)))) +
+    metric('Average Rate', chitMoney(summary.avgRate) + '/g') +
+    metric('Settlement Value', chitMoney(summary.totalChitAmount)) + '</div>' +
+    '<div class="chit-report-tabs chit-detail-tabs">' + ['Details', 'Chit Entries', 'History'].map(name =>
+      '<button type="button" class="' + (chitReportDetailTab === name ? 'primary' : '') + '" onclick="chitReportDetailSelect(\'' + name + '\')">' + name + '</button>').join('') + '</div>' +
+    content + '<div class="chit-report-actions"><button type="button" onclick="window.print()">Print / PDF</button></div></section>';
 }
 
 function reportsView() {
