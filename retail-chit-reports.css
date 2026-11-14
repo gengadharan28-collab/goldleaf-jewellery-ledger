@@ -1,0 +1,66 @@
+.chit-report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chit-report-tabs button {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.chit-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.chit-report-panel .table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.chit-report-panel table {
+  min-width: 720px;
+}
+
+@media (max-width: 760px) {
+  .chit-report-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chit-report-tabs button {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .chit-report-panel .rc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chit-report-panel .rc-grid label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media print {
+  .side, .erp-workbar, .chit-report-tabs, .chit-report-actions,
+  .chit-report-panel .rc-grid, .app-version {
+    display: none !important;
+  }
+
+  .layout, .main, .chit-report-panel, .chit-report-panel .table {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .chit-report-panel table {
+    min-width: 0;
+    font-size: 9pt;
+  }
+}
