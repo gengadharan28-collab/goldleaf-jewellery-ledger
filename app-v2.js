@@ -34,6 +34,9 @@ window.setRateBookMode = function(mode){
   rateBookMode = mode;
   localStorage.setItem('goldleaf-ratebook-mode', mode);
   const f = document.getElementById('rateBookForm');
+  document.querySelectorAll('.rate-mode-switch button').forEach((button,index)=>button.classList.toggle('active',index===(mode==='auto'?0:1)));
+  const note=document.getElementById('rateBookModeNote');
+  if(note)note.textContent=mode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.';
   if(f && mode === 'auto'){
     const g24 = Number(f.elements.gold24?.value)||0;
     if(g24 > 0){
@@ -42,7 +45,6 @@ window.setRateBookMode = function(mode){
       if(f.elements.gold14) f.elements.gold14.value = Math.round(g24 * 14 / 24);
     }
   }
-  render();
 };
 
 window.rateBookAutoCalc = function(input){
@@ -72,7 +74,7 @@ window.rateBookView=function(){
   const date=istDateTime(new Date()).date,slot=r.entrySlot||(Number(istDateTime(new Date()).time.slice(0,2))>=16?'PM':'AM');
   const modeSwitch='<div class="rate-mode-switch" style="display:flex;gap:8px;margin-bottom:14px"><button type="button" class="'+(rateBookMode==='auto'?'active':'')+'" onclick="setRateBookMode(\'auto\')">⚖ Automatic Calculation (22K/18K/14K from 24K)</button><button type="button" class="'+(rateBookMode==='manual'?'active':'')+'" onclick="setRateBookMode(\'manual\')">✎ Manual Rate Entry</button></div>';
   return header('Enter today’s Retail prices manually or use automatic calculation. Choose entry date and AM/PM slot, then save.')
-   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p class="muted">'+(rateBookMode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.')+'</p></div><span class="pill">Retail</span></div>'+modeSwitch+'<form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
+   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p id="rateBookModeNote" class="muted">'+(rateBookMode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.')+'</p></div><span class="pill">Retail</span></div>'+modeSwitch+'<form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
    +'<div class="field"><label>Gold Pure Rate · 24K · ₹/g *</label><input type="number" min="0" step=".01" name="gold24" required value="'+(r.gold24||'')+'" oninput="rateBookAutoCalc(this)"></div>'
    +'<div class="field"><label>Gold Board Rate · 22K · ₹/g *</label><input type="number" min="0" step=".01" name="gold22" required value="'+(r.gold22||'')+'"></div>'
    +'<div class="field"><label>Gold Rate · 18K · ₹/g *</label><input type="number" min="0" step=".01" name="gold18" required value="'+(r.gold18||'')+'"></div>'
@@ -353,6 +355,7 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
   }
   for(const key of ['products','purities','partyPurities']){const seen=new Map();for(const item of [...(merged[key]||[]),...(current[key]||[])])seen.set(String(item).toLowerCase(),item);merged[key]=[...seen.values()]}
   const ratesA=merged.rates||{},ratesB=current.rates||{};merged.rates=Date.parse(ratesB.updatedAt||'')>Date.parse(ratesA.updatedAt||'')?Object.assign({},ratesA,ratesB):Object.assign({},ratesB,ratesA);
+  const shopA=merged.shopRates||{},shopB=current.shopRates||{};merged.shopRates=Date.parse(shopB.updatedAt||'')>Date.parse(shopA.updatedAt||'')?Object.assign({},shopB):Object.assign({},shopA);
   const history=new Map();for(const item of [...(merged.rateHistory||[]),...(current.rateHistory||[])])history.set(item.id||JSON.stringify(item),item);merged.rateHistory=[...history.values()].sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time)).slice(0,100);
   merged.cloud=Object.assign({},merged.cloud||{},current.cloud||{});return merged;
 }
@@ -540,11 +543,13 @@ function goldleafSuperAdminPanel(){
   return '<section class="panel goldleaf-admin"><h2>Super Admin</h2><p class="hint">Customer accounts, compulsory shop details, trial status, renewal and seat limits. New shops start with a 7-day trial, one owner seat and one user seat.</p><button type="button" onclick="goldleafLoadAdminShops().then(render)">Refresh shop list</button>'+(rows||'<div class="empty">No shop registrations are available yet.</div>')+'</section>';
 }
 const goldleafPreviousRateBookView=window.rateBookView,goldleafPreviousSaveRateBook=window.saveRateBook;
-window.rateBookView=function(){let html=goldleafPreviousRateBookView();if(!session)return html;const isAdmin=!!goldleafContext?.is_super_admin;html=html.replace('<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2>','<section class="panel"><div class="exchange-heading"><div><h2>Shared Retail Rate Entry</h2>');html=html.replace('Enter today’s Retail prices manually','Enter Retail prices manually');if(!isAdmin){html=html.replace(/<button class="primary">Save rates<\/button>/g,'<span class="pill">Managed by Super Admin</span>').replace(/<input([^>]*name="(?:gold24|gold22|gold18|gold14|silver|silverBoard|diamond|rateDate|rateSlot)"[^>]*)>/g,(all,attrs)=>'<input'+attrs+' readonly>')}return html;};
+window.rateBookView=function(){let html=goldleafPreviousRateBookView();if(!session)return html;const isAdmin=!!goldleafContext?.is_super_admin;html=html.replace('<h2>Retail Rate Entry</h2>','<h2>'+(isAdmin?'Shared Retail Rate Entry':'Shop Retail Rate Entry')+'</h2>');if(!isAdmin){const status=db.shopRates?.enabled?'This shop uses its own rates.':'This shop uses Super Admin shared rates.';html=html.replace('<form id="rateBookForm"','<p class="muted">'+status+' Save manual values to use them in this shop on every device.</p><form id="rateBookForm"');html=html.replace('<button class="primary">Save rates</button>','<button class="primary">Save shop rates</button> <button type="button" onclick="useSharedRates()">Use shared rates</button>')}return html;};
+window.useSharedRates=function(){if(!session||goldleafContext?.is_super_admin)return;db.shopRates={enabled:false,updatedAt:new Date().toISOString()};db.rates=Object.assign({},db.sharedRates||db.rates);save();render();say('Shared rates restored for this shop.');};
 window.saveRateBook=async function(event){
-  if(!session||!goldleafContext?.is_super_admin){event.preventDefault();say('Only the Super Admin can update shared rates.');return}
+  if(!session){event.preventDefault();say('Sign in to save rates.');return}
   event.preventDefault();const form=event.target,f=new FormData(form),rates={gold24:n(f.get('gold24')),gold22:n(f.get('gold22')),gold18:n(f.get('gold18')),gold14:n(f.get('gold14')),silver:n(f.get('silver')),silverBoard:n(f.get('silverBoard')),diamond:n(f.get('diamond')),oldSilver:n(db.rates.oldSilver),oldGold:n(db.rates.oldGold),entryDate:String(f.get('rateDate')||istDateTime(new Date()).date),entrySlot:String(f.get('rateSlot')||'AM'),updatedAt:new Date().toISOString()};
-  if(['gold24','gold22','gold18','gold14','silver','silverBoard'].some(k=>rates[k]<=0))return say('Enter valid shared gold and silver rates.');
+  if(['gold24','gold22','gold18','gold14','silver','silverBoard'].some(k=>rates[k]<=0))return say('Enter valid gold and silver rates.');
+  if(!goldleafContext?.is_super_admin){db.shopRates=Object.assign({enabled:true},rates);db.rates=Object.assign({},rates);db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);await save();render();say('Shop rates saved.');return}
   const {error}=await client.rpc('goldleaf_admin_set_shared_rates',{p_rates:rates});if(error)return say('Could not update shared rates: '+error.message);
   db.rates=rates;db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);localStorage.setItem(dbkey,JSON.stringify(db));await pushCloud();render();say('Shared rates updated for all shops.');
 };
