@@ -278,7 +278,11 @@ function chitReportDetailView() {
 }
 
 function reportsView() {
-  return '<section class="panel"><h2>Reports</h2><button type="button" class="primary" onclick="go(\'Chit Reports\')">Chit Reports</button></section>';
+  if (window.tradeReportActive) return tradeReportsView();
+  return '<section class="panel"><h2>Retail Reports</h2><p class="muted">Review saved transactions, weights and amounts.</p><div class="chit-report-tabs">' +
+    '<button type="button" onclick="tradeReportOpen(\'Sales\')">Sales Reports</button>' +
+    '<button type="button" onclick="tradeReportOpen(\'Purchase\')">Purchase Reports</button>' +
+    '<button type="button" onclick="go(\'Chit Reports\')">Chit Reports</button></div></section>';
 }
 
 function chitReportCsv() {

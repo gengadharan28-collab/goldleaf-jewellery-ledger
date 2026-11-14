@@ -56,6 +56,15 @@
 .chit-detail-totals .chit-detail-metric { background: #edf5f7; }
 .chit-detail-tabs { margin: 16px 0; }
 
+.trade-report-panel .table tbody tr:last-child {
+  background: #e6f3ec;
+  font-weight: 800;
+  color: #123d2d;
+}
+
+.trade-report-panel .table { overflow-x: auto; }
+.trade-report-panel table { min-width: 820px; }
+
 @media (max-width: 760px) {
   .chit-report-tabs {
     display: grid;

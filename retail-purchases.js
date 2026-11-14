@@ -290,9 +290,16 @@ function rpItemsView(doc,kind){
   }
   return '<section class="panel rb-items">'
     +'<div class="rb-section-head"><h2>'+(kind==='old-purchase'?'Scrap old jewellery items':kind==='bill-entry'?'Billed expense items':'Purchase inward items')+'</h2><button type="button" onclick="rpAddItem()">＋ Add item</button></div>'
-    +'<div class="rb-item-scroll"><table class="rp-items-table" id="rpItemsTable"><thead><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead>'+items.map((x,i)=>rpItemMarkup(x,i,kind)).join('')+'<tfoot><tr><td colspan="'+(heads.length-2)+'">Item total</td><td id="rpItemsValue">₹ 0.00</td><td></td></tr></tfoot></table></div>'
+    +'<div class="rb-item-scroll"><table class="rp-items-table" id="rpItemsTable"><thead><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead>'+items.map((x,i)=>rpItemMarkup(x,i,kind)).join('')+rpItemTotalsMarkup(kind)+'</table></div>'
     +'<p class="hint">'+(kind==='bill-entry'?'Quantity × rate, less item discount. GST is recorded at each entered item rate.':kind==='old-purchase'?'Scrap Purchase: Pure weight = (Net weight − Melting loss) × Touch %. Line amount = (Pure weight × Pure rate) − Testing fee / deductions.':'Touch % = assayed testing purity. Pure weight = (Net weight − Melting loss) × Touch %. Payable pure = Pure weight + Wastage weight. Line amount = (Payable pure × Pure rate) + Making charges + Stone + Other charges.')+'</p>'
     +'</section>';
+}
+
+function rpItemTotalsMarkup(kind){
+  const total=(id,initial='0.000')=>'<td id="'+id+'">'+initial+'</td>';
+  if(kind==='bill-entry')return '<tfoot><tr><td colspan="3">Totals</td>'+total('rpTotalPieces','0')+'<td colspan="4"></td>'+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
+  if(kind==='old-purchase')return '<tfoot><tr><td colspan="3">Totals</td>'+total('rpTotalGross')+total('rpTotalLess')+total('rpTotalNet')+'<td colspan="2"></td>'+total('rpTotalPure')+'<td></td>'+total('rpTotalOther','₹ 0.00')+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
+  return '<tfoot><tr><td colspan="4">Totals</td>'+total('rpTotalPieces','0')+total('rpTotalGross')+total('rpTotalLess')+total('rpTotalNet')+'<td colspan="2"></td>'+total('rpTotalPure')+'<td></td>'+total('rpTotalPayable')+'<td colspan="3"></td>'+total('rpTotalStone','₹ 0.00')+total('rpTotalOther','₹ 0.00')+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
 }
 
 function rpHeader(){
@@ -595,8 +602,8 @@ window.rpRecalc=function(form){
         if(e)e.textContent=key==='subtotal'?rateMoney(d.items[i][key]):fmt(d.items[i][key]);
       }
     });
-    const out=form.querySelector('#rpItemsValue');
-    if(out)out.textContent=rateMoney(d.subtotal);
+    const totals={rpTotalPieces:String(d.pieces),rpTotalGross:fmt(d.grossWeight),rpTotalLess:fmt(d.items.reduce((sum,item)=>sum+n(item.lessWeight),0)),rpTotalNet:fmt(d.netWeight),rpTotalPure:fmt(d.items.reduce((sum,item)=>sum+n(item.pureWeight),0)),rpTotalPayable:fmt(d.items.reduce((sum,item)=>sum+n(item.payablePure),0)),rpTotalStone:rateMoney(d.items.reduce((sum,item)=>sum+n(item.stoneAmount),0)),rpTotalOther:rateMoney(d.items.reduce((sum,item)=>sum+n(item.otherAmount),0)),rpItemsValue:rateMoney(d.subtotal)};
+    for(const [id,value] of Object.entries(totals)){const out=form.querySelector('#'+id);if(out)out.textContent=value;}
 
     html=row('Net jewellery weight',fmt(d.netWeight)+' g')
       +row('Gold payable pure',fmt(d.goldPure)+' g')
