@@ -31,6 +31,7 @@ function pdfConfig(mode=pdfMode()){
   const defaults = {
     template: 'classic',
     estimateTemplate: 'detailed-estimate',
+    chitTemplate: 'compact-a5-p',
     thermalSize: '3inch',
     thermalFeed: 3,
     estimateBottomMargin: "Thanks for visiting! Quotations are valid for today's gold rate only and subject to bullion market fluctuations.",
@@ -108,6 +109,7 @@ function pdfSettingsPanel(){
   const estimateSection = retail ? 
     '<div class="pdf-settings-subhead"><h3>Estimation & Quotation Print Format</h3><p class="hint">Choose default layout for customer quotations and estimations across desktop and thermal printers.</p></div>'
     +'<div class="pdf-choices pdf-estimate-choices">'+estimateCards+'</div>' : '';
+  const chitSection=retail?'<div class="pdf-settings-subhead"><h3>Chit Receipt Print Format</h3><p class="hint">Used for chit payment receipts.</p></div><div class="pdf-choices">'+Object.entries(PDF_LAYOUTS).map(([id,item])=>'<label class="pdf-choice '+(c.chitTemplate===id?'selected':'')+'"><input type="radio" name="chitTemplate" value="'+id+'" '+(c.chitTemplate===id?'checked':'')+'><b>'+item.name+'</b><small>'+esc(item.description)+'</small></label>').join('')+'</div>':'';
 
   // Field visibility toggles
   const toggles = retail ?
@@ -171,6 +173,7 @@ function pdfSettingsPanel(){
     +'<div class="pdf-settings-subhead"><h3>Sales Bill & Invoice Print Format</h3><p class="hint">Choose default layout for customer sales tax bills and invoices.</p></div>'
     +'<div class="pdf-choices">'+salesCards+'</div>'
     +estimateSection
+    +chitSection
     +toggles
     +thermalSettings
     +bankSettings
@@ -201,6 +204,7 @@ function pdfReadSettingsForm(){
   return Object.assign({},c,{
     template: f.get('template')||'classic',
     estimateTemplate: f.get('estimateTemplate')||'detailed-estimate',
+    chitTemplate: f.get('chitTemplate')||c.chitTemplate||'compact-a5-p',
     thermalSize: f.get('thermalSize')||'3inch',
     thermalFeed: parseInt(f.get('thermalFeed')||3, 10),
     estimateBottomMargin: String(f.get('estimateBottomMargin')||'').trim(),
@@ -681,7 +685,6 @@ function pdfRenderDocumentModal(){
     +'<button type="button" onclick="document.getElementById(\'pdfDocumentPreview\')?.remove()">Close</button>'
     +'</div></div>'
     +(missingGstin?'<div class="pdf-preview-warning">GST is enabled on this bill, but Shop GSTIN (15 chars) is not set in Retail PDF Settings — showing draft preview.</div>':'')
-    +'<div class="pdf-preview-toolbar"><div class="pdf-preview-pills">'+pillHtml+'</div></div>'
     +'<iframe title="Live PDF preview"></iframe>'
     +'</section>';
 
@@ -720,7 +723,8 @@ window.pdfPrintPreviewActive=function(){
 async function pdfPrintModel(model,mode,forcedTemplate=null,options={}){
   await pdfLoadProfile();const c=pdfConfig(mode);
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
-  const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
+  const isChit=String(model.title||'').toUpperCase().includes('CHIT');
+  const template = isChit?(c.chitTemplate||'compact-a5-p'):(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
   if(options?.directPrint){
     return pdfTriggerPrint(model, mode, template, false);
   }
@@ -995,6 +999,7 @@ pdfStyle.textContent=PDF_DOCUMENT_CSS+`
 }
 `;
 document.head.append(pdfStyle);
+pdfStyle.textContent+='\n#app .rb-bill-actions .rb-pill-btn,#app button[onclick*="thermal-"]:not(.pdf-settings-panel button),#app button[onclick*="compact-"]:not(.pdf-settings-panel button),#app button[onclick*="detailed"]:not(.pdf-settings-panel button),#pdfDocumentPreview .pdf-preview-toolbar{display:none!important}';
 
 const pdfHistoryBase=window.updateHistoryView;
 window.updateHistoryView=function(){

@@ -234,10 +234,10 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  const current=window.GOLDLEAF_VERSION||'2.10.66';
+  const current=window.GOLDLEAF_VERSION||'2.10.67';
   html=html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/,'<h2>Current version</h2><p><b>Goldleaf v'+current+'</b> · 14 Nov 2026</p>');
   html=html.replace(/(<h3>v[^<]+?) · Current(<\/h3>)/g,'$1$2');
-  const latestNote='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Added totals to Retail Sales, payments, returns, advances, Purchase, Quotation and Chit entry histories, plus Wholesale Party Sales and Payments histories. Gold grams and hallmark cash stay separate.</li></ul></article>';
+  const latestNote='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Moved Sales, Chit Receipt and Estimation/Quotation print format selection into Settings. Entry pages use the saved formats.</li></ul></article><article class="release-note"><h3>v2.10.66 · 14 Nov 2026</h3><ul><li>Added totals inside Sales, Purchase, Quotation, Chit and Payment entry histories.</li></ul></article>';
   const v31Note = '<article class="release-note"><h3>v2.10.31 · 12 Nov 2026</h3><ul>'
     + '<li>Mobile Workspace Context Banner Removal: Completely removed redundant top workspace context banner ("GOLDLEAF · RETAIL", "RETAIL WORKSPACE", duplicate section selectors, and header identity cards) across all mobile pages.</li>'
     + '<li>Screen Real Estate Maximization: Content cards, quotation forms, and dashboards start directly below the sticky navigation bar on mobile phones.</li>'
