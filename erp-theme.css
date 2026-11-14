@@ -67,6 +67,15 @@
   @media(max-width:760px){.layout{display:block}.main{padding:18px 13px calc(28px + env(safe-area-inset-bottom))}.top{padding:14px;gap:12px;border-radius:12px;margin-bottom:15px;flex-direction:column;align-items:stretch}.top>div:first-child{width:100%}.top .header-actions{justify-content:flex-start;flex-wrap:wrap}.top h1{font-size:23px!important}.top .muted{font-size:11px}.header-actions{width:100%;gap:6px}.header-actions button{font-size:11px;min-height:38px;padding:8px 10px}.panel{padding:15px;border-radius:12px;margin-bottom:12px}.card{padding:13px}.card b{font-size:22px}.grid{gap:11px}.field input:not([type="checkbox"]):not([type="radio"]),.field select,.field textarea{font-size:16px;min-height:44px}.filters{padding:11px}.table table:not(#rcQuoteTable){min-width:650px!important}.table th,.table td{padding:10px!important;font-size:11px}.table th{font-size:8px}.retail-sale-top{padding:12px;background:var(--white);border:1px solid var(--line);border-radius:12px}.retail-title h1{font-size:21px}.retail-sale-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 38px;gap:5px;width:100%}.retail-sale-tools button{min-height:40px;padding:7px 4px;font-size:11px;min-width:0}.retail-exchange-row{align-items:flex-start}.retail-exchange-row>.muted{flex-basis:100%;font-size:11px}.retail-exchange-buttons{width:100%;gap:8px}.retail-exchange-buttons .exchange-toggle{min-height:42px;padding:8px 11px;font-size:12px}.retail-modal-backdrop{padding:10px}.retail-modal{padding:14px;max-height:calc(100dvh - 20px);border-radius:13px}.erp-gst-modal .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.retail-modal-actions button{min-height:43px}.pdf-choices{gap:8px}.platform-metrics{margin-bottom:12px!important}.quick-panel{border-left-width:2px}}
 }
 
+.erp-switch-confirm-backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:16px;background:rgba(16,27,23,.6);backdrop-filter:blur(3px)}
+.erp-switch-confirm{width:min(420px,100%);padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--white);color:var(--ink);box-shadow:0 22px 70px rgba(12,24,18,.28)}
+.erp-switch-kicker{font-size:10px;font-weight:800;letter-spacing:1.4px;color:var(--green-2)}
+.erp-switch-confirm h2{margin:10px 0 8px;font-size:22px;line-height:1.2;color:var(--ink)}
+.erp-switch-confirm p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.erp-switch-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:22px}
+.erp-switch-actions button{min-width:120px;min-height:42px;font-weight:700}
+@media(max-width:760px){.erp-switch-confirm{padding:20px}.erp-switch-actions{display:grid;grid-template-columns:1fr 1fr}.erp-switch-actions button{min-width:0;padding:8px}}
+
 /* Reference-inspired ERP shell in the established Goldleaf palette. */
 @media screen {
   :root{--white:#fffefa;--erp-soft:#f4f0e7;--erp-soft-2:#faf6ed;--erp-accent:#967247;--erp-danger:#ad4836;--erp-toolbar:58px;--erp-sidebar:246px}
