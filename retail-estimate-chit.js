@@ -1619,7 +1619,7 @@ window.rcScanTagForQuote = function(){
 
 function rcEstimateHistory(){
   const all = rcDocs('retail-estimate').sort((a,b)=>String(b.when||b.createdAt||'').localeCompare(String(a.when||a.createdAt||'')));
-  return all.length ? table(['Quote #','Date','Customer','Items','Amount','Status','Actions'],all.map(q=>[
+  const rows=all.map(q=>[
     '<b>'+esc(q.documentNo)+'</b>',
     esc(String(q.when||'').replace('T',' ')),
     esc(accountName(q.customerId,'customer')),
@@ -1631,7 +1631,9 @@ function rcEstimateHistory(){
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm Thermal Slip">POS</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
     +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button>'
-  ])) : '<p class="muted">Saved estimations and quotations will appear here.</p>';
+  ]);
+  if(rows.length)rows.push(['TOTAL · '+all.length,'','',all.reduce((s,q)=>s+(q.items?.length||0),0)+' pcs',rateMoney(all.reduce((s,q)=>s+n(q.amount),0)),'','']);
+  return rows.length?'<div class="rb-total-history">'+table(['Quote #','Date','Customer','Items','Amount','Status','Actions'],rows)+'</div>':'<p class="muted">Saved estimations and quotations will appear here.</p>';
 }
 
 window.rcEditEstimate = function(id){
@@ -3219,7 +3221,11 @@ function rcChitView(){
  const rows=all.filter(r=>rcChitTab!=='Entry').map(r=>rcChitTab==='Group'?[esc(r.orderPosition||'—'),esc(r.name),esc(r.groupCode||'—'),esc([r.startDate,r.endDate].filter(Boolean).join(' – ')||'—'),esc(r.memberLimit||'—'),esc(r.status||'Active'),actions(r.id)]:rcChitTab==='Type'?[esc(r.name),esc(r.scheme||'Fixed'),esc(r.frequency),esc(r.mode||'Cash / Metal'),rateMoney(r.installmentAmount),esc(r.installments||'—'),esc((r.bonusType&&r.bonusType!=='None'?r.bonusType+' ':'')+(r.benefitPercent||r.bonusValue||0)+'%'+(r.wastageBenefitPercent?' · VA: '+r.wastageBenefitPercent+'%':'')+(r.noMakingChargeOnChit?' · Free MC':(r.mcBenefitRate?' · MC -₹'+r.mcBenefitRate+'/g':''))),actions(r.id)]:(()=>{let t=types.find(z=>z.id===r.typeId),s=rcChitSummary(r.id),totTarget=n(r.targetAmount)>0?n(r.targetAmount):n(r.installmentAmount||t?.installmentAmount||0)*n(r.totalDues||t?.installments||0);return [esc(r.chitNumber),esc(accountName(r.customerId,'customer')),esc(groups.find(g=>g.id===r.groupId)?.name||'—'),esc(t?.name||'—'),rateMoney(r.installmentAmount||t?.installmentAmount||0),rateMoney(s?.paid||0)+' / '+rateMoney(totTarget)+(s?.metalWeight>0?'<br><small style="color:#15803d;font-weight:700">'+fmt(s.metalWeight)+' g · Avg '+rateMoney(s.avgRate)+'/g</small>':''),esc(r.nomineeName?'Nom: '+r.nomineeName:r.pan?'PAN: '+r.pan:'—'),esc(r.status||'Active'),mappingActions(r)]})());
  const entryRows=entries.sort(whenCmp).map(p=>{let m=maps.find(z=>z.id===p.mappingId);return [esc(whenShow(p)),esc(accountName(p.customerId,'customer')),esc(m?.chitNumber||'—'),esc(p.entryType||'Instalment'),p.installmentNo,rateMoney(p.amount),p.goldRate?rateMoney(p.goldRate):'—',fmt(p.metalWeight||0)+' g',esc(p.method||'—'),esc([p.drawerLedger,p.reference].filter(Boolean).join(' · ')||'—'),'<button type="button" onclick="rcEditChit(\''+esc(p.id)+'\')">Edit</button> <button type="button" onclick="rcPrintChit(\''+esc(p.id)+'\')">Receipt</button>']});
  const body=rcChitTab==='Entry'?entryForm:'<form class="rc-form rc-chit-definition-form rc-chit-'+rcChitTab.toLowerCase()+'-form" onsubmit="rcSaveChitDefinition(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'">'+form+'<button class="primary">'+(x?'Save changes':'Save '+rcChitTab.toLowerCase())+'</button></form>';
- const list=rcChitTab==='Entry'?(entryRows.length?table(headers,entryRows):'<p class="muted">No chit entries recorded yet.</p>'):(rows.length?table(headers,rows):'<p class="muted">No '+rcChitTab.toLowerCase()+' entries yet.</p>');
+ const payableEntries=entries.filter(p=>p.entryType!=='Closure');
+ const chitAmount=payableEntries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0);
+ const chitWeight=payableEntries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.metalWeight),0);
+ const chitTotal=['NET · '+payableEntries.length+' entries','','','','',rateMoney(chitAmount),'',fmt(chitWeight)+' g','','',''];
+ const list=rcChitTab==='Entry'?(entryRows.length?'<div class="rb-total-history">'+table(headers,[...entryRows,chitTotal])+'</div>':'<p class="muted">No chit entries recorded yet.</p>'):(rows.length?table(headers,rows):'<p class="muted">No '+rcChitTab.toLowerCase()+' entries yet.</p>');
  const collectedEntries=entries.filter(p=>p.entryType!=='Closure');
  const dashboard='<section class="panel rc-chit-overview"><h2>Chit overview</h2><div class="rc-totals"><span>Active plans <b>'+maps.filter(m=>(m.status||'Active')!=='Closed').length+'</b></span><span>Customers enrolled <b>'+new Set(maps.map(m=>m.customerId)).size+'</b></span><span>Entries received <b>'+collectedEntries.length+'</b></span><span>Total collected <b>'+rateMoney(collectedEntries.reduce((s,p)=>s+(p.entryType==='Refund'?-1:1)*n(p.amount),0))+'</b></span></div></section>';
  return dashboard+'<section class="panel"><h2>Retail Chit</h2><p class="muted">Create groups and scheme types, enrol customers, collect dues, track progress and print receipts.</p>'+rcChitNav()+'</section><section class="panel"><h2>'+ (rcChitTab==='Entry'?'Record chit payment or adjustment':(x?'Edit ':'Create ')+'chit '+rcChitTab.toLowerCase())+'</h2>'+body+'</section><section class="panel"><h2>'+(rcChitTab==='Entry'?'Chit entry history':rcChitTab+' list')+'</h2>'+list+'</section>'

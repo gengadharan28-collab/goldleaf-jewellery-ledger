@@ -928,19 +928,24 @@ window.rpPrintCurrent=function(forcedTemplate=null){
 window.rpHistory=function(){
   document.getElementById('rpHistoryPanel')?.remove();
   const kind=RP_KINDS[RP_SECTIONS.indexOf(rpSection)];
-  const rows=rpDocs(kind).sort(whenCmp).map(d=>[
+  const docs=rpDocs(kind).sort(whenCmp);
+  const value=d=>d.kind==='conversion'?fmt(d.pureReceived)+' pure g':d.kind==='payment'?(rateMoney(d.amountCredit)+' · '+fmt(d.pureWeight)+' pure g'):rateMoney(d.totalAmount??d.creditAmount??d.amountCredit);
+  const rows=docs.map(d=>[
     d.documentNo,
     whenShow(d),
     esc(rpSupplier(d.supplierId)?.name||'Shop conversion'),
     esc(d.reference||d.product||(d.items||[]).map(x=>x.product).join(' + ')),
-    d.kind==='conversion'?fmt(d.pureReceived)+' pure g':rateMoney(d.totalAmount??d.creditAmount??d.amountCredit),
+    value(d),
     '<div class="rb-history-actions">'
     +'<button type="button" onclick="rbDialog(\'rpHistoryPanel\',false);rpEditDocument(\''+d.id+'\')">Edit</button> '
     +'<button type="button" onclick="rpPrintDocument(\''+d.id+'\')">PDF</button> '
     +'<button type="button" onclick="rpPrintDocument(\''+d.id+'\',\'thermal-80\')">POS</button>'
     +'</div>'
   ]);
-  document.body.insertAdjacentHTML('beforeend',rbModal('rpHistoryPanel',rpSection+' history',rows.length?table(['Entry','Date','Supplier / seller','Reference / product','Value','Actions'],rows):'<div class="empty">No saved entries in this section yet.</div>'));
+  const total=docs.reduce((s,d)=>s+n(d.kind==='conversion'?d.pureReceived:kind==='payment'?d.amountCredit:(d.totalAmount??d.creditAmount??d.amountCredit)),0);
+  const totalDisplay=kind==='conversion'?fmt(total)+' pure g':kind==='payment'?rateMoney(total)+' · '+fmt(docs.reduce((s,d)=>s+n(d.pureWeight),0))+' pure g':rateMoney(total);
+  if(rows.length)rows.push(['TOTAL · '+docs.length,'','','',totalDisplay,'']);
+  document.body.insertAdjacentHTML('beforeend',rbModal('rpHistoryPanel',rpSection+' history',rows.length?'<div class="rb-total-history">'+table(['Entry','Date','Supplier / seller','Reference / product','Value','Actions'],rows)+'</div>':'<div class="empty">No saved entries in this section yet.</div>'));
   rbDialog('rpHistoryPanel');
 };
 

@@ -4657,3 +4657,21 @@ body.dark .rb-pill-btn:hover {
     gap: 4px !important;
   }
 }
+
+/* Totals stay attached to the entry history they summarize. */
+.rb-total-history tbody tr:last-child {
+  background: #e7f3eb;
+  color: #143b2c;
+  font-weight: 800;
+  border-top: 2px solid #2c7554;
+}
+.rb-total-history tbody tr:last-child td { font-weight: 800; }
+[data-theme="dark"] .rb-total-history tbody tr:last-child,
+body.dark .rb-total-history tbody tr:last-child {
+  background: #183b32;
+  color: #e6f5e9;
+  border-top-color: #81bd96;
+}
+@media (max-width: 760px) {
+  .rb-total-history tbody tr:last-child { border: 2px solid #2c7554; border-radius: 12px; }
+}
