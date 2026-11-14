@@ -1,5 +1,8 @@
 /* Shared compact treatment for Retail Sales, Purchase and Estimation entries. */
 #erpSideInstallWrap[hidden], .erp-install-shortcut[hidden], #installButton[hidden] { display: none !important; }
+@media (display-mode: standalone), (display-mode: window-controls-overlay) {
+  #erpSideInstallWrap, .erp-install-shortcut, #installButton { display: none !important; }
+}
 .rb-bill-screen .panel,
 .rp-document-screen .panel,
 .rc-screen .rc-content > .panel {
