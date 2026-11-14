@@ -233,10 +233,10 @@ const glProductStyle=document.createElement('style');glProductStyle.textContent=
 document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
-  const current=window.GOLDLEAF_VERSION||'2.10.68';
+  const current=window.GOLDLEAF_VERSION||'2.10.69';
   let html=window.goldleafCanonicalHistory?window.goldleafCanonicalHistory():glOldHistory();
   html=html.replace(/(<h3>v[^<]+?) · Current(<\/h3>)/g,'$1$2');
-  const latest='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Corrected Update History so it shows the live version and one chronological release list.</li></ul></article><article class="release-note"><h3>v2.10.67 · 14 Nov 2026</h3><ul><li>Moved Sales, Chit Receipt and Estimation/Quotation print format selection into Settings.</li></ul></article>';
+  const latest='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Removed the temporary login/logo flash on refresh while cloud sign-in is checked. The app now shows a compact loading state.</li></ul></article><article class="release-note"><h3>v2.10.68 · 14 Nov 2026</h3><ul><li>Corrected Update History so it shows the live version and one chronological release list.</li></ul></article><article class="release-note"><h3>v2.10.67 · 14 Nov 2026</h3><ul><li>Moved Sales, Chit Receipt and Estimation/Quotation print format selection into Settings.</li></ul></article>';
   return html.replace('<h2>Update history</h2>','<h2>Update history</h2>'+latest);
 };
 render();

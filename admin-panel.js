@@ -278,6 +278,7 @@ window.render=function(){
     localStorage.setItem('goldleaf-workspace-mode', 'retail');
     if(!page || page === 'Dashboard' || urlParams.has('chit')) page = 'Chit';
   }
+  if(!session&&!window.goldleafAuthReady){document.body.classList.add('gl-auth-active');document.getElementById('nav').innerHTML='';document.getElementById('app').innerHTML='<div class="gl-boot-state" role="status" aria-live="polite"><span class="gl-boot-dot" aria-hidden="true"></span><span>Opening Goldleaf…</span></div>';return;}
   if(!session){document.body.classList.add('gl-auth-active');document.body.classList.remove('rb-active','rc-active','compact-customer-sale');document.getElementById('nav').innerHTML='<button class="active">'+(signupLink?'Shop registration':adminLink?'Super Admin':'Sign in')+'</button>';document.getElementById('app').innerHTML=platformLoginView();return;}document.body.classList.remove('gl-auth-active');
   if(session&&!goldleafContext){document.getElementById('nav').innerHTML='';document.getElementById('app').innerHTML=platformTop('Loading your account','Checking your shop and access permissions…')+'<section class="panel"><p role="status">'+esc(platformError||'Connecting to Goldleaf cloud…')+'</p><button onclick="platformRefresh()">Try again</button><button onclick="platformSignOut()">Sign out</button></section>';return;}
   if(session&&goldleafContext){
