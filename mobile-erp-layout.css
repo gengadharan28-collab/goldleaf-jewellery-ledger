@@ -74,7 +74,7 @@
 
 /* Keep the workspace selector in the phone navigation drawer. */
 @media (max-width: 760px) {
-  body[data-erp] .erp-workbar-mode,
+  body[data-erp] .erp-workbar .erp-workbar-mode,
   body[data-erp] #app .top .business-mode {
     display: none !important;
   }
@@ -443,5 +443,5 @@ body.gl-auth-active .main {
     row-gap: 6px !important;
     padding: 6px 10px !important;
   }
-  body[data-erp] .erp-workbar-mode { display: none !important; }
+  body[data-erp] .erp-workbar .erp-workbar-mode { display: none !important; }
 }
