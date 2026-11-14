@@ -25,8 +25,8 @@ function rpItemCalc(x,kind='purchase'){
   const metal=x.metal==='Silver'?'Silver':'Gold';
   const pieces=n(x.pieces||1);
   const grossWeight=n(x.grossWeight);
-  const lessWeight=n(x.lessWeight);
-  const netWeight=rbGrams(Math.max(0,grossWeight-lessWeight));
+  const lessWeight=n(x.lessWeight),stoneWeight=n(x.stoneWeight),diamondLessWeight=n(x.diamondLessWeight);
+  const netWeight=rbGrams(Math.max(0,grossWeight-lessWeight-stoneWeight-diamondLessWeight));
   const meltingLossPercent=n(x.meltingLossPercent||x.meltingLoss||0);
   const meltingLossWeight=rbGrams(netWeight*meltingLossPercent/100);
   const touchPercent=n(x.purity??(kind==='old-purchase'?91.6:100)); // Assayed Touch %
@@ -35,15 +35,16 @@ function rpItemCalc(x,kind='purchase'){
   const pureWeight=rbGrams(netMelted*touchPercent/100);
   const wastage=n(x.wastage||0);
   const wastageWeight=rbGrams(netWeight*wastage/100);
-  const payablePure=kind==='old-purchase'?pureWeight:rbGrams(pureWeight+wastageWeight);
+  const valueAddedWeight=n(x.valueAddedWeight);
+  const payablePure=kind==='old-purchase'?pureWeight:rbGrams(pureWeight+wastageWeight+valueAddedWeight);
   const rate=n(x.rate);
   const makingMode=x.makingMode==='gram'?'gram':x.makingMode==='fixed'?'fixed':'piece';
   const makingRate=n(x.makingRate);
   const makingTotal=kind==='old-purchase'?0:rbRound(makingRate*(makingMode==='gram'?netWeight:makingMode==='piece'?pieces:1));
-  const stoneAmount=n(x.stoneAmount||0);
+  const stoneAmount=n(x.stoneAmount||0),diamondAmount=n(x.diamondAmount||0),itemDiscount=n(x.itemDiscount||0);
   const otherAmount=n(x.otherAmount||0);
   const metalAmount=rbRound(payablePure*rate);
-  const subtotal=kind==='old-purchase'?rbRound(metalAmount-otherAmount):rbRound(metalAmount+makingTotal+stoneAmount+otherAmount);
+  const subtotal=kind==='old-purchase'?rbRound(metalAmount-otherAmount):rbRound(metalAmount+makingTotal+stoneAmount+diamondAmount+otherAmount-itemDiscount);
 
   if(kind==='bill-entry'){
     const quantity=n(x.quantity),discount=n(x.discount),base=rbRound(quantity*rate),gstRate=n(x.gstRate),after=rbRound(Math.max(0,base-discount));
@@ -52,15 +53,18 @@ function rpItemCalc(x,kind='purchase'){
 
   return Object.assign({},x,{
     id,metal,product:String(x.product||'').trim(),huid:String(x.huid||x.tagCode||'').trim(),tagCode:String(x.tagCode||x.huid||'').trim(),
-    pieces,grossWeight,lessWeight,netWeight,meltingLossPercent,meltingLossWeight,purity,touchPercent,
+    pieces,grossWeight,lessWeight,stoneWeight,diamondLessWeight,valueAddedWeight,netWeight,meltingLossPercent,meltingLossWeight,purity,touchPercent,
     pureWeight,wastage,wastageWeight,payablePure,rate,makingMode,makingRate,makingTotal,
-    stoneAmount,otherAmount,metalAmount,subtotal
+    stoneAmount,diamondAmount,itemDiscount,otherAmount,metalAmount,subtotal
   });
 }
 
 function rpPurchaseCalc(items,options={}){
   const kind=options.kind||'purchase',rows=items.map(x=>rpItemCalc(x,kind)),subtotal=rbRound(rows.reduce((s,x)=>s+x.subtotal,0));
-  const discount=n(options.discount),otherCharges=n(options.otherCharges),gstEnabled=!!options.gstEnabled,gstRate=n(options.gstRate),inclusive=options.taxTreatment==='inclusive',basis=kind==='bill-entry'?'amount':options.basis==='metal'?'metal':'amount';
+  const extraCharges=(options.extraCharges||[]).map(x=>({type:x.type||'Other',hsn:String(x.hsn||''),amount:n(x.amount),gstRate:n(x.gstRate)}));
+  const taxGroups=(options.taxGroups||[]).map(x=>({type:x.type==='TDS'?'TDS':'TCS',rate:n(x.rate),beforeGst:!!x.beforeGst,manualAmount:n(x.manualAmount),remarks:String(x.remarks||'')}));
+  const chargeTotal=rbRound(extraCharges.reduce((sum,x)=>sum+x.amount,0));
+  const discount=n(options.discount),otherCharges=rbRound(n(options.otherCharges)+chargeTotal),gstEnabled=!!options.gstEnabled,gstRate=n(options.gstRate),inclusive=options.taxTreatment==='inclusive',basis=kind==='bill-entry'?'amount':options.basis==='metal'?'metal':'amount';
   let taxable=0,tax=0;
   if(kind==='bill-entry'){
     for(const x of rows){
@@ -68,11 +72,21 @@ function rpPurchaseCalc(items,options={}){
       taxable+=base;tax+=base*r/100;
     }
     taxable+=otherCharges;
+  } else if(kind==='purchase'&&gstEnabled&&rows.some(x=>n(x.gstRate)>0)){
+    const chargeBase=Math.max(0,subtotal-discount+otherCharges);
+    const itemSubtotal=Math.max(0,rows.reduce((sum,x)=>sum+x.subtotal,0));
+    for(const x of rows){
+      const share=itemSubtotal>0?chargeBase*x.subtotal/itemSubtotal:0,r=n(x.gstRate)>0?n(x.gstRate):gstRate,base=inclusive?share/(1+r/100):share;
+      taxable+=base;tax+=base*r/100;
+    }
   } else {
     const after=Math.max(0,subtotal-discount+otherCharges),base=gstEnabled&&inclusive?after/(1+gstRate/100):after;
     taxable=base;tax=gstEnabled?base*gstRate/100:0;
   }
   taxable=rbRound(taxable);tax=rbRound(tax);
+  let extraTax=0;
+  if(gstEnabled&&!inclusive)extraTax=rbRound(extraCharges.reduce((sum,x)=>sum+x.amount*((x.gstRate||gstRate)-gstRate)/100,0));
+  tax=rbRound(tax+extraTax);
 
   // TDS (Section 194Q - 0.1% deduction) / TCS (Section 206C(1H) - 0.1% addition)
   const tdsTcsMode=options.tdsTcsMode||'none';
@@ -82,6 +96,11 @@ function rpPurchaseCalc(items,options={}){
   } else if(tdsTcsMode==='tcs206c'){
     tcsAmount=rbRound((taxable+tax)*0.001);
   }
+  for(const x of taxGroups){
+    const calculated=x.manualAmount||rbRound((x.beforeGst?taxable:taxable+tax)*x.rate/100);
+    if(x.type==='TDS')tdsAmount=rbRound(tdsAmount+calculated);
+    else tcsAmount=rbRound(tcsAmount+calculated);
+  }
 
   const beforeRound=rbRound(taxable+tax+tcsAmount-tdsAmount);
   const rounded=options.roundMode==='nearest'?Math.round(beforeRound):options.roundMode==='down'?Math.floor(beforeRound):options.roundMode==='up'?Math.ceil(beforeRound):beforeRound;
@@ -90,7 +109,7 @@ function rpPurchaseCalc(items,options={}){
 
   const goldPure=rbGrams(rows.filter(x=>x.metal==='Gold').reduce((s,x)=>s+x.payablePure,0));
   const silverPure=rbGrams(rows.filter(x=>x.metal==='Silver').reduce((s,x)=>s+x.payablePure,0));
-  const charges=rbRound(rows.reduce((s,x)=>s+x.makingTotal+x.otherAmount+x.stoneAmount,0)+otherCharges+tax+tcsAmount-tdsAmount-discount+roundOff);
+  const charges=rbRound(rows.reduce((s,x)=>s+x.makingTotal+x.otherAmount+x.stoneAmount+x.diamondAmount-x.itemDiscount,0)+otherCharges+tax+tcsAmount-tdsAmount-discount+roundOff);
   const amountDebit=basis==='metal'?charges:totalAmount;
 
   // Multi-Mode Payment Breakdown
@@ -107,7 +126,7 @@ function rpPurchaseCalc(items,options={}){
   const silverDebit=basis==='metal'?(metalDeliveredMetal==='Silver'?Math.max(0,rbGrams(silverPure-metalDelivered)):silverPure):0;
 
   return {
-    rows,subtotal,discount,otherCharges,gstEnabled,gstRate,taxTreatment:inclusive?'inclusive':'exclusive',
+    rows,subtotal,discount,otherCharges,extraCharges,taxGroups,extraTax,gstEnabled,gstRate,taxTreatment:inclusive?'inclusive':'exclusive',
     taxableValue:taxable,gstAmount:tax,tdsTcsMode,tdsAmount,tcsAmount,roundOff,totalAmount,basis,
     goldPure,silverPure,amountDebit,goldDebit,silverDebit,
     paidCash,paidBank,paidCard,paidUpi,paidAmount:totalPaidMoney,
@@ -256,13 +275,31 @@ function rpItemMarkup(item={},index=0,kind='purchase'){
       '<output data-rp-out="subtotal">'+rateMoney(x.subtotal)+'</output>'
     ];
   }
-  return '<tbody class="rp-item" data-rp-id="'+x.id+'"><tr><td>'+(index+1)+'</td>'+cells.map(c=>'<td>'+c+'</td>').join('')+'<td><button type="button" aria-label="Remove purchase item" onclick="rpRemoveItem(this)">×</button></td></tr></tbody>';
+  const details=kind==='purchase'?'<tr class="rp-item-detail-row"><td colspan="20"><details class="rp-item-details"><summary>More item details · group, HSN, stone, diamond, GST</summary><div class="rp-detail-grid">'
+    +rpInput('productGroup',x.productGroup||'','text','placeholder="Product group" aria-label="Product group"')
+    +rpInput('model',x.model||'','text','placeholder="Model" aria-label="Model"')
+    +rpInput('hsn',x.hsn||'','text','placeholder="HSN" aria-label="HSN"')
+    +rpInput('stoneWeight',x.stoneWeight||'','number','min="0" step=".001" placeholder="Stone less g" aria-label="Stone weight to deduct in grams"')
+    +rpInput('diamondLessWeight',x.diamondLessWeight||'','number','min="0" step=".001" placeholder="Diamond less g" aria-label="Diamond less weight in grams"')
+    +rpInput('valueAddedWeight',x.valueAddedWeight||'','number','min="0" step=".001" placeholder="Value added g" aria-label="Value added pure grams"')
+    +select('stoneType',['','Diamond','Gem Stone','Other'],x.stoneType||'')
+    +rpInput('diamondPieces',x.diamondPieces||'','number','min="0" step="1" placeholder="Diamond pcs" aria-label="Diamond pieces"')
+    +rpInput('diamondCarats',x.diamondCarats||'','number','min="0" step=".001" placeholder="Diamond cts" aria-label="Diamond carats"')
+    +rpInput('diamondRate',x.diamondRate||'','number','min="0" step=".01" placeholder="Diamond rate / ct" aria-label="Diamond rate per carat"')
+    +rpInput('diamondAmount',x.diamondAmount||'','number','min="0" step=".01" placeholder="Diamond amount ₹" aria-label="Diamond amount"')
+    +rpInput('itemDiscount',x.itemDiscount||'','number','min="0" step=".01" placeholder="Item discount ₹" aria-label="Item discount"')
+    +rpInput('gstRate',x.gstRate||'','number','min="0" max="100" step=".01" placeholder="Item GST %" aria-label="Item GST percentage"')
+    +select('status',['','Pending','Received','QC Hold','Tagged'],x.status||'')
+    +'<label class="rp-lot-label"><input data-rp-item="lot" type="checkbox" '+(x.lot===true||x.lot==='true'?'checked':'')+'> Lot purchase</label>'
+    +rpInput('remarks',x.remarks||'','text','placeholder="Item remarks" aria-label="Item remarks"')
+    +'</div><p class="hint">Net = gross − less − stone − diamond less. Value added grams increase payable pure weight. Item GST is used when GST is enabled.</p></details></td></tr>':'';
+  return '<tbody class="rp-item" data-rp-id="'+x.id+'"><tr><td>'+(index+1)+'</td>'+cells.map(c=>'<td>'+c+'</td>').join('')+'<td><button type="button" aria-label="Remove purchase item" onclick="rpRemoveItem(this)">×</button></td></tr>'+details+'</tbody>';
 }
 
 function rpReadItems(form){
   return [...form.querySelectorAll('.rp-item')].map(node=>{
     const row={id:node.dataset.rpId};
-    node.querySelectorAll('[data-rp-item]').forEach(e=>row[e.dataset.rpItem]=e.value);
+    node.querySelectorAll('[data-rp-item]').forEach(e=>row[e.dataset.rpItem]=e.type==='checkbox'?e.checked:e.value);
     return rpItemCalc(row,form.dataset.kind);
   });
 }
@@ -271,6 +308,13 @@ window.rpAddItem=function(){
   const f=document.getElementById('rpDocumentForm'),kind=f.dataset.kind,metal=f.elements.metal?.value||'Gold';
   f.querySelector('tfoot').insertAdjacentHTML('beforebegin',rpItemMarkup({metal,purity:100,pieces:1,rate:metal==='Silver'?db.rates.silver:db.rates.gold24,gstRate:3},f.querySelectorAll('.rp-item').length,kind));
   rbMarkDirty(f);rpRecalc(f);
+};
+window.rpApplyCommonRate=function(){
+  const f=document.getElementById('rpDocumentForm'),rate=n(f?.elements.commonRate?.value);
+  if(!f||rate<=0)return say('Enter a common rate greater than zero.');
+  const perGram=f.elements.commonUnit?.value==='kg'?rate/1000:rate;
+  f.querySelectorAll('.rp-item [data-rp-item="rate"]').forEach(e=>{e.value=perGram.toFixed(2);});
+  rbMarkDirty(f);rpRecalc(f);say('Common rate applied to all purchase items.');
 };
 window.rpRemoveItem=function(button){
   const f=button.closest('form'),row=button.closest('.rp-item');
@@ -300,6 +344,25 @@ function rpItemTotalsMarkup(kind){
   if(kind==='bill-entry')return '<tfoot><tr><td colspan="3">Totals</td>'+total('rpTotalPieces','0')+'<td colspan="4"></td>'+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
   if(kind==='old-purchase')return '<tfoot><tr><td colspan="3">Totals</td>'+total('rpTotalGross')+total('rpTotalLess')+total('rpTotalNet')+'<td colspan="2"></td>'+total('rpTotalPure')+'<td></td>'+total('rpTotalOther','₹ 0.00')+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
   return '<tfoot><tr><td colspan="4">Totals</td>'+total('rpTotalPieces','0')+total('rpTotalGross')+total('rpTotalLess')+total('rpTotalNet')+'<td colspan="2"></td>'+total('rpTotalPure')+'<td></td>'+total('rpTotalPayable')+'<td colspan="3"></td>'+total('rpTotalStone','₹ 0.00')+total('rpTotalOther','₹ 0.00')+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
+}
+
+function rpExtrasView(doc,kind){
+  if(kind!=='purchase')return '';
+  const charges=(doc.extraCharges||[]).map((x,i)=>'<div class="rp-extra-row" data-rp-extra="charge"><select aria-label="Charge type">'+rbOptions(['Hallmark Charge','Labour Charge','Making Charges','Transport','Other'],x.type||'Hallmark Charge')+'</select><input aria-label="Charge HSN" placeholder="HSN" value="'+esc(x.hsn||'')+'"><input type="number" aria-label="Charge amount" placeholder="Amount ₹" min="0" step=".01" value="'+esc(x.amount||'')+'"><input type="number" aria-label="Charge GST percent" placeholder="GST %" min="0" max="100" step=".01" value="'+esc(x.gstRate||'')+'"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>').join('');
+  const groups=(doc.taxGroups||[]).map(x=>'<div class="rp-extra-row" data-rp-extra="tax"><select aria-label="Tax type">'+rbOptions(['TCS','TDS'],x.type||'TCS')+'</select><input type="number" aria-label="Tax percentage" placeholder="Rate %" min="0" max="100" step=".001" value="'+esc(x.rate||'')+'"><label><input type="checkbox" aria-label="Apply before GST" '+(x.beforeGst?'checked':'')+'> Before GST</label><input type="number" aria-label="Manual tax amount" placeholder="Manual ₹" min="0" step=".01" value="'+esc(x.manualAmount||'')+'"><input aria-label="Tax remarks" placeholder="Remarks" value="'+esc(x.remarks||'')+'"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>').join('');
+  return '<section class="panel rp-extras"><div class="rb-section-head"><h2>Other charges · Hallmark / Labour</h2><button type="button" onclick="rpAddExtra(\'charge\')">＋ Add charge</button></div><div id="rpExtraCharges">'+charges+'</div><p class="hint">Charge rows are added to the bill amount. Enter a GST rate only when it differs from the bill GST rate.</p></section>'
+    +'<section class="panel rp-extras"><div class="rb-section-head"><h2>Tax groups · TCS / TDS</h2><button type="button" onclick="rpAddExtra(\'tax\')">＋ Add tax</button></div><div id="rpTaxGroups">'+groups+'</div><p class="hint">Tax is calculated on taxable value, or taxable value plus GST. A manual amount overrides the calculated amount.</p></section>'
+    +'<section class="panel rp-extras"><div class="rb-section-head"><h2>TCS / TDS payment record</h2></div><div class="rp-detail-grid">'+rbInput('Tax amount paid ₹','taxPaidAmount',doc.taxPaidAmount||0,'number','min="0" step=".01"')+rbInput('Payment reference','taxPaidReference',doc.taxPaidReference||'')+rbInput('Payment remarks','taxPaidRemarks',doc.taxPaidRemarks||'')+'</div><p class="hint">Tracks remittance separately; it does not reduce the supplier payment balance.</p></section>';
+}
+window.rpAddExtra=function(type){
+  const f=document.getElementById('rpDocumentForm'),target=f?.querySelector(type==='charge'?'#rpExtraCharges':'#rpTaxGroups');
+  if(!target)return;
+  target.insertAdjacentHTML('beforeend',type==='charge'?'<div class="rp-extra-row" data-rp-extra="charge"><select aria-label="Charge type">'+rbOptions(['Hallmark Charge','Labour Charge','Making Charges','Transport','Other'],'Hallmark Charge')+'</select><input aria-label="Charge HSN" placeholder="HSN"><input type="number" aria-label="Charge amount" placeholder="Amount ₹" min="0" step=".01"><input type="number" aria-label="Charge GST percent" placeholder="GST %" min="0" max="100" step=".01"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>':'<div class="rp-extra-row" data-rp-extra="tax"><select aria-label="Tax type">'+rbOptions(['TCS','TDS'],'TCS')+'</select><input type="number" aria-label="Tax percentage" placeholder="Rate %" min="0" max="100" step=".001"><label><input type="checkbox" aria-label="Apply before GST"> Before GST</label><input type="number" aria-label="Manual tax amount" placeholder="Manual ₹" min="0" step=".01"><input aria-label="Tax remarks" placeholder="Remarks"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>');
+  rbMarkDirty(f);rpRecalc(f);
+};
+window.rpRemoveExtra=function(button){const f=button.closest('form');button.closest('.rp-extra-row').remove();rbMarkDirty(f);rpRecalc(f);};
+function rpReadExtras(form,type){
+  return [...form.querySelectorAll('[data-rp-extra="'+type+'"]')].map(row=>{const e=row.querySelectorAll('input,select');return type==='charge'?{type:e[0].value,hsn:e[1].value.trim(),amount:n(e[2].value),gstRate:n(e[3].value)}:{type:e[0].value,rate:n(e[1].value),beforeGst:e[2].checked,manualAmount:n(e[3].value),remarks:e[4].value.trim()};});
 }
 
 function rpHeader(){
@@ -408,13 +471,16 @@ function rpFormView(){
     +'<label class="rb-field"><span>'+(kind==='conversion'?'Refiner / supplier · optional':'Supplier / seller *')+'</span><select name="supplierId" class="rp-supplier-select" '+(kind==='conversion'?'':'required')+' onchange="rpSupplierChanged(this.form)">'+rpSupplierOptions(x.supplierId)+'</select></label>'
     +rbInput('Reference / supplier document','reference',x.reference||'')
     +rbInput('Counter','counter',x.counter||'Counter 1','text')
-    +rbInput('Supplier document date','supplierDate',x.supplierDate||'','date');
+    +rbInput('Supplier document date','supplierDate',x.supplierDate||'','date')
+    +(kind==='purchase'?rbInput('Expected item rows','expectedRows',x.expectedRows||'','number','min="1" step="1" placeholder="Optional"')
+      +rbInput('Common rate / pure g ₹','commonRate',x.commonRate||'','number','min="0" step=".01" placeholder="Optional"')
+      +'<label class="rb-field"><span>Common rate unit</span><select name="commonUnit">'+rbOptions(['g','kg'],x.commonUnit||'g')+'</select></label>':'');
 
   const content=invoice?rpItemsView(doc,kind):returns?rpReturnView(x,kind):kind==='payment'?rpPaymentView(x):rpConversionView(x);
 
   const multiModeMarkup = 
     '<div class="rp-multimode-settle">'
-    +'<div class="rp-multimode-head"><span>Multi-Mode Payment Settlement</span><span>Inward Payout</span></div>'
+    +'<div class="rp-multimode-head"><span>Payments · Cash / Bank / Card / UPI</span><span>Inward Payout</span></div>'
     +'<div class="rp-multimode-grid">'
     +rbInput('Cash paid ₹','paidCash',x.paidCash||x.paidAmount||0,'number','min="0" step=".01"')
     +rbInput('Bank / NEFT ₹','paidBank',x.paidBank||0,'number','min="0" step=".01"')
@@ -442,9 +508,10 @@ function rpFormView(){
     +'<div class="rb-discount-controls">'
     +rbInput('GST percentage','gstRate',x.gstRate||3,'number','min="0" max="100" step="any"')
     +'<label class="rb-field"><span>Tax treatment</span><select name="taxTreatment">'+rbOptions(['exclusive','inclusive'],x.taxTreatment||'exclusive')+'</select></label>'
+    +(kind==='purchase'?'<label class="rb-field"><span>GST split</span><select name="taxRegion">'+rbOptions(['In-state · CGST + SGST','Interstate · IGST'],x.taxRegion||'In-state · CGST + SGST')+'</select></label>':'')
     +'</div>'
     +'<label class="rb-field"><span>TDS / TCS Withholding Tax</span><select name="tdsTcsMode">'
-    +[['none','None (Standard Purchase)'],['tds194q','TDS u/s 194Q (0.1% Deduction)'],['tcs206c','TCS u/s 206C(1H) (0.1% Addition)']].map(([v,l])=>'<option value="'+v+'" '+((x.tdsTcsMode||'none')===v?'selected':'')+'>'+l+'</option>').join('')
+    +[['none','None (Standard Purchase)'],['tds194q','TDS deduction'],['tcs206c','TCS addition']].map(([v,l])=>'<option value="'+v+'" '+((x.tdsTcsMode||'none')===v?'selected':'')+'>'+l+'</option>').join('')
     +'</select></label>'
     +'<label class="rb-field"><span>Round off</span><select name="roundMode">'+rbOptions(['none','nearest','down','up'],x.roundMode||'none')+'</select></label>'
     +multiModeMarkup : '';
@@ -458,11 +525,12 @@ function rpFormView(){
     +'<button type="button" onclick="rpSuppliers(\'new\')">＋ Add supplier / seller</button>'
     +'<button type="button" onclick="rpSuppliers(document.getElementById(\'rpDocumentForm\').elements.supplierId.value)">Edit selected supplier</button>'
     +'<button type="button" onclick="rpLedger()">Supplier Ledger</button>'
+    +(kind==='purchase'?'<button type="button" onclick="rpApplyCommonRate()">Apply common rate to items</button>':'')
     +'</div>'
     +dualBalanceMarkup
     +'</section>'
     +'<div class="rp-document-columns">'
-    +'<div class="rp-main-scroll">'+content
+    +'<div class="rp-main-scroll">'+content+rpExtrasView(x,kind)
     +'<section class="panel"><div class="rb-detail-grid">'+rbInput('Notes / remarks','notes',x.notes||'')+'</div></section>'
     +'</div>'
     +'<aside class="panel rb-totals rp-totals">'
@@ -490,12 +558,14 @@ function rpReadDocument(form){
     documentNo:f.documentNo.value.trim()||kind.toUpperCase()+'-'+Date.now().toString(36).toUpperCase(),
     reference:f.reference.value.trim(),counter:f.counter?.value?.trim()||'Counter 1',
     supplierDate:f.supplierDate?.value||'',notes:f.notes?.value?.trim()||'',
+    expectedRows:n(f.expectedRows?.value),commonRate:n(f.commonRate?.value),commonUnit:f.commonUnit?.value||'g',taxRegion:f.taxRegion?.value||'In-state · CGST + SGST',
     createdAt:old?.createdAt||now,updatedAt:now
   };
 
   if(['purchase','old-purchase','bill-entry'].includes(kind)){
     const t=rpPurchaseCalc(rpReadItems(form),{
       kind,basis:f.basis?.value,discount:f.discount?.value,otherCharges:f.otherCharges?.value,
+      extraCharges:rpReadExtras(form,'charge'),taxGroups:rpReadExtras(form,'tax'),
       gstEnabled:f.gstEnabled?.checked,gstRate:f.gstRate?.value,taxTreatment:f.taxTreatment?.value,
       tdsTcsMode:f.tdsTcsMode?.value,roundMode:f.roundMode?.value,
       paidCash:f.paidCash?.value,paidBank:f.paidBank?.value,paidBankRef:f.paidBankRef?.value,
@@ -505,6 +575,7 @@ function rpReadDocument(form){
     });
     return Object.assign(base,t,{
       items:t.rows,metal:t.rows[0]?.metal||'Gold',roundMode:f.roundMode?.value||'none',
+      taxPaidAmount:n(f.taxPaidAmount?.value),taxPaidReference:f.taxPaidReference?.value?.trim()||'',taxPaidRemarks:f.taxPaidRemarks?.value?.trim()||'',
       paidMethod:t.paidBank>0?'Bank':t.paidUpi>0?'UPI':t.paidCard>0?'Card':'Cash'
     });
   }
@@ -527,7 +598,7 @@ function rpDependencies(id){
   return rpDocs().some(x=>x.sourceId===id||(x.sources||[]).some(s=>s.sourceId===id))||rbCustomerSales().some(x=>(x.oldGoldItems||[]).some(p=>p.purchaseDocId===id));
 }
 function rpFinancialSignature(d){
-  return JSON.stringify(['kind','supplierId','items','basis','discount','otherCharges','gstEnabled','gstRate','taxTreatment','roundMode','totalAmount','amountDebit','goldDebit','silverDebit','paidAmount','tdsTcsMode','tdsAmount','tcsAmount','paidCash','paidBank','paidCard','paidUpi','metalDelivered'].map(k=>d[k]));
+  return JSON.stringify(['kind','supplierId','items','basis','discount','otherCharges','extraCharges','taxGroups','gstEnabled','gstRate','taxTreatment','roundMode','totalAmount','amountDebit','goldDebit','silverDebit','paidAmount','tdsTcsMode','tdsAmount','tcsAmount','paidCash','paidBank','paidCard','paidUpi','metalDelivered'].map(k=>d[k]));
 }
 
 function rpValidate(d){
@@ -544,13 +615,14 @@ function rpValidate(d){
       if(!x.product)return 'Enter the product in item '+(i+1)+'.';
       if(d.kind==='bill-entry'){
         if(x.quantity<=0||x.rate<0||x.discount<0||x.discount>x.base||x.gstRate<0||x.gstRate>100)return 'Check quantity, rate, discount and GST in item '+(i+1)+'.';
-      }else if(x.grossWeight<=0||x.lessWeight<0||x.netWeight<=0||x.purity<1||x.purity>100||x.wastage<0||x.rate<=0||x.makingRate<0||x.otherAmount<0||!Number.isInteger(x.pieces)||x.pieces<1)return 'Check weight, touch purity, pieces and charges in item '+(i+1)+'.';
+      }else if(x.grossWeight<=0||x.lessWeight<0||x.stoneWeight<0||x.diamondLessWeight<0||x.netWeight<=0||x.valueAddedWeight<0||x.purity<1||x.purity>100||x.wastage<0||x.rate<=0||x.makingRate<0||x.otherAmount<0||x.diamondAmount<0||x.itemDiscount<0||x.subtotal<0||n(x.gstRate)>100||!Number.isInteger(x.pieces)||x.pieces<1)return 'Check weight, touch purity, pieces and charges in item '+(i+1)+'.';
     }
     if(d.kind==='old-purchase'&&new Set(d.items.map(x=>x.metal)).size>1)return 'Record Gold and Silver old purchases separately so source weights stay distinct.';
+    if(d.extraCharges.some(x=>x.amount<0||x.gstRate<0||x.gstRate>100)||d.taxGroups.some(x=>x.rate<0||x.rate>100||x.manualAmount<0)||d.taxPaidAmount<0)return 'Check other charges, tax groups and tax payment amounts.';
     if(d.discount<0||d.discount>d.subtotal||d.otherCharges<0||d.gstEnabled&&(d.gstRate<=0||d.gstRate>100)||d.amountDebit<-.001||d.paidAmount<0||d.paidAmount>Math.max(0,d.amountDebit)+.001)return 'Check discount, charges, GST and amount paid. In metal settlement, discount applies to cash charges only.';
     return '';
   }
-  if(['purchase-return','old-return'].includes(kind)){
+  if(['purchase-return','old-return'].includes(d.kind)){
     const limit=rpReturnLimit(d.sourceId,d.sourceItemId,d.id),quantity=d.returnQuantity||d.returnWeight;
     if(!limit||limit.source.supplierId!==d.supplierId||!['purchase','old-purchase','bill-entry'].includes(limit.source.kind))return 'Choose the selected supplier’s original purchase and item.';
     if(quantity<=0||quantity>limit.available+.0001||d.creditAmount<0||d.creditAmount>limit.availableAmount+.01||d.creditAmount>rbRound(limit.originalAmount*quantity/limit.originalQuantity)+.01||d.refundReceived<0)return 'Return quantity or credit exceeds the remaining original purchase.';
@@ -610,10 +682,12 @@ window.rpRecalc=function(form){
       +row('Silver payable pure',fmt(d.silverPure)+' g')
       +row('Before bill discount',rateMoney(d.subtotal))
       +row('Discount',rateMoney(d.discount))
-      +row('Other charges',rateMoney(d.otherCharges))
+      +row('Other charges · including Hallmark / Labour',rateMoney(d.otherCharges))
       +row('GST',rateMoney(d.gstAmount));
-    if(d.tdsAmount>0) html+=row('TDS u/s 194Q (0.1% Deduction)','− '+rateMoney(d.tdsAmount));
-    if(d.tcsAmount>0) html+=row('TCS u/s 206C(1H) (0.1% Addition)','+ '+rateMoney(d.tcsAmount));
+    if(d.gstEnabled&&kind==='purchase')html+=d.taxRegion==='Interstate · IGST'?row('IGST',rateMoney(d.gstAmount)):row('CGST / SGST',rateMoney(d.gstAmount/2)+' each');
+    if(d.tdsAmount>0) html+=row('TDS deduction','− '+rateMoney(d.tdsAmount));
+    if(d.tcsAmount>0) html+=row('TCS addition','+ '+rateMoney(d.tcsAmount));
+    if(d.taxPaidAmount>0)html+=row('TCS / TDS paid separately',rateMoney(d.taxPaidAmount));
     html+=row('Round off',rateMoney(d.roundOff))
       +row('Document value',rateMoney(d.totalAmount))
       +row('Amount due',rateMoney(d.amountDebit))
@@ -833,21 +907,26 @@ function rpDocumentModel(d){
       heads=['Scrap Description','Metal','Gross g','Less g','Net g','Melt Loss %','Touch %','Pure g','Rate / pure g ₹','Testing / Other ₹','Line amount ₹'];
       rows=d.items.map(x=>[x.product,x.metal,fmt(x.grossWeight),fmt(x.lessWeight),fmt(x.netWeight),n(x.meltingLossPercent)+'%',n(x.purity)+'%',fmt(x.pureWeight),rateMoney(x.rate),rateMoney(x.otherAmount),rateMoney(x.subtotal)]);
     } else {
-      heads=['Product / HUID','Metal','Pcs','Gross g','Less g','Net g','Touch %','Pure g','Wst %','Payable pure g','Pure rate / g ₹','Making ₹','Stone ₹','Line total ₹'];
+      heads=['Product / HUID','Group / HSN','Metal','Pcs','Gross g','Stone less g','Diamond less g','Net g','Touch %','Pure g','Wst %','V.A. g','Payable pure g','Pure rate / g ₹','Making ₹','Stone ₹','Diamond ₹','Discount ₹','Line total ₹'];
       rows=d.items.map(x=>[
         [x.product, x.huid].filter(Boolean).join(' · HUID: '),
+        [x.productGroup,x.hsn].filter(Boolean).join(' / ')||'—',
         x.metal,
         x.pieces,
         fmt(x.grossWeight),
-        fmt(x.lessWeight),
+        fmt(x.stoneWeight),
+        fmt(x.diamondLessWeight),
         fmt(x.netWeight),
         n(x.purity)+'%',
         fmt(x.pureWeight),
         n(x.wastage)+'%',
+        fmt(x.valueAddedWeight),
         fmt(x.payablePure),
         rateMoney(x.rate),
         rateMoney(x.makingTotal),
         rateMoney(x.stoneAmount),
+        rateMoney(x.diamondAmount),
+        rateMoney(x.itemDiscount),
         rateMoney(x.subtotal)
       ]);
     }
@@ -857,10 +936,12 @@ function rpDocumentModel(d){
       ['Items subtotal', rateMoney(d.subtotal)],
       ['Bill discount', '− ' + rateMoney(d.discount)],
       ['Other / handling charges', rateMoney(d.otherCharges)],
+      ...(d.extraCharges||[]).map(x=>[x.type+(x.hsn?' · HSN '+x.hsn:''),rateMoney(x.amount)]),
       ['GST recorded', rateMoney(d.gstAmount)],
     ];
-    if(d.tdsAmount > 0) totals.push(['TDS u/s 194Q (0.1% Deduction)', '− ' + rateMoney(d.tdsAmount)]);
-    if(d.tcsAmount > 0) totals.push(['TCS u/s 206C(1H) (0.1% Addition)', '+ ' + rateMoney(d.tcsAmount)]);
+    if(d.tdsAmount > 0) totals.push(['TDS deduction', '− ' + rateMoney(d.tdsAmount)]);
+    if(d.tcsAmount > 0) totals.push(['TCS addition', '+ ' + rateMoney(d.tcsAmount)]);
+    if(d.taxPaidAmount>0)totals.push(['TCS / TDS remitted'+(d.taxPaidReference?' · '+d.taxPaidReference:''),rateMoney(d.taxPaidAmount)]);
     totals.push(
       ['Round off', rateMoney(d.roundOff)],
       ['Document value', rateMoney(d.totalAmount)],
@@ -1075,3 +1156,4 @@ window.go=function(target){
   if(workspaceMode==='retail')window.scrollTo?.(0,0);
   return result;
 };
+
