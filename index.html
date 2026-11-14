@@ -739,8 +739,22 @@ function dash(){
     +'<section class="panel quick-panel"><div><h2>Quick actions</h2><div class="muted">Start a common task in one tap.</div></div><div class="quick-actions"><button onclick="go(\'Party Register\')">♙ &nbsp; Add party</button><button onclick="go(\'Customer Register\')">♧ &nbsp; Add customer</button><button onclick="go(\'Sales Entry\')">＋ &nbsp; Record sale</button><button onclick="go(\'Payments\')">↙ &nbsp; Add payment</button></div></section>'
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
-}document.getElementById('app').innerHTML='<div class="gl-boot-state" role="status" aria-live="polite"><span class="gl-boot-dot" aria-hidden="true"></span><span>Opening Goldleaf…</span></div>';setTimeout(()=>{if(!window.goldleafAuthReady){window.goldleafAuthReady=true;document.getElementById('glBootOverlay')?.remove();render()}},6000);
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){client=window.supabase.createClient(db.cloud.url,db.cloud.key);client.auth.getSession().then(({data})=>{session=data.session;window.goldleafAuthReady=true;document.getElementById('glBootOverlay')?.remove();if(session){if(window.goldleafV2Ready)pullCloud();else window.addEventListener('goldleaf-v2-ready',()=>pullCloud(),{once:true})}setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device');render();}).catch(()=>{window.goldleafAuthReady=true;document.getElementById('glBootOverlay')?.remove();render()})}else{window.goldleafAuthReady=true;document.getElementById('glBootOverlay')?.remove()}</script><script>const GOLDLEAF_VERSION='2.10.70';
+}document.getElementById('app').innerHTML='<div class="gl-boot-state" role="status" aria-live="polite"><span class="gl-boot-dot" aria-hidden="true"></span><span>Opening Goldleaf…</span></div>';setTimeout(()=>{if(!window.goldleafAuthReady){window.goldleafAuthReady=true;render();document.getElementById('glBootOverlay')?.remove()}},15000);
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+function glFinishBoot(){render();document.getElementById('glBootOverlay')?.remove()}
+if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
+  client=window.supabase.createClient(db.cloud.url,db.cloud.key);
+  client.auth.getSession().then(({data})=>{
+    session=data.session;
+    window.goldleafAuthReady=true;
+    setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device');
+    if(!session){glFinishBoot();return}
+    const loadAccount=()=>Promise.resolve(pullCloud()).finally(glFinishBoot);
+    if(window.goldleafV2Ready)loadAccount();
+    else window.addEventListener('goldleaf-v2-ready',loadAccount,{once:true});
+  }).catch(()=>{window.goldleafAuthReady=true;glFinishBoot()})
+}else{window.goldleafAuthReady=true;glFinishBoot()}
+</script><script>const GOLDLEAF_VERSION='2.10.71';
 window.GOLDLEAF_VERSION=GOLDLEAF_VERSION;
 window.GL_APP_VERSION=GOLDLEAF_VERSION;
 const goldleafPreviousGo=window.go;
@@ -1281,6 +1295,7 @@ window.render=function(){
 };
 window.setInterval(()=>{if(session)window.checkRateReminder()},30000);window.addEventListener('focus',()=>{if(session)checkRateReminder()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)checkRateReminder()});
 render();
-</script><script src="./qrcode.min.js?v=2.10.54"></script><script src="./html5-qrcode.min.js?v=2.10.54"></script><script src="./app-v2.js?v=2.10.66"></script><script src="./admin-panel.js?v=2.10.69"></script><script src="./pdf-templates.js?v=2.10.67"></script><script src="./erp-ui.js?v=2.10.65"></script><script src="./retail-sales.js?v=2.10.66"></script><script src="./retail-purchases.js?v=2.10.66"></script><script src="./retail-estimate-chit.js?v=2.10.66"></script><script src="./retail-product-workflow.js?v=2.10.70"></script><script src="./retail-chit-reports.js?v=2.10.62"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><script src="./qr-scanner.js?v=2.10.54"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.55"></body></html>
+</script><script src="./qrcode.min.js?v=2.10.54"></script><script src="./html5-qrcode.min.js?v=2.10.54"></script><script src="./app-v2.js?v=2.10.66"></script><script src="./admin-panel.js?v=2.10.69"></script><script src="./pdf-templates.js?v=2.10.67"></script><script src="./erp-ui.js?v=2.10.65"></script><script src="./retail-sales.js?v=2.10.66"></script><script src="./retail-purchases.js?v=2.10.66"></script><script src="./retail-estimate-chit.js?v=2.10.66"></script><script src="./retail-product-workflow.js?v=2.10.71"></script><script src="./retail-chit-reports.js?v=2.10.62"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><script src="./qr-scanner.js?v=2.10.54"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.55"></body></html>
+
 
 
