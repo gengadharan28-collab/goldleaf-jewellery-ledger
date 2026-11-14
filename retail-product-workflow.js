@@ -234,10 +234,7 @@ document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
   let html = glOldHistory ? glOldHistory() : '';
-  html = html.replace(/Goldleaf v[0-9.]+/g, 'Goldleaf v2.10.35');
-  html = html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/, '<h2>Current version</h2><p><b>Goldleaf v2.10.35</b> · 12 Nov 2026</p>');
-  html = html.replace(/<h3>v[0-9.]+ · [^<]*Current<\/h3>/g, '<h3>v2.10.30 · 12 Nov 2026</h3>');
-  const v31Note = '<article class="release-note"><h3>v2.10.31 · 12 Nov 2026 · Current</h3><ul>'
+  const v31Note = '<article class="release-note"><h3>v2.10.31 · 12 Nov 2026</h3><ul>'
     + '<li>Mobile Workspace Context Banner Removal: Completely removed redundant top workspace context banner ("GOLDLEAF · RETAIL", "RETAIL WORKSPACE", duplicate section selectors, and header identity cards) across all mobile pages.</li>'
     + '<li>Screen Real Estate Maximization: Content cards, quotation forms, and dashboards start directly below the sticky navigation bar on mobile phones.</li>'
     + '</ul></article>';
