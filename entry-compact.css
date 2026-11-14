@@ -1,0 +1,106 @@
+/* Shared compact treatment for Retail Sales, Purchase and Estimation entries. */
+#erpSideInstallWrap[hidden], .erp-install-shortcut[hidden], #installButton[hidden] { display: none !important; }
+.rb-bill-screen .panel,
+.rp-document-screen .panel,
+.rc-screen .rc-content > .panel {
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(24, 57, 42, .05);
+}
+
+.rb-bill-screen .rb-section-head,
+.rp-document-screen .rb-section-head,
+.rc-screen .rc-section-title { margin-bottom: 8px; }
+
+.rb-bill-screen .rb-balance,
+.rp-document-screen .rb-balance {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 2px 12px !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 6px 0 0 !important;
+  padding: 8px 11px !important;
+  border-width: 1px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.rb-bill-screen .rb-balance-header { min-width: 0; margin: 0 !important; }
+.rb-bill-screen .rb-balance-sub { display: none !important; }
+.rb-bill-screen .rb-balance #saleBalanceLabel,
+.rp-document-screen .rb-balance #rpBalanceLabel {
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  letter-spacing: .02em !important;
+}
+.rb-bill-screen .rb-balance #saleBalanceAmount,
+.rp-document-screen .rb-balance #rpBalanceValue {
+  margin: 0 !important;
+  font-size: clamp(16px, 1.6vw, 20px) !important;
+  line-height: 1.15 !important;
+  white-space: nowrap;
+  text-align: right;
+}
+.rb-bill-screen .rb-balance-breakdown {
+  grid-column: 1 / -1;
+  margin: 4px 0 0 !important;
+  padding: 4px 0 0 !important;
+  gap: 4px 9px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+.rp-document-screen .rp-metrics { margin: 6px 0; gap: 6px; }
+.rp-document-screen .rp-metrics > span { padding: 6px 8px; border-radius: 8px; }
+.rp-document-screen .rp-metrics b { font-size: 13px; margin-top: 1px; }
+
+.rc-screen #rcBalanceBox {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 6px 12px !important;
+  min-height: 0 !important;
+  margin-top: 8px !important;
+  padding: 8px 11px !important;
+  border-width: 1px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.rc-screen #rcBalanceBox .rc-balance-desktop-head { gap: 7px !important; min-width: 0; }
+.rc-screen #rcBalanceBox .rc-balance-icon,
+.rc-screen #rcBalanceBox .rc-balance-sub { display: none !important; }
+.rc-screen #rcBalanceBox .rc-balance-title { font-size: 11px !important; line-height: 1.2 !important; }
+.rc-screen #rcBalanceBox .rc-balance-linear-bar { gap: 7px !important; flex-wrap: wrap; justify-content: flex-end; }
+.rc-screen #rcBalanceBox .rc-bal-item { font-size: 10px !important; }
+.rc-screen #rcBalanceBox .rc-bal-item b { font-size: 12px !important; }
+.rc-screen #rcBalanceBox .rc-bal-remaining b { font-size: 17px !important; }
+#rcEstimateForm .rc-totals { gap: 6px !important; margin-top: 8px !important; padding: 8px !important; }
+#rcEstimateForm .rc-totals > span { min-height: 0 !important; padding: 6px 8px !important; border-radius: 8px !important; font-size: 11px !important; }
+#rcEstimateForm .rc-totals > span b { font-size: 12px !important; }
+
+@media (max-width: 760px) {
+  .rb-bill-screen .rb-form,
+  .rp-document-screen .rp-form,
+  .rc-screen .rc-content { gap: 9px !important; }
+  .rb-bill-screen .panel,
+  .rp-document-screen .panel,
+  .rc-screen .rc-content > .panel { padding: 11px !important; margin-bottom: 0 !important; }
+  .rb-bill-screen .rb-section-head h2,
+  .rp-document-screen .rb-section-head h2,
+  .rc-screen .rc-section-title h2 { font-size: 14px !important; }
+  .rb-bill-screen .rb-balance,
+  .rp-document-screen .rb-balance,
+  .rc-screen #rcBalanceBox { padding: 8px 10px !important; margin: 5px 0 0 !important; }
+  .rb-bill-screen .rb-balance #saleBalanceAmount,
+  .rp-document-screen .rb-balance #rpBalanceValue { font-size: 17px !important; }
+  .rb-bill-screen .rb-balance-breakdown { font-size: 10px !important; }
+  .rc-screen #rcBalanceBox { display: block !important; }
+  .rc-screen #rcBalanceBox .rc-balance-linear-bar { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 3px !important; }
+  .rc-screen #rcBalanceBox .rc-bal-item { min-width: 0; padding: 2px 3px !important; }
+  .rc-screen #rcBalanceBox .rc-bal-item b { font-size: 11px !important; overflow-wrap: anywhere; }
+  .rc-screen #rcBalanceBox .rc-bal-remaining b { font-size: 13px !important; }
+  #rcEstimateForm .rc-totals { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .rp-document-screen .rp-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rp-document-screen .rp-metrics > span { min-width: 0; font-size: 9px; }
+  .rp-document-screen .rp-metrics b { font-size: 11px; overflow-wrap: anywhere; }
+}
+
