@@ -71,6 +71,18 @@
  html[data-theme="dark"] body[data-erp] .top,html[data-theme="dark"] body[data-erp] .rc-screen>.rb-header,html[data-theme="dark"] body[data-erp] .panel,html[data-theme="dark"] body[data-erp] .cards .card,html[data-theme="dark"] body[data-erp] .right,html[data-theme="dark"] body[data-erp] .rc-actions,html[data-theme="dark"] body[data-erp] .rb-bill-actions{background:#202923!important;border-color:#414743!important}
  html[data-theme="dark"] body[data-erp] .panel h2,html[data-theme="dark"] body[data-erp] .top h1{color:#f0e9db;border-color:#3b443d}
 }
+
+/* Phone workspace selection stays in the sticky toolbar, outside scrolling content. */
+@media (max-width: 760px) {
+  body[data-erp] .side #erpSideMode,
+  body[data-erp] #app .top .business-mode {
+    display: none !important;
+  }
+  body[data-erp] .erp-workbar {
+    position: sticky !important;
+    top: 0 !important;
+  }
+}
 @media screen and (max-width:390px){body[data-erp] #app.main,body[data-erp] .main{padding-left:9px!important;padding-right:9px!important}body[data-erp] .grid,body[data-erp] .rc-grid{gap:7px!important}body[data-erp] .panel{padding:10px!important}body[data-erp] .erp-rate-chip{display:none!important}}
 
 
