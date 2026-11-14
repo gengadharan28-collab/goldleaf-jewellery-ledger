@@ -736,20 +736,7 @@ html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button.active {
     flex-shrink: 0 !important;
   }
   body[data-erp] .erp-workbar-mode {
-    order: 3 !important;
-    flex: 1 0 100% !important;
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  body[data-erp] .erp-workbar-mode.erp-mode-single {
-    grid-template-columns: 1fr !important;
-  }
-  body[data-erp] .erp-workbar-mode button {
-    width: 100% !important;
-    min-height: 31px !important;
-    padding: 4px 8px !important;
-    font-size: 11px !important;
+    display: none !important;
   }
 }
 
