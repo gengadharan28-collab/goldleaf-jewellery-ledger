@@ -72,11 +72,32 @@
  html[data-theme="dark"] body[data-erp] .panel h2,html[data-theme="dark"] body[data-erp] .top h1{color:#f0e9db;border-color:#3b443d}
 }
 
-/* Phone workspace selection stays in the sticky toolbar, outside scrolling content. */
+/* Keep the workspace selector in the phone navigation drawer. */
 @media (max-width: 760px) {
-  body[data-erp] .side #erpSideMode,
+  body[data-erp] .erp-workbar-mode,
   body[data-erp] #app .top .business-mode {
     display: none !important;
+  }
+  body[data-erp] .side #erpSideMode {
+    display: flex !important;
+    width: auto !important;
+    margin: 0 4px 10px !important;
+  }
+  body[data-erp] .side #erpSideMode .erp-side-mode-nav {
+    display: flex !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    gap: 3px !important;
+    padding: 3px !important;
+    border-radius: 999px !important;
+  }
+  body[data-erp] .side #erpSideMode button {
+    width: auto !important;
+    min-height: 32px !important;
+    padding: 5px 11px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
   }
   body[data-erp] .erp-workbar {
     position: sticky !important;
@@ -422,19 +443,5 @@ body.gl-auth-active .main {
     row-gap: 6px !important;
     padding: 6px 10px !important;
   }
-  body[data-erp] .erp-workbar-mode {
-    order: 3 !important;
-    flex: 1 0 100% !important;
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  body[data-erp] .erp-workbar-mode.erp-mode-single {
-    grid-template-columns: 1fr !important;
-  }
-  body[data-erp] .erp-workbar-mode button {
-    width: 100% !important;
-    min-height: 31px !important;
-    font-size: 11px !important;
-  }
+  body[data-erp] .erp-workbar-mode { display: none !important; }
 }
