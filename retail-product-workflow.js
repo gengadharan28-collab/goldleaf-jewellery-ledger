@@ -233,15 +233,10 @@ const glProductStyle=document.createElement('style');glProductStyle.textContent=
 document.head.append(glProductStyle);
 const glOldHistory=window.updateHistoryView;
 window.updateHistoryView=function(){
-  let html = glOldHistory ? glOldHistory() : '';
-  const current=window.GOLDLEAF_VERSION||'2.10.67';
-  html=html.replace(/<h2>Current version<\/h2><p><b>[^<]+<\/b> · [^<]+<\/p>/,'<h2>Current version</h2><p><b>Goldleaf v'+current+'</b> · 14 Nov 2026</p>');
+  const current=window.GOLDLEAF_VERSION||'2.10.68';
+  let html=window.goldleafCanonicalHistory?window.goldleafCanonicalHistory():glOldHistory();
   html=html.replace(/(<h3>v[^<]+?) · Current(<\/h3>)/g,'$1$2');
-  const latestNote='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Moved Sales, Chit Receipt and Estimation/Quotation print format selection into Settings. Entry pages use the saved formats.</li></ul></article><article class="release-note"><h3>v2.10.66 · 14 Nov 2026</h3><ul><li>Added totals inside Sales, Purchase, Quotation, Chit and Payment entry histories.</li></ul></article>';
-  const v31Note = '<article class="release-note"><h3>v2.10.31 · 12 Nov 2026</h3><ul>'
-    + '<li>Mobile Workspace Context Banner Removal: Completely removed redundant top workspace context banner ("GOLDLEAF · RETAIL", "RETAIL WORKSPACE", duplicate section selectors, and header identity cards) across all mobile pages.</li>'
-    + '<li>Screen Real Estate Maximization: Content cards, quotation forms, and dashboards start directly below the sticky navigation bar on mobile phones.</li>'
-    + '</ul></article>';
-  return html.replace('<h2>Update history</h2>', '<h2>Update history</h2>' + latestNote + v31Note);
+  const latest='<article class="release-note"><h3>v'+current+' · 14 Nov 2026 · Current</h3><ul><li>Corrected Update History so it shows the live version and one chronological release list.</li></ul></article><article class="release-note"><h3>v2.10.67 · 14 Nov 2026</h3><ul><li>Moved Sales, Chit Receipt and Estimation/Quotation print format selection into Settings.</li></ul></article>';
+  return html.replace('<h2>Update history</h2>','<h2>Update history</h2>'+latest);
 };
 render();
