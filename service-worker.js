@@ -1,5 +1,5 @@
-const CACHE='goldleaf-shell-v2193';
-const SHELL=['./','./qrcode.min.js?v=2.10.54','./html5-qrcode.min.js?v=2.10.54','./qr-scanner.js?v=2.10.54','./app-v2.js?v=2.10.86','./admin-panel.js?v=2.10.69','./pdf-templates.js?v=2.10.86','./erp-ui.js?v=2.10.72','./erp-theme.css?v=2.10.65','./mobile-erp-layout.css?v=2.10.65','./retail-sales.js?v=2.10.66','./retail-purchases.js?v=2.10.75','./retail-estimate-chit.js?v=2.10.86','./retail-chit-reports.js?v=2.10.77','./retail-trade-reports.js?v=2.10.62','./retail-tag-reports.js?v=2.10.80','./retail-chit-reports.css?v=2.10.62','./retail-tag-reports.css?v=2.10.80','./retail-product-workflow.js?v=2.10.86','./retail-estimate-chit.css?v=2.10.55','./entry-compact.css?v=2.10.76','./retail-sales.css?v=2.10.66','./manifest.webmanifest?v=2.10.54','./icon-192.png?v=2.10.54','./icon-512.png'];
+const CACHE='goldleaf-shell-v2195';
+const SHELL=['./','./qrcode.min.js?v=2.10.54','./html5-qrcode.min.js?v=2.10.54','./qr-scanner.js?v=2.10.54','./app-v2.js?v=2.10.87','./admin-panel.js?v=2.10.69','./pdf-templates.js?v=2.10.86','./erp-ui.js?v=2.10.72','./erp-theme.css?v=2.10.65','./mobile-erp-layout.css?v=2.10.65','./retail-sales.js?v=2.10.66','./retail-purchases.js?v=2.10.75','./retail-estimate-chit.js?v=2.10.87','./retail-chit-reports.js?v=2.10.77','./retail-trade-reports.js?v=2.10.62','./retail-tag-reports.js?v=2.10.80','./retail-chit-reports.css?v=2.10.62','./retail-tag-reports.css?v=2.10.80','./retail-product-workflow.js?v=2.10.86','./retail-estimate-chit.css?v=2.10.55','./entry-compact.css?v=2.10.76','./retail-mobile-polish.css?v=2.10.87','./retail-sales.css?v=2.10.66','./manifest.webmanifest?v=2.10.54','./icon-192.png?v=2.10.54','./icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{}).then(()=>self.skipWaiting())
@@ -22,13 +22,13 @@ self.addEventListener('fetch',event=>{
     return;
   }
   event.respondWith(
-    fetch(event.request).then(response=>{
+    caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{
       if(response.ok){
         const copy=response.clone();
         caches.open(CACHE).then(cache=>cache.put(event.request,copy));
       }
       return response;
-    }).catch(()=>caches.match(event.request))
+    }))
   );
 });
 
