@@ -46,13 +46,19 @@ const tagReportDataBase=tagReportData;
 tagReportData=function(){const data=tagReportDataBase();if(tagReportName==='Overall Available Tag'){
   data.head.push('Print product','Product type','Color','Stone qty','Stone weight g','Purchase rate','Purchase amount','Purchase stone amount','Reference 1','Reference 2','Created','Updated','Last verified','Scan count','Remarks');
   data.rows.forEach((row,i)=>{const t=tagReportFiltered()[i];row.push(t.printName||'',t.productType||'',t.color||'',t.stonePieces||0,t.stoneWeight||0,t.purchaseRate||'',t.purchaseAmount||'',t.purchaseStoneAmount||'',t.reference1||'',t.reference2||'',t.createdAt||'',t.updatedAt||'',t.lastVerifiedAt||'',t.scanCount||'',t.remarks||'')});
-}return data};
+  const s=tagReportSum(tagReportFiltered()),total=Array(data.head.length).fill('');total[0]='TOTAL';total[5]=s.qty;total[6]=fmt(s.gross);total[7]=fmt(s.net);total[18]=rateMoney(s.amount);total[19]=fmt(s.stone);data.rows.push(total);
+}
+if(tagReportName==='Tag Stock V1'){
+  const total=Array(data.head.length).fill('');total[0]='TOTAL';for(const row of data.rows)for(let i=1;i<total.length;i++)total[i]=n(total[i])+n(row[i]);for(const i of [3,6,9,12])total[i]=fmt(total[i]);data.rows.push(total);
+}
+return data};
 function tagReportDrill(key){tagReportExpanded=key;render()}
 const tagReportsViewWithFilters=tagReportsView;
 tagReportsView=function(){let html=tagReportsViewWithFilters();if(!['Tag Stocks','Tag Stock V1','Tag Age Wise','Available By Product','Tag Purchase'].includes(tagReportName))return html;
-  const rows=tagReportFiltered(),keys=tagReportName==='Available By Product'?tagReportGrouped(rows,t=>[t.group||'Unassigned',t.product||'Unassigned'].join(' · ')).map(x=>x[0]):tagReportName==='Tag Purchase'?tagReportGrouped(rows,t=>[tagReportDate(t),t.group,t.product,t.supplier].join(' · ')).map(x=>x[0]):tagReportName==='Tag Age Wise'?[]:tagReportGrouped(rows,tagReportKey).map(x=>x[0]);
+  const rows=tagReportFiltered(),keys=tagReportName==='Available By Product'?tagReportGrouped(rows,t=>[t.group||'Unassigned',t.product||'Unassigned'].join(' · ')).map(x=>x[0]):tagReportName==='Tag Purchase'?tagReportGrouped(rows,t=>[tagReportDate(t),t.group,t.product,t.supplier].join(' · ')).map(x=>x[0]):tagReportName==='Tag Age Wise'?tagReportData().rows.filter(r=>r[0]!=='TOTAL').map(r=>String(r[0])):tagReportGrouped(rows,tagReportKey).map(x=>x[0]);
   const select='<div class="tag-report-drill"><label>View tagged items in group <select onchange="tagReportDrill(this.value)"><option value="">Select group</option>'+keys.map(k=>'<option value="'+esc(k)+'" '+(tagReportExpanded===k?'selected':'')+'>'+esc(k)+'</option>').join('')+'</select></label></div>';
-  let members=[];if(tagReportExpanded){members=rows.filter(t=>tagReportName==='Available By Product'?[t.group||'Unassigned',t.product||'Unassigned'].join(' · ')===tagReportExpanded:tagReportName==='Tag Purchase'?[tagReportDate(t),t.group,t.product,t.supplier].join(' · ')===tagReportExpanded:tagReportKey(t)===tagReportExpanded)}
-  const detail=members.length?'<h3>'+esc(tagReportExpanded)+' · '+members.length+' tags</h3>'+table(['Tag','Date','Group','Product','Metal','Qty','Gross g','Net g','HUID','Status'],members.map(tagReportLine)):'';
+  let members=[];if(tagReportExpanded){members=rows.filter(t=>tagReportName==='Available By Product'?[t.group||'Unassigned',t.product||'Unassigned'].join(' · ')===tagReportExpanded:tagReportName==='Tag Purchase'?[tagReportDate(t),t.group,t.product,t.supplier].join(' · ')===tagReportExpanded:tagReportName==='Tag Age Wise'?(()=>{const age=Math.max(0,Math.floor((Date.now()-new Date(tagReportDate(t)||Date.now()))/86400000)),part=tagReportExpanded.split(/[–+]/),lo=n(part[0]),hi=tagReportExpanded.includes('+')?Infinity:n(part[1]);return age>=lo&&age<=hi})():tagReportKey(t)===tagReportExpanded)}
+  const totals=tagReportSum(members);
+  const detail=members.length?'<h3>'+esc(tagReportExpanded)+' · '+members.length+' tags</h3>'+table(['Tag','Date','Group','Product','Metal','Qty','Gross g','Net g','HUID','Status'],[...members.map(tagReportLine),['TOTAL','','','','',totals.qty,fmt(totals.gross),fmt(totals.net),'','']]):'';
   return html.replace('</section>',select+detail+'</section>')};
 
