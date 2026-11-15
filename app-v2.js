@@ -575,10 +575,10 @@ window.pullCloud=async function(){
   if(v2CloudBusy)return;
   v2CloudBusy=true;let needsPush=false;
   try{
-    const contextResult=await client.rpc('goldleaf_my_context');if(contextResult.error)throw contextResult.error;goldleafContext=contextResult.data||null;
+    const [contextResult,shared]=await Promise.all([client.rpc('goldleaf_my_context'),client.rpc('goldleaf_get_shared_rates')]);
+    if(contextResult.error)throw contextResult.error;if(shared.error)throw shared.error;goldleafContext=contextResult.data||null;
     if(!goldleafContext?.shop_id&&!goldleafContext?.is_super_admin)throw new Error('This login is not connected to a shop yet. Contact the Goldleaf administrator.');
-    if(goldleafContext?.is_super_admin)await goldleafLoadAdminShops();
-    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;
+    if(goldleafContext?.is_super_admin)goldleafLoadAdminShops().then(()=>{if(page==='Super Admin')render()});
     const sharedRates=shared.data||{};
     if(!goldleafContext.has_access){db.rates=sharedRates;render();setCloudStatus('Trial ended · contact Goldleaf Super Admin');return}
     const {data,error}=await client.from('goldleaf_shop_ledgers').select('payload,updated_at').eq('shop_id',goldleafContext.shop_id).maybeSingle();if(error)throw error;
@@ -586,7 +586,7 @@ window.pullCloud=async function(){
     else needsPush=true;
     db.rates=sharedRates;localStorage.setItem(dbkey,JSON.stringify(db));
     setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email));if(window.setupGoldleafRealtimeSync)setupGoldleafRealtimeSync();if(!v2HasFocusedEdit())render();
-    if(needsPush){v2CloudBusy=false;await window.pushCloud()}
+    if(needsPush){v2CloudBusy=false;setTimeout(()=>window.pushCloud(),0)}
   }catch(error){setCloudStatus('Cloud setup needed');const message=document.getElementById('cloudMsg');if(message)message.textContent='Cloud account could not load: '+error.message}
   finally{v2CloudBusy=false}
 };
