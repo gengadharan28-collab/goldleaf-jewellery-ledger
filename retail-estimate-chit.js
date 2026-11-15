@@ -1340,6 +1340,7 @@ function rcQuoteForm(){
     +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='tag'?'active':'')+'" onclick="rcSetQuoteMode(\'tag\')" role="tab" aria-selected="'+(rcQuoteMode==='tag')+'">🏷 Tag Mode</button>'
     +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='manual'?'active':'')+'" onclick="rcSetQuoteMode(\'manual\')" role="tab" aria-selected="'+(rcQuoteMode==='manual')+'">✎ Manual Mode</button>'
     +'<button type="button" class="rc-quote-mode-btn '+(rcQuoteMode==='multi'?'active':'')+'" onclick="rcSetQuoteMode(\'multi\')" role="tab" aria-selected="'+(rcQuoteMode==='multi')+'">📑 Multi Tag Mode</button>'
+    +'<button type="button" class="rc-quote-scan-tab" onclick="openQrScannerForQuote()" title="Scan tag" aria-label="Scan tag">▣</button>'
     +'</div>'
     +'</div>'
 
