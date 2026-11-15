@@ -1571,11 +1571,7 @@ function rcQuoteForm(){
     // Actions
     +'<div class="rc-actions" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px">'
     +'<button type="button" onclick="rcResetEstimate()">＋ New Quote</button>'
-    +'<button type="button" onclick="rcPrintEstimate()">📄 Print (Default)</button>'
-    +'<button type="button" onclick="rcPrintEstimate(\'detailed-estimate\')">🖨️ A4 Detailed</button>'
-    +'<button type="button" onclick="rcPrintEstimate(\'compact-estimate-a5\')">📋 A5 Slip</button>'
-    +'<button type="button" onclick="rcPrintEstimate(\'thermal-estimate-80\')">🧾 80mm Thermal</button>'
-    +'<button type="button" onclick="rcPrintEstimate(\'thermal-estimate-58\')">📱 58mm Thermal</button>'
+    +'<button type="button" onclick="rcPrintEstimate()">📄 Print / Save PDF</button>'
     +(q?.id ? '<button type="button" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')">📲 WhatsApp Quote</button>' : '')
     +(q?.id ? '<button type="button" style="background:#e88a1a;border-color:#e88a1a;color:#fff;font-weight:700" onclick="rcConvert(\''+esc(q.id)+'\')">⚡ Convert to Sales Bill</button>' : '')
     +'<button type="submit" class="primary" style="padding:0 20px;font-weight:750">'+(q?'Save Changes':'Save Quotation')+'</button>'
@@ -1628,7 +1624,6 @@ function rcEstimateHistory(){
     '<span class="pill">'+esc(q.status||'Draft')+'</span>',
     '<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\')">PDF</button> '
-    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm Thermal Slip">POS</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
     +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button>'
   ]);
@@ -3547,4 +3542,3 @@ window.settingsView = function(){
   }
   return html;
 };
-
