@@ -1572,7 +1572,7 @@ function rcQuoteForm(){
     +'<div class="rc-actions" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px">'
     +'<button type="button" onclick="rcResetEstimate()">＋ New Quote</button>'
     +'<button type="button" onclick="rcPrintEstimate()">📄 Print / Save PDF</button>'
-    +(q?.id ? '<button type="button" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')">📲 WhatsApp Quote</button>' : '')
+    +'<button type="button" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp('+(q?.id?'\''+esc(q.id)+'\'':'')+')">📲 WhatsApp Customer</button>'
     +(q?.id ? '<button type="button" style="background:#e88a1a;border-color:#e88a1a;color:#fff;font-weight:700" onclick="rcConvert(\''+esc(q.id)+'\')">⚡ Convert to Sales Bill</button>' : '')
     +'<button type="submit" class="primary" style="padding:0 20px;font-weight:750">'+(q?'Save Changes':'Save Quotation')+'</button>'
     +'</div>'
@@ -1869,65 +1869,51 @@ window.rcPrintSavedEstimate = function(id, forcedTemplate){
   if(q) pdfPrintModel(rcQuoteModel(q), 'retail', forcedTemplate);
 };
 
-window.rcShareQuoteWhatsApp = function(id){
-  const q = rcDocs('retail-estimate').find(x=>x.id===id);
-  if(!q) return say('Quotation not found.');
-  const c = account(q.customerId, 'customer'),
-        shop = db.shopName || goldleafContext?.shop_name || 'Goldleaf Jewellery';
-
-  let msg = '*' + shop.toUpperCase() + '*\n';
-  msg += '*ESTIMATION / QUOTATION*\n';
-  msg += '--------------------------------\n';
-  msg += 'Quote No: ' + q.documentNo + '\n';
-  msg += 'Date: ' + (q.when ? q.when.replace('T', ' ') : 'Today') + '\n';
-  msg += 'Customer: ' + (c?.name || 'Valued Customer') + (c?.phone ? ' (' + c.phone + ')' : '') + '\n';
-  if(q.validUntil) msg += 'Valid Until: ' + q.validUntil + '\n';
-  msg += '--------------------------------\n';
-  msg += '*Items Quoted:*\n';
-  (q.items||[]).forEach((item, idx)=>{
-    msg += (idx+1) + '. *' + item.product + '* (' + (item.metalType||'Gold') + ' ' + item.purity + '%)\n';
-    if(item.tagCode) msg += '   Tag: ' + item.tagCode + (item.huid ? ' | HUID: ' + item.huid : '') + '\n';
-    msg += '   Gross: ' + fmt(item.grossWeight) + 'g | Net: ' + fmt(item.netWeight) + 'g\n';
-    msg += '   Rate: ₹' + rateMoney(item.rate) + '/g | Total: ₹' + rateMoney(item.subtotal) + '\n';
+function rcQuoteWhatsAppText(q,c){
+  const cfg=pdfConfig('retail'),model=rcQuoteModel(q),grid=cfg.estimateTemplate==='thermal-estimate-grid-80';
+  const compact=grid||cfg.estimateTemplate==='thermal-estimate-80'||cfg.estimateTemplate==='thermal-estimate-58';
+  const selected=new Set(cfg.estimateGridFields||PDF_GRID_DEFAULTS);
+  const shop=cfg.shopName||goldleafContext?.shop_name||db.shopName||'Goldleaf Jewellery';
+  const money=value=>rateMoney(value),grams=value=>fmt(value)+'g';
+  const generalVisible={huid:cfg.showHuid,gross:cfg.showGrossLess,less:cfg.showGrossLess,net:cfg.showNetWeight,wastage:cfg.showWastage,making:cfg.showMaking,stone:cfg.showStones,stoneCharge:cfg.showStones};
+  const field=(key,label,value)=>(grid?selected.has(key):generalVisible[key]!==false)?label+': '+value:null;
+  const lines=['*'+shop.toUpperCase()+'*',compact?'*ESTIMATE* · Not a tax invoice':'*ESTIMATION / QUOTATION*'];
+  if(compact){
+    const gold=model.invoiceItems.find(it=>String(it.metalType||'').toLowerCase()==='gold');
+    const silver=model.invoiceItems.find(it=>String(it.metalType||'').toLowerCase()==='silver');
+    lines.push('Gold '+(n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24)?money(n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24))+'/g':'—')+' | Silver '+(n(silver?.rate)||n(db.rates?.silver)?money(n(silver?.rate)||n(db.rates?.silver))+'/g':'—'));
+  }
+  lines.push('No: '+(q.documentNo||'Draft')+' | '+(q.when?String(q.when).replace('T',' '):'Today'));
+  lines.push('Customer: '+(c?.name||'Customer')+(c?.phone?' | '+c.phone:''));
+  if(!compact&&q.validUntil)lines.push('Valid until: '+q.validUntil);
+  lines.push('────────────────');
+  model.invoiceItems.forEach((it,i)=>{
+    const details=[field('product','Product',it.product||'—'),field('purity','Purity',it.purity==='—'?(it.purityValue||'—'):it.purity),field('huid','HUID',it.huid||'—'),field('pieces','Pcs',it.pieces||1),field('gross','Gross',grams(it.grossWeight)),field('less','Less',grams(it.lessWeight)),field('net','Net',grams(it.netWeight)),field('wastage','Wastage',n(it.wastage)+(it.wastageMode==='grams'?'g':'%')+'\n  Amount: '+money(it.wastageAmount)),field('making','Making',money(it.makingTotal)),field('hallmark','Hallmark',it.hallmarkCharge!=null?money(it.hallmarkCharge):'—'),field('stone','Stone',n(it.stoneWeight)>0?grams(it.stoneWeight):'—'),field('stoneCharge','Stone charge',money(it.stoneAmount)),field('itemTotal','Item total',money(it.subtotal))].filter(Boolean);
+    lines.push('*Item '+(i+1)+'*');
+    if(compact){for(let j=0;j<details.length;j+=3)lines.push(details.slice(j,j+3).join(' | '));}
+    else lines.push(...details);
+    if(i<model.invoiceItems.length-1)lines.push('────────────────');
   });
-  msg += '--------------------------------\n';
-  const subtotal = (q.items||[]).reduce((s,x)=>s+x.subtotal,0);
-  msg += 'Items Total: ₹' + rateMoney(subtotal) + '\n';
-  if(q.discount > 0) msg += 'Discount: ₹' + rateMoney(q.discount) + '\n';
-  if(q.gstEnabled) msg += 'GST (' + (q.gstRate||3) + '%): ₹' + rateMoney(Math.max(0, subtotal - q.discount) * (q.gstRate||3) / 100) + '\n';
-  const ogItems = rcNormalizeOldGoldItems(q);
-  const exchangeCredit = ogItems.length > 0 ? rbRound(ogItems.reduce((s, x) => s + n(x.amount), 0)) : (n(q.exchangeAmount) > 0 ? n(q.exchangeAmount) : (n(q.exchangeGross) * n(q.exchangeTesting) / 100 * n(q.exchangeRate)));
-  if(exchangeCredit > 0){
-    if(ogItems.length > 1){
-      msg += 'Old Gold Exchange:\n';
-      ogItems.forEach(item => {
-        msg += '  • ' + (item.product || 'Old Gold') + ' (' + fmt(item.gross) + 'g): ₹' + rateMoney(item.amount) + '\n';
-      });
-    }
-    msg += 'Old Gold Credit: ₹' + rateMoney(exchangeCredit) + (q.exchangeGross > 0 ? (' (' + fmt(q.exchangeGross) + 'g)') : '') + '\n';
-  }
-  msg += '--------------------------------\n';
-  msg += '*GRAND TOTAL: ₹' + rateMoney(q.amount) + '*\n';
-  if(Array.isArray(q.collections) && q.collections.length > 1){
-    msg += 'Collected Payments:\n';
-    q.collections.filter(c => n(c.amount) > 0).forEach(c => {
-      msg += '  • ' + c.method + ': ₹' + rateMoney(c.amount) + (c.reference ? ' (' + c.reference + ')' : '') + '\n';
-    });
-    msg += 'Paid Amount: ₹' + rateMoney(q.collectedAmount) + '\n';
-    const bal = Math.max(0, n(q.amount) - n(q.collectedAmount));
-    msg += '*Balance to Pay: ₹' + rateMoney(bal) + (bal === 0 && q.amount > 0 ? ' (Settled)' : '') + '*\n';
-  } else if(n(q.collectedAmount) > 0){
-    msg += 'Collected Amount: ₹' + rateMoney(q.collectedAmount) + ' (' + (q.collectedMethod||'Cash') + ')\n';
-    const bal = Math.max(0, n(q.amount) - n(q.collectedAmount));
-    msg += '*Balance to Pay: ₹' + rateMoney(bal) + (bal === 0 && q.amount > 0 ? ' (Settled)' : '') + '*\n';
-  }
-  msg += '--------------------------------\n';
-  if(q.notes) msg += 'Note: ' + q.notes + '\n';
-  msg += '*Rates are subject to daily market fluctuation.*\nThank you for choosing ' + shop + '!';
+  lines.push('────────────────');
+  lines.push('*Total product amount: '+money(model.invoiceItems.reduce((sum,it)=>sum+n(it.subtotal),0))+'*');
+  if(cfg.showExchange&&model.exchange?.length)model.exchange.forEach(it=>lines.push('Old gold: '+(it.product||'Gold')+' · '+grams(it.grossWeight||it.weight)+' · '+n(it.testingPurity)+'% · '+money(it.rate)+'/g · '+money(it.amount)));
+  lines.push('*Estimate settlement*');
+  model.totals.forEach(([label,value,highlight])=>lines.push((highlight?'*':'')+label+': '+value+(highlight?'*':'')));
+  if(q.notes)lines.push('Note: '+q.notes);
+  if(cfg.showTerms)lines.push(cfg.estimateBottomMargin||cfg.footerText||'Thank you!');
+  return lines.join('\n');
+}
 
-  const phone = (c?.phone||'').replace(/[^0-9]/g, '');
-  const url = phone ? ('https://api.whatsapp.com/send?phone=91' + (phone.length===10?phone:phone.slice(-10)) + '&text=' + encodeURIComponent(msg)) : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg));
-  window.open(url, '_blank');
+window.rcShareQuoteWhatsApp = function(id){
+  const q=id?rcDocs('retail-estimate').find(x=>x.id===id):rcEstimateRead(document.getElementById('rcEstimateForm'));
+  if(!q)return say('Quotation not found.');
+  if(!q.customerId||!q.items?.length||q.items.some(item=>!item.product||n(item.netWeight)<=0))return say('Select a customer and complete the jewellery items first.');
+  const customer=account(q.customerId,'customer');
+  const raw=String(customer?.whatsapp||customer?.phone||'').replace(/\D/g,'');
+  const phone=raw.length===10?'91'+raw:raw;
+  if(!/^\d{11,15}$/.test(phone))return say('Add a valid WhatsApp or mobile number to this customer.');
+  const url='https://wa.me/'+phone+'?text='+encodeURIComponent(rcQuoteWhatsAppText(q,customer));
+  window.open(url,'_blank','noopener');
 };
 
 window.rcConvert = function(id){
