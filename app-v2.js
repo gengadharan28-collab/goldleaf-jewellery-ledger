@@ -361,6 +361,16 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
     merged[key]=[...combined.values()];
   }
   for(const key of ['products','purities','partyPurities']){const seen=new Map();for(const item of [...(merged[key]||[]),...(current[key]||[])])seen.set(String(item).toLowerCase(),item);merged[key]=[...seen.values()]}
+  const remotePdf=merged.pdfSettings||{},localPdf=current.pdfSettings||{};
+  merged.pdfSettings=Object.assign({},remotePdf);
+  for(const mode of ['retail','wholesale']){
+    const remoteMode=remotePdf[mode],localMode=localPdf[mode];
+    if(!remoteMode&&localMode)merged.pdfSettings[mode]=localMode;
+    else if(remoteMode&&localMode){
+      const remoteTime=Date.parse(remoteMode.updatedAt||'')||0,localTime=Date.parse(localMode.updatedAt||'')||0;
+      if(localTime>remoteTime||(preferLocal&&localTime===remoteTime))merged.pdfSettings[mode]=localMode;
+    }
+  }
   const ratesA=merged.rates||{},ratesB=current.rates||{};merged.rates=Date.parse(ratesB.updatedAt||'')>Date.parse(ratesA.updatedAt||'')?Object.assign({},ratesA,ratesB):Object.assign({},ratesB,ratesA);
   const shopA=merged.shopRates||{},shopB=current.shopRates||{};merged.shopRates=Date.parse(shopB.updatedAt||'')>Date.parse(shopA.updatedAt||'')?Object.assign({},shopB):Object.assign({},shopA);
   const history=new Map();for(const item of [...(merged.rateHistory||[]),...(current.rateHistory||[])])history.set(item.id||JSON.stringify(item),item);merged.rateHistory=[...history.values()].sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time)).slice(0,100);
