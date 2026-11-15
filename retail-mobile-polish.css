@@ -1,0 +1,200 @@
+/* Retail Sales and Estimation mobile card rhythm. Desktop remains unchanged. */
+@media screen and (max-width:760px){
+  #customerSaleForm,
+  #rcEstimateForm{width:100%;min-width:0;box-sizing:border-box}
+  #customerSaleForm *,
+  #rcEstimateForm *{box-sizing:border-box}
+  body[data-erp] #customerSaleForm > .panel,
+  body[data-erp] #customerSaleForm .rb-settlement > .panel,
+  body[data-erp] #rcEstimateForm > .panel{
+    width:100%;
+    min-width:0;
+    margin:0 0 12px!important;
+    padding:14px!important;
+    border:1px solid #e6ddcb!important;
+    border-radius:16px!important;
+    background:var(--white,#fffdf9)!important;
+    box-shadow:0 5px 16px rgba(58,43,20,.055)!important;
+    overflow:visible;
+  }
+  #customerSaleForm .rb-account-grid,
+  #customerSaleForm .rb-detail-grid,
+  #rcEstimateForm .rc-grid{
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    align-items:stretch;
+  }
+  #customerSaleForm .rb-account-grid > .rb-field,
+  #customerSaleForm .rb-detail-grid > .rb-field,
+  #rcEstimateForm .rc-grid > label,
+  #rcEstimateForm .rc-grid > div{
+    min-width:0;
+  }
+  #customerSaleForm .rb-account-grid input,
+  #customerSaleForm .rb-account-grid select,
+  #rcEstimateForm .rc-grid input,
+  #rcEstimateForm .rc-grid select{
+    width:100%;
+    min-height:44px;
+    border-radius:10px!important;
+  }
+  #customerSaleForm .rb-adjustment-grid{
+    display:grid!important;
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px!important;
+  }
+  #customerSaleForm .rb-adjustment-grid > button{
+    width:100%!important;
+    min-width:0;
+    min-height:46px!important;
+    padding:8px 10px!important;
+    border-radius:11px!important;
+    justify-content:space-between;
+    text-align:left;
+    line-height:1.2;
+  }
+  #customerSaleForm .rb-adjustment-grid > button:last-child:nth-child(odd){grid-column:1/-1}
+  #customerSaleForm .rb-adjustment-grid > button > b{
+    margin-left:auto;
+    white-space:nowrap;
+  }
+  #customerSaleForm .rb-direct-collection-panel{
+    width:100%;
+    margin-top:12px!important;
+    padding:12px!important;
+    border-radius:13px!important;
+    box-shadow:none!important;
+  }
+  #customerSaleForm .rb-direct-collection-panel input,
+  #customerSaleForm .rb-direct-collection-panel select{min-height:44px;border-radius:10px!important}
+  #customerSaleForm .rb-bill-actions{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px!important;
+  }
+  #customerSaleForm .rb-bill-actions button{
+    width:100%;
+    min-width:0;
+    min-height:46px!important;
+    margin:0!important;
+    border-radius:11px!important;
+  }
+  #rcEstimateForm .rc-totals[style]{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%;
+    margin:12px 0 8px!important;
+    padding:8px!important;
+    border-radius:13px!important;
+    background:#f8f6f0!important;
+  }
+  #rcEstimateForm .rc-totals[style] > span{
+    display:flex!important;
+    flex-direction:column;
+    justify-content:center;
+    align-items:flex-start;
+    min-width:0;
+    min-height:58px!important;
+    padding:9px 10px!important;
+    border:1px solid #e7decf!important;
+    border-radius:10px!important;
+    background:var(--white,#fffdf9)!important;
+    font-size:10px!important;
+    line-height:1.3;
+  }
+  #rcEstimateForm .rc-totals[style] > span b{
+    display:block!important;
+    width:100%;
+    margin-top:4px;
+    font-size:13px!important;
+    line-height:1.2;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    overflow:hidden;
+  }
+  #rcEstimateForm .rc-totals[style] > span:has(#rcFinal),
+  #rcEstimateForm .rc-totals[style] > span:has(#rcCollected){
+    grid-column:1/-1;
+    min-height:48px!important;
+    flex-direction:row!important;
+    justify-content:space-between!important;
+    align-items:center!important;
+  }
+  #rcEstimateForm .rc-totals[style] > span:has(#rcFinal) b,
+  #rcEstimateForm .rc-totals[style] > span:has(#rcCollected) b{
+    width:auto;
+    margin:0 0 0 8px;
+    text-align:right;
+    font-size:14px!important;
+  }
+  #rcEstimateForm .rc-balance-box{
+    width:100%;
+    margin:0 0 10px!important;
+    border-radius:12px!important;
+  }
+  #rcEstimateForm .rc-actions[style]{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%;
+    margin:10px 0 12px!important;
+    justify-content:stretch!important;
+  }
+  #rcEstimateForm .rc-actions[style] > button{
+    width:100%;
+    min-width:0;
+    min-height:48px!important;
+    margin:0!important;
+    padding:8px!important;
+    border-radius:11px!important;
+    white-space:normal;
+    line-height:1.2;
+    font-size:11px!important;
+  }
+  #rcEstimateForm .rc-actions[style] > button:last-child:nth-child(odd){grid-column:1/-1}
+  #rcEstimateForm .rc-pos-payment-card{
+    width:100%;
+    padding:12px!important;
+    border-radius:13px!important;
+    box-shadow:none!important;
+  }
+  #rcEstimateForm .rc-pos-payment-total-wrap{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+    width:100%;
+  }
+  #rcEstimateForm .rc-pos-header-total,
+  #rcEstimateForm .rc-pos-header-paid,
+  #rcEstimateForm .rc-pos-split-btn{
+    min-width:0;
+    min-height:39px;
+    padding:6px 8px;
+    border:1px solid #cddfd1;
+    border-radius:9px;
+    background:#fff;
+  }
+  #rcEstimateForm .rc-pos-pipe{display:none!important}
+  #rcEstimateForm .rc-pos-split-btn{grid-column:1/-1;width:100%}
+}
+@media screen and (max-width:390px){
+  #customerSaleForm .rb-adjustment-grid > button,
+  #rcEstimateForm .rc-actions[style] > button{font-size:10px!important}
+}
+@media screen and (max-width:760px){
+html[data-theme="dark"] body[data-erp] #customerSaleForm > .panel,
+html[data-theme="dark"] body[data-erp] #customerSaleForm .rb-settlement > .panel,
+html[data-theme="dark"] body[data-erp] #rcEstimateForm > .panel{
+  border-color:#465247!important;
+  background:var(--white,#1e2821)!important;
+  box-shadow:none!important;
+}
+html[data-theme="dark"] #rcEstimateForm .rc-totals[style]{background:#1a241e!important}
+html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
+  background:#263229!important;border-color:#455446!important;
+}
+}
+
