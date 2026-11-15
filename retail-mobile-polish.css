@@ -268,3 +268,23 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row{box-shadow:none!important;outline:none!important}
 }
 
+/* Keep scrolling native on phones without a permanent visual scrollbar. */
+@media screen and (max-width:760px){
+  html,body,body[data-erp] *{scrollbar-width:none!important;-ms-overflow-style:none!important}
+  html::-webkit-scrollbar,body::-webkit-scrollbar,body[data-erp] *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+  body[data-erp] .side,body[data-erp] .table,body[data-erp] .rb-item-scroll,body[data-erp] .rc-quote-table-wrap{-webkit-overflow-scrolling:touch}
+}
+
+/* The desktop workbar must stay inside the viewport at laptop widths. */
+@media screen and (min-width:761px) and (max-width:1400px){
+  body[data-erp] .erp-workbar{min-width:0!important;gap:5px!important;padding-inline:10px!important}
+  body[data-erp] .erp-bar-left{min-width:0!important;flex:1 1 0!important}
+  body[data-erp] .erp-shortcuts button:nth-last-child(-n+4){display:none!important}
+  body[data-erp] .erp-page-tab{min-width:0!important;max-width:150px!important}
+  body[data-erp] .erp-bar-right{flex:0 0 auto!important}
+}
+@media screen and (min-width:761px) and (max-width:1050px){
+  body[data-erp] .erp-shortcuts{display:none!important}
+  body[data-erp] .erp-rate-chip{display:none!important}
+}
+
