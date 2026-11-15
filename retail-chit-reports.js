@@ -278,11 +278,13 @@ function chitReportDetailView() {
 }
 
 function reportsView() {
+  if (window.tagReportActive) return tagReportsView();
   if (window.tradeReportActive) return tradeReportsView();
   return '<section class="panel"><h2>Retail Reports</h2><p class="muted">Review saved transactions, weights and amounts.</p><div class="chit-report-tabs">' +
     '<button type="button" onclick="tradeReportOpen(\'Sales\')">Sales Reports</button>' +
     '<button type="button" onclick="tradeReportOpen(\'Purchase\')">Purchase Reports</button>' +
-    '<button type="button" onclick="go(\'Chit Reports\')">Chit Reports</button></div></section>';
+    '<button type="button" onclick="go(\'Chit Reports\')">Chit Reports</button>' +
+    '<button type="button" onclick="tagReportOpen(\'Tag Stocks\')">Tag Reports</button></div></section>';
 }
 
 function chitReportCsv() {
@@ -296,3 +298,4 @@ function chitReportCsv() {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
