@@ -1571,11 +1571,11 @@ function rcQuoteForm(){
 
     // Actions
     +'<div class="rc-actions" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px">'
-    +'<button type="button" onclick="rcResetEstimate()">＋ New Quote</button>'
-    +'<button type="button" onclick="rcPrintEstimate()">📄 Print / Save PDF</button>'
-    +'<button type="button" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp('+(q?.id?'\''+esc(q.id)+'\'':'')+')">📲 WhatsApp Customer</button>'
+    +'<button type="button" aria-label="New Quote" onclick="rcResetEstimate()"><span class="rc-action-long">＋ New Quote</span><span class="rc-action-short">＋ New</span></button>'
+    +'<button type="button" aria-label="Print or Save PDF" onclick="rcPrintEstimate()"><span class="rc-action-long">📄 Print / Save PDF</span><span class="rc-action-short">📄 PDF</span></button>'
+    +'<button type="button" aria-label="WhatsApp Customer" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp('+(q?.id?'\''+esc(q.id)+'\'':'')+')"><span class="rc-action-long">📲 WhatsApp Customer</span><span class="rc-action-short">📲 WhatsApp</span></button>'
     +(q?.id ? '<button type="button" style="background:#e88a1a;border-color:#e88a1a;color:#fff;font-weight:700" onclick="rcConvert(\''+esc(q.id)+'\')">⚡ Convert to Sales Bill</button>' : '')
-    +'<button type="submit" class="primary" style="padding:0 20px;font-weight:750">'+(q?'Save Changes':'Save Quotation')+'</button>'
+    +'<button type="submit" class="primary" aria-label="'+(q?'Save Changes':'Save Quotation')+'" style="padding:0 20px;font-weight:750"><span class="rc-action-long">'+(q?'Save Changes':'Save Quotation')+'</span><span class="rc-action-short">Save</span></button>'
     +'</div>'
     +'</form>'
 
