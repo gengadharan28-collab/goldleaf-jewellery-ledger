@@ -24,7 +24,7 @@ const PDF_ESTIMATE_LAYOUTS = {
 
 const PDF_GRID_FIELDS=[['product','Product'],['purity','Purity'],['huid','HUID'],['pieces','Pieces'],['gross','Gross'],['less','Less'],['net','Net'],['wastage','Wastage'],['making','Making'],['hallmark','Hallmark'],['stone','Stone weight'],['stoneCharge','Stone charge'],['itemTotal','Item total']];
 const PDF_GRID_KEYS=PDF_GRID_FIELDS.map(([key])=>key);
-const PDF_GRID_DEFAULTS=PDF_GRID_KEYS.slice(0,9);
+const PDF_GRID_DEFAULTS=PDF_GRID_KEYS.slice();
 
 let pdfProfile=null,pdfProfileShop='',pdfProfileLoading=false;
 const pdfMode=()=>workspaceMode==='retail'?'retail':'wholesale';
@@ -574,6 +574,8 @@ function pdfBillMarkup(model,c,template){
 function pdfGrid80Markup(model,c){
   const items=model.invoiceItems?.length?model.invoiceItems:(model.item?[model.item]:[]);
   const fields=(c.estimateGridFields||PDF_GRID_DEFAULTS).filter(key=>PDF_GRID_KEYS.includes(key));
+  const rowFields=fields.filter(key=>!['hallmark','stone','stoneCharge','itemTotal'].includes(key));
+  const detailFields=fields.filter(key=>['hallmark','stone','stoneCharge','itemTotal'].includes(key));
   const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross',less:'Less',net:'Net',wastage:'Wastage',making:'Making',hallmark:'H/M',stone:'Stone',stoneCharge:'Stone ₹',itemTotal:'Amount ₹'};
   const cell=(it,key)=>{
     switch(key){
@@ -603,8 +605,9 @@ function pdfGrid80Markup(model,c){
     +'<div class="grid80-top"><small>NOT A TAX INVOICE</small><strong>ESTIMATE</strong></div>'
     +'<div class="grid80-rates">Gold '+(goldRate?pdfMoney(goldRate)+'/g':'—')+' · Silver '+(silverRate?pdfMoney(silverRate)+'/g':'—')+'</div>'
     +'<div class="grid80-meta">'+[model.reference,model.date,model.entityName,phone].filter(Boolean).map(esc).join('  |  ')+'</div>'
-    +'<table class="grid80-items"><thead><tr>'+fields.map(key=>'<th>'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
-    +items.map(it=>'<tr>'+fields.map(key=>'<td>'+cell(it,key)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'
+    +(rowFields.length?'<table class="grid80-items"><thead><tr>'+rowFields.map(key=>'<th>'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+    +items.map(it=>'<tr>'+rowFields.map(key=>'<td>'+cell(it,key)+'</td>').join('')+'</tr>'+(detailFields.length?'<tr><td class="grid80-detail-cell" colspan="'+rowFields.length+'">'+detailFields.map(key=>'<span><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</td></tr>':'')).join('')+'</tbody></table>':'')
+    +(!rowFields.length?items.map(it=>'<div class="grid80-item-details">'+detailFields.map(key=>'<span><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</div>').join(''):'')
     +(items.length?'<div class="grid80-product-total"><span>Total product amount</span><b>'+pdfMoney(items.reduce((sum,it)=>sum+n(it.subtotal),0))+'</b></div>':'')
     +exchange+'<h3>Estimate settlement</h3>'+summary
     +(c.showTerms?'<footer>'+esc(c.estimateBottomMargin||c.footerText||'')+'</footer>':'')
@@ -988,7 +991,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
 .pdf-thermal-estimate-grid-80{width:80mm;max-width:80mm;box-sizing:border-box;border:0;padding:2mm 3mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25}
 .grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:6px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:6.5px;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:6.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.8px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:5.4px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:5.4px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:8px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:8px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:7px}.grid80-summary-row.grid80-highlight{font-size:9px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:6.5px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:6px;text-align:center;margin-top:8px}
+.grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.8px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:5.4px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:5.4px;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #bbb;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:5.4px;text-transform:uppercase;color:#555}.grid80-detail-cell b,.grid80-item-details b{font-size:6.5px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:8px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:8px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:7px}.grid80-summary-row.grid80-highlight{font-size:9px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:6.5px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:6px;text-align:center;margin-top:8px}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
@@ -1080,4 +1083,3 @@ window.goldleafV2Ready=true;
 window.dispatchEvent(new Event('goldleaf-v2-ready'));
 if(session)window.pullCloud();
 render();
-
