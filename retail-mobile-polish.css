@@ -288,3 +288,19 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   body[data-erp] .erp-rate-chip{display:none!important}
 }
 
+.rc-action-short{display:none}
+@media screen and (max-width:760px){
+  #rcEstimateForm .rc-actions[style]{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:6px!important;margin-top:7px!important}
+  #rcEstimateForm .rc-actions[style] > button{grid-column:auto!important;grid-row:auto!important;width:100%!important;min-width:0!important;min-height:39px!important;height:39px!important;padding:3px 2px!important;margin:0!important;font-size:9px!important;white-space:nowrap!important;line-height:1!important;border-radius:8px!important}
+  #rcEstimateForm .rc-actions[style] .rc-action-long{display:none!important}
+  #rcEstimateForm .rc-actions[style] .rc-action-short{display:inline!important}
+  #rcEstimateForm .rc-actions[style]:has(>button:nth-child(5)) > button:nth-child(4){grid-column:1/-1!important;grid-row:2!important}
+  #rcEstimateForm .rc-actions[style]:has(>button:nth-child(5)) > button:nth-child(5){grid-column:4!important;grid-row:1!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;min-height:55px!important;padding:6px 8px!important;border:1px solid var(--line,#e4dfd4)!important;border-radius:8px!important;background:var(--white,#fffdf9)!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax .rc-q-ratetax{display:block!important;margin-top:4px!important;font-size:12px!important;font-weight:750!important;color:var(--ink,#19382b)!important;white-space:nowrap!important}
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax{background:#1b2520!important;border-color:#455249!important}
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax .rc-q-ratetax{color:#f2eee5!important}
+  html[data-theme="dark"] #rcEstimateForm #rcBalanceBox{background:#2b2418!important;border-color:#8a6a35!important;color:#f2eee5!important}
+  html[data-theme="dark"] #rcEstimateForm #rcBalanceBox .rc-balance-sub{color:#edc88b!important}
+}
+
