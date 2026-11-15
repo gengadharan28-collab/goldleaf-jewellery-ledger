@@ -155,6 +155,7 @@
     font-size:11px!important;
   }
   #rcEstimateForm .rc-actions[style] > button:last-child:nth-child(odd){grid-column:1/-1}
+  #rcEstimateForm .rc-actions[style] > button:nth-child(3){grid-column:1/-1}
   #rcEstimateForm .rc-pos-payment-card{
     width:100%;
     padding:12px!important;
@@ -196,5 +197,74 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style]{background:#1a241e!imp
 html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   background:#263229!important;border-color:#455446!important;
 }
+}
+
+/* Compact quotation workspace and a single aligned mobile toolbar. */
+.rc-quote-scan-tab{display:none}
+@media screen and (max-width:760px){
+  body[data-erp] .erp-workbar{
+    height:52px!important;min-height:52px!important;max-height:52px!important;
+    display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+    justify-content:space-between!important;gap:5px!important;padding:5px 8px!important;
+  }
+  body[data-erp] .erp-workbar .erp-bar-left{flex:1 1 0!important;min-width:0!important;width:auto!important;order:0!important;gap:5px!important}
+  body[data-erp] .erp-workbar .erp-page-tab{flex:1 1 auto!important;min-width:0!important;max-width:none!important;height:36px!important;padding:6px 7px!important}
+  body[data-erp] .erp-workbar .erp-page-tab span{max-width:none!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10px!important}
+  body[data-erp] .erp-workbar .erp-bar-right{flex:0 0 auto!important;order:0!important;gap:2px!important;align-items:center!important}
+  body[data-erp] .erp-workbar .erp-bar-right .erp-icon-button{width:30px!important;height:34px!important;min-height:34px!important;padding:5px!important}
+  body[data-erp] .erp-workbar #erpUpdatePill{min-width:0!important;max-width:69px!important;height:32px!important;min-height:32px!important;padding:4px 6px!important;font-size:9px!important;white-space:nowrap!important}
+  body[data-erp] #app.main{padding-top:8px!important}
+  #rcEstimateForm > .panel{padding:10px!important;margin-bottom:8px!important;border-radius:12px!important;box-shadow:0 2px 8px rgba(35,42,37,.04)!important}
+  #rcEstimateForm .rc-quote-meta-head{margin-bottom:7px!important}
+  #rcEstimateForm .rc-quote-meta-head h2,#rcEstimateForm .rc-quote-items-head h2{font-size:14px!important;line-height:1.2!important}
+  #rcEstimateForm .rc-quote-meta-grid{gap:6px!important}
+  #rcEstimateForm .rc-quote-meta-card{padding:6px!important;border-radius:8px!important;background:var(--white,#fffdf9)!important;border:1px solid var(--line,#e4dfd4)!important;box-shadow:none!important}
+  #rcEstimateForm .rc-quote-meta-lbl{font-size:8px!important;line-height:1.2!important;margin-bottom:3px!important}
+  #rcEstimateForm .rc-quote-meta-card input,#rcEstimateForm .rc-quote-meta-card select{min-height:36px!important;height:36px!important;padding:5px 7px!important;font-size:12px!important;border-radius:7px!important}
+  #rcEstimateForm .rc-quote-rate-card{background:var(--white,#fffdf9)!important;border-color:var(--line,#e4dfd4)!important}
+  #rcEstimateForm .rc-quote-rate-card .rc-quote-meta-lbl,#rcEstimateForm .rc-quote-rate-card input{color:var(--ink,#19382b)!important}
+  #rcEstimateForm .rc-quote-rate-card input{background:var(--white,#fffdf9)!important;border-color:var(--line,#e4dfd4)!important}
+  #rcEstimateForm .rc-quote-mode-section{padding:9px!important;background:var(--white,#fffdf9)!important}
+  #rcEstimateForm .rc-quote-mode-head{display:block!important;margin:0!important}
+  #rcEstimateForm .rc-quote-mode-title{display:block!important;font-size:10px!important;margin:0 0 5px!important;color:var(--muted,#6b716d)!important}
+  #rcEstimateForm .rc-quote-mode-tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) 34px!important;gap:4px!important;width:100%!important;padding:3px!important;border-radius:9px!important;background:var(--mint,#f2f1eb)!important;border:1px solid var(--line,#e4dfd4)!important}
+  #rcEstimateForm .rc-quote-mode-btn,#rcEstimateForm .rc-quote-scan-tab{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;min-height:34px!important;height:34px!important;padding:3px!important;margin:0!important;border-radius:6px!important;border:0!important;background:var(--white,#fffdf9)!important;color:var(--ink,#19382b)!important;font-size:9px!important;font-weight:700!important;line-height:1.05!important;white-space:normal!important;text-align:center!important;box-shadow:none!important}
+  #rcEstimateForm .rc-quote-mode-btn.active{background:var(--erp-accent,#18392a)!important;color:#fff!important}
+  #rcEstimateForm .rc-quote-scan-tab{font-size:18px!important;line-height:1!important}
+  #rcEstimateForm .rc-quote-scan-tab svg{width:18px;height:18px}
+  #rcEstimateForm #rcQuoteTagBar{margin-top:6px!important;min-height:38px!important;padding:2px 5px!important;border:1px solid var(--line,#e4dfd4)!important;box-shadow:none!important;border-radius:8px!important}
+  #rcEstimateForm #rcQuoteTagBar .gl-scan-btn{display:none!important}
+  #rcEstimateForm #rcQuoteTagInput{height:32px!important;min-height:32px!important;font-size:11px!important}
+  #rcEstimateForm #rcQuoteTagBar .rc-unified-add-btn{height:32px!important;min-height:32px!important;padding:4px 8px!important;font-size:10px!important}
+  #rcEstimateForm .rc-quote-items-head{margin-bottom:6px!important}
+  #rcEstimateForm .rc-quote-items-head button{min-height:34px!important;padding:5px 8px!important;font-size:10px!important}
+  #rcQuoteTable.rc-quote-table tbody{gap:7px!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row{gap:6px!important;padding:34px 9px 9px!important;border:1px solid var(--line,#e4dfd4)!important;border-radius:10px!important;background:var(--white,#fffdf9)!important;box-shadow:none!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row > td::before{font-size:8px!important;color:var(--muted,#6b716d)!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row input,#rcQuoteTable.rc-quote-table tr.rc-quote-row select{min-height:34px!important;height:34px!important;padding:4px 6px!important;font-size:11px!important}
+}
+@media screen and (max-width:350px){
+  body[data-erp] .erp-workbar .erp-page-tab span{font-size:9px!important}
+  body[data-erp] .erp-workbar #erpUpdatePill{max-width:55px!important;padding:3px!important;font-size:8px!important}
+  #rcEstimateForm .rc-quote-mode-btn{font-size:8px!important}
+}
+@media screen and (max-width:760px){
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-meta-card,
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-mode-section,
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row{background:#222b26!important;border-color:#455249!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-mode-tabs{background:#1b241f!important;border-color:#455249!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-mode-btn,
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-scan-tab{background:#2b3730!important;color:#f2eee5!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-mode-btn.active{background:#b99863!important;color:#18231c!important}
+  html[data-theme="dark"] #rcEstimateForm #rcQuoteTagBar{background:#222b26!important;border-color:#455249!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-rate-card .rc-quote-meta-lbl,
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-rate-card input{color:#f2eee5!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-meta-card input,
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-meta-card select,
+  html[data-theme="dark"] #rcEstimateForm #rcQuoteTagInput,
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row input,
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row select{background:#1b2520!important;border:1px solid #455249!important;color:#f2eee5!important;box-shadow:none!important}
+  html[data-theme="dark"] #rcEstimateForm .rc-quote-rate-card input{background:#1b2520!important;border-color:#455249!important}
+  html[data-theme="dark"] #rcQuoteTable.rc-quote-table tr.rc-quote-row{box-shadow:none!important;outline:none!important}
 }
 
