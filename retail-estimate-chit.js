@@ -1850,7 +1850,7 @@ function rcQuoteModel(q){
     taxEnabled: q.gstEnabled,
     invoiceItems: bill.rows.map(x=>{
       const isSilver = String(x.metalType||'').toLowerCase()==='silver' || String(x.product||'').toLowerCase().includes('silver');
-      return Object.assign({}, x, {purity: isSilver ? '—' : x.purity + '%'});
+      return Object.assign({}, x, {purityValue:x.purity,purity: isSilver ? '—' : x.purity + '%'});
     }),
     exchange: exchangeRowsPdf,
     chit: chitPdfData,
@@ -3547,3 +3547,4 @@ window.settingsView = function(){
   }
   return html;
 };
+

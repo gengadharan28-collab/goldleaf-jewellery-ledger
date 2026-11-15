@@ -18,8 +18,13 @@ const PDF_ESTIMATE_LAYOUTS = {
   'compact-estimate-a5': { name: 'Compact Quote (A5 Portrait)', description: 'Half-sheet customer quote slip · A5 portrait', size: 'A5 portrait', kind: 'estimate' },
   'compact-estimate-a5l': { name: 'Compact Quote (A5 Landscape)', description: 'Horizontal half-sheet estimate slip · A5 landscape', size: 'A5 landscape', kind: 'estimate' },
   'thermal-estimate-80': { name: 'Thermal Estimate Slip (80mm / 3")', description: 'Continuous roll counter quotation with gold rate & QR · 3-inch POS', size: '80mm auto', kind: 'estimate' },
+  'thermal-estimate-grid-80': { name: 'Compact Grid Estimate (80mm)', description: 'Product, weight and charges in one configurable row per item · 80mm roll', size: '80mm auto', kind: 'estimate' },
   'thermal-estimate-58': { name: 'Thermal Estimate Slip (58mm / 2")', description: 'Mini 2-inch continuous roll estimate slip', size: '58mm auto', kind: 'estimate' }
 };
+
+const PDF_GRID_FIELDS=[['product','Product'],['purity','Purity'],['huid','HUID'],['pieces','Pieces'],['gross','Gross'],['less','Less'],['net','Net'],['wastage','Wastage'],['making','Making'],['hallmark','Hallmark'],['stone','Stone weight'],['stoneCharge','Stone charge'],['itemTotal','Item total']];
+const PDF_GRID_KEYS=PDF_GRID_FIELDS.map(([key])=>key);
+const PDF_GRID_DEFAULTS=PDF_GRID_KEYS.slice(0,9);
 
 let pdfProfile=null,pdfProfileShop='',pdfProfileLoading=false;
 const pdfMode=()=>workspaceMode==='retail'?'retail':'wholesale';
@@ -31,6 +36,7 @@ function pdfConfig(mode=pdfMode()){
   const defaults = {
     template: 'classic',
     estimateTemplate: 'detailed-estimate',
+    estimateGridFields: PDF_GRID_DEFAULTS,
     chitTemplate: 'compact-a5-p',
     thermalSize: '3inch',
     thermalFeed: 3,
@@ -64,6 +70,7 @@ function pdfConfig(mode=pdfMode()){
   return Object.assign(defaults, saved, {
     template: PDF_LAYOUTS[saved.template] ? saved.template : 'classic',
     estimateTemplate: PDF_ESTIMATE_LAYOUTS[saved.estimateTemplate] ? saved.estimateTemplate : 'detailed-estimate',
+    estimateGridFields: Array.isArray(saved.estimateGridFields)?saved.estimateGridFields.filter(key=>PDF_GRID_KEYS.includes(key)):PDF_GRID_DEFAULTS,
     gst: Object.assign({ enabled: false, rate: 3, mode: 'cgst_sgst', hsn: '' }, saved.gst || {})
   });
 }
@@ -97,18 +104,24 @@ function pdfSettingsPanel(){
   ).join('');
 
   // Estimation layout choices (Retail mode only)
-  const estimateCards = retail ? Object.entries(PDF_ESTIMATE_LAYOUTS).map(([id,item])=>
+  const estimateCard = ([id,item])=>
     '<div class="pdf-choice '+(c.estimateTemplate===id?'selected':'')+'">'
     +'<label><input type="radio" name="estimateTemplate" value="'+id+'" '+(c.estimateTemplate===id?'checked':'')+'>'
     +'<b>'+item.name+'</b><span class="pdf-mini pdf-mini-'+(id.startsWith('thermal')?'thermal':id.includes('compact')?'compact':'detailed')+'"><i></i><i></i><i></i></span>'
     +'<small>'+esc(item.description)+'</small></label>'
     +'<button type="button" onclick="previewPdfTemplate(\''+id+'\',\'estimate\')">Preview</button>'
     +'</div>'
-  ).join('') : '';
+  ;
+  const estimateCards = retail ? Object.entries(PDF_ESTIMATE_LAYOUTS).filter(([,item])=>item.size!=='80mm auto').map(estimateCard).join('') : '';
+  const estimate80Cards = retail ? Object.entries(PDF_ESTIMATE_LAYOUTS).filter(([,item])=>item.size==='80mm auto').map(estimateCard).join('') : '';
+  const gridFieldChoices=retail?'<fieldset class="pdf-toggles-fieldset"><legend>Compact Grid Estimate · displayed fields</legend><p class="hint">Select the columns to show on the 80mm Compact Grid estimate and quotation. Only checked fields appear in its preview and PDF.</p><div class="pdf-toggle-grid">'+PDF_GRID_FIELDS.map(([key,label])=>'<label class="pdf-checkbox"><input type="checkbox" name="estimateGridFields" value="'+key+'" '+(c.estimateGridFields.includes(key)?'checked':'')+'> '+label+'</label>').join('')+'</div></fieldset>':'';
 
   const estimateSection = retail ? 
     '<div class="pdf-settings-subhead"><h3>Estimation & Quotation Print Format</h3><p class="hint">Choose default layout for customer quotations and estimations across desktop and thermal printers.</p></div>'
-    +'<div class="pdf-choices pdf-estimate-choices">'+estimateCards+'</div>' : '';
+    +'<div class="pdf-choices pdf-estimate-choices">'+estimateCards+'</div>'
+    +'<div class="pdf-settings-subhead"><h3>80mm Thermal Estimate · choose one of two formats</h3></div>'
+    +'<div class="pdf-choices pdf-estimate-choices">'+estimate80Cards+'</div>'
+    +gridFieldChoices : '';
   const chitSection=retail?'<div class="pdf-settings-subhead"><h3>Chit Receipt Print Format</h3><p class="hint">Used for chit payment receipts.</p></div><div class="pdf-choices">'+Object.entries(PDF_LAYOUTS).map(([id,item])=>'<label class="pdf-choice '+(c.chitTemplate===id?'selected':'')+'"><input type="radio" name="chitTemplate" value="'+id+'" '+(c.chitTemplate===id?'checked':'')+'><b>'+item.name+'</b><small>'+esc(item.description)+'</small></label>').join('')+'</div>':'';
 
   // Field visibility toggles
@@ -204,6 +217,7 @@ function pdfReadSettingsForm(){
   return Object.assign({},c,{
     template: f.get('template')||'classic',
     estimateTemplate: f.get('estimateTemplate')||'detailed-estimate',
+    estimateGridFields: f.getAll('estimateGridFields').filter(key=>PDF_GRID_KEYS.includes(key)),
     chitTemplate: f.get('chitTemplate')||c.chitTemplate||'compact-a5-p',
     thermalSize: f.get('thermalSize')||'3inch',
     thermalFeed: parseInt(f.get('thermalFeed')||3, 10),
@@ -237,6 +251,7 @@ function pdfReadSettingsForm(){
 window.savePdfSettings=function(event){
   event.preventDefault();const c=pdfReadSettingsForm(),mode=event.target.dataset.mode;
   if(!c.shopName)return say('Enter the shop name.');
+  if(mode==='retail'&&c.estimateTemplate==='thermal-estimate-grid-80'&&!c.estimateGridFields.length)return say('Select at least one field for the compact 80mm estimate.');
   if(mode==='retail'&&c.gst.enabled&&(c.gst.rate<=0||c.gst.rate>100))return say('Enter a GST percentage above 0 and up to 100, or switch GST off.');
   if(mode==='retail'&&c.gst.enabled&&!/^[A-Za-z0-9]{15}$/.test(c.gstNumber))return say('Enter your 15-character GSTIN in the PDF header to enable GST.');
   db.pdfSettings=Object.assign({},db.pdfSettings,{[mode]:Object.assign({},c,{updatedAt:new Date().toISOString()})});
@@ -556,11 +571,53 @@ function pdfBillMarkup(model,c,template){
   return content;
 }
 
+function pdfGrid80Markup(model,c){
+  const items=model.invoiceItems?.length?model.invoiceItems:(model.item?[model.item]:[]);
+  const fields=(c.estimateGridFields||PDF_GRID_DEFAULTS).filter(key=>PDF_GRID_KEYS.includes(key));
+  const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross',less:'Less',net:'Net',wastage:'Wastage',making:'Making',hallmark:'H/M',stone:'Stone',stoneCharge:'Stone ₹',itemTotal:'Amount ₹'};
+  const cell=(it,key)=>{
+    switch(key){
+      case 'product':return esc(it.product||'—');
+      case 'purity':{const raw=String(it.purity&&it.purity!=='—'?it.purity:it.purityValue||'—');return esc(raw)+(raw==='—'||/[K%/]/.test(raw)||n(raw)>100?'':'%');}
+      case 'huid':return esc(it.huid||'—');
+      case 'pieces':return esc(it.pieces||1);
+      case 'gross':return fmt(it.grossWeight??it.weight);
+      case 'less':return fmt(it.lessWeight||0);
+      case 'net':return fmt(it.netWeight??it.weight);
+      case 'wastage':return esc(n(it.wastage))+(it.wastageMode==='grams'?'g':'%')+'<small>'+pdfMoney(it.wastageAmount||0)+'</small>';
+      case 'making':return pdfMoney(it.makingTotal??it.making??0);
+      case 'hallmark':return it.hallmarkCharge!=null||it.hallmark!=null?pdfMoney(it.hallmarkCharge??it.hallmark):'—';
+      case 'stone':return n(it.stoneWeight)>0?fmt(it.stoneWeight)+'g':'—';
+      case 'stoneCharge':return pdfMoney(it.stoneAmount??it.stoneCharge??0);
+      case 'itemTotal':return '<b>'+pdfMoney(it.subtotal||0)+'</b>';
+      default:return '—';
+    }
+  };
+  const metalOf=it=>String(it.metalType||it.product||'').toLowerCase();
+  const gold=items.find(it=>metalOf(it).includes('gold')),silver=items.find(it=>metalOf(it).includes('silver'));
+  const goldRate=n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24),silverRate=n(silver?.rate)||n(db.rates?.silver);
+  const phone=String(model.entityDetails||'').match(/(?:\+91[\s-]?)?\d{10}/)?.[0]||'';
+  const summary=(model.totals||[]).map(([label,value,highlight])=>'<div class="grid80-summary-row '+(highlight?'grid80-highlight':'')+'"><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>').join('');
+  const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange">'+model.exchange.map(it=>'<div>'+esc(it.product||'Old gold')+' · '+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%'+(n(it.rate)>0?' · '+pdfMoney(it.rate)+'/g':'')+' <b>'+pdfMoney(it.amount)+'</b></div>').join('')+'</div>':'';
+  return '<div class="grid80-ticket">'
+    +'<div class="grid80-top"><small>NOT A TAX INVOICE</small><strong>ESTIMATE</strong></div>'
+    +'<div class="grid80-rates">Gold '+(goldRate?pdfMoney(goldRate)+'/g':'—')+' · Silver '+(silverRate?pdfMoney(silverRate)+'/g':'—')+'</div>'
+    +'<div class="grid80-meta">'+[model.reference,model.date,model.entityName,phone].filter(Boolean).map(esc).join('  |  ')+'</div>'
+    +'<table class="grid80-items"><thead><tr>'+fields.map(key=>'<th>'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+    +items.map(it=>'<tr>'+fields.map(key=>'<td>'+cell(it,key)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'
+    +(items.length?'<div class="grid80-product-total"><span>Total product amount</span><b>'+pdfMoney(items.reduce((sum,it)=>sum+n(it.subtotal),0))+'</b></div>':'')
+    +exchange+'<h3>Estimate settlement</h3>'+summary
+    +(c.showTerms?'<footer>'+esc(c.estimateBottomMargin||c.footerText||'')+'</footer>':'')
+    +'</div>';
+}
+
 function pdfDocument(model,c,forcedTemplate=null){
   const sample = model.sample ? '<div class="pdf-sample">SAMPLE PREVIEW · not a saved transaction</div>' : '';
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
   const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
   const isThermal = template.startsWith('thermal');
+
+  if(template==='thermal-estimate-grid-80')return '<article class="gl-pdf gl-pdf-thermal pdf-thermal-estimate-grid-80">'+sample+pdfGrid80Markup(model,c)+'</article>';
 
   if(isThermal){
     return '<article class="gl-pdf gl-pdf-thermal pdf-'+template+'">'
@@ -640,7 +697,7 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   } else if(template === 'compact-a5-p' || template === 'compact-estimate-a5'){
     pageSize = 'A5 portrait';
     pageMargin = '8mm';
-  } else if(template === 'thermal-80' || template === 'thermal-estimate-80'){
+  } else if(template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80'){
     pageSize = '80mm auto';
     pageMargin = '2mm 3mm';
   } else if(template === 'thermal-58' || template === 'thermal-estimate-58'){
@@ -724,7 +781,7 @@ async function pdfPrintModel(model,mode,forcedTemplate=null,options={}){
   await pdfLoadProfile();const c=pdfConfig(mode);
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
   const isChit=String(model.title||'').toUpperCase().includes('CHIT');
-  const template = isChit?(c.chitTemplate||'compact-a5-p'):(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
+  const template = forcedTemplate || (isChit?(c.chitTemplate||'compact-a5-p'):(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic')));
   if(options?.directPrint){
     return pdfTriggerPrint(model, mode, template, false);
   }
@@ -754,6 +811,14 @@ window.viewLedgerPdf=function(type){const mode=type==='customer'?'retail':'whole
 
 function pdfSampleModel(mode,kind,template){
   const retail=mode==='retail';
+  if(kind==='estimate'&&template==='thermal-estimate-grid-80')return {
+    sample:true,kind:'estimate',retail:true,title:'ESTIMATE',entityLabel:'Customer',entityName:'Meena',entityDetails:'9000000000',reference:'EST-1082',date:'15/11/2026',
+    invoiceItems:[
+      {product:'Gold Chain',metalType:'Gold',purityValue:22,purity:'22K/916',huid:'ABC123',pieces:1,grossWeight:4.2,lessWeight:.2,netWeight:4,stoneWeight:.2,stoneAmount:0,rate:7000,wastage:5,wastageAmount:1400,makingTotal:800,hallmarkCharge:45,subtotal:30245},
+      {product:'Silver Anklet',metalType:'Silver',purityValue:92.5,purity:'925',pieces:2,grossWeight:10.5,lessWeight:.5,netWeight:10,stoneWeight:.5,stoneAmount:0,rate:80,wastage:0,wastageAmount:0,makingTotal:100,hallmarkCharge:45,subtotal:945}
+    ],exchange:[{product:'Old Gold',grossWeight:2,testingPurity:75,rate:2500,amount:5000}],
+    totals:[['Items subtotal','₹ 31,190.00'],['GST 3%','₹ 935.70'],['Less discount','− ₹ 125.70'],['Estimate after discount','₹ 32,000.00'],['Old gold credit','− ₹ 5,000.00'],['Collected amount','− ₹ 10,000.00'],['Balance to collect','₹ 17,000.00',true]]
+  };
   if(kind==='ledger')return {
     sample:true,kind:'ledger',retail,title:retail?'CUSTOMER LEDGER':'PARTY LEDGER',entityLabel:retail?'Customer':'Party',entityName:retail?'Sample Customer':'Sample Party',reference:'Sample report',date:'All dates',
     heads:retail?['Date','Jewellery / receipt','Purchase ₹','Old gold ₹','Paid ₹','Balance ₹']:['Date','Product','Gold debit g','Gold credit g','Cash paid ₹','Hallmark ₹','Gold balance g','Amount balance ₹'],
@@ -921,6 +986,9 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:7.5px;font-weight:bold}
 .thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
+.pdf-thermal-estimate-grid-80{width:80mm;max-width:80mm;box-sizing:border-box;border:0;padding:2mm 3mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25}
+.grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:6px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:6.5px;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:6.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.8px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:5.4px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:5.4px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:8px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:8px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:7px}.grid80-summary-row.grid80-highlight{font-size:9px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:6.5px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:6px;text-align:center;margin-top:8px}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
@@ -1012,3 +1080,4 @@ window.goldleafV2Ready=true;
 window.dispatchEvent(new Event('goldleaf-v2-ready'));
 if(session)window.pullCloud();
 render();
+
