@@ -45,7 +45,8 @@ window.platformSignOut = async function() {
   try {
     const result = await client.auth.signOut();
     if (result.error) throw result.error;
-    session = null; goldleafContext = null; platformLoadedUser = ''; platformLedgerShop = ''; platformPage = 'Dashboard'; platformError = ''; render();
+    session = null; goldleafContext = null; platformLoadedUser = ''; platformLedgerShop = ''; platformPage = 'Dashboard'; platformError = '';
+    localStorage.removeItem(dbkey); localStorage.removeItem(V2_CLOUD_PENDING_KEY); db = init(); ensureExtendedData(); render();
   } catch (error) { say('Could not sign out. '+error.message); }
 };
 function platformQuickSignOut(){return session?'<button type="button" class="platform-sign-out" onclick="platformSignOut()" aria-label="Sign out">↪ Sign out</button>':'';}
@@ -165,20 +166,6 @@ window.glGetLoginRates = function() {
       if (cached && Number(cached.gold24) > 0) r = cached;
     } catch {}
   }
-  if (!Number(r.gold24)) {
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith('goldleaf-shop-')) {
-          const shopDb = JSON.parse(localStorage.getItem(k) || 'null');
-          if (shopDb?.rates && Number(shopDb.rates.gold24) > 0) {
-            r = shopDb.rates;
-            break;
-          }
-        }
-      }
-    } catch {}
-  }
   const g24 = Number(r.gold24) || 7850;
   const g22 = Number(r.gold22) || Math.round(g24 * 0.916);
   const slv = Number(r.silver) || Number(r.silverBoard) || 95;
@@ -294,6 +281,18 @@ window.goldleafShopInvite=new URLSearchParams(location.search).get('shop_invite'
 // Keep local records bound to the shop that created them. A different login
 // starts from its own cloud ledger rather than importing this browser's records.
 function platformStorageKey(){return goldleafContext?.shop_id?'goldleaf-shop-'+goldleafContext.shop_id:'';}
+function platformReadShopCache(shopId){
+  try{
+    const cached=JSON.parse(localStorage.getItem('goldleaf-shop-'+shopId)||'null');
+    if(!cached||cached.cacheVersion!==2||cached.shop_id!==shopId||cached.user_id!==session?.user?.id||!cached.payload||typeof cached.payload!=='object')return null;
+    return cached.payload;
+  }catch{return null}
+}
+function platformWriteShopCache(){
+  const key=platformStorageKey();
+  if(!key||!session?.user?.id||platformIsDemo())return;
+  localStorage.setItem(key,JSON.stringify({cacheVersion:2,shop_id:goldleafContext.shop_id,user_id:session.user.id,payload:db,saved_at:new Date().toISOString()}));
+}
 let platformLedgerShop='';
 const platformPreviousSave=window.save;
 const platformPreviousAuthForm=window.authForm;
@@ -309,10 +308,11 @@ window.save = function () {
     }
   }
   const result = platformPreviousSave();
-  if (session && platformStorageKey()) localStorage.setItem(platformStorageKey(), JSON.stringify(db));
+  if (session && platformStorageKey()) platformWriteShopCache();
+  localStorage.removeItem(dbkey);
   return result;
 };
-function platformStoreLedger(){localStorage.setItem(dbkey,JSON.stringify(db));if(platformStorageKey())localStorage.setItem(platformStorageKey(),JSON.stringify(db));}
+function platformStoreLedger(){platformWriteShopCache();localStorage.removeItem(dbkey);}
 function platformAdoptCloudReset(payload){
   if(!payload?.recordsResetToken||payload.recordsResetToken===db.recordsResetToken)return false;
   db=Object.assign(init(),payload);ensureExtendedData();edit=null;
@@ -334,8 +334,8 @@ window.pullCloud=async function(){
     const remote=response.data||{},shop=goldleafContext.shop_id;
     const resetApplied=platformAdoptCloudReset(remote.payload);
     if(platformLedgerShop!==shop){
-      if(!remote.payload?.recordsResetToken)localStorage.setItem('goldleaf-device-backup-before-shop-login',JSON.stringify(db));
-      const local=JSON.parse(localStorage.getItem(platformStorageKey())||'null');
+      localStorage.removeItem('goldleaf-device-backup-before-shop-login');
+      const local=platformReadShopCache(shop);
       db=local&&(!remote.payload?.recordsResetToken||local.recordsResetToken===remote.payload.recordsResetToken)?v2MergeCloudLedgers(remote.payload,local,true):Object.assign(init(),remote.payload||{});
       platformLedgerShop=shop;if(JSON.stringify(db)!==JSON.stringify(remote.payload||{}))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
