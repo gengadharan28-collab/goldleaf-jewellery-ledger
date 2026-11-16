@@ -24,6 +24,16 @@ revoke all on table public.goldleaf_plans from anon;
 revoke all on table public.goldleaf_shared_rates from anon;
 revoke all on table public.goldleaf_shop_onboarding from anon;
 
+-- The browser uses checked RPC functions, never direct sensitive-table access.
+revoke all on table public.goldleaf_shops from authenticated;
+revoke all on table public.goldleaf_shop_members from authenticated;
+revoke all on table public.goldleaf_shop_ledgers from authenticated;
+revoke all on table public.goldleaf_shop_invites from authenticated;
+revoke all on table public.goldleaf_super_admins from authenticated;
+revoke all on table public.goldleaf_subscription_payments from authenticated;
+revoke all on table public.goldleaf_plans from authenticated;
+revoke all on table public.goldleaf_shop_onboarding from authenticated;
+
 revoke truncate, references, trigger on table public.goldleaf_shops from authenticated;
 revoke truncate, references, trigger on table public.goldleaf_shop_members from authenticated;
 revoke truncate, references, trigger on table public.goldleaf_shop_ledgers from authenticated;
@@ -64,3 +74,4 @@ grant execute on function public.goldleaf_my_context() to authenticated;
 
 -- Internal setup helper must never be exposed as a browser RPC.
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+
