@@ -181,6 +181,155 @@
   #rcEstimateForm .rc-pos-pipe{display:none!important}
   #rcEstimateForm .rc-pos-split-btn{grid-column:1/-1;width:100%}
 }
+
+/* Customer Sales Entry: compact spacing and one restrained UI palette. */
+body.rb-active .rb-tabs{
+  gap:3px!important;
+  padding:3px!important;
+  border:1px solid var(--line,#e4dfd4)!important;
+  border-radius:9px!important;
+  background:var(--erp-soft,#f3f1eb)!important;
+}
+body.rb-active .rb-tabs>button{
+  min-height:29px!important;
+  padding:5px 9px!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:var(--muted,#6b716d)!important;
+  box-shadow:none!important;
+}
+body.rb-active .rb-tabs>button.active{
+  background:var(--white,#fffdf9)!important;
+  color:var(--ink,#19382b)!important;
+  box-shadow:0 1px 4px rgba(35,43,38,.08)!important;
+}
+body.rb-active #customerSaleForm{gap:7px!important}
+body.rb-active #customerSaleForm>.panel,
+body.rb-active #customerSaleForm .rb-settlement>.panel{
+  margin:0!important;
+  padding:9px!important;
+  border:1px solid var(--line,#e4dfd4)!important;
+  border-radius:9px!important;
+  background:var(--white,#fffdf9)!important;
+  box-shadow:none!important;
+}
+body.rb-active #customerSaleForm .rb-section-head{margin-bottom:6px!important}
+body.rb-active #customerSaleForm .rb-section-head h2{font-size:12px!important;color:var(--ink,#19382b)!important}
+body.rb-active #customerSaleForm .rb-account-grid,
+body.rb-active #customerSaleForm .rb-detail-grid{gap:6px!important}
+body.rb-active #customerSaleForm .rb-field{gap:3px!important}
+body.rb-active #customerSaleForm .rb-field>span,
+body.rb-active #customerSaleForm .rb-field label{color:var(--muted,#6b716d)!important}
+body.rb-active #customerSaleForm input,
+body.rb-active #customerSaleForm select,
+body.rb-active #customerSaleForm textarea{
+  border-color:var(--line,#e4dfd4)!important;
+  background:var(--paper,#f8f6f1)!important;
+  color:var(--ink,#19382b)!important;
+  box-shadow:none!important;
+}
+body.rb-active #customerSaleForm input:focus,
+body.rb-active #customerSaleForm select:focus,
+body.rb-active #customerSaleForm textarea:focus{
+  border-color:#b79a65!important;
+  background:var(--white,#fffdf9)!important;
+  box-shadow:0 0 0 2px rgba(183,154,101,.16)!important;
+}
+body.rb-active #customerSaleForm .rb-contact,
+body.rb-active #customerSaleForm .rb-item-scroll,
+body.rb-active #customerSaleForm .rb-direct-collection-panel,
+body.rb-active #customerSaleForm .rb-allocation{
+  background:var(--erp-soft,#f3f1eb)!important;
+  border-color:var(--line,#e4dfd4)!important;
+  box-shadow:none!important;
+}
+body.rb-active #customerSaleForm .rb-adjustment-grid{gap:5px!important}
+body.rb-active #customerSaleForm .rb-adjustment-grid>button,
+body.rb-active #customerSaleForm .rb-direct-collection-panel button,
+body.rb-active #customerSaleForm .rb-pill-btn{
+  background:var(--white,#fffdf9)!important;
+  color:var(--ink,#19382b)!important;
+  border:1px solid var(--line,#e4dfd4)!important;
+  box-shadow:none!important;
+}
+body.rb-active #customerSaleForm .rb-collection-highlight-badge,
+body.rb-active #customerSaleForm .rb-collection-live-total-wrap,
+body.rb-active #customerSaleForm .rb-total-collected-badge{
+  background:transparent!important;
+  color:var(--ink,#19382b)!important;
+  border-color:var(--line,#e4dfd4)!important;
+}
+body.rb-active #customerSaleForm .rb-direct-collection-panel [style*="color:#18392a"]{color:var(--ink,#19382b)!important}
+body.rb-active #customerSaleForm #rbChitBenefitRow{
+  background:var(--erp-soft,#f3f1eb)!important;
+  color:var(--ink,#19382b)!important;
+  border:1px solid var(--line,#e4dfd4)!important;
+}
+body.rb-active #customerSaleForm .rb-balance{
+  padding:9px 11px!important;
+  border-radius:8px!important;
+  background:#26372f!important;
+  border:1px solid #41584c!important;
+  box-shadow:none!important;
+}
+body.rb-active #customerSaleForm .rb-balance span,
+body.rb-active #customerSaleForm .rb-balance small,
+body.rb-active #customerSaleForm .rb-balance b{color:#f2dfb2!important}
+body.rb-active #customerSaleForm .rb-balance> b{font-size:21px!important;margin-top:2px!important}
+html[data-theme="dark"] body.rb-active #customerSaleForm>.panel,
+html[data-theme="dark"] body.rb-active #customerSaleForm .rb-settlement>.panel,
+html[data-theme="dark"] body.rb-active .rb-tabs>button.active{background:#222b26!important;border-color:#455249!important}
+html[data-theme="dark"] body.rb-active #customerSaleForm input,
+html[data-theme="dark"] body.rb-active #customerSaleForm select,
+html[data-theme="dark"] body.rb-active #customerSaleForm textarea{background:#1b2520!important;border-color:#455249!important;color:#f2eee5!important}
+
+@media screen and (max-width:760px){
+  body.rb-active #app.main{padding:7px 8px calc(76px + env(safe-area-inset-bottom))!important}
+  body.rb-active .rb-tabs{margin-bottom:6px!important;padding-bottom:3px!important;gap:2px!important}
+  body.rb-active .rb-tabs>button{min-height:30px!important;padding:4px 7px!important;font-size:9px!important}
+  body.rb-active #customerSaleForm{gap:6px!important}
+  body.rb-active #customerSaleForm>.panel,
+  body.rb-active #customerSaleForm .rb-settlement>.panel{padding:8px!important;border-radius:8px!important;margin:0!important}
+  body.rb-active #customerSaleForm .rb-account-grid,
+  body.rb-active #customerSaleForm .rb-detail-grid{gap:5px!important}
+  body.rb-active #customerSaleForm .rb-field>span{font-size:9px!important}
+  body.rb-active #customerSaleForm .rb-field input,
+  body.rb-active #customerSaleForm .rb-field select,
+  body.rb-active #customerSaleForm .rb-field textarea,
+  body.rb-active #customerSaleForm .rb-account-grid input,
+  body.rb-active #customerSaleForm .rb-account-grid select,
+  body.rb-active #customerSaleForm .rb-direct-collection-panel input,
+  body.rb-active #customerSaleForm .rb-direct-collection-panel select{
+    min-height:36px!important;
+    height:36px!important;
+    padding:5px 7px!important;
+    border-radius:7px!important;
+    font-size:12px!important;
+  }
+  body.rb-active #customerSaleForm .rb-contact{padding:5px 7px!important;gap:5px!important}
+  body.rb-active #customerSaleForm .rb-items{min-height:155px!important;max-height:350px!important}
+  body.rb-active #customerSaleForm .rb-settlement{gap:6px!important}
+  body.rb-active #customerSaleForm .rb-adjustment-grid{gap:4px!important}
+  body.rb-active #customerSaleForm .rb-adjustment-grid>button{
+    min-height:36px!important;
+    padding:5px 7px!important;
+    border-radius:7px!important;
+    font-size:9px!important;
+  }
+  body.rb-active #customerSaleForm .rb-direct-collection-panel{margin-top:6px!important;padding:7px!important;border-radius:8px!important}
+  body.rb-active #customerSaleForm .rb-direct-collection-panel>div{margin-bottom:5px!important;gap:5px!important}
+  body.rb-active #customerSaleForm .rb-total-row{padding:4px 1px!important;font-size:9px!important}
+  body.rb-active #customerSaleForm .rb-total-row b{font-size:10px!important}
+  body.rb-active #customerSaleForm .rb-discount-controls{gap:5px!important}
+  body.rb-active #customerSaleForm .rb-discount-controls input,
+  body.rb-active #customerSaleForm .rb-discount-controls select{min-height:35px!important;height:35px!important;font-size:12px!important}
+  body.rb-active #customerSaleForm .rb-round{padding:4px 0!important;font-size:9px!important}
+  body.rb-active #customerSaleForm .rb-balance{padding:7px 9px!important}
+  body.rb-active #customerSaleForm .rb-balance> b{font-size:19px!important}
+  body.rb-active #customerSaleForm .rb-bill-actions{gap:4px!important;padding-top:6px!important}
+  body.rb-active #customerSaleForm .rb-bill-actions button{min-height:34px!important;padding:5px 6px!important;border-radius:7px!important;font-size:9px!important}
+}
 @media screen and (max-width:390px){
   #customerSaleForm .rb-adjustment-grid > button,
   #rcEstimateForm .rc-actions[style] > button{font-size:10px!important}
@@ -303,4 +452,5 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   html[data-theme="dark"] #rcEstimateForm #rcBalanceBox{background:#2b2418!important;border-color:#8a6a35!important;color:#f2eee5!important}
   html[data-theme="dark"] #rcEstimateForm #rcBalanceBox .rc-balance-sub{color:#edc88b!important}
 }
+
 
