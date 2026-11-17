@@ -1482,3 +1482,97 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
   }
 }
 
+/* Compact multi-tag picker for quotation entry. */
+.rc-multitag-modal {
+  width: min(760px, calc(100vw - 24px));
+  max-width: 760px;
+  max-height: min(78dvh, 620px);
+  padding: 12px;
+  overflow: hidden;
+}
+.rc-multitag-modal .retail-modal-head {
+  margin-bottom: 8px;
+}
+.rc-multitag-modal .retail-modal-head h2 {
+  margin: 0 0 2px;
+  font-size: 16px;
+}
+.rc-multitag-modal .retail-modal-head p {
+  margin: 0;
+  font-size: 11px;
+}
+.rc-multitag-scroll {
+  max-height: 54dvh;
+  overflow: auto;
+}
+.rc-multitag-tools {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0 8px;
+  background: var(--white, #fff);
+}
+.rc-multitag-tools input[type="text"],
+.rc-multitag-tools > input {
+  width: min(280px, 65%);
+  min-height: 34px;
+  padding: 5px 8px;
+}
+.rc-multitag-tools label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rc-multitag-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.rc-multitag-modal .retail-modal-actions {
+  padding: 9px 0 0 !important;
+}
+.rc-multitag-modal .retail-modal-actions button {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+@media (max-width: 560px) {
+  .rc-multitag-backdrop {
+    align-items: flex-end;
+    padding: 7px;
+  }
+  .rc-multitag-modal {
+    width: 100%;
+    max-height: 82dvh;
+    padding: 10px;
+    border-radius: 14px 14px 8px 8px;
+  }
+  .rc-multitag-scroll {
+    max-height: 58dvh;
+  }
+  .rc-multitag-table {
+    min-width: 590px;
+    font-size: 10px;
+  }
+  .rc-multitag-table th,
+  .rc-multitag-table td {
+    padding: 5px !important;
+  }
+  .rc-multitag-modal .retail-modal-actions {
+    display: grid !important;
+    grid-template-columns: .7fr 1.3fr;
+    gap: 6px !important;
+  }
+  .rc-multitag-modal .retail-modal-actions button {
+    width: 100%;
+  }
+}
+
