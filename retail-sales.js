@@ -451,6 +451,45 @@ const rbAndroidHistory=window.updateHistoryView;
 window.updateHistoryView=function(){return rbAndroidHistory().replace('Goldleaf v2.7.0','Goldleaf v'+RB_VERSION).replace('v2.7.0 · 7 Nov 2026 · Current','v2.7.0 · 7 Nov 2026').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.10.42 · 12 Nov 2026</h3><ul><li>Auto-hide header Update button once updated across all screens.</li><li>Added update success celebratory confirmation banner and notifications.</li></ul></article><article class="release-note"><h3>v2.10.41 · 12 Nov 2026</h3><ul><li>Added "The Office Up to Speed" update notification for mobile and desktop app, featuring new version loaded promotion with Update and Not Now controls.</li><li>Automatic update detection with service worker sync and toolbar update pill.</li></ul></article><article class="release-note"><h3>v2.10.40 · 12 Nov 2026</h3><ul><li>Customer Sale Entry bill details and jewellery items redesigned into compact Left &amp; Right cards for mobile comfort.</li><li>Desktop app install enhancements with standalone PWA support.</li></ul></article><article class="release-note"><h3>v2.8.2 · 7 Nov 2026</h3><ul><li>Finalised the manual Retail rate flow and preserved existing silver board rates by default.</li></ul><article class="release-note"><h3>v2.8.1 · 7 Nov 2026</h3><ul><li>Retail Rate Entry follows a dated multi-karat rate flow with manual 24K, 22K, 18K, 14K, silver and diamond rates, AM/PM selection, display and rate history.</li><li>Retail sales use the saved matching 22K, 18K or 14K rate when available.</li></ul><article class="release-note"><h3>v2.8.0 · 7 Nov 2026</h3><ul><li>Retail Sales Entry shows saved bills below the form and lets you add a billing customer without leaving the draft.</li><li>Adjustment buttons wrap at their natural width on phones.</li></ul></article><article class="release-note"><h3>v2.7.3 · 7 Nov 2026</h3><ul><li>Item amounts and actions in Retail sales bills scroll horizontally with their column headings and totals.</li><li>Adjustments and receipts use compact buttons with inline amounts.</li></ul></article><article class="release-note"><h3>v2.7.2 · 7 Nov 2026</h3><ul><li>Retail sales bills scroll from the item list through adjustments, totals and the Save buttons.</li><li>Removed the inline item-details instruction. The item details button still opens the extra fields.</li></ul></article><article class="release-note"><h3>v2.7.1 · 7 Nov 2026</h3><ul><li>Android layouts use simple section selectors, labelled item cards, larger entry controls and decimal number keyboards.</li><li>Mobile popups adapt to available keyboard height; desktop Purchase keeps balance and Save visible.</li></ul></article>');};
 
 
+window.rbApplyTagData = function(row, tag) {
+  if(!row || !tag) return;
+  const form = row.closest('form');
+  const product = (typeof rcDocs === 'function' ? rcDocs('retail-product') : []).find(p=>p.id===tag.productId) ||
+    (typeof rcDocs === 'function' ? rcDocs('retail-product') : []).find(p=>String(p.name||'').toLowerCase()===String(tag.product||'').toLowerCase());
+  const set = (key,value) => {
+    const el = row.querySelector('[data-item="'+key+'"]');
+    if(!el || value === undefined || value === null) return;
+    if(el.tagName === 'SELECT' && ![...el.options].some(o=>String(o.value)===String(value))){
+      const label = key === 'purity' ? (n(value)>24 ? n(value)+'%' : n(value)+'K') : String(value);
+      el.add(new Option(label,value));
+    }
+    el.value = value;
+  };
+  const modeRaw = String(tag.wastageMode ?? product?.wastageMode ?? 'percent').toLowerCase();
+  const wastageMode = ['g','gm','gram','grams','weight'].includes(modeRaw) ? 'grams' : 'percent';
+  const makingRaw = String(tag.makingMode ?? product?.makingMode ?? 'piece').toLowerCase();
+  const makingMode = makingRaw === 'per gram' || makingRaw === '/g' ? 'gram' : makingRaw === 'per piece' || makingRaw === '/pc' ? 'piece' : ['piece','gram','fixed'].includes(makingRaw) ? makingRaw : 'piece';
+  const metal = tag.metalType || product?.metalType || (String(tag.product||'').toLowerCase().includes('silver') ? 'Silver' : 'Gold');
+  const purity = n(tag.purity ?? product?.purity ?? (metal==='Silver'?92.5:22));
+  const liveRate = n(tag.rate)>0 ? n(tag.rate) : (typeof rcRateForMetal === 'function' ? rcRateForMetal(metal,purity,product?.rateType,product?.manualRate) : v2RateForPurity(purity));
+  row.dataset.metalType = metal;
+  set('tagCode',tag.tagCode||'');
+  set('product',tag.product||product?.name||'');
+  set('huid',tag.huid??product?.huid??'');
+  set('pieces',n(tag.pieces)||1);
+  set('grossWeight',n(tag.grossWeight));
+  set('lessWeight',n(tag.lessWeight ?? tag.stoneWeight ?? 0));
+  set('purity',purity);
+  set('wastageMode',wastageMode);
+  set('wastage',n(tag.wastage ?? product?.wastage ?? 0));
+  set('makingMode',makingMode);
+  set('makingRate',n(tag.makingRate ?? product?.makingRate ?? 0));
+  set('rate',liveRate);
+  for(const [key,value] of [['description',tag.printName||product?.printName||''],['hsn',tag.hsn||product?.hsn||''],['stonePieces',n(tag.stonePieces)],['stoneWeight',n(tag.stoneCarat)],['stoneAmount',n(tag.stoneCharge)]]) set(key,value);
+  rbMarkDirty(form);
+  rbRecalc(form);
+};
+
 window.rbQuickTagKey = function(event, input) {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -570,3 +609,4 @@ window.openQrScannerForTagRow = function(btn) {
     });
   }
 };
+
