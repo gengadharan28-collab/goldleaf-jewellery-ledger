@@ -1149,15 +1149,15 @@ window.rcQuoteOpenMultiTagModal = function(){
   const id = 'rcMultiTagModal';
   document.getElementById(id)?.remove();
 
-  const modalHtml = '<div id="'+id+'" class="retail-modal-backdrop">'
-    +'<section class="retail-modal" style="max-width:850px">'
+  const modalHtml = '<div id="'+id+'" class="retail-modal-backdrop rc-multitag-backdrop">'
+    +'<section class="retail-modal rc-multitag-modal">'
     +'<header class="retail-modal-head"><div><h2>Select Tagged Stock for Quotation</h2><p>Pick one or more tags to insert directly into this quotation.</p></div><button type="button" onclick="this.closest(\'.retail-modal-backdrop\').remove()">×</button></header>'
-    +'<div class="retail-modal-scroll" style="max-height:480px;overflow:auto">'
-    +'<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
-    +'<input id="rcMultiTagSearch" placeholder="Search product, tag code, group..." oninput="rcFilterMultiTags(this.value)" style="padding:6px 10px;width:280px;border-radius:5px;border:1px solid var(--line,#ccc)">'
-    +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600"><input type="checkbox" onchange="document.querySelectorAll(\'.rc-multitag-cb\').forEach(cb=>cb.checked=this.checked)"> Select All</label>'
+    +'<div class="retail-modal-scroll rc-multitag-scroll">'
+    +'<div class="rc-multitag-tools">'
+    +'<input id="rcMultiTagSearch" placeholder="Search tag or product..." oninput="rcFilterMultiTags(this.value)">'
+    +'<label><input type="checkbox" onchange="document.querySelectorAll(\'.rc-multitag-cb\').forEach(cb=>{if(cb.closest(\'tr\').style.display!==\'none\')cb.checked=this.checked})"> Select shown</label>'
     +'</div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<table class="rc-multitag-table">'
     +'<thead><tr style="background:#f4f1ea;text-align:left"><th style="padding:6px"></th><th style="padding:6px">Tag</th><th style="padding:6px">Product</th><th style="padding:6px">Metal</th><th style="padding:6px">Purity</th><th style="padding:6px">Gross g</th><th style="padding:6px">Net g</th><th style="padding:6px">Rate ₹/g</th><th style="padding:6px">Total ₹</th></tr></thead>'
     +'<tbody id="rcMultiTagRows">'
     +stock.map(t=>'<tr class="rc-mt-row" data-tag-search="'+esc((t.tagCode+' '+t.product+' '+(t.group||'')+' '+(t.huid||'')).toLowerCase())+'" style="border-bottom:1px solid #eee">'
@@ -1191,8 +1191,10 @@ window.rcFilterMultiTags = function(term){
 window.rcQuoteApplySelectedMultiTags = function(){
   const cbs = [...document.querySelectorAll('.rc-multitag-cb:checked')];
   if(!cbs.length) return say('Select at least one tag to add.');
-  const codes = cbs.map(cb=>cb.value);
-  const tags = rcDocs('retail-tagging').filter(t => codes.includes(t.tagCode));
+  const codes = new Set(cbs.map(cb=>String(cb.value||'').trim().toLowerCase()));
+  const existingCodes = new Set(rcQuoteReadRows().map(x=>String(x.tagCode||'').trim().toLowerCase()).filter(Boolean));
+  const tags = rcDocs('retail-tagging').filter(t => codes.has(String(t.tagCode||'').trim().toLowerCase()) && !existingCodes.has(String(t.tagCode||'').trim().toLowerCase()));
+  if(!tags.length) return say('The selected tags are already in this quotation.');
   const existing = rcQuoteReadRows();
   let tbody = document.querySelector('#rcQuoteTable tbody');
   if(!tbody) return;
@@ -1202,11 +1204,16 @@ window.rcQuoteApplySelectedMultiTags = function(){
   }
 
   tags.forEach(t => {
-    tbody.insertAdjacentHTML('beforeend', rcQuoteItemRow(t, tbody.querySelectorAll('tr.rc-quote-row').length));
+    const product = rcDocs('retail-product').find(p=>p.id===t.productId)||rcDocs('retail-product').find(p=>p.name===t.product);
+    const purity = n(t.purity||product?.purity||92);
+    const rate = n(t.rate)>0?n(t.rate):rcRateForMetal(t.metalType||product?.metalType||'Gold',purity,product?.rateType,product?.manualRate);
+    tbody.insertAdjacentHTML('beforeend', rcQuoteItemRow(Object.assign({},t,{rate}), tbody.querySelectorAll('tr.rc-quote-row').length));
   });
 
   document.getElementById('rcMultiTagModal')?.remove();
   rcRecalc();
+  rcQuoteItemsCache = rcQuoteReadRows();
+  document.querySelector('.rc-quote-items-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
   say('Added ' + tags.length + ' item(s) to quotation.');
 };
 
@@ -3532,3 +3539,4 @@ window.settingsView = function(){
   }
   return html;
 };
+
