@@ -788,7 +788,8 @@ function rcQuoteItemRow(x={}, i=0){
         gross = n(x.grossWeight??x.weight??0),
         stoneWt = n(x.stoneWeight??x.lessWeight??0),
         net = n(x.netWeight??Math.max(0, gross - stoneWt)),
-        wstMode = x.wastageMode || p?.wastageMode || 'percent',
+        wstModeRaw = String(x.wastageMode ?? p?.wastageMode ?? 'percent').toLowerCase(),
+        wstMode = ['g','gm','gram','grams','weight'].includes(wstModeRaw) ? 'grams' : 'percent',
         wst = n(x.wastage??p?.wastage??0),
         mcMode = x.makingMode || p?.makingMode || 'piece',
         mcRate = n(x.makingRate??p?.makingRate??0),
@@ -1034,7 +1035,8 @@ window.rcQuoteRowTagChanged = function(input){
   setVal('stoneAmount', n(tag.stoneCharge || 0));
   const netIn = row.querySelector('[data-q="netWeight"]');
   if(netIn){ delete netIn.dataset.manualNet; netIn.value = fmt(Math.max(0, gross - stoneWt)); }
-  setVal('wastageMode', tag.wastageMode || p?.wastageMode || 'percent');
+  const tagWastageMode = String(tag.wastageMode ?? p?.wastageMode ?? 'percent').toLowerCase();
+  setVal('wastageMode', ['g','gm','gram','grams','weight'].includes(tagWastageMode) ? 'grams' : 'percent');
   setVal('wastage', n(tag.wastage ?? p?.wastage ?? 0));
   setVal('makingMode', tag.makingMode || p?.makingMode || 'piece');
   setVal('makingRate', n(tag.makingRate ?? p?.makingRate ?? 0));
