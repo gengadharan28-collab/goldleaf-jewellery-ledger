@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.10.55';
+const RC_VERSION='2.11.0';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -1285,7 +1285,7 @@ function rcQuoteForm(){
           chitDeduction: quoteChitDeduction,
           collectedAmount: n(q?.collectedAmount||0)
         }),
-        quoteSubtotal = initBill.subtotal,
+        quoteSubtotal = rbRound(initBill.rows.reduce((sum,row)=>sum+n(row.rawSubtotal ?? row.subtotal),0)),
         quoteTaxable = initBill.taxableValue,
         quoteGst = initBill.gstAmount,
         quotePurchaseValue = initBill.saleBeforeRound,
@@ -1417,7 +1417,7 @@ function rcQuoteForm(){
     +'</tr>'
     +'</thead>'
     +'<tbody>'
-    +items.map((x, idx) => rcQuoteItemRow(Object.assign({}, x, { _displaySubtotal: initBill.rows[idx]?.subtotal }), idx)).join('')
+    +items.map((x, idx) => rcQuoteItemRow(Object.assign({}, x, { _displaySubtotal: initBill.rows[idx]?.rawSubtotal ?? initBill.rows[idx]?.subtotal }), idx)).join('')
     +'</tbody>'
     +'<tfoot class="rc-quote-tfoot">'
     +'<tr class="rc-quote-totals-row">'
@@ -1550,7 +1550,7 @@ function rcQuoteForm(){
     +'<div class="rc-notes-wrap" style="margin-top:10px;margin-bottom:8px">'
     +'<label class="rc-notes-label" style="margin:0;display:block">'
     +'<span style="font-size:11px;font-weight:700;color:#64748b">Quotation Notes / Terms</span>'
-    +'<textarea name="notes" class="rc-notes-input" rows="1" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold.">'+esc(q?.notes||'')+'</textarea>'
+    +'<input name="notes" class="rc-notes-input" type="text" placeholder="e.g. Rate valid for 48 hours. Subject to physical verification of old gold." value="'+esc(q?.notes||'')+'">'
     +'</label>'
     +'</div>'
     +'<div class="rc-totals" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;background:#fbfaf6;padding:12px;border-radius:6px;margin-top:14px;border:1px solid var(--line,#ddd)">'
@@ -1589,7 +1589,7 @@ function rcQuoteForm(){
     +'</form>'
 
     // History Table
-    +'<section class="panel" style="margin-top:20px">'
+    +'<section class="panel rc-quotation-history" style="margin-top:20px">'
     +'<div class="rc-section-title"><h2>Quotation History · '+rcDocs('retail-estimate').length+'</h2><span>Saved estimates</span></div>'
     +rcEstimateHistory()
     +'</section>';
@@ -1635,7 +1635,8 @@ function rcEstimateHistory(){
     '<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\')">PDF</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
-    +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button>'
+    +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button> '
+    +'<button type="button" class="rc-history-delete" onclick="rcDeleteEstimate(\''+esc(q.id)+'\')" title="Delete quotation">Delete</button>'
   ]);
   if(rows.length)rows.push(['TOTAL · '+all.length,'','',all.reduce((s,q)=>s+(q.items?.length||0),0)+' pcs',rateMoney(all.reduce((s,q)=>s+n(q.amount),0)),'','']);
   return rows.length?'<div class="rb-total-history">'+table(['Quote #','Date','Customer','Items','Amount','Status','Actions'],rows)+'</div>':'<p class="muted">Saved estimations and quotations will appear here.</p>';
@@ -1647,6 +1648,18 @@ window.rcEditEstimate = function(id){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
   if(q?.items) rcQuoteItemsCache = q.items;
   render();
+};
+
+window.rcDeleteEstimate = function(id){
+  const q = rcDocs('retail-estimate').find(x=>x.id===id);
+  if(!q) return say('Quotation not found.');
+  if(!rcAllowed()) return say('Only a signed-in Retail user with workspace access can delete quotations.');
+  if(!confirm('Delete quotation '+(q.documentNo||'')+'? This action cannot be undone.')) return;
+  db.retailDocuments=(db.retailDocuments||[]).filter(x=>x.id!==id);
+  if(rcEstimateEdit===id){ rcEstimateEdit=''; rcQuoteItemsCache=[]; }
+  const pending=save();
+  render();
+  rcSaveStatus(pending,'Quotation deleted');
 };
 
 window.rcResetEstimate = function(){
@@ -2686,7 +2699,7 @@ function rcRecalc(){
 
   form.querySelectorAll('#rcQuoteTable tbody tr.rc-quote-row').forEach((row, idx) => {
     const lineEl = row.querySelector('.rc-q-lineamount');
-    if (lineEl && bill.rows[idx]) lineEl.textContent = rateMoney(bill.rows[idx].subtotal);
+    if (lineEl && bill.rows[idx]) lineEl.textContent = rateMoney(bill.rows[idx].rawSubtotal ?? bill.rows[idx].subtotal);
   });
 
   const totGross = bill.grossWeight;
@@ -2699,11 +2712,12 @@ function rcRecalc(){
   if(elStone) elStone.textContent = fmt(totStone) + ' g';
   const elNet = document.getElementById('rcQuoteTotalNet');
   if(elNet) elNet.textContent = fmt(totNet) + ' g';
+  const rawItemsSubtotal = rbRound(bill.rows.reduce((sum,row)=>sum+n(row.rawSubtotal ?? row.subtotal),0));
   const elItemsVal = document.getElementById('rcQuoteTotalItemsVal');
-  if(elItemsVal) elItemsVal.textContent = rateMoney(bill.subtotal);
+  if(elItemsVal) elItemsVal.textContent = rateMoney(rawItemsSubtotal);
 
   const elSub = document.getElementById('rcSubtotal');
-  if(elSub) elSub.textContent = rateMoney(bill.subtotal);
+  if(elSub) elSub.textContent = rateMoney(rawItemsSubtotal);
   const elDisc = document.getElementById('rcDiscount');
   if(elDisc) elDisc.textContent = rateMoney(bill.discount);
   const elAdjDisc = document.getElementById('rcAdjDiscountVal');
