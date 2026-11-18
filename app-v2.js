@@ -354,12 +354,20 @@ let v2CloudBusy=false,v2CloudQueuedPush=false,v2CloudCheckBusy=false,v2LastCloud
 function v2CloudMarker(){return session?V2_CLOUD_PENDING_KEY+'-'+session.user.id:''}
 function v2MergeCloudLedgers(remote,local,preferLocal=true){
   const merged=JSON.parse(JSON.stringify(remote||{})),current=local||{};
+  // Keep deletion tombstones so an older cloud/device copy cannot recreate a
+  // Retail document after it has been deleted and the app is refreshed.
+  const deletedRetailDocumentIds=new Set([
+    ...(Array.isArray(merged.deletedRetailDocumentIds)?merged.deletedRetailDocumentIds:[]),
+    ...(Array.isArray(current.deletedRetailDocumentIds)?current.deletedRetailDocumentIds:[])
+  ].map(String));
+  merged.deletedRetailDocumentIds=[...deletedRetailDocumentIds];
   // Preserve retail-only records during cloud merge too.
   for(const key of ['parties','customers','sales','payments','retailDocuments']){
     const combined=new Map();for(const item of Array.isArray(merged[key])?merged[key]:[])combined.set(item.id||JSON.stringify(item),item);
     for(const item of Array.isArray(current[key])?current[key]:[]){const id=item.id||JSON.stringify(item);if(preferLocal||!combined.has(id))combined.set(id,item)}
     merged[key]=[...combined.values()];
   }
+  merged.retailDocuments=(merged.retailDocuments||[]).filter(item=>!deletedRetailDocumentIds.has(String(item?.id||'')));
   for(const key of ['products','purities','partyPurities']){const seen=new Map();for(const item of [...(merged[key]||[]),...(current[key]||[])])seen.set(String(item).toLowerCase(),item);merged[key]=[...seen.values()]}
   const remotePdf=merged.pdfSettings||{},localPdf=current.pdfSettings||{};
   merged.pdfSettings=Object.assign({},remotePdf);
