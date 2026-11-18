@@ -1645,7 +1645,7 @@ window.rcEditEstimate = function(id){
   render();
 };
 
-window.rcDeleteEstimate = function(id){
+window.rcDeleteEstimate = async function(id){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
   if(!q) return say('Quotation not found.');
   if(!rcAllowed()) return say('Only a signed-in Retail user with workspace access can delete quotations.');
@@ -1655,7 +1655,7 @@ window.rcDeleteEstimate = function(id){
   if(rcEstimateEdit===id){ rcEstimateEdit=''; rcQuoteItemsCache=[]; }
   const pending=save();
   render();
-  rcSaveStatus(pending,'Quotation deleted');
+  await rcSaveStatus(pending,'Quotation deleted');
 };
 
 window.rcResetEstimate = function(){
