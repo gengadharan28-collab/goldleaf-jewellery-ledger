@@ -530,8 +530,8 @@ window.glTryNativeInstall=function(){
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed on your Desktop.')});
-window.GL_APP_VERSION = '2.11.10';
-for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-polish.css?v=2.11.10']) {
+window.GL_APP_VERSION = '2.11.11';
+for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-polish.css?v=2.11.11']) {
   if (!document.querySelector('link[href="'+glFreshStyle+'"]')) {
     const glLink=document.createElement('link');glLink.rel='stylesheet';glLink.href=glFreshStyle;document.head.appendChild(glLink);
   }
@@ -543,7 +543,7 @@ window.addEventListener('load',()=>{
 });
 window.addEventListener('load',()=>setTimeout(()=>{
   const s=document.getElementById('glMobileHeaderFinal');
-  if(s)s.textContent+='@media(max-width:760px){html body[data-erp] #rcEstimateForm .rc-pos-split-btn{grid-column:auto!important;grid-row:1!important}}';
+  if(s)s.textContent+='@media(max-width:760px){html body[data-erp] #rcEstimateForm .rc-pos-header-total{grid-column:1!important;grid-row:1!important}html body[data-erp] #rcEstimateForm .rc-pos-header-paid{grid-column:2!important;grid-row:1!important}html body[data-erp] #rcEstimateForm .rc-pos-split-btn{grid-column:3!important;grid-row:1!important}}';
 },0));
 let glPendingWorker = null;
 let glUpdateAvailable = false;
@@ -770,7 +770,7 @@ if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
     else window.addEventListener('goldleaf-v2-ready',loadAccount,{once:true});
   }).catch(()=>{window.goldleafAuthReady=true;glFinishBoot()})
 }else{window.goldleafAuthReady=true;glFinishBoot()}
-</script><script>const GOLDLEAF_VERSION='2.11.10';
+</script><script>const GOLDLEAF_VERSION='2.11.11';
 window.GOLDLEAF_VERSION=GOLDLEAF_VERSION;
 window.GL_APP_VERSION=GOLDLEAF_VERSION;
 const goldleafPreviousGo=window.go;
