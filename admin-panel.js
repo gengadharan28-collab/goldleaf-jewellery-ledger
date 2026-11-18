@@ -85,7 +85,8 @@ function platformExtendSelectHtml(shop, isExpired) {
     + `</select></label></div>`;
 }
 function platformAccessFields(shop = {}) {
-  return `<div class="platform-checks"><label><input type="checkbox" name="retail" ${shop.retail_enabled ? 'checked' : ''}> Retail</label><label><input type="checkbox" name="wholesale" ${shop.wholesale_enabled ? 'checked' : ''}> Wholesale</label></div>`;
+  const toggle=(name,label,checked,help)=>`<label class="platform-access-toggle"><input type="checkbox" name="${name}" ${checked?'checked':''}><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>${label}</b><small>${help}</small></span></label>`;
+  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}</div>`;
 }
 function platformDashboard() {
   const shops = goldleafAdminShops, paid = shops.filter(s => s.payment_count > 0), active = shops.filter(s => ['active','trial'].includes(s.subscription_status) && Date.parse(s.expires_at) > Date.now());
@@ -141,7 +142,7 @@ window.platformSaveAccess = async function(event) {
     const renew = await client.rpc('goldleaf_admin_renew', { p_shop_id: shopId, p_plan: extendPlan });
     if (renew.error) { say(renew.error.message); return; }
   }
-  await platformMutation('goldleaf_admin_save_access',{p_shop_id:shopId,p_retail:f.has('retail'),p_wholesale:f.has('wholesale'),p_status:status,p_users:n(f.get('user_seats')),p_owners:n(f.get('owner_seats'))}, willExtend ? 'Shop access saved and validity extended.' : 'Shop access saved.');
+  await platformMutation('goldleaf_admin_save_access_v2',{p_shop_id:shopId,p_retail:f.has('retail'),p_wholesale:f.has('wholesale'),p_shared_rates:f.has('shared_rates'),p_status:status,p_users:n(f.get('user_seats')),p_owners:n(f.get('owner_seats'))}, willExtend ? 'Shop access saved and validity extended.' : 'Shop access saved.');
 };
 window.platformRenew = async function(event) {
   event.preventDefault(); const f = new FormData(event.target);
@@ -357,7 +358,7 @@ window.pullCloud=async function(){
       platformLedgerShop=shop;if(JSON.stringify(db)!==JSON.stringify(remote.payload||{}))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
     else {const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
-    ensureExtendedData();db.sharedRates=shared.data||{};db.rates=db.shopRates?.enabled?Object.assign({},db.shopRates):Object.assign({},db.sharedRates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
+    ensureExtendedData();db.sharedRates=shared.data||{};db.rates=goldleafContext?.shared_rates_enabled!==false?Object.assign({},db.sharedRates):(db.shopRates?.enabled?Object.assign({},db.shopRates):db.rates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
     setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
   finally{v2CloudBusy=false;}
