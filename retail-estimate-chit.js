@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.11.1';
+const RC_VERSION='2.11.4';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -1266,9 +1266,10 @@ function rcQuoteForm(){
       ? ('✎ Editing Item #' + activeOgIdx + ' (' + esc(activeOgTitle) + ') — Update fields & click "Save"')
       : ('🪙 Entering Old Gold Item #' + (rcOldGoldItems.length + 1) + (rcOldGoldItems.length > 0 ? ' (' + rcOldGoldItems.length + ' saved below)' : ''));
 
+  const quoteGstDefaults = typeof pdfConfig === 'function' ? pdfConfig('retail').gst : {enabled:true,rate:3};
   const quoteDiscount = n(q?.discount||0),
-        quoteGstOn = q?.gstEnabled !== false,
-        quoteGstRate = quoteGstOn ? n(q?.gstRate !== undefined ? q.gstRate : 3) : 0,
+        quoteGstOn = q?.gstEnabled !== undefined ? !!q.gstEnabled : !!quoteGstDefaults.enabled,
+        quoteGstRate = n(q?.gstRate !== undefined ? q.gstRate : quoteGstDefaults.rate) || 3,
         quoteChitId = q?.chitMappingId || '',
         quoteConsiderChit = q?.considerChitWeight,
         quoteChitBonus = q?.chitBonus,
@@ -1443,7 +1444,7 @@ function rcQuoteForm(){
     +'<div class="rc-pos-pills-bar">'
     +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+') ▾':'+ Old Gold ▾')+'</button>'
     +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
-    +'<button type="button" id="rcPill_gst" class="rc-pos-pill '+(q?.gstEnabled!==false?'active':'')+'" onclick="rcTogglePosDrawer(\'gst\')">💰 GST '+(q?.gstEnabled!==false?((q?.gstRate!==undefined?q.gstRate:3)+'%'):'(Off)')+'</button>'
+    +'<button type="button" id="rcPill_gst" class="rc-pos-pill rc-gst-pill '+(quoteGstOn?'active':'')+'" onclick="rcToggleQuoteGST()"><span>GST '+quoteGstRate+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span><b>'+(quoteGstOn?'ON':'OFF')+'</b></button>'
     +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
     +'<button type="button" id="rcPill_discount" class="rc-pos-pill '+(q?.discount>0?'has-value':'')+'" onclick="rcTogglePosDrawer(\'discount\')">'+(q?.discount>0?'🏷️ Disc ('+rateMoney(q.discount)+')':'🏷️ Discount')+'</button>'
     +'</div>'
@@ -1458,14 +1459,8 @@ function rcQuoteForm(){
     +'<label class="rc-adj-label">Discount ₹</label>'
     +'<input name="discount" class="rc-adj-input" type="number" min="0" step=".01" placeholder="0.00" value="'+(q?.discount||'')+'" oninput="rcRecalc()">'
     +'</div>'
-    +'<div id="rcPosDrawer_gst" class="rc-adj-card rc-adj-gst-card rc-pos-drawer">'
-    +'<div class="rc-adj-card-head rc-pos-drawer-head">'
-    +'<span class="rc-adj-card-title">🏛️ GST Tax</span>'
-    +'<label class="rc-adj-check-label"><input name="gstEnabled" type="checkbox" '+(q?.gstEnabled!==false?'checked':'')+' onchange="rcRecalc()"> <span>Enable</span></label>'
-    +'</div>'
-    +'<label class="rc-adj-label">GST Rate %</label>'
-    +'<input name="gstRate" class="rc-adj-input" type="number" min="0" max="100" step=".01" placeholder="3%" value="'+(q?.gstRate!==undefined?q.gstRate:3)+'" oninput="rcRecalc()">'
-    +'</div>'
+    +'<input name="gstEnabled" type="checkbox" hidden '+(quoteGstOn?'checked':'')+'>'
+    +'<input name="gstRate" type="hidden" value="'+quoteGstRate+'">'
     +'</div>'
 
     // Old Gold Exchange Drawer / Block
@@ -1678,7 +1673,7 @@ function rcEstimateRead(form){
         items = rcQuoteReadRows();
   const discount = n(f.discount.value),
         gstOn = !!f.gstEnabled?.checked,
-        gstRate = gstOn ? n(f.gstRate.value) : 0,
+        gstRate = n(f.gstRate.value) || 3,
         ogData = rcCollectOldGoldData(form),
         goldCredit = ogData.totalAmount;
 
@@ -2594,6 +2589,14 @@ window.rcTogglePosDrawer = function(type){
   }
 };
 
+window.rcToggleQuoteGST = function(){
+  const form = document.getElementById('rcEstimateForm');
+  const enabled = form?.elements.gstEnabled;
+  if(!enabled) return;
+  enabled.checked = !enabled.checked;
+  rcRecalc();
+};
+
 window.rcFocusAdvance = function(){
   const inp = document.querySelector('#rcCollectionsList .rc-pos-amount-input');
   if(inp){
@@ -2819,7 +2822,7 @@ function rcRecalc(){
   }
   const pGST = document.getElementById('rcPill_gst');
   if(pGST){
-    pGST.textContent = '💰 GST ' + (gstOn ? ((gstRate || 3) + '%') : '(Off)');
+    pGST.innerHTML = '<span>GST '+(gstRate || 3)+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span><b>'+(gstOn?'ON':'OFF')+'</b>';
     pGST.classList.toggle('active', gstOn);
   }
   const pChit = document.getElementById('rcPill_chit');
