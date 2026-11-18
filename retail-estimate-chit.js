@@ -1,6 +1,6 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
-const RC_VERSION='2.11.4';
+const RC_VERSION='2.11.5';
 let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
@@ -1444,7 +1444,7 @@ function rcQuoteForm(){
     +'<div class="rc-pos-pills-bar">'
     +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+') ▾':'+ Old Gold ▾')+'</button>'
     +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
-    +'<button type="button" id="rcPill_gst" class="rc-pos-pill rc-gst-pill '+(quoteGstOn?'active':'')+'" onclick="rcToggleQuoteGST()"><span>GST '+quoteGstRate+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span><b>'+(quoteGstOn?'ON':'OFF')+'</b></button>'
+    +'<button type="button" id="rcPill_gst" class="rc-pos-pill rc-gst-pill '+(quoteGstOn?'active':'')+'" onclick="rcToggleQuoteGST()" aria-pressed="'+quoteGstOn+'"><span>GST '+quoteGstRate+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span></button>'
     +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
     +'<button type="button" id="rcPill_discount" class="rc-pos-pill '+(q?.discount>0?'has-value':'')+'" onclick="rcTogglePosDrawer(\'discount\')">'+(q?.discount>0?'🏷️ Disc ('+rateMoney(q.discount)+')':'🏷️ Discount')+'</button>'
     +'</div>'
@@ -2822,8 +2822,9 @@ function rcRecalc(){
   }
   const pGST = document.getElementById('rcPill_gst');
   if(pGST){
-    pGST.innerHTML = '<span>GST '+(gstRate || 3)+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span><b>'+(gstOn?'ON':'OFF')+'</b>';
+    pGST.innerHTML = '<span>GST '+(gstRate || 3)+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span>';
     pGST.classList.toggle('active', gstOn);
+    pGST.setAttribute('aria-pressed', String(gstOn));
   }
   const pChit = document.getElementById('rcPill_chit');
   if(pChit){
