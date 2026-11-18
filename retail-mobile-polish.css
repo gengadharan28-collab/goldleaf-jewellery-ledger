@@ -437,6 +437,79 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   body[data-erp] .erp-rate-chip{display:none!important}
 }
 
+/* v2.11: compact luxury mobile treatment for quotations and Retail Sales. */
+@media screen and (max-width:760px){
+  #rcEstimateForm{gap:6px!important}
+  #rcEstimateForm>.panel{padding:8px!important;margin:0 0 6px!important;border-radius:10px!important}
+  #rcEstimateForm .rc-section-title,#rcEstimateForm .rc-section-head{min-height:26px!important;margin-bottom:5px!important}
+  #rcEstimateForm .rc-pos-strip-container{padding:7px!important}
+  #rcEstimateForm .rc-pos-pills-bar{gap:4px!important;padding:0!important;overflow-x:auto!important}
+  #rcEstimateForm .rc-pos-pill{min-height:31px!important;height:31px!important;padding:4px 7px!important;font-size:9px!important;border-radius:8px!important;white-space:nowrap!important}
+
+  #rcEstimateForm .rc-pos-payment-card{padding:7px!important;margin-top:6px!important;border-radius:10px!important;box-shadow:none!important}
+  #rcEstimateForm .rc-pos-payment-head{display:flex!important;align-items:center!important;gap:5px!important;min-height:30px!important;padding:0 0 5px!important}
+  #rcEstimateForm .rc-pos-payment-title{font-size:11px!important;white-space:nowrap!important}
+  #rcEstimateForm .rc-pos-payment-total-wrap{margin-left:auto!important;display:flex!important;align-items:center!important;gap:3px!important;font-size:8px!important;white-space:nowrap!important}
+  #rcEstimateForm .rc-pos-payment-total-wrap b{font-size:9px!important}
+  #rcEstimateForm .rc-pos-split-btn{min-height:27px!important;height:27px!important;padding:3px 6px!important;font-size:8px!important;border-radius:7px!important}
+  #rcEstimateForm .rc-pos-labels-row{display:none!important}
+  #rcEstimateForm .rc-pos-collections-list{display:grid!important;gap:5px!important}
+  #rcEstimateForm .rc-collection-row{gap:4px!important;padding:5px!important;border-radius:8px!important}
+  #rcEstimateForm .rc-collection-row input,#rcEstimateForm .rc-collection-row select{min-height:33px!important;height:33px!important;font-size:10px!important;padding:4px 6px!important}
+
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row>td.rc-q-cell-ratetax{min-height:38px!important;padding:4px 6px!important;border-radius:7px!important}
+  #rcQuoteTable.rc-quote-table tr.rc-quote-row>td.rc-q-cell-ratetax .rc-q-ratetax{margin-top:1px!important;font-size:10px!important}
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot{display:block!important;margin-top:6px!important}
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot tr.rc-quote-totals-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;padding:0!important;background:transparent!important}
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot .rc-qt-label,#rcQuoteTable.rc-quote-table .rc-quote-tfoot .rc-qt-spacer{display:none!important}
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td[data-label]{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;min-height:45px!important;padding:6px 8px!important;border:1px solid var(--line,#e4dfd4)!important;border-radius:8px!important;background:var(--mint,#f2f5ef)!important;font-size:11px!important;font-weight:800!important}
+  #rcQuoteTable.rc-quote-table .rc-quote-tfoot td[data-label]::before{content:attr(data-label)!important;display:block!important;font-size:8px!important;font-weight:700!important;color:var(--muted,#6b716d)!important;margin-bottom:2px!important;text-transform:uppercase!important}
+
+  #rcEstimateForm .rc-notes-wrap{margin:6px 0!important}
+  #rcEstimateForm .rc-notes-label{display:grid!important;grid-template-columns:92px minmax(0,1fr)!important;align-items:center!important;gap:5px!important;padding:5px 7px!important;border:1px solid var(--line,#e4dfd4)!important;border-radius:8px!important;background:var(--white,#fffdf9)!important}
+  #rcEstimateForm .rc-notes-input{width:100%!important;min-width:0!important;height:32px!important;min-height:32px!important;padding:4px 7px!important;font-size:10px!important;resize:none!important}
+  #rcEstimateForm .rc-totals[style]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;padding:7px!important;margin-top:6px!important;border-radius:9px!important}
+  #rcEstimateForm .rc-totals[style]>span{min-height:42px!important;padding:5px 7px!important;border-radius:7px!important;font-size:8px!important}
+  #rcEstimateForm .rc-totals[style]>span b{font-size:11px!important;margin-top:2px!important}
+  #rcEstimateForm #rcBalanceBox{margin-top:6px!important;padding:7px!important;border-radius:9px!important}
+  #rcEstimateForm .rc-quotation-history{margin-top:8px!important;padding:7px!important}
+  #rcEstimateForm .rc-quotation-history .table{font-size:9px!important}
+  #rcEstimateForm .rc-history-delete{background:#fff5f3!important;border-color:#e6a49a!important;color:#9d2f22!important}
+
+  .rc-multitag-modal{width:calc(100vw - 14px)!important;max-width:none!important;max-height:calc(100dvh - 14px)!important;border-radius:12px!important}
+  .rc-multitag-modal .retail-modal-head{padding:9px!important}
+  .rc-multitag-modal .retail-modal-head h2{font-size:13px!important}
+  .rc-multitag-modal .retail-modal-head p{display:none!important}
+  .rc-multitag-scroll{padding:7px!important;overflow-x:hidden!important}
+  .rc-multitag-tools{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important;padding:0 0 7px!important}
+  .rc-multitag-tools>input{min-width:0!important;height:34px!important;min-height:34px!important;font-size:11px!important}
+  .rc-multitag-tools label{height:34px!important;padding:4px 7px!important;font-size:9px!important;white-space:nowrap!important;border:1px solid var(--line,#ddd)!important;border-radius:8px!important}
+  .rc-multitag-cb,.rc-multitag-tools input[type=checkbox]{appearance:none!important;width:17px!important;height:17px!important;min-width:17px!important;min-height:17px!important;margin:0!important;border:1.5px solid #9b835b!important;border-radius:5px!important;background:#fff!important;display:inline-grid!important;place-content:center!important}
+  .rc-multitag-cb:checked,.rc-multitag-tools input[type=checkbox]:checked{background:#18392a!important;border-color:#18392a!important;box-shadow:inset 0 0 0 3px #fff!important}
+  .rc-multitag-table{display:block!important;width:100%!important;min-width:0!important;border:0!important}
+  .rc-multitag-table thead{display:none!important}
+  .rc-multitag-table tbody{display:grid!important;gap:5px!important}
+  .rc-multitag-table tr.rc-mt-row{display:grid!important;grid-template-columns:24px minmax(0,1fr) auto!important;gap:2px 6px!important;padding:7px!important;border:1px solid var(--line,#e4dfd4)!important;border-radius:9px!important;background:var(--white,#fffdf9)!important}
+  .rc-multitag-table tr.rc-mt-row td{display:none!important;padding:0!important;border:0!important;font-size:9px!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(1){display:flex!important;grid-row:1/3;align-items:center!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(2){display:block!important;grid-column:2;font-size:10px!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(3){display:block!important;grid-column:2;color:var(--muted,#6b716d)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(6){display:block!important;grid-column:3;grid-row:1!important;font-weight:800!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(6)::before{content:'Gross ';font-size:7px;color:var(--muted,#6b716d)}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(7){display:block!important;grid-column:3;grid-row:2!important}
+  .rc-multitag-table tr.rc-mt-row td:nth-child(7)::before{content:'Net ';font-size:7px;color:var(--muted,#6b716d)}
+  .rc-multitag-modal .retail-modal-actions{padding:7px!important;gap:5px!important}
+  .rc-multitag-modal .retail-modal-actions button{min-height:36px!important;font-size:10px!important;padding:5px 8px!important}
+
+  body.rb-active #customerSaleForm>.panel{background:linear-gradient(145deg,#fffdf8,#f8f3e8)!important;border:1px solid #ddcfb7!important;border-radius:12px!important;box-shadow:0 5px 16px rgba(58,45,28,.07)!important}
+  body.rb-active #customerSaleForm .rb-section-head{padding-bottom:5px!important;border-bottom:1px solid #e8dcc8!important}
+  body.rb-active #customerSaleForm .rb-section-head h2{color:#234737!important;letter-spacing:.15px!important}
+  body.rb-active #customerSaleForm .rb-item-scroll{border:0!important;background:transparent!important}
+  body.rb-active #customerSaleForm #rbItemsTable tbody{display:grid!important;gap:7px!important}
+  body.rb-active #customerSaleForm #rbItemsTable tbody>tr{border:1px solid #ddcfb7!important;border-radius:10px!important;background:#fffdf9!important;box-shadow:0 3px 9px rgba(53,40,23,.05)!important}
+  html[data-theme=dark] body.rb-active #customerSaleForm>.panel,html[data-theme=dark] .rc-multitag-table tr.rc-mt-row,html[data-theme=dark] #rcEstimateForm .rc-notes-label{background:#222c26!important;border-color:#4e594f!important}
+}
+
 .rc-action-short{display:none}
 @media screen and (max-width:760px){
   #rcEstimateForm .rc-actions[style]{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:6px!important;margin-top:7px!important}
