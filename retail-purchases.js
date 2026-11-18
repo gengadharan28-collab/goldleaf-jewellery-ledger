@@ -209,10 +209,16 @@ window.save=function(){
 const rpPriorMerge=window.v2MergeCloudLedgers;
 window.v2MergeCloudLedgers=function(remote,local,preferLocal=true){
   const merged=rpPriorMerge(remote,local,preferLocal),token=remote?.recordsResetToken||'',fresh=!token||local?.recordsResetToken===token;
+  const deletedRetailDocumentIds=new Set([
+    ...(Array.isArray(remote?.deletedRetailDocumentIds)?remote.deletedRetailDocumentIds:[]),
+    ...(Array.isArray(local?.deletedRetailDocumentIds)?local.deletedRetailDocumentIds:[])
+  ].map(String));
+  merged.deletedRetailDocumentIds=[...deletedRetailDocumentIds];
   for(const key of ['retailSuppliers','retailDocuments']){
     const rows=new Map();
     for(const row of [...(remote?.[key]||[]),...(fresh?local?.[key]||[]:[])]){
       if(token&&row.recordsResetToken!==token)continue;
+      if(key==='retailDocuments'&&deletedRetailDocumentIds.has(String(row?.id||'')))continue;
       const previous=rows.get(row.id);
       if(!previous||Date.parse(row.updatedAt||row.createdAt||0)>=Date.parse(previous.updatedAt||previous.createdAt||0))rows.set(row.id,row);
     }
