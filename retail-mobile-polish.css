@@ -661,4 +661,12 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   #rcEstimateForm .rc-pos-split-btn{width:100%!important;min-width:0!important;height:29px!important;min-height:29px!important;margin:0!important;padding:3px 5px!important;font-size:8px!important;line-height:1!important}
 }
 
+/* v2.11.8: emphasize Total/Paid and keep Split as a small right-side action. */
+@media screen and (max-width:760px){
+  #rcEstimateForm .rc-pos-payment-total-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px!important;align-items:start!important;gap:5px!important}
+  #rcEstimateForm .rc-pos-header-total,#rcEstimateForm .rc-pos-header-paid{height:34px!important;min-height:34px!important;padding:4px 6px!important;font-size:8px!important}
+  #rcEstimateForm .rc-pos-header-total b,#rcEstimateForm .rc-pos-header-paid b{font-size:10px!important;line-height:1.15!important}
+  #rcEstimateForm .rc-pos-split-btn{align-self:start!important;justify-self:end!important;width:58px!important;height:25px!important;min-height:25px!important;margin-top:0!important;padding:2px 5px!important;border-radius:7px!important;font-size:8px!important}
+}
+
 
