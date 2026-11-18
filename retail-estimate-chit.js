@@ -1651,6 +1651,7 @@ window.rcDeleteEstimate = function(id){
   if(!rcAllowed()) return say('Only a signed-in Retail user with workspace access can delete quotations.');
   if(!confirm('Delete quotation '+(q.documentNo||'')+'? This action cannot be undone.')) return;
   db.retailDocuments=(db.retailDocuments||[]).filter(x=>x.id!==id);
+  db.deletedRetailDocumentIds=[...new Set([...(db.deletedRetailDocumentIds||[]),String(id)])];
   if(rcEstimateEdit===id){ rcEstimateEdit=''; rcQuoteItemsCache=[]; }
   const pending=save();
   render();
