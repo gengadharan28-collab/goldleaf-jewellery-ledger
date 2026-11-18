@@ -74,7 +74,7 @@
 
 /* v2.11.6: shorter shared mobile section bar on every workspace page. */
 @media screen and (max-width:760px){
- body[data-erp] .erp-workbar,body[data-erp][data-erp-page="Sales Entry"][data-erp-mode="retail"] .erp-workbar{min-height:46px!important;height:46px!important;padding:4px 9px!important;gap:5px!important}
+ body[data-erp] .erp-workbar,body[data-erp][data-erp-page="Sales Entry"][data-erp-mode="retail"] .erp-workbar{box-sizing:border-box!important;min-height:46px!important;height:46px!important;padding:4px 9px!important;gap:5px!important}
  body[data-erp] .erp-sidebar-toggle{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;border-radius:8px!important}
  body[data-erp] .erp-page-tab{min-height:32px!important;height:32px!important;max-width:138px!important;padding:4px 7px!important;font-size:10px!important;border-radius:7px!important}
  body[data-erp] .erp-page-tab svg{width:13px!important;height:13px!important}
