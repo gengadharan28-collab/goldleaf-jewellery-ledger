@@ -530,7 +530,7 @@ window.glTryNativeInstall=function(){
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed on your Desktop.')});
-window.GL_APP_VERSION = '2.10.55';
+window.GL_APP_VERSION = '2.11.6';
 let glPendingWorker = null;
 let glUpdateAvailable = false;
 
@@ -674,7 +674,6 @@ window.glShowUpdateSuccessMessage = function(ver) {
     + '</div>';
   document.body.insertAdjacentHTML('beforeend', html);
   banner = document.getElementById(bannerId);
-  if (typeof say === 'function') say('✓ Update successful! Office is up to speed with v' + v);
   setTimeout(() => {
     if (banner && banner.parentNode) {
       banner.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
@@ -682,7 +681,7 @@ window.glShowUpdateSuccessMessage = function(ver) {
       banner.style.transform = 'translateX(-50%) translateY(-10px)';
       setTimeout(() => banner.remove(), 500);
     }
-  }, 6000);
+  }, 2600);
 };
 
 if ('serviceWorker' in navigator) {
@@ -757,7 +756,7 @@ if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
     else window.addEventListener('goldleaf-v2-ready',loadAccount,{once:true});
   }).catch(()=>{window.goldleafAuthReady=true;glFinishBoot()})
 }else{window.goldleafAuthReady=true;glFinishBoot()}
-</script><script>const GOLDLEAF_VERSION='2.11.5';
+</script><script>const GOLDLEAF_VERSION='2.11.6';
 window.GOLDLEAF_VERSION=GOLDLEAF_VERSION;
 window.GL_APP_VERSION=GOLDLEAF_VERSION;
 const goldleafPreviousGo=window.go;
