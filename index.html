@@ -536,6 +536,11 @@ for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-
     const glLink=document.createElement('link');glLink.rel='stylesheet';glLink.href=glFreshStyle;document.head.appendChild(glLink);
   }
 }
+window.addEventListener('load',()=>{
+  let s=document.getElementById('glMobileHeaderFinal');
+  if(!s){s=document.createElement('style');s.id='glMobileHeaderFinal';document.head.appendChild(s)}
+  s.textContent='@media(max-width:760px){body[data-erp] .erp-workbar,body[data-erp][data-erp-page="Sales Entry"][data-erp-mode="retail"] .erp-workbar{box-sizing:border-box!important;min-height:46px!important;height:46px!important;padding:4px 9px!important}body[data-erp] .erp-page-tab{box-sizing:border-box!important;min-height:32px!important;height:32px!important;max-width:138px!important;padding:4px 7px!important;font-size:10px!important}body[data-erp] .erp-sidebar-toggle{box-sizing:border-box!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}body[data-erp] .erp-workbar .erp-icon-button{box-sizing:border-box!important;width:32px!important;height:32px!important;min-height:32px!important;padding:5px!important}body[data-erp] .erp-rate-chip{box-sizing:border-box!important;min-height:32px!important;height:32px!important;padding:2px 5px!important}}';
+});
 let glPendingWorker = null;
 let glUpdateAvailable = false;
 
