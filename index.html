@@ -530,8 +530,8 @@ window.glTryNativeInstall=function(){
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed on your Desktop.')});
-window.GL_APP_VERSION = '2.11.9';
-for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-polish.css?v=2.11.9']) {
+window.GL_APP_VERSION = '2.11.10';
+for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-polish.css?v=2.11.10']) {
   if (!document.querySelector('link[href="'+glFreshStyle+'"]')) {
     const glLink=document.createElement('link');glLink.rel='stylesheet';glLink.href=glFreshStyle;document.head.appendChild(glLink);
   }
@@ -541,6 +541,10 @@ window.addEventListener('load',()=>{
   if(!s){s=document.createElement('style');s.id='glMobileHeaderFinal';document.head.appendChild(s)}
   s.textContent='@media(max-width:760px){html body[data-erp] #erpWorkbar.erp-workbar{box-sizing:border-box!important;min-height:46px!important;height:46px!important;padding:4px 9px!important}html body[data-erp] #erpWorkbar .erp-page-tab{box-sizing:border-box!important;min-height:32px!important;height:32px!important;max-width:138px!important;padding:3px 7px!important;font-size:10px!important}html body[data-erp] #erpWorkbar .erp-sidebar-toggle{box-sizing:border-box!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}html body[data-erp] #erpWorkbar .erp-icon-button{box-sizing:border-box!important;width:32px!important;height:32px!important;min-height:32px!important;padding:5px!important}html body[data-erp] #erpWorkbar .erp-rate-chip{box-sizing:border-box!important;min-height:32px!important;height:32px!important;padding:2px 5px!important}html body[data-erp] #rcEstimateForm .rc-pos-payment-total-wrap{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px!important;align-items:start!important;gap:5px!important;width:100%!important}html body[data-erp] #rcEstimateForm .rc-pos-header-total,html body[data-erp] #rcEstimateForm .rc-pos-header-paid{box-sizing:border-box!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;height:34px!important;min-height:34px!important;padding:4px 6px!important}html body[data-erp] #rcEstimateForm .rc-pos-header-total b,html body[data-erp] #rcEstimateForm .rc-pos-header-paid b{font-size:10px!important;line-height:1.15!important}html body[data-erp] #rcEstimateForm .rc-pos-split-btn{box-sizing:border-box!important;align-self:start!important;justify-self:end!important;width:58px!important;min-width:58px!important;height:25px!important;min-height:25px!important;margin:0!important;padding:2px 5px!important;border-radius:7px!important;font-size:8px!important}}';
 });
+window.addEventListener('load',()=>setTimeout(()=>{
+  const s=document.getElementById('glMobileHeaderFinal');
+  if(s)s.textContent+='@media(max-width:760px){html body[data-erp] #rcEstimateForm .rc-pos-split-btn{grid-column:auto!important;grid-row:1!important}}';
+},0));
 let glPendingWorker = null;
 let glUpdateAvailable = false;
 
@@ -766,7 +770,7 @@ if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
     else window.addEventListener('goldleaf-v2-ready',loadAccount,{once:true});
   }).catch(()=>{window.goldleafAuthReady=true;glFinishBoot()})
 }else{window.goldleafAuthReady=true;glFinishBoot()}
-</script><script>const GOLDLEAF_VERSION='2.11.9';
+</script><script>const GOLDLEAF_VERSION='2.11.10';
 window.GOLDLEAF_VERSION=GOLDLEAF_VERSION;
 window.GL_APP_VERSION=GOLDLEAF_VERSION;
 const goldleafPreviousGo=window.go;
