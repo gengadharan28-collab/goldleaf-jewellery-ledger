@@ -587,7 +587,7 @@ function rcSeedSampleChits(force = false){
   });
 }
 window.rcSeedSampleChits = rcSeedSampleChits;
-function rcSaveStatus(promise,label){const show=()=>{const status=document.getElementById('cloudState')?.textContent||'';say(/^Cloud(?: sync)? ·/.test(status)?label+' saved to cloud.':(status.startsWith('Sync issue')||status.startsWith('Entry saved here'))?'Saved on this device only. Cloud sync failed: '+(window.v2LastSyncError||'check Settings → Cloud account.'):label+' saved on this device. Sign in to sync across devices.')};if(promise&&typeof promise.then==='function')promise.then(show);else show()}
+async function rcSaveStatus(promise,label){const show=()=>{const status=document.getElementById('cloudState')?.textContent||'';say(/^Cloud(?: sync)? ·/.test(status)?label+' saved to cloud.':(status.startsWith('Sync issue')||status.startsWith('Entry saved here'))?'Saved on this device only. Cloud sync failed: '+(window.v2LastSyncError||'check Settings → Cloud account.'):label+' saved on this device. Sign in to sync across devices.')};try{if(promise&&typeof promise.then==='function')await promise;show();return true}catch(err){window.v2LastSyncError=err?.message||String(err||'Cloud save failed');say(label+' is kept on this device. Cloud sync failed: '+window.v2LastSyncError);return false}}
 function rcDocs(kind){rcEnsure();return db.retailDocuments.filter(x=>x.kind===kind)}
 function rcRows(){return typeof rcQuoteReadRows==='function'?rcQuoteReadRows():[];}
 function rcItemRow(x={}){const products=rcDocs('retail-product'),name=String(x.product||''),purity=Number(x.purity||22),rate=n(x.rate)||v2RateForPurity(purity),tags=rcDocs('retail-tagging').filter(t=>t.status==='In stock'||t.tagCode===x.tagCode);return '<div class="rc-item" data-id="'+esc(x.id||crypto.randomUUID())+'"><label>Product<select data-rc="product" required><option value="">Select product</option>'+[...new Set([...products.map(p=>p.name),...db.products,name].filter(Boolean))].map(p=>'<option '+(p===name?'selected':'')+'>'+esc(p)+'</option>').join('')+'</select></label><label>Tag / barcode<select data-rc="tagCode" onchange="rcApplyTag(this)"><option value="">No tag</option>'+tags.map(t=>'<option value="'+esc(t.tagCode)+'" '+(x.tagCode===t.tagCode?'selected':'')+'>'+esc(t.tagCode)+' · '+esc(t.product)+'</option>').join('')+'</select></label><label>Pieces<input data-rc="pieces" type="number" min="1" step="1" value="'+(x.pieces||1)+'"></label><label>Gross g<input data-rc="grossWeight" type="number" min="0.001" step=".001" required value="'+(x.grossWeight??x.weight??'')+'"></label><label>Less g<input data-rc="lessWeight" type="number" min="0" step=".001" value="'+(x.lessWeight||0)+'"></label><label>Purity K<input data-rc="purity" type="number" min="1" max="24" step=".01" value="'+purity+'"></label><label>Wastage %<input data-rc="wastage" type="number" min="0" max="100" step=".01" value="'+(x.wastage||0)+'"></label><label>Rate / g ₹<input data-rc="rate" type="number" min="0" step=".01" value="'+rate+'"></label><label>Making / piece ₹<input data-rc="makingRate" type="number" min="0" step=".01" value="'+(x.makingRate||0)+'"></label><output class="rc-line-value">'+rateMoney(rbItemCalc(Object.assign({},x,{purity,rate})).subtotal)+'</output><button type="button" aria-label="Remove item" onclick="rcRemoveItem(this)">Remove</button></div>'}
@@ -1785,7 +1785,9 @@ window.rcSaveEstimate = function(e){
   rcOldGoldEditId = '';
   rcOldGoldFormLocked = false;
   rcOldGoldSyncedQuoteId = null;
-  const cloudSave = save();
+  let cloudSave;
+  try{ cloudSave = save(); }
+  catch(err){ cloudSave = Promise.reject(err); }
   render();
   rcSaveStatus(cloudSave, 'Retail quotation');
 };
