@@ -96,7 +96,13 @@ function rbPurityText(sale){
   return [...new Set(purities)].join(' / ');
 }
 function rbCollectionByMethod(sale,method){return sale.collections?.length?sale.collections.filter(x=>x.method===method).reduce((s,x)=>s+n(x.amount),0):(sale.collectedMethod||'Cash')===method?saleCollectionValue(sale):0;}
-function rbCustomerOptions(id='',empty='Select customer'){return '<option value="">'+empty+'</option>'+db.customers.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===id?'selected':'')+'>'+esc(x.name)+'</option>').join('');}
+function rbCustomerOptions(id='',empty='Select customer'){
+  const list=[
+    ...db.customers.map(x=>({id:x.id,name:x.name+(x.city?' · '+x.city:'')})),
+    ...db.parties.map(x=>({id:x.id,name:x.name+' · Party'+(x.city?' · '+x.city:'')}))
+  ];
+  return '<option value="">'+empty+'</option>'+list.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===id?'selected':'')+'>'+esc(x.name)+'</option>').join('');
+}
 function rbOptions(items,value){return items.map(x=>'<option value="'+esc(x)+'" '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('');}
 function rbKeyboard(type,extra=''){return type==='number'?' inputmode="'+(extra.includes('step="1"')?'numeric':'decimal')+'"':'';}
 function rbInput(label,name,value='',type='text',extra=''){return '<label class="rb-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+esc(value)+'"'+rbKeyboard(type,extra)+' '+extra+'></label>';}
@@ -238,11 +244,11 @@ window.rbUseAddedCustomer=function(customer){
 };
 
 function rbBillView(){
-  const sale=rbCustomerSales().find(x=>x.id===edit),items=rbInvoiceItems(sale),customer=db.customers.find(x=>x.id===sale?.partyId),exchange=sale?.oldGoldItems?.length?sale.oldGoldItems:[{}],collections=sale?.collections?.length?sale.collections:sale?.collectedAmount?[{method:sale.collectedMethod||'Cash',amount:sale.collectedAmount,reference:sale.collectedReference}]:[{}],col0=collections[0]||{},date=sale?.when||rbNow(),number=sale?.documentNo||'';
-  if(!db.customers.length){
+  const sale=rbCustomerSales().find(x=>x.id===edit),items=rbInvoiceItems(sale),customer=db.customers.find(x=>x.id===sale?.partyId)||db.parties.find(x=>x.id===sale?.partyId),exchange=sale?.oldGoldItems?.length?sale.oldGoldItems:[{}],collections=sale?.collections?.length?sale.collections:sale?.collectedAmount?[{method:sale.collectedMethod||'Cash',amount:sale.collectedAmount,reference:sale.collectedReference}]:[{}],col0=collections[0]||{},date=sale?.when||rbNow(),number=sale?.documentNo||'';
+  if(!db.customers.length && !db.parties.length){
     return '<div class="retail-sale-screen rb-screen rb-bill-screen">'+rbHeader('Sales bill')
-      +'<section class="panel empty"><h2>Register your first customer</h2>'
-      +'<p>Add a customer to start a sales bill.</p>'
+      +'<section class="panel empty"><h2>Register your first customer or party</h2>'
+      +'<p>Add a party or customer in Register to start a sales bill.</p>'
       +'<button type="button" class="primary" onclick="rbOpenCustomerAdd()">＋ Add customer</button></section>'
       +rbSalesHistorySection()+'</div>';
   }
