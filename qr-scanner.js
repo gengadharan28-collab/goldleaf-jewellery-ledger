@@ -55,7 +55,30 @@
   let spotterCanvas = null;
   let spotterCtx = null;
 
+  let html5QrLoadPromise = null;
+  function ensureHtml5QrLoaded(){
+    if(window.Html5Qrcode) return Promise.resolve(true);
+    if(html5QrLoadPromise) return html5QrLoadPromise;
+    html5QrLoadPromise = new Promise(resolve=>{
+      const existing=document.querySelector('script[data-goldleaf-html5qr]');
+      if(existing){
+        existing.addEventListener('load',()=>resolve(true),{once:true});
+        existing.addEventListener('error',()=>resolve(false),{once:true});
+        return;
+      }
+      const script=document.createElement('script');
+      script.src='./html5-qrcode.min.js?v=2.10.54';
+      script.async=true;
+      script.dataset.goldleafHtml5qr='1';
+      script.onload=()=>{ensureDecoders();resolve(true)};
+      script.onerror=()=>resolve(false);
+      document.head.appendChild(script);
+    });
+    return html5QrLoadPromise;
+  }
+
   function ensureDecoders(){
+    if(!window.Html5Qrcode) ensureHtml5QrLoaded();
     if (!macroCanvas) {
       macroCanvas = document.createElement('canvas');
       macroCanvas.width = 720;
