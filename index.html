@@ -958,7 +958,7 @@ function alreadyUpdatedForSlot(date,slot){
 function checkRateReminder(){
   if(!session||activeRateReminder||document.getElementById('rateReminderOverlay'))return;
   const now=new Date(),parts=istDateTime(now),minutes=Number(parts.time.slice(0,2))*60+Number(parts.time.slice(3,5));
-  const due=rateReminderSlots.find(s=>minutes>=Number(s.key.slice(0,2))*60+Number(s.key.slice(3,5))&&Date.now()>=rateReminderSnooze(parts.date,s.key)&&!alreadyUpdatedForSlot(parts.date,s.key));
+  const due=rateReminderSlots.find(s=>parts.time.slice(0,5)===s.key&&Date.now()>=rateReminderSnooze(parts.date,s.key)&&!alreadyUpdatedForSlot(parts.date,s.key));
   if(due)showRateReminder(due,parts.date);
 }
 function showRateReminder(slot,date){
