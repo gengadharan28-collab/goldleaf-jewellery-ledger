@@ -715,21 +715,33 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const isThermal80 = template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80';
   const isThermal58 = template === 'thermal-58' || template === 'thermal-estimate-58';
   const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
-  root.style.width = thermalWidth ? '100%' : '';
-  root.style.margin = '0 auto';
   const printDoc = root.querySelector('.gl-pdf');
-  if(printDoc){
-    printDoc.style.width = '100%';
-    printDoc.style.maxWidth = thermalWidth ? ((thermalWidth - 4) + 'mm') : '';
-    printDoc.style.margin = '0 auto';
-  }
-  void root.offsetHeight;
+  let measuredContentMm = 0;
   if(thermalWidth){
-    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0);
-    const contentMm = Math.max(35, Math.ceil(contentPx * 25.4 / 96) + 3);
-    pageSize = thermalWidth + 'mm ' + contentMm + 'mm';
+    // #goldleafPdfRoot is hidden on screen, so temporarily measure it at the real roll width.
+    const rootStyleBefore = root.getAttribute('style') || '';
+    const docStyleBefore = printDoc?.getAttribute('style') || '';
+    root.style.cssText = 'display:block!important;position:fixed!important;left:-10000px!important;top:0!important;visibility:hidden!important;width:'+(thermalWidth-4)+'mm!important;height:auto!important;margin:0!important;padding:0!important;';
+    if(printDoc){
+      printDoc.style.cssText += ';display:block!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;margin:0!important;';
+    }
+    void root.offsetHeight;
+    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0);
+    measuredContentMm = Math.max(35, Math.ceil(contentPx * 25.4 / 96) + 3);
+    root.setAttribute('style',rootStyleBefore);
+    if(printDoc) printDoc.setAttribute('style',docStyleBefore);
+    pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
+  }else{
+    root.style.width = '';
+    root.style.margin = '0 auto';
+    if(printDoc){
+      printDoc.style.width = '100%';
+      printDoc.style.maxWidth = '';
+      printDoc.style.margin = '0 auto';
+    }
   }
-  pageStyle.textContent='@page goldleafDocument{size:'+pageSize+';margin:'+pageMargin+'}.gl-pdf{page:goldleafDocument}';
+  // Use the global @page rule: Chrome and the CITIZEN CT-D150 driver ignore variable height on named pages.
+  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+'}';
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Keep the native print action inside the user's click. Delayed print calls are blocked by some PWA/mobile browsers.
   try{ window.print(); }
