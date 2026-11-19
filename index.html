@@ -682,27 +682,20 @@ window.glCheckUpdateSuccess = function() {
 
 window.glShowUpdateSuccessMessage = function(ver) {
   const bannerId = 'glUpdateSuccessBanner';
-  let banner = document.getElementById(bannerId);
-  if (banner) banner.remove();
-  const v = ver || window.GL_APP_VERSION || '2.10.44';
-  const html = '<div id="' + bannerId + '" class="gl-update-success-banner" style="position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:10001;background:linear-gradient(135deg,#064e3b,#047857);color:#ffffff;padding:12px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(4,120,87,0.4);border:1px solid #10b981;display:flex;align-items:center;gap:12px;max-width:92%;font-size:13px">'
-    + '<span style="font-size:18px;background:rgba(255,255,255,0.22);width:30px;height:30px;border-radius:50%;display:inline-grid;place-items:center;flex-shrink:0" aria-hidden="true">✓</span>'
-    + '<div style="line-height:1.35">'
-    + '<b style="display:block;font-size:13.5px;color:#f0fdf4">Update Successful!</b>'
-    + '<span style="color:#a7f3d0;font-size:12px">Goldleaf v' + v + ' is loaded. Your office is up to speed!</span>'
-    + '</div>'
-    + '<button type="button" onclick="this.closest(\'#' + bannerId + '\').remove()" style="background:transparent;border:0;color:#f0fdf4;font-size:18px;cursor:pointer;margin-left:8px;padding:2px 6px;line-height:1" aria-label="Close">✕</button>'
+  document.getElementById(bannerId)?.remove();
+  const html = '<div id="' + bannerId + '" class="gl-update-success-banner" role="status" aria-live="polite" style="position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:10001;background:#0f6b4f;color:#fff;padding:7px 11px;border-radius:999px;box-shadow:0 5px 16px rgba(15,107,79,.28);display:flex;align-items:center;gap:6px;max-width:calc(100vw - 24px);font:700 11px/1.2 system-ui,sans-serif;white-space:nowrap">'
+    + '<span aria-hidden="true" style="width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.2);display:inline-grid;place-items:center;font-size:11px">✓</span>'
+    + '<span>Update successful</span>'
     + '</div>';
   document.body.insertAdjacentHTML('beforeend', html);
-  banner = document.getElementById(bannerId);
+  const banner = document.getElementById(bannerId);
   setTimeout(() => {
-    if (banner && banner.parentNode) {
-      banner.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      banner.style.opacity = '0';
-      banner.style.transform = 'translateX(-50%) translateY(-10px)';
-      setTimeout(() => banner.remove(), 500);
-    }
-  }, 2600);
+    if (!banner?.parentNode) return;
+    banner.style.transition = 'opacity .25s ease, transform .25s ease';
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateX(-50%) translateY(-6px)';
+    setTimeout(() => banner.remove(), 260);
+  }, 1800);
 };
 
 if ('serviceWorker' in navigator) {
