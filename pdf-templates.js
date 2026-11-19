@@ -696,13 +696,13 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   if(!pageStyle){pageStyle=document.createElement('style');pageStyle.id='goldleafPdfPageStyle';document.head.append(pageStyle);}
 
   let pageSize = 'A4 portrait';
-  let pageMargin = '10mm';
+  let pageMargin = isEstimate ? '6mm' : '10mm';
   if(template === 'detailed' || template === 'compact-estimate-a5l' || template === 'compact-a5-l'){
     pageSize = template.startsWith('compact') ? 'A5 landscape' : 'A4 landscape';
-    pageMargin = '8mm';
+    pageMargin = isEstimate ? '5mm' : '8mm';
   } else if(template === 'compact-a5-p' || template === 'compact-estimate-a5'){
     pageSize = 'A5 portrait';
-    pageMargin = '8mm';
+    pageMargin = isEstimate ? '5mm' : '8mm';
   } else if(template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80'){
     pageSize = '80mm auto';
     pageMargin = '2mm 3mm';
@@ -1018,7 +1018,21 @@ const PDF_DOCUMENT_CSS=`
 .pdf-compact-a5-p .pdf-chit-kpis,.pdf-compact-estimate-a5 .pdf-chit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 @media print{
+  #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf{box-shadow:none!important;margin:0!important;padding:0!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:8.5px!important;line-height:1.22!important}
+  .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
+  .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}
+  .pdf-estimate .pdf-brand p{margin:2px 0!important;font-size:8px!important}
+  .pdf-estimate .pdf-meta{gap:5px!important;margin:4px 0 6px!important;padding:5px!important}
+  .pdf-estimate .pdf-section-title{margin:7px 0 3px!important;padding-bottom:2px!important;font-size:9px!important}
+  .pdf-estimate th,.pdf-estimate td{padding:3px 4px!important;font-size:7.5px!important;line-height:1.2!important}
+  .pdf-estimate .pdf-totals{margin-top:7px!important;min-width:220px!important;width:55%!important}
+  .pdf-estimate .pdf-totals th,.pdf-estimate .pdf-totals td{padding:2.5px 4px!important}
+  .pdf-estimate .pdf-bank-section{margin-top:7px!important;padding:6px!important}
+  .pdf-estimate .pdf-signatures{margin-top:10px!important;padding-top:5px!important}
+  .pdf-estimate footer{margin-top:6px!important;padding-top:4px!important}
+  .pdf-estimate .pdf-chit-section{margin:6px 0 4px!important;padding:6px 8px!important}
   .pdf-meta,.pdf-brand{break-inside:avoid}
   .pdf-totals,.pdf-bank-section,.pdf-signatures,.pdf-chit-section{break-inside:avoid}
 }
