@@ -101,6 +101,16 @@
   window.wlScanSale = function () { scan((code) => { const l = lotByTag(code); if (!l) return say('Packet tag not found.'); const f = document.getElementById('wlSaleLot').form; f.lotId.value = l.id; wlLoadSalePacket(f); }); };
   window.wlScanReturn = function () { scan((code) => { const input = document.getElementById('wlReturnTag'); input.value = code; wlLoadReturn(input.form); }); };
   window.wholesalePacketLedgerRows = function (partyId) { ensure(); return db.wholesalePacketSales.filter((s) => s.partyId === partyId).map((s) => { const l = lotById(s.lotId); return { when: s.when, reference: l?.packetTag || '', product: l?.product || '', pieces: s.pieces, weight: s.weight, pure: s.purePayable, hallmark: s.hallmarkTotal }; }); };
+  const originalLedgerView = window.ledgerView;
+  window.ledgerView = function () {
+    const base = originalLedgerView();
+    if (workspaceMode !== 'wholesale' || !filter.party) return base;
+    const rows = wholesalePacketLedgerRows(filter.party);
+    if (!rows.length) return base;
+    const pure = rows.reduce((sum, v) => sum + n(v.pure), 0), hallmark = rows.reduce((sum, v) => sum + n(v.hallmark), 0);
+    const history = rows.map((v) => [whenShow(v), x(v.reference), x(v.product), v.pieces, g(v.weight) + ' g', g(v.pure) + ' g', '₹ ' + n(v.hallmark).toFixed(2)]);
+    return base + '<section class="panel wl-ledger-packets"><h2>Wholesale packet sales</h2><div class="cards"><div class="card"><label>PACKET PURE PAYABLE</label><b>' + g(pure) + ' g</b></div><div class="card"><label>PACKET HALLMARK</label><b>₹ ' + hallmark.toFixed(2) + '</b></div><div class="card"><label>OVERALL GOLD BALANCE</label><b>' + g(bal(filter.party, 'party')) + ' g</b></div></div>' + table(['Date','Packet tag','Product','Pieces','Weight','Pure payable','Hallmark'], history) + '</section>';
+  };
   ensure();
 })();
 
