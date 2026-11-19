@@ -471,7 +471,7 @@ window.rbApplyTagData = function(row, tag) {
   const makingMode = makingRaw === 'per gram' || makingRaw === '/g' ? 'gram' : makingRaw === 'per piece' || makingRaw === '/pc' ? 'piece' : ['piece','gram','fixed'].includes(makingRaw) ? makingRaw : 'piece';
   const metal = tag.metalType || product?.metalType || (String(tag.product||'').toLowerCase().includes('silver') ? 'Silver' : 'Gold');
   const purity = n(tag.purity ?? product?.purity ?? (metal==='Silver'?92.5:22));
-  const liveRate = n(tag.rate)>0 ? n(tag.rate) : (typeof rcRateForMetal === 'function' ? rcRateForMetal(metal,purity,product?.rateType,product?.manualRate) : v2RateForPurity(purity));
+  const liveRate = typeof rcRateForMetal === 'function' ? rcRateForMetal(metal,purity,product?.rateType,product?.manualRate) : v2RateForPurity(purity);
   row.dataset.metalType = metal;
   set('tagCode',tag.tagCode||'');
   set('product',tag.product||product?.name||'');
