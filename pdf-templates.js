@@ -475,7 +475,7 @@ function pdfThermalMarkup(model,c,size='80mm'){
   }
 
   // Blank feed lines
-  const feedCount = Math.max(1, parseInt(c.thermalFeed||3, 10));
+  const feedCount = model.kind==='estimate' ? 1 : Math.max(1, parseInt(c.thermalFeed||3, 10));
   html += '<div class="thermal-feed" style="height:'+(feedCount * 14)+'px"></div>';
   html += '</div>';
   return html;
@@ -705,7 +705,7 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     pageMargin = isEstimate ? '5mm' : '8mm';
   } else if(template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80'){
     pageSize = '80mm auto';
-    pageMargin = '2mm 3mm';
+    pageMargin = '1mm 2mm';
   } else if(template === 'thermal-58' || template === 'thermal-estimate-58'){
     pageSize = '58mm auto';
     pageMargin = '1mm 2mm';
@@ -992,10 +992,10 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:7.5px;font-weight:bold}
 .thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
-.pdf-thermal-estimate-grid-80{width:80mm;max-width:80mm;box-sizing:border-box;border:0;padding:2mm 3mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25}
+.pdf-thermal-estimate-grid-80{width:80mm;max-width:80mm;box-sizing:border-box;border:0;padding:1mm 2mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25}
 .grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:6px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:6.5px;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:6.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.8px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:5.4px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:5.4px;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #bbb;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:5.4px;text-transform:uppercase;color:#555}.grid80-detail-cell b,.grid80-item-details b{font-size:6.5px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:8px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:8px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:7px}.grid80-summary-row.grid80-highlight{font-size:9px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:6.5px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:6px;text-align:center;margin-top:8px}
-.grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:5.15px;padding:4px 1px}.grid80-items th{font-size:5px}.grid80-item-main td small{font-size:4.8px;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #203d32}.grid80-detail-cell>span,.grid80-item-details>span{padding:2px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:2px 4px;font-size:7px}.grid80-summary-row{font-size:6.4px;line-height:1.1;padding:2px 1px;border-bottom:1px solid #e2e7e4}.grid80-summary-row.grid80-highlight{font-size:8px;padding:4px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:2px 1px}.grid80-ticket footer{margin-top:4px}
+.grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:5.15px;padding:4px 1px}.grid80-items th{font-size:5px}.grid80-item-main td small{font-size:4.8px;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #203d32}.grid80-detail-cell>span,.grid80-item-details>span{padding:2px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:2px 4px;font-size:7px}.grid80-summary-row{font-size:6.4px;line-height:1.1;padding:2px 1px;border-bottom:1px solid #e2e7e4}.grid80-summary-row.grid80-highlight{font-size:8px;padding:4px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:2px 1px}.grid80-ticket footer{margin-top:3px}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.15}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
 .grid80-detail-cell>span:last-child,.grid80-item-details>span:last-child{float:right;margin-left:auto;border-right:0;text-align:right;min-width:27%}.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:34%;text-align:right;white-space:nowrap}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
