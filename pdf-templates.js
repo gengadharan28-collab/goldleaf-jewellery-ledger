@@ -714,7 +714,13 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   pageStyle.textContent='@page goldleafDocument{size:'+pageSize+';margin:'+pageMargin+'}.gl-pdf{page:goldleafDocument}';
   document.body.classList.add('goldleaf-pdf-printing');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
-  setTimeout(()=>window.print(),100);
+  // Keep the native print action inside the user's click. Delayed print calls are blocked by some PWA/mobile browsers.
+  void root.offsetHeight;
+  try{ window.print(); }
+  catch(err){
+    document.body.classList.remove('goldleaf-pdf-printing');
+    say('Print could not open. Please try Print / Save PDF again.');
+  }
 }
 
 function pdfRenderDocumentModal(){
