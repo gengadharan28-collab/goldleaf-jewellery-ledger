@@ -743,11 +743,19 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   // Use the global @page rule: Chrome and the CITIZEN CT-D150 driver ignore variable height on named pages.
   pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+'}';
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
-  // Keep the native print action inside the user's click. Delayed print calls are blocked by some PWA/mobile browsers.
-  try{ window.print(); }
-  catch(err){
-    document.body.classList.remove('goldleaf-pdf-printing');
-    say('Print could not open. Please try Print / Save PDF again.');
+  // Let Chrome finish laying out the hidden receipt before opening the native printer window.
+  // This remains direct printing: there is no intermediate Goldleaf preview.
+  const openNativePrint=()=>{
+    try{ window.print(); }
+    catch(err){
+      document.body.classList.remove('goldleaf-pdf-printing');
+      say('Print could not open. Please try Print / Save PDF again.');
+    }
+  };
+  if(typeof requestAnimationFrame==='function'){
+    requestAnimationFrame(()=>requestAnimationFrame(openNativePrint));
+  }else{
+    setTimeout(openNativePrint,80);
   }
 }
 
