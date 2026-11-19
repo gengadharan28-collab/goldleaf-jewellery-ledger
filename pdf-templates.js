@@ -711,11 +711,27 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     pageMargin = '1mm 2mm';
   }
 
-  pageStyle.textContent='@page goldleafDocument{size:'+pageSize+';margin:'+pageMargin+'}.gl-pdf{page:goldleafDocument}';
   document.body.classList.add('goldleaf-pdf-printing');
+  const isThermal80 = template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80';
+  const isThermal58 = template === 'thermal-58' || template === 'thermal-estimate-58';
+  const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
+  root.style.width = thermalWidth ? '100%' : '';
+  root.style.margin = '0 auto';
+  const printDoc = root.querySelector('.gl-pdf');
+  if(printDoc){
+    printDoc.style.width = '100%';
+    printDoc.style.maxWidth = thermalWidth ? ((thermalWidth - 4) + 'mm') : '';
+    printDoc.style.margin = '0 auto';
+  }
+  void root.offsetHeight;
+  if(thermalWidth){
+    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0);
+    const contentMm = Math.max(35, Math.ceil(contentPx * 25.4 / 96) + 3);
+    pageSize = thermalWidth + 'mm ' + contentMm + 'mm';
+  }
+  pageStyle.textContent='@page goldleafDocument{size:'+pageSize+';margin:'+pageMargin+'}.gl-pdf{page:goldleafDocument}';
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Keep the native print action inside the user's click. Delayed print calls are blocked by some PWA/mobile browsers.
-  void root.offsetHeight;
   try{ window.print(); }
   catch(err){
     document.body.classList.remove('goldleaf-pdf-printing');
@@ -760,7 +776,7 @@ function pdfRenderDocumentModal(){
   document.body.append(modal);
   const frame=modal.querySelector('iframe');
   if(frame){
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
   }
 }
 
@@ -778,7 +794,7 @@ window.pdfSwitchDocumentPreview=function(layoutId){
   modal.querySelectorAll('.pdf-preview-pill').forEach(btn=>btn.classList.toggle('active',btn.dataset.pdfLayout===layoutId));
   const frame=modal.querySelector('iframe');
   if(frame){
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,layoutId)+'</body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,layoutId)+'</body></html>';
   }
 };
 
@@ -910,11 +926,11 @@ window.previewPdfTemplate=async function(template=null,kind='bill'){
     +'</section>';
 
   document.body.append(modal);
-  modal.querySelector('iframe').srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#f0f2f1}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,c,chosen)+'</body></html>';
+  modal.querySelector('iframe').srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#f0f2f1;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,c,chosen)+'</body></html>';
 };
 
 const PDF_DOCUMENT_CSS=`
-.gl-pdf{font:11px/1.45 Arial,Helvetica,sans-serif;color:#202624;background:#fff;overflow-wrap:anywhere;box-shadow:0 3px 12px rgba(0,0,0,.08);margin:0 auto;max-width:850px;padding:24px}
+.gl-pdf{font:11px/1.45 Arial,Helvetica,sans-serif;color:#202624;background:#fff;overflow-wrap:anywhere;box-shadow:0 3px 12px rgba(0,0,0,.08);margin:0 auto;width:100%;max-width:850px;padding:24px}
 .gl-pdf *{box-sizing:border-box}
 .pdf-brand{padding:16px 14px;border-bottom:2px solid #aa864b;margin-bottom:12px}
 .pdf-brand h1{margin:0 0 6px;font:700 24px/1.2 Georgia,serif;color:#18201b;letter-spacing:.3px}
@@ -998,7 +1014,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:7.5px;font-weight:bold}
 .thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
-.pdf-thermal-estimate-grid-80{width:80mm;max-width:80mm;box-sizing:border-box;border:0;padding:1mm 2mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25}
+.pdf-thermal-estimate-grid-80{width:100%;max-width:76mm;box-sizing:border-box;border:0;padding:1mm 1mm;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1.25;margin:0 auto}
 .grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:6px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:6.5px;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:6.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:5.8px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:5.4px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:5.4px;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #bbb;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:5.4px;text-transform:uppercase;color:#555}.grid80-detail-cell b,.grid80-item-details b{font-size:6.5px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:8px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:8px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:7px}.grid80-summary-row.grid80-highlight{font-size:9px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:6.5px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:6px;text-align:center;margin-top:8px}
 .grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:5.15px;padding:4px 1px}.grid80-items th{font-size:5px}.grid80-item-main td small{font-size:4.8px;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #203d32}.grid80-detail-cell>span,.grid80-item-details>span{padding:2px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:2px 4px;font-size:7px}.grid80-summary-row{font-size:6.4px;line-height:1.1;padding:2px 1px;border-bottom:1px solid #e2e7e4}.grid80-summary-row.grid80-highlight{font-size:8px;padding:4px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:2px 1px}.grid80-ticket footer{margin-top:3px}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.15}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
@@ -1025,7 +1041,8 @@ const PDF_DOCUMENT_CSS=`
 
 @media print{
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
-  .gl-pdf{box-shadow:none!important;margin:0!important;padding:0!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .gl-pdf{box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:8.5px!important;line-height:1.22!important}
   .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
   .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}
@@ -1090,7 +1107,7 @@ pdfStyle.textContent=PDF_DOCUMENT_CSS+`
 }
 @media print{
   body.goldleaf-pdf-printing>:not(#goldleafPdfRoot){display:none!important}
-  body.goldleaf-pdf-printing #goldleafPdfRoot{display:block!important;width:100%;margin:0;padding:0}
+  body.goldleaf-pdf-printing #goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:100%!important;max-width:100%!important;margin:0 auto!important;padding:0!important}
   html,body.goldleaf-pdf-printing{height:auto!important;overflow:visible!important;background:#fff!important}
 }
 `;
