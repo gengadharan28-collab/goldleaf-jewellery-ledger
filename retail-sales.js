@@ -97,10 +97,7 @@ function rbPurityText(sale){
 }
 function rbCollectionByMethod(sale,method){return sale.collections?.length?sale.collections.filter(x=>x.method===method).reduce((s,x)=>s+n(x.amount),0):(sale.collectedMethod||'Cash')===method?saleCollectionValue(sale):0;}
 function rbCustomerOptions(id='',empty='Select customer'){
-  const list=[
-    ...db.customers.map(x=>({id:x.id,name:x.name+(x.city?' · '+x.city:'')})),
-    ...db.parties.map(x=>({id:x.id,name:x.name+' · Party'+(x.city?' · '+x.city:'')}))
-  ];
+  const list=db.customers.map(x=>({id:x.id,name:x.name+(x.city?' · '+x.city:'')}));
   return '<option value="">'+empty+'</option>'+list.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===id?'selected':'')+'>'+esc(x.name)+'</option>').join('');
 }
 function rbOptions(items,value){return items.map(x=>'<option value="'+esc(x)+'" '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('');}
@@ -158,26 +155,7 @@ function rbFindTagOrLot(raw){
   if(!raw) return null;
   const q = String(raw).trim().toLowerCase();
   const tags = typeof glDocs === 'function' ? glDocs('retail-tagging') : typeof rcDocs === 'function' ? rcDocs('retail-tagging') : (db.retailDocuments || []).filter(d => d.kind === 'retail-tagging');
-  const tag = tags.find(t => (t.tagCode && t.tagCode.toLowerCase() === q) || (t.huid && t.huid.toLowerCase() === q));
-  if (tag) return tag;
-  const lots = db.wholesaleLots || (db.retailDocuments || []).filter(d => d.kind === 'wholesale-lot');
-  const lot = lots.find(l => (l.packetTag && String(l.packetTag).toLowerCase() === q) || (l.lotNo && String(l.lotNo).toLowerCase() === q));
-  if (lot) {
-    return {
-      tagCode: lot.packetTag || lot.lotNo,
-      product: lot.product,
-      pieces: n(lot.pieces) || 1,
-      grossWeight: n(lot.grossWeight) || n(lot.netWeight),
-      lessWeight: n(lot.lessWeight) || n(lot.stoneWeight) || 0,
-      netWeight: n(lot.netWeight),
-      purity: n(lot.touch) || 91.6,
-      rate: n(lot.pureRate),
-      metalType: String(lot.product||'').toLowerCase().includes('silver') ? 'Silver' : 'Gold',
-      lotNo: lot.lotNo,
-      status: 'In stock'
-    };
-  }
-  return null;
+  return tags.find(t => (t.tagCode && t.tagCode.toLowerCase() === q) || (t.huid && t.huid.toLowerCase() === q)) || null;
 }
 window.rbFindTagOrLot=rbFindTagOrLot;
 
@@ -284,11 +262,11 @@ window.rbUseAddedCustomer=function(customer){
 };
 
 function rbBillView(){
-  const sale=rbCustomerSales().find(x=>x.id===edit),items=rbInvoiceItems(sale),customer=db.customers.find(x=>x.id===sale?.partyId)||db.parties.find(x=>x.id===sale?.partyId),exchange=sale?.oldGoldItems?.length?sale.oldGoldItems:[{}],collections=sale?.collections?.length?sale.collections:sale?.collectedAmount?[{method:sale.collectedMethod||'Cash',amount:sale.collectedAmount,reference:sale.collectedReference}]:[{}],col0=collections[0]||{},date=sale?.when||rbNow(),number=sale?.documentNo||'';
-  if(!db.customers.length && !db.parties.length){
+  const sale=rbCustomerSales().find(x=>x.id===edit),items=rbInvoiceItems(sale),customer=db.customers.find(x=>x.id===sale?.partyId)||{},exchange=sale?.oldGoldItems?.length?sale.oldGoldItems:[{}],collections=sale?.collections?.length?sale.collections:sale?.collectedAmount?[{method:sale.collectedMethod||'Cash',amount:sale.collectedAmount,reference:sale.collectedReference}]:[{}],col0=collections[0]||{},date=sale?.when||rbNow(),number=sale?.documentNo||'';
+  if(!db.customers.length){
     return '<div class="retail-sale-screen rb-screen rb-bill-screen">'+rbHeader('Sales bill')
-      +'<section class="panel empty"><h2>Register your first customer or party</h2>'
-      +'<p>Add a party or customer in Register to start a sales bill.</p>'
+      +'<section class="panel empty"><h2>Register your first customer</h2>'
+      +'<p>Add a customer in Register to start a sales bill.</p>'
       +'<button type="button" class="primary" onclick="rbOpenCustomerAdd()">＋ Add customer</button></section>'
       +rbSalesHistorySection()+'</div>';
   }
@@ -470,7 +448,13 @@ window.rbShowHistory=function(showAll=false){
   rbDialog('rbHistoryPanel');
 };
 const rbPreviousSalesView=window.salesView;
-window.salesView=function(){if(workspaceMode!=='retail')return rbPreviousSalesView();return rbSection==='Bill'?rbBillView():rbRecordView();};
+window.salesView=function(){
+  if(workspaceMode!=='retail'){
+    if(typeof window.wholesalePartySaleView==='function')return window.wholesalePartySaleView();
+    return rbPreviousSalesView();
+  }
+  return rbSection==='Bill'?rbBillView():rbRecordView();
+};
 const rbPreviousPaymentsView=window.paymentsView;
 window.paymentsView=function(){if(workspaceMode!=='retail')return rbPreviousPaymentsView();rbSection='Receipt';return rbRecordView();};
 const rbPreviousCalc=window.calcSale;

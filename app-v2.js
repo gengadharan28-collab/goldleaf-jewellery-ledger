@@ -105,6 +105,7 @@ const v2PreviousSalesView=window.salesView;
 function v2Historical24Rate(sale,purity){return n(sale?.ratePerGram)>0?n(sale.ratePerGram)*24/(Number(purity)||24):n(sale?.rate24)||v2RateForPurity(purity)*24/(Number(purity)||24)}
 function v2HallmarkAmount(sale){return Math.round((n(sale?.hallmarkChargeAmount)||n(sale?.pieces)*n(sale?.hallmarkChargePerPiece))*100)/100}
 function v2PartySaleView(){
+  if(workspaceMode==='wholesale'&&typeof window.wholesalePartySaleView==='function'&&!edit)return window.wholesalePartySaleView();
   const x=db.sales.find(item=>item.id===edit&&ownerType(item)==='party'),when=x?.when||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16),city=accountCity(x?.partyId,'party');
   const products=db.products.map(item=>'<option '+(item===x?.product?'selected':'')+'>'+esc(item)+'</option>').join(''),purities=[...new Set([...db.partyPurities,...(x?[n(x.purity)]:[])])].map(item=>'<option value="'+item+'" '+(Number(item)===Number(x?.purity||92)?'selected':'')+'>'+item+'</option>').join('');
   const hallmarkTotal=v2HallmarkAmount(x),rate=n(x?.hallmarkChargePerPiece),type=x?.hallmarkType||'';

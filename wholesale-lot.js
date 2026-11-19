@@ -21,7 +21,12 @@
   }
   function addCloudDocument(record, kind) { record.kind = kind; record.updatedAt = new Date().toISOString(); db.retailDocuments.push(record); }
   function lotById(id) { ensure(); return db.wholesaleLots.find((v) => v.id === id); }
-  function lotByTag(tag) { ensure(); return db.wholesaleLots.find((v) => v.packetTag.toLowerCase() === String(tag).trim().toLowerCase()); }
+  function lotByTag(tag) {
+    ensure();
+    const q = String(tag || '').trim().toLowerCase();
+    if (!q) return null;
+    return db.wholesaleLots.find((v) => (v.packetTag && String(v.packetTag).trim().toLowerCase() === q) || (v.lotNo && String(v.lotNo).trim().toLowerCase() === q));
+  }
   function balance(lot) {
     const sold = db.wholesalePacketSales.filter((v) => v.lotId === lot.id);
     return {
@@ -30,12 +35,12 @@
     };
   }
   function partyOptions() {
-    return '<option value="">Select party</option>' + db.parties.map((p) => '<option value="' + x(p.id) + '">' + x(p.name) + '</option>').join("");
+    return '<option value="">Select party</option>' + (db.parties || []).map((p) => '<option value="' + x(p.id) + '">' + x(p.name + (p.city ? ' · ' + p.city : '')) + '</option>').join("");
   }
   function lotOptions() {
-    return '<option value="">Select packet tag</option>' + db.wholesaleLots.map((l) => {
+    return '<option value="">Select packet tag</option>' + (db.wholesaleLots || []).map((l) => {
       const b = balance(l);
-      return '<option value="' + x(l.id) + '">' + x(l.packetTag) + ' · ' + x(l.product) + ' · ' + g(b.weight) + ' g</option>';
+      return '<option value="' + x(l.id) + '">' + x(l.packetTag || l.lotNo) + ' · ' + x(l.product || 'Item') + ' · ' + g(b.weight) + ' g (' + b.pieces + ' pcs)</option>';
     }).join("");
   }
   function title(sub) { return header(sub, '<span class="wl-pill">Wholesale only</span>'); }
@@ -71,18 +76,91 @@
 
   window.wholesalePartySaleView = function () {
     ensure();
-    const rows = db.wholesalePacketSales.slice().reverse().map((s) => { const l = lotById(s.lotId), p = db.parties.find((v) => v.id === s.partyId); return '<tr><td>' + x(s.when.replace('T', ' ')) + '</td><td>' + x(p?.name) + '</td><td>' + x(l?.packetTag) + '</td><td>' + x(l?.product) + '</td><td>' + s.pieces + '</td><td>' + g(s.weight) + '</td><td>' + g(s.purePayable) + '</td><td>₹ ' + n(s.hallmarkTotal).toFixed(2) + '</td></tr>'; }).join("");
+    const rows = db.wholesalePacketSales.slice().reverse().map((s) => {
+      const l = lotById(s.lotId), p = db.parties.find((v) => v.id === s.partyId);
+      return '<tr><td>' + x(s.when.replace('T', ' ')) + '</td><td>' + x(p?.name || 'Party') + '</td><td><b>' + x(l?.packetTag || s.lotId) + '</b></td><td>' + x(l?.product || '—') + '</td><td>' + s.pieces + '</td><td>' + g(s.weight) + '</td><td>' + g(s.purePayable) + '</td><td>₹ ' + n(s.hallmarkTotal).toFixed(2) + '</td><td><button type="button" class="rb-delete-btn" onclick="wlDeleteSale(\'' + s.id + '\')">×</button></td></tr>';
+    }).join("");
     return title('Scan a wholesale packet and issue partial pieces and weight to a party.')
-      + '<section class="panel"><form onsubmit="wlSaveSale(event)"><div class="grid"><label class="field"><span>Party *</span><select name="partyId" required>' + partyOptions() + '</select></label>'
+      + '<section class="panel"><div class="v2-section-head"><h2>Wholesale party sales entry</h2></div>'
+      + '<form onsubmit="wlSaveSale(event)"><div class="grid">'
+      + '<label class="field"><span>Party *</span><div style="display:flex;gap:6px"><select name="partyId" required style="flex:1">' + partyOptions() + '</select><button type="button" onclick="go(\'Party Register\')" style="white-space:nowrap;font-size:12px;padding:4px 8px">＋ Party</button></div></label>'
       + '<label class="field"><span>Date & time</span><input name="when" type="datetime-local" required value="' + new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) + '"></label>'
-      + '<label class="field wl-scan-field"><span>Packet tag *</span><div class="wl-scan-row"><select id="wlSaleLot" name="lotId" required onchange="wlLoadSalePacket(this.form)">' + lotOptions() + '</select><button type="button" class="gl-scan-btn" onclick="wlScanSale()">▣ Scan</button></div></label>'
-      + '<label class="field"><span>Available stock</span><input name="available" readonly></label><label class="field"><span>Issued pieces *</span><input name="pieces" type="number" min="1" step="1" required oninput="wlSaleCalc(this.form)"></label><label class="field"><span>Issued weight · g *</span><input name="weight" type="number" min=".001" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
-      + '<label class="field"><span>Touch %</span><input name="touch" type="number" min="1" max="100" step=".001" required oninput="wlSaleCalc(this.form)"></label><label class="field"><span>Wastage %</span><input name="wastage" type="number" min="0" step=".001" value="0" oninput="wlSaleCalc(this.form)"></label><label class="field"><span>Pure payable · g</span><input name="pure" readonly></label>'
-      + '<label class="field"><span>Hallmark type</span><select name="hallmark"><option>None</option><option>HUID</option><option>Non-HUID</option></select></label><label class="field"><span>Hallmark ₹ / piece</span><input name="hallmarkRate" type="number" min="0" step=".01" value="0" oninput="wlSaleCalc(this.form)"></label><label class="field"><span>Hallmark total</span><input name="hallmarkTotal" readonly></label><label class="field"><span>Delivery photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
-      + '</div><div class="right"><button class="primary">Save party sale</button></div></form></section><section class="panel"><h2>Live party sales</h2><div class="table"><table><thead><tr><th>Date</th><th>Party</th><th>Packet</th><th>Product</th><th>Pcs</th><th>Weight g</th><th>Pure payable</th><th>Hallmark</th></tr></thead><tbody>' + (rows || '<tr><td colspan="8" class="empty">No packet sales yet.</td></tr>') + '</tbody></table></div></section>';
+      + '<label class="field wl-scan-field"><span>Packet tag / Search *</span><div class="wl-scan-row"><input id="wlSaleTagInput" placeholder="Scan / type tag" oninput="wlOnTagInput(this)" onchange="wlOnTagChange(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wlOnTagChange(this);}" style="max-width:140px"><select id="wlSaleLot" name="lotId" required onchange="wlLoadSalePacket(this.form)">' + lotOptions() + '</select><button type="button" class="gl-scan-btn" onclick="wlScanSale()">▣ Scan</button></div></label>'
+      + '<label class="field"><span>Product *</span><input name="product" readonly placeholder="Auto from packet" style="font-weight:700;background:#fbfbfb"></label>'
+      + '<label class="field"><span>Available stock</span><input name="available" readonly style="background:#fbfbfb"></label>'
+      + '<label class="field"><span>Issued pieces *</span><input name="pieces" type="number" min="1" step="1" required oninput="wlSaleCalc(this.form)"></label>'
+      + '<label class="field"><span>Issued weight · g *</span><input name="weight" type="number" min=".001" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
+      + '<label class="field"><span>Touch %</span><input name="touch" type="number" min="1" max="100" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
+      + '<label class="field"><span>Wastage %</span><input name="wastage" type="number" min="0" step=".001" value="0" oninput="wlSaleCalc(this.form)"></label>'
+      + '<label class="field"><span>Pure payable · g</span><input name="pure" readonly style="font-weight:700;color:var(--primary,#0a58ca)"></label>'
+      + '<label class="field"><span>Hallmark type</span><select name="hallmark"><option>None</option><option>HUID</option><option>Non-HUID</option></select></label>'
+      + '<label class="field"><span>Hallmark ₹ / piece</span><input name="hallmarkRate" type="number" min="0" step=".01" value="0" oninput="wlSaleCalc(this.form)"></label>'
+      + '<label class="field"><span>Hallmark total</span><input name="hallmarkTotal" readonly></label>'
+      + '<label class="field"><span>Delivery photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
+      + '</div><div class="right"><button class="primary">Save party sale</button></div></form></section>'
+      + '<section class="panel"><h2>Live party sales</h2><div class="table"><table><thead><tr><th>Date</th><th>Party</th><th>Packet</th><th>Product</th><th>Pcs</th><th>Weight g</th><th>Pure payable</th><th>Hallmark</th><th></th></tr></thead><tbody>' + (rows || '<tr><td colspan="9" class="empty">No packet sales yet.</td></tr>') + '</tbody></table></div></section>';
   };
-  window.wlLoadSalePacket = function (f) { const l = lotById(f.lotId.value); if (!l) return; const b = balance(l); f.available.value = b.pieces + ' pcs · ' + g(b.weight) + ' g'; f.touch.value = l.touch; wlSaleCalc(f); };
-  window.wlSaleCalc = function (f) { f.pure.value = g(n(f.weight.value) * (n(f.touch.value) + n(f.wastage.value)) / 100); f.hallmarkTotal.value = (n(f.pieces.value) * n(f.hallmarkRate.value)).toFixed(2); };
+  window.wlOnTagInput = function (inp) {
+    const raw = String(inp.value || '').trim().toLowerCase();
+    if (!raw) return;
+    const l = db.wholesaleLots.find(v => (v.packetTag && String(v.packetTag).trim().toLowerCase() === raw) || (v.lotNo && String(v.lotNo).trim().toLowerCase() === raw));
+    if (l) {
+      const sel = document.getElementById('wlSaleLot');
+      if (sel) { sel.value = l.id; wlLoadSalePacket(sel.form); }
+    }
+  };
+  window.wlOnTagChange = function (inp) {
+    const raw = String(inp.value || '').trim().toLowerCase();
+    if (!raw) return;
+    const l = db.wholesaleLots.find(v => (v.packetTag && String(v.packetTag).trim().toLowerCase() === raw) || (v.lotNo && String(v.lotNo).trim().toLowerCase() === raw));
+    if (l) {
+      const sel = document.getElementById('wlSaleLot');
+      if (sel) { sel.value = l.id; wlLoadSalePacket(sel.form); }
+    } else {
+      say('Packet tag "' + inp.value.trim() + '" not found in wholesale lots.');
+    }
+  };
+  window.wlLoadSalePacket = function (f) {
+    if (!f) return;
+    const lotId = f.lotId ? f.lotId.value : (f.elements && f.elements.lotId ? f.elements.lotId.value : '');
+    const l = lotById(lotId);
+    if (!l) {
+      if (f.product) f.product.value = '';
+      if (f.available) f.available.value = '';
+      return;
+    }
+    const b = balance(l);
+    if (f.product) f.product.value = l.product || '';
+    if (f.available) f.available.value = b.pieces + ' pcs · ' + g(b.weight) + ' g';
+    if (f.pieces) f.pieces.value = b.pieces > 0 ? (n(f.pieces.value) > 0 && n(f.pieces.value) <= b.pieces ? f.pieces.value : 1) : 0;
+    if (f.weight) f.weight.value = g(b.weight);
+    if (f.touch) f.touch.value = l.touch || '';
+    const tagIn = document.getElementById('wlSaleTagInput');
+    if (tagIn && l.packetTag) tagIn.value = l.packetTag;
+    wlSaleCalc(f);
+  };
+  window.wlSaleCalc = function (f) {
+    if (!f) return;
+    const weight = n(f.weight ? f.weight.value : 0);
+    const touch = n(f.touch ? f.touch.value : 0);
+    const wastage = n(f.wastage ? f.wastage.value : 0);
+    const pieces = n(f.pieces ? f.pieces.value : 0);
+    const hallmarkRate = n(f.hallmarkRate ? f.hallmarkRate.value : 0);
+    if (f.pure) f.pure.value = g(weight * (touch + wastage) / 100);
+    if (f.hallmarkTotal) f.hallmarkTotal.value = (pieces * hallmarkRate).toFixed(2);
+  };
+  window.wlDeleteSale = function (id) {
+    if (!confirm('Delete this party sale and restore packet balance?')) return;
+    ensure();
+    const idx = db.wholesalePacketSales.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      db.wholesalePacketSales.splice(idx, 1);
+      db.retailDocuments = (db.retailDocuments || []).filter(d => d.id !== id);
+      save();
+      render();
+      say('Party sale deleted and packet balance restored.');
+    }
+  };
   window.wlSaveSale = function (ev) { ev.preventDefault(); ensure(); const f = ev.target, d = new FormData(f), l = lotById(d.get("lotId")); if (!l) return say('Scan or select a packet.'); const b = balance(l), pieces = n(d.get("pieces")), weight = n(d.get("weight")); if (pieces < 1 || weight <= 0 || pieces > b.pieces || weight > b.weight + .0001) return say('Issued quantity is above packet stock.'); const touch = n(d.get("touch")), wastage = n(d.get("wastage")); const record={ id: uid(), lotId: l.id, partyId: d.get("partyId"), when: d.get("when"), pieces, weight, touch, wastage, purePayable: weight * (touch + wastage) / 100, hallmarkType: d.get("hallmark"), hallmarkRate: n(d.get("hallmarkRate")), hallmarkTotal: pieces * n(d.get("hallmarkRate")), photoNames: [...f.photos.files].map((v) => v.name) }; db.wholesalePacketSales.push(record); addCloudDocument(record,'wholesale-packet-sale'); save(); render(); say('Party sale saved and live packet balance updated.'); };
 
   window.wholesalePacketVerificationView = function () {
@@ -98,7 +176,19 @@
   window.wlSaveReturn = function (ev) { ev.preventDefault(); ensure(); const f = ev.target; if (!f.lotId.value) return say('Scan a valid packet.'); if (Math.abs(n(f.physical.value) - n(f.expected.value)) >= .0005) return say('Physical weight must match expected weight.'); const record={ id: uid(), lotId: f.lotId.value, packetTag: f.tag.value, salesperson: f.salesperson.value, expectedWeight: n(f.expected.value), physicalWeight: n(f.physical.value), when: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }; db.wholesalePacketReturns.push(record); addCloudDocument(record,'wholesale-packet-return'); save(); render(); say('Packet verified and returned to stock.'); };
 
   function scan(target) { if (typeof openQrScanner === 'function') return openQrScanner({ title: 'Scan wholesale packet', onScan: target }); const code = prompt('Enter packet tag'); if (code) target(code); }
-  window.wlScanSale = function () { scan((code) => { const l = lotByTag(code); if (!l) return say('Packet tag not found.'); const f = document.getElementById('wlSaleLot').form; f.lotId.value = l.id; wlLoadSalePacket(f); }); };
+  window.wlScanSale = function () {
+    scan((code) => {
+      const l = lotByTag(code);
+      if (!l) return say('Packet tag "' + code + '" not found in wholesale lots.');
+      const sel = document.getElementById('wlSaleLot');
+      if (sel) {
+        sel.value = l.id;
+        const tagIn = document.getElementById('wlSaleTagInput');
+        if (tagIn) tagIn.value = l.packetTag || code;
+        wlLoadSalePacket(sel.form);
+      }
+    });
+  };
   window.wlScanReturn = function () { scan((code) => { const input = document.getElementById('wlReturnTag'); input.value = code; wlLoadReturn(input.form); }); };
   window.wholesalePacketLedgerRows = function (partyId) { ensure(); return db.wholesalePacketSales.filter((s) => s.partyId === partyId).map((s) => { const l = lotById(s.lotId); return { when: s.when, reference: l?.packetTag || '', product: l?.product || '', pieces: s.pieces, weight: s.weight, pure: s.purePayable, hallmark: s.hallmarkTotal }; }); };
   const originalLedgerView = window.ledgerView;
