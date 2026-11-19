@@ -26,6 +26,12 @@ function v2RateForPurity(purity,rates=db.rates){
   const k=Number(purity)||0;
   if(k===24)return n(rates.gold24);
   if(k===22||k===18||k===14)return n(rates['gold'+k])||n(rates.gold24)*k/24;
+  if(k>24){
+    if(k>=91&&k<=92)return n(rates.gold22)||(n(rates.gold24)*22/24);
+    if(k>=74&&k<=76)return n(rates.gold18)||(n(rates.gold24)*18/24);
+    if(k>=57&&k<=59)return n(rates.gold14)||(n(rates.gold24)*14/24);
+    return n(rates.gold24)*k/100;
+  }
   return n(rates['gold'+String(k).replace('.','_')])||n(rates.gold24)*k/24;
 }
 
