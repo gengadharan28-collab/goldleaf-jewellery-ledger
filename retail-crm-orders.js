@@ -1121,14 +1121,16 @@
       + '</section>';
   }
 
+  window.rcoOrderTrackingView = rcoOrderTrackingView;
+  window.rcoCrmView = rcoCrmView;
+  window.rcoRetailSupplierView = rcoRetailSupplierView;
+  window.rcoRetailCustomerView = rcoRetailCustomerView;
+
   // ======================== NAVIGATION & RENDER HOOK ========================
   window.rcoOpenPage = (p) => {
     if(!session||!goldleafContext?.has_access){ say('Please sign in first.'); return; }
-    localStorage.setItem('goldleaf-workspace-mode', 'retail');
-    window.workspaceMode = 'retail';
-    window.page = p;
-    window.goldleafRememberView?.();
-    render();
+    if(typeof window.rbCanLeave==='function' && !window.rbCanLeave()) return;
+    if(typeof window.go === 'function') window.go(p);
     window.scrollTo?.(0,0);
   };
 
