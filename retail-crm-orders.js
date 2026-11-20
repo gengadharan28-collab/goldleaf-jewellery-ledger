@@ -355,11 +355,13 @@
       if(!o){ rcoState.orderViewId=''; }
       else {
         const cust = (db.customers||[]).find(c=>c.id===o.customerId) || {};
-        return header('Order Details · ' + o.orderNo, '<button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> '
+        const ordBtns = '<button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> '
           + '<select id="rcoCopyType" style="min-height:36px;border-radius:8px;padding:0 8px"><option>Original</option><option>Duplicate</option><option>Triplicate</option></select> '
           + '<button type="button" class="primary" onclick="rcoPrintOrderPdf(\''+esc(o.id)+'\',document.getElementById(\'rcoCopyType\').value)">🖨️ Print / PDF</button> '
           + '<button type="button" onclick="rcoConvertOrderToBill(\''+esc(o.id)+'\')">⚡ Convert Into Sale Bill</button> '
-          + '<button type="button" onclick="rcoCloseOrderView()">← Back</button>')
+          + '<button type="button" onclick="rcoCloseOrderView()">← Back</button>';
+        return header('Order Details · ' + o.orderNo, '')
+          + '<div class="rco-toolbar"><div class="rco-toolbar-left"><b>Order '+esc(o.orderNo)+'</b></div><div class="rco-toolbar-right">'+ordBtns+'</div></div>'
           + '<div class="rco-tabs"><button type="button" class="'+(rcoState.orderViewTab==='Details'?'active':'')+'" onclick="rcoState.orderViewTab=\'Details\';render()">Order Details</button><button type="button" class="'+(rcoState.orderViewTab==='History'?'active':'')+'" onclick="rcoState.orderViewTab=\'History\';render()">History ('+(o.history?.length||0)+')</button></div>'
           + (rcoState.orderViewTab==='History'
             ? '<section class="panel"><h2>Audit History</h2>'+table(['Date & Time','Action','Status','User'], (o.history||[]).map(h=>[esc(String(h.at).replace('T',' ').slice(0,19)), esc(h.action), '<span class="rco-badge rco-badge-open">'+esc(h.status)+'</span>', esc(h.by)]))+'</section>'
@@ -380,9 +382,9 @@
       const receipts = o?.receipts?.length ? o.receipts : [{}];
       const oldJ = o?.oldJewels?.length ? o.oldJewels : [];
       const chits = o?.chits?.length ? o.chits : [];
-      return header(o ? 'Edit Order · '+o.orderNo : 'Create Order', '<button type="button" onclick="rcoOpenDisplayCustomizer()">⚙️ Display</button> <button type="button" onclick="rcoCloseOrderForm()">← Back</button>')
+      return header(o ? 'Edit Order · '+o.orderNo : 'Create Order', '')
         + '<form id="rcoOrderForm" onsubmit="rcoSaveOrder(event)">'
-        + '<section class="rco-section-card"><h3>Order Header</h3><div class="rco-grid">'
+        + '<section class="rco-section-card"><h3><span>'+(o ? 'Edit Order · '+esc(o.orderNo) : 'Create Order')+'</span><span><button type="button" onclick="rcoOpenDisplayCustomizer()">⚙️ Display</button> <button type="button" onclick="rcoCloseOrderForm()">← Back</button></span></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Order Date *</span><input name="orderDate" type="date" required value="'+esc(o?.orderDate||todayStr())+'"></label>'
         + '<label class="rco-field"><span>Customer Name *</span><select name="customerId" required>'+custOpts(o?.customerId)+'</select></label>'
         + '<label class="rco-field"><span>Status *</span><select name="status" required>'+opts(['Open','Closed','Cancel'], o?.status||'Open')+'</select></label>'
@@ -482,10 +484,10 @@
       tableHtml = filtered.length ? '<div class="table"><table><thead><tr><th></th><th>Order No</th><th>Customer</th><th>Order Date</th><th>Delivery Date</th><th>Advance Amt</th><th>Paid Amt</th><th>Gold Wt</th><th>Silver Wt</th><th>Gold Amt</th><th>Silver Amt</th><th>Estimated Amt</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+body+'</tbody></table></div>' : '<p class="empty">No orders yet. Click + Create to add your first retail order.</p>';
     }
 
-    return header('Order Tracking', '<button type="button" class="primary" onclick="rcoOpenOrderForm()">＋ Create Order</button> <button type="button" onclick="rcoState.orderDetailMode=!rcoState.orderDetailMode;render()">'+(rcoState.orderDetailMode?'View Lists':'Detail Lists')+'</button>')
+    return header('Order Tracking', '')
       + '<div class="rco-tabs">' + ['All','By Due Date','Open','Cancel','Closed','Convert Into Sale Bill'].map(t=>'<button type="button" class="'+(rcoState.orderTab===t?'active':'')+'" onclick="rcoSetOrderTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
       + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search by Customer Name, Mobile, Order No..." value="'+esc(rcoState.orderFilter.q)+'" oninput="rcoState.orderFilter.q=this.value;render()"></div>'
-      + '<div class="rco-toolbar-right"><button type="button" onclick="rcoState.orderFilterOpen=!rcoState.orderFilterOpen;render()">🔍 Filter</button><button type="button" onclick="rcoState.orderFilter={q:\'\',dateBy:\'orderDate\',from:\'\',to:\'\',supplierId:\'\',ornament:\'All\',product:\'\',salesPerson:\'\'};render()">Reset</button></div></div>'
+      + '<div class="rco-toolbar-right"><button type="button" class="primary" onclick="rcoOpenOrderForm()">＋ Create Order</button><button type="button" onclick="rcoState.orderDetailMode=!rcoState.orderDetailMode;render()">'+(rcoState.orderDetailMode?'View Lists':'Detail Lists')+'</button><button type="button" onclick="rcoState.orderFilterOpen=!rcoState.orderFilterOpen;render()">🔍 Filter</button><button type="button" onclick="rcoState.orderFilter={q:\'\',dateBy:\'orderDate\',from:\'\',to:\'\',supplierId:\'\',ornament:\'All\',product:\'\',salesPerson:\'\'};render()">Reset</button></div></div>'
       + (rcoState.orderFilterOpen ? '<div class="rco-filter-box">'
         + '<label class="rco-field"><span>Date Filter By</span><select onchange="rcoState.orderFilter.dateBy=this.value;render()">'+opts(['orderDate','deliveryDate','createdAt'], rcoState.orderFilter.dateBy)+'</select></label>'
         + '<label class="rco-field"><span>From Date</span><input type="date" value="'+esc(rcoState.orderFilter.from)+'" onchange="rcoState.orderFilter.from=this.value;render()"></label>'
@@ -913,7 +915,8 @@
         else if(rcoState.custViewTab==='Feedback') tabContent = '<section class="panel">'+(fbs.length?table(['Date','Campaign','Source','Response','Comments'], fbs.map(f=>[esc(f.sentOn), esc(f.campaign), esc(f.source), esc(f.response), esc(f.description||'—')])):'<p class="empty">No feedback.</p>')+'</section>';
         else tabContent = '<section class="panel"><p><b>Created:</b> '+esc(c.createdAt||'—')+'</p><p><b>Last Updated:</b> '+esc(c.updatedAt||'—')+'</p></section>';
 
-        return header('Customer 360° · ' + c.name, '<button type="button" onclick="rcoState.custEditId=\''+esc(c.id)+'\';rcoState.custShowForm=true;rcoState.custViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button> <button type="button" onclick="rcoState.custViewId=\'\';render()">← Back</button>')
+        return header('Customer 360° · ' + c.name, '')
+          + '<div class="rco-toolbar"><div class="rco-toolbar-left"><b>'+esc(c.name)+'</b></div><div class="rco-toolbar-right"><button type="button" onclick="rcoState.custEditId=\''+esc(c.id)+'\';rcoState.custShowForm=true;rcoState.custViewId=\'\';render()">Edit</button><button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button><button type="button" onclick="rcoState.custViewId=\'\';render()">← Back</button></div></div>'
           + '<div class="rco-tabs">'+cTabs.map(t=>'<button type="button" class="'+(rcoState.custViewTab===t?'active':'')+'" onclick="rcoState.custViewTab=\''+t+'\';render()">'+esc(t)+'</button>').join('')+'</div>'
           + tabContent;
       }
@@ -921,9 +924,9 @@
 
     if(rcoState.custShowForm){
       const c = rcoState.custEditId ? (db.customers||[]).find(x=>x.id===rcoState.custEditId) : null;
-      return header(c ? 'Edit Customer · ' + c.name : 'Add Retail Customer', '<button type="button" onclick="rcoState.custShowForm=false;rcoState.custEditId=\'\';render()">← Back</button>')
+      return header(c ? 'Edit Customer · ' + c.name : 'Add Retail Customer', '')
         + '<form onsubmit="rcoSaveRetailCustomer(event)">'
-        + '<section class="rco-section-card"><h3>1. Customer Information</h3><div class="rco-grid">'
+        + '<section class="rco-section-card"><h3><span>1. Customer Information</span><button type="button" onclick="rcoState.custShowForm=false;rcoState.custEditId=\'\';render()">← Back</button></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Salutation</span><select name="salutation">'+opts(['MR.','MRS.','Ms'], c?.salutation||'MR.')+'</select></label>'
         + '<label class="rco-field"><span>Customer Name *</span><input name="name" required value="'+esc(c?.name||'')+'"></label>'
         + '<label class="rco-field"><span>Print Name</span><input name="printName" value="'+esc(c?.printName||'')+'"></label>'
@@ -1000,8 +1003,8 @@
       if(rcoState.custFilter.gender && c.gender !== rcoState.custFilter.gender) return false;
       return true;
     });
-    return header('Customer Register', '<button type="button" class="primary" onclick="rcoState.custEditId=\'\';rcoState.custShowForm=true;render()">＋ Add Customer</button>')
-      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Customer Name, Mobile, Customer No..." value="'+esc(rcoState.custSearch)+'" oninput="rcoState.custSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoState.custFilterOpen=!rcoState.custFilterOpen;render()">🔍 Filter</button></div></div>'
+    return header('Customer Register', '')
+      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Customer Name, Mobile, Customer No..." value="'+esc(rcoState.custSearch)+'" oninput="rcoState.custSearch=this.value;render()"></div><div class="rco-toolbar-right"><button type="button" class="primary" onclick="rcoState.custEditId=\'\';rcoState.custShowForm=true;render()">＋ Add Customer</button><button type="button" onclick="rcoState.custFilterOpen=!rcoState.custFilterOpen;render()">🔍 Filter</button></div></div>'
       + (rcoState.custFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>City</span><input value="'+esc(rcoState.custFilter.city)+'" oninput="rcoState.custFilter.city=this.value;render()"></label><label class="rco-field"><span>Team</span><select onchange="rcoState.custFilter.team=this.value;render()">'+opts(['','AK','Arjeeth','SSJ','SSN','VKL'], rcoState.custFilter.team)+'</select></label><label class="rco-field"><span>Gender</span><select onchange="rcoState.custFilter.gender=this.value;render()">'+opts(['','Female','Male','Others'], rcoState.custFilter.gender)+'</select></label></div>' : '')
       + (list.length ? table(['Customer No','Name','Mobile','City','Team','Segment','Actions'], list.map(c=>[esc(c.customerNo||'—'), '<b>'+esc(c.name)+'</b>', esc(c.phone||c.mobile||'—'), esc(c.city||'—'), esc(c.team||'—'), esc(c.segment||'—'), '<button type="button" onclick="rcoState.custEditId=\''+esc(c.id)+'\';rcoState.custShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoState.custViewId=\''+esc(c.id)+'\';rcoState.custViewTab=\'Details\';render()">View</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button>'])) : '<p class="empty">No customers yet.</p>')
       + '</section>';
@@ -1048,7 +1051,8 @@
       const s = (db.retailSuppliers||[]).find(x=>x.id===rcoState.supViewId);
       if(!s) { rcoState.supViewId = ''; }
       else {
-        return header('Supplier · ' + s.name, '<button type="button" onclick="rcoState.supEditId=\''+esc(s.id)+'\';rcoState.supShowForm=true;rcoState.supViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoState.supViewId=\'\';render()">← Back</button>')
+        return header('Supplier · ' + s.name, '')
+          + '<div class="rco-toolbar"><div class="rco-toolbar-left"><b>'+esc(s.name)+'</b></div><div class="rco-toolbar-right"><button type="button" onclick="rcoState.supEditId=\''+esc(s.id)+'\';rcoState.supShowForm=true;rcoState.supViewId=\'\';render()">Edit</button><button type="button" onclick="rcoState.supViewId=\'\';render()">← Back</button></div></div>'
           + '<div class="rco-tabs"><button type="button" class="'+(rcoState.supViewTab==='Details'?'active':'')+'" onclick="rcoState.supViewTab=\'Details\';render()">Details</button><button type="button" class="'+(rcoState.supViewTab==='History'?'active':'')+'" onclick="rcoState.supViewTab=\'History\';render()">History</button></div>'
           + (rcoState.supViewTab==='History'
             ? '<section class="panel"><p><b>Created On:</b> '+esc(s.createdAt||'—')+'</p><p><b>Updated On:</b> '+esc(s.updatedAt||'—')+'</p></section>'
@@ -1061,9 +1065,9 @@
 
     if(rcoState.supShowForm){
       const s = rcoState.supEditId ? (db.retailSuppliers||[]).find(x=>x.id===rcoState.supEditId) : null;
-      return header(s ? 'Edit Supplier · ' + s.name : 'New Supplier Registration', '<button type="button" onclick="rcoState.supShowForm=false;rcoState.supEditId=\'\';render()">← Back</button>')
+      return header(s ? 'Edit Supplier · ' + s.name : 'New Supplier Registration', '')
         + '<form onsubmit="rcoSaveRetailSupplier(event)">'
-        + '<section class="rco-section-card"><h3>1. Supplier Information</h3><div class="rco-grid">'
+        + '<section class="rco-section-card"><h3><span>1. Supplier Information</span><button type="button" onclick="rcoState.supShowForm=false;rcoState.supEditId=\'\';render()">← Back</button></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Salutation</span><select name="salutation">'+opts(['MR.','MRS.','Ms','M/S'], s?.salutation||'M/S')+'</select></label>'
         + '<label class="rco-field"><span>Supplier Name *</span><input name="name" required value="'+esc(s?.name||'')+'"></label>'
         + '<label class="rco-field"><span>Print Name</span><input name="printName" value="'+esc(s?.printName||'')+'"></label>'
@@ -1114,8 +1118,8 @@
       if(rcoState.supFilter.city && !String(s.city||'').toLowerCase().includes(rcoState.supFilter.city.toLowerCase())) return false;
       return true;
     });
-    return header('Retail Suppliers', '<button type="button" class="primary" onclick="rcoState.supEditId=\'\';rcoState.supShowForm=true;render()">＋ New Supplier</button>')
-      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Supplier Name, Code, Mobile..." value="'+esc(rcoState.supSearch)+'" oninput="rcoState.supSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoState.supFilterOpen=!rcoState.supFilterOpen;render()">🔍 Filter</button></div></div>'
+    return header('Retail Suppliers', '')
+      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Supplier Name, Code, Mobile..." value="'+esc(rcoState.supSearch)+'" oninput="rcoState.supSearch=this.value;render()"></div><div class="rco-toolbar-right"><button type="button" class="primary" onclick="rcoState.supEditId=\'\';rcoState.supShowForm=true;render()">＋ New Supplier</button><button type="button" onclick="rcoState.supFilterOpen=!rcoState.supFilterOpen;render()">🔍 Filter</button></div></div>'
       + (rcoState.supFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>Ornaments Type</span><select onchange="rcoState.supFilter.ornament=this.value;render()">'+opts(['','GOLD','SILVER','ALLOY','DIAMOND','STONE','PLATINUM','GIFT ITEM'], rcoState.supFilter.ornament)+'</select></label><label class="rco-field"><span>Business Type</span><select onchange="rcoState.supFilter.businessType=this.value;render()">'+opts(['','LARGE','MEDIUM','SMALL'], rcoState.supFilter.businessType)+'</select></label><label class="rco-field"><span>City</span><input value="'+esc(rcoState.supFilter.city)+'" oninput="rcoState.supFilter.city=this.value;render()"></label></div>' : '')
       + (list.length ? table(['Supplier No','Supplier Name','Hallmark Lic','Code','Mobile','Ornaments','City','Actions'], list.map(s=>[esc(s.supplierNo||'—'), '<b>'+esc(s.name)+'</b>', esc(s.hallmarkLicense||'—'), esc(s.supplierCode||'—'), esc(s.phone||'—'), esc(s.ornamentsType||'—'), esc(s.city||'—'), '<button type="button" onclick="rcoState.supEditId=\''+esc(s.id)+'\';rcoState.supShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoState.supViewId=\''+esc(s.id)+'\';rcoState.supViewTab=\'Details\';render()">View</button>'])) : '<p class="empty">No retail suppliers yet.</p>')
       + '</section>';

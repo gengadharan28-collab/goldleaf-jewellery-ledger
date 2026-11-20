@@ -227,8 +227,8 @@
     if(rcsState.viewProduct){
       const rows = all.filter(x=>x.product===rcsState.viewProduct).sort((a,b)=>n(a.fromWeight)-n(b.fromWeight));
       const first = rows[0] || {};
-      return header('Cost Structure · ' + rcsState.viewProduct, '<button type="button" onclick="rcsState.editProduct=\''+esc(rcsState.viewProduct)+'\';rcsState.showForm=true;rcsState.viewProduct=\'\';render()">Edit</button> <button type="button" onclick="rcsState.viewProduct=\'\';render()">← Back</button>')
-        + '<section class="rco-section-card"><h3>Cost Structure Details</h3><p><b>Product Group:</b> '+esc(first.productGroup||'—')+' &nbsp;|&nbsp; <b>Product Name:</b> '+esc(rcsState.viewProduct)+' &nbsp;|&nbsp; <b>Model:</b> '+esc(first.model||'—')+'</p></section>'
+      return header('Cost Structure · ' + rcsState.viewProduct, '')
+        + '<section class="rco-section-card"><h3><span>Cost Structure Details</span><span><button type="button" onclick="rcsState.editProduct=\''+esc(rcsState.viewProduct)+'\';rcsState.showForm=true;rcsState.viewProduct=\'\';render()">Edit</button> <button type="button" onclick="rcsState.viewProduct=\'\';render()">← Back</button></span></h3><p><b>Product Group:</b> '+esc(first.productGroup||'—')+' &nbsp;|&nbsp; <b>Product Name:</b> '+esc(rcsState.viewProduct)+' &nbsp;|&nbsp; <b>Model:</b> '+esc(first.model||'—')+'</p></section>'
         + '<section class="panel"><h2>Cost Structure Information ('+rows.length+' slabs)</h2>'
         + table(['S.No','From Weight','To Weight','V.A','MC','Wst','Rate','Rate + Tax','GST %','Rate/GM','Est.Charge/Gm','Min MC','Max MC','Min Wst','Max Wst'], rows.map((r,i)=>[
           i+1, fmt(r.fromWeight)+' g', fmt(r.toWeight)+' g', rateMoney(r.va),
@@ -248,9 +248,9 @@
       const prods = rcsProductsForGroup(selGroup);
       const d = rcsState.display;
 
-      return header(isEdit ? 'Edit Cost Structure · '+rcsState.editProduct : 'Create Cost Structure', '<button type="button" onclick="rcsOpenDisplayModal(\'form\')">⚙️ Display</button> <button type="button" onclick="rcsState.showForm=false;rcsState.editProduct=\'\';render()">← Back</button>')
+      return header(isEdit ? 'Edit Cost Structure · '+rcsState.editProduct : 'Create Cost Structure', '')
         + '<form onsubmit="rcsSaveCostStructure(event)">'
-        + '<section class="rco-section-card"><h3>Header</h3><div class="rco-grid">'
+        + '<section class="rco-section-card"><h3><span>'+(isEdit ? 'Edit Cost Structure · '+esc(rcsState.editProduct) : 'Create Cost Structure')+'</span><span><button type="button" onclick="rcsOpenDisplayModal(\'form\')">⚙️ Display</button> <button type="button" onclick="rcsState.showForm=false;rcsState.editProduct=\'\';render()">← Back</button></span></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Product Group *</span><select name="productGroup" '+(isEdit?'readonly':'')+' onchange="rcsOnGroupChange(this)">'+opts(groups, selGroup, '-- Select Group --')+'</select></label>'
         + (isEdit
           ? '<label class="rco-field"><span>Product *</span><input name="productText" readonly value="'+esc(rcsState.editProduct)+'"></label>'
@@ -292,9 +292,9 @@
       return true;
     }).sort((a,b)=>String(a.productGroup||'').localeCompare(String(b.productGroup||'')) || String(a.product||'').localeCompare(String(b.product||'')) || n(a.fromWeight)-n(b.fromWeight));
 
-    return header('Cost Structure', '<button type="button" class="primary" onclick="rcsState.editProduct=\'\';rcsState.showForm=true;render()">＋ Create</button> <button type="button" onclick="rcsOpenDisplayModal(\'list\')">⚙️ Display Columns</button>')
+    return header('Cost Structure', '')
       + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search By Product Name..." value="'+esc(rcsState.search)+'" oninput="rcsState.search=this.value;render()"></div>'
-      + '<div class="rco-toolbar-right"><button type="button" onclick="rcsState.filterOpen=!rcsState.filterOpen;render()">🔍 Filter</button><button type="button" onclick="rcsState.search=\'\';rcsState.filter={ornament:\'\',group:\'\',product:\'\',model:\'\'};render()">Reset</button></div></div>'
+      + '<div class="rco-toolbar-right"><button type="button" class="primary" onclick="rcsState.editProduct=\'\';rcsState.showForm=true;render()">＋ Create</button><button type="button" onclick="rcsOpenDisplayModal(\'list\')">⚙️ Display Columns</button><button type="button" onclick="rcsState.filterOpen=!rcsState.filterOpen;render()">🔍 Filter</button><button type="button" onclick="rcsState.search=\'\';rcsState.filter={ornament:\'\',group:\'\',product:\'\',model:\'\'};render()">Reset</button></div></div>'
       + (rcsState.filterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>Product Group</span><select onchange="rcsState.filter.group=this.value;render()">'+opts(rcsAllGroups(), rcsState.filter.group, 'All Groups')+'</select></label><label class="rco-field"><span>Model</span><input value="'+esc(rcsState.filter.model)+'" oninput="rcsState.filter.model=this.value;render()"></label></div>' : '')
       + (filtered.length ? table(['Product Group','Product','From Wt','To Wt','V.A','MC','Wst','Rate','Est.Charge/Gm','Actions'], filtered.map(r=>[
         esc(r.productGroup||'—'), '<b>'+esc(r.product)+'</b>', fmt(r.fromWeight)+' g', fmt(r.toWeight)+' g',
