@@ -1875,7 +1875,11 @@ function rcQuoteModel(q){
     taxEnabled: q.gstEnabled,
     invoiceItems: bill.rows.map(x=>{
       const isSilver = String(x.metalType||'').toLowerCase()==='silver' || String(x.product||'').toLowerCase().includes('silver');
-      return Object.assign({}, x, {purityValue:x.purity,purity: isSilver ? '—' : x.purity + '%'});
+      const is916 = String(x.purityLabel||x.purity||'').includes('916') || Number(x.purity)===22 || Number(x.purity)===91.6;
+      return Object.assign({}, x, {
+        purityValue: x.purity,
+        purity: isSilver ? '92.5%' : (is916 ? '22/916' : (x.purity ? x.purity + (String(x.purity).includes('%')||String(x.purity).includes('K')?'':'K') : '22/916'))
+      });
     }),
     exchange: exchangeRowsPdf,
     chit: chitPdfData,
@@ -1884,23 +1888,23 @@ function rcQuoteModel(q){
   };
 }
 
-window.rcViewEstimate = function(forcedTemplate='detailed-estimate'){
+window.rcViewEstimate = function(forcedTemplate){
   const f = document.getElementById('rcEstimateForm');
   if(!f?.reportValidity()) return;
   const q = rcEstimateRead(f);
   if(!q.customerId || q.items.some(x=>!x.product || x.netWeight<=0)){
-    return say('Complete the customer and jewellery items before viewing PDF.');
+    return say('Complete the customer and jewellery items before previewing PDF.');
   }
   const cfg = pdfConfig('retail');
-  const chosen = forcedTemplate || (cfg.estimateTemplate && !cfg.estimateTemplate.startsWith('thermal') ? cfg.estimateTemplate : 'detailed-estimate');
+  const chosen = forcedTemplate || (cfg.estimateTemplate && cfg.estimateTemplate !== 'detailed-estimate' ? cfg.estimateTemplate : 'thermal-estimate-grid-80');
   pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
 };
 
-window.rcViewSavedEstimate = function(id, forcedTemplate='detailed-estimate'){
+window.rcViewSavedEstimate = function(id, forcedTemplate){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
   if(!q) return say('Quotation not found.');
   const cfg = pdfConfig('retail');
-  const chosen = forcedTemplate || (cfg.estimateTemplate && !cfg.estimateTemplate.startsWith('thermal') ? cfg.estimateTemplate : 'detailed-estimate');
+  const chosen = forcedTemplate || (cfg.estimateTemplate && cfg.estimateTemplate !== 'detailed-estimate' ? cfg.estimateTemplate : 'thermal-estimate-grid-80');
   pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
 };
 
@@ -1912,7 +1916,7 @@ window.rcPrintEstimate = function(forcedTemplate){
     return say('Complete the customer and jewellery items before printing.');
   }
   const cfg = pdfConfig('retail');
-  const chosen = forcedTemplate || cfg.estimateTemplate || 'thermal-estimate-80';
+  const chosen = forcedTemplate || cfg.estimateTemplate || 'thermal-estimate-grid-80';
   pdfPrintModel(rcQuoteModel(q), 'retail', chosen);
 };
 
@@ -1920,7 +1924,7 @@ window.rcPrintSavedEstimate = function(id, forcedTemplate){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
   if(q) {
     const cfg = pdfConfig('retail');
-    const chosen = forcedTemplate || cfg.estimateTemplate || 'thermal-estimate-80';
+    const chosen = forcedTemplate || cfg.estimateTemplate || 'thermal-estimate-grid-80';
     pdfPrintModel(rcQuoteModel(q), 'retail', chosen);
   }
 };
