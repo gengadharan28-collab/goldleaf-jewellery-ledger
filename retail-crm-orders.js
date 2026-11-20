@@ -523,6 +523,18 @@
     l.status = 'Converted'; saveDoc('crm-lead', l); save(); pushCloud(); say('Lead converted to Customer.'); render();
   };
 
+  window.rcoOpenVisitorDisplay = () => {
+    const vd = JSON.parse(localStorage.getItem('goldleaf-visitor-display') || '{"event":true,"products":true}');
+    document.getElementById('rcoVisDispModal')?.remove();
+    const html = '<div id="rcoVisDispModal" class="retail-modal-backdrop" role="dialog" aria-modal="true"><section class="retail-modal" style="max-width:420px">'
+      + '<div class="retail-modal-head"><div><h2>Visitor Form Display</h2><p>Toggle optional visitor form sections</p></div><button type="button" onclick="document.getElementById(\'rcoVisDispModal\').remove()">Close</button></div>'
+      + '<div class="rco-check-row" style="flex-direction:column;align-items:flex-start">'
+      + '<label><input id="rcoVdEvent" type="checkbox" '+(vd.event!==false?'checked':'')+'> Show Event Information Section</label>'
+      + '<label><input id="rcoVdProds" type="checkbox" '+(vd.products!==false?'checked':'')+'> Show Product Information Table</label>'
+      + '</div><div class="retail-modal-actions"><button type="button" class="primary" onclick="localStorage.setItem(\'goldleaf-visitor-display\',JSON.stringify({event:document.getElementById(\'rcoVdEvent\').checked,products:document.getElementById(\'rcoVdProds\').checked}));document.getElementById(\'rcoVisDispModal\').remove();render()">Apply</button></div></section></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+  };
+
   window.rcoSaveVisitor = (e) => {
     e.preventDefault(); const f = e.target;
     const prods = [];
@@ -644,7 +656,8 @@
       const list = docs('crm-visitor').filter(v=>!rcoState.crmSearch || (v.name+v.mobile).toLowerCase().includes(rcoState.crmSearch.toLowerCase()));
       if(rcoState.crmShowForm){
         const v = rcoState.crmEditId ? docs('crm-visitor').find(x=>x.id===rcoState.crmEditId) : null;
-        body = '<section class="rco-section-card"><h3>'+(v?'Edit Visitor':'New Visitor')+' <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveVisitor(event)">'
+        const vd = JSON.parse(localStorage.getItem('goldleaf-visitor-display') || '{"event":true,"products":true}');
+        body = '<section class="rco-section-card"><h3><span>'+(v?'Edit Visitor':'New Visitor')+'</span><span><button type="button" onclick="rcoOpenVisitorDisplay()">⚙️ Display</button> <button type="button" onclick="rcoCloseCrmForm()">← Back</button></span></h3><form onsubmit="rcoSaveVisitor(event)">'
           + '<h4 style="margin:6px 0">Customer Information</h4><div class="rco-grid">'
           + '<label class="rco-field"><span>Visit Date</span><input name="visitDate" type="date" value="'+esc(v?.visitDate||todayStr())+'"></label>'
           + '<label class="rco-field"><span>Customer Number</span><input name="customerNo" value="'+esc(v?.customerNo||'')+'"></label>'
@@ -685,7 +698,8 @@
           + '<label class="rco-field"><span>Privilege Card No</span><input name="privilegeCard" value="'+esc(v?.privilegeCard||'')+'"></label>'
           + '<label class="rco-field"><span>Reason</span><input name="reason" value="'+esc(v?.reason||'')+'"></label>'
           + '<label class="rco-field"><span>Feedback</span><input name="feedback" value="'+esc(v?.feedback||'')+'"></label>'
-          + '</div><h4 style="margin:14px 0 6px">Event Information</h4><div class="rco-grid">'
+          + '</div>'
+          + (vd.event!==false ? '<h4 style="margin:14px 0 6px">Event Information</h4><div class="rco-grid">'
           + '<label class="rco-field"><span>Event Type</span><input name="eventType" value="'+esc(v?.eventType||'')+'"></label>'
           + '<label class="rco-field"><span>Event Date</span><input name="eventDate" type="date" value="'+esc(v?.eventDate||'')+'"></label>'
           + '<label class="rco-field"><span>Event Area</span><input name="eventArea" value="'+esc(v?.eventArea||'')+'"></label>'
@@ -693,8 +707,9 @@
           + '<label class="rco-field"><span>Event Hall Name</span><input name="eventHall" value="'+esc(v?.eventHall||'')+'"></label>'
           + '<label class="rco-field"><span>Event Contact Person</span><input name="eventContact" value="'+esc(v?.eventContact||'')+'"></label>'
           + '<label class="rco-field"><span>Event Contact Mobile</span><input name="eventContactMobile" value="'+esc(v?.eventContactMobile||'')+'"></label>'
-          + '</div><h4 style="margin:14px 0 6px">Product Information <button type="button" onclick="document.getElementById(\'rcoVisProds\').insertAdjacentHTML(\'beforeend\',\'<tr class=rco-vis-prod><td><input name=vp_prod placeholder=Product></td><td><select name=vp_orn>'+opts(RCO_ORNS,'Gold').replace(/"/g,'&quot;')+'</select></td><td><input name=vp_qty type=number value=1></td><td><input name=vp_wt type=number step=.001></td><td><input name=vp_wst type=number step=.01></td><td><input name=vp_amt type=number step=.01></td><td><button type=button class=rb-delete-btn onclick=this.closest(&quot;tr&quot;).remove()>×</button></td></tr>\')">＋ Add</button></h4>'
-          + '<div class="table"><table><thead><tr><th>Product</th><th>Ornament</th><th>Qty</th><th>Weight</th><th>Wst %</th><th>Amount</th><th></th></tr></thead><tbody id="rcoVisProds">'+(v?.products||[{}]).map(p=>'<tr class="rco-vis-prod"><td><input name="vp_prod" value="'+esc(p.product||'')+'"></td><td><select name="vp_orn">'+opts(RCO_ORNS,p.ornament||'Gold')+'</select></td><td><input name="vp_qty" type="number" value="'+(p.qty||1)+'"></td><td><input name="vp_wt" type="number" step=".001" value="'+(p.weight||0)+'"></td><td><input name="vp_wst" type="number" step=".01" value="'+(p.wst||0)+'"></td><td><input name="vp_amt" type="number" step=".01" value="'+(p.amount||0)+'"></td><td><button type="button" class="rb-delete-btn" onclick="this.closest(\'tr\').remove()">×</button></td></tr>').join('')+'</tbody></table></div>'
+          + '</div>' : '<input type="hidden" name="eventType"><input type="hidden" name="eventDate"><input type="hidden" name="eventArea"><input type="hidden" name="eventCity"><input type="hidden" name="eventHall"><input type="hidden" name="eventContact"><input type="hidden" name="eventContactMobile">')
+          + (vd.products!==false ? '<h4 style="margin:14px 0 6px">Product Information <button type="button" onclick="document.getElementById(\'rcoVisProds\').insertAdjacentHTML(\'beforeend\',\'<tr class=rco-vis-prod><td><input name=vp_prod placeholder=Product></td><td><select name=vp_orn>'+opts(RCO_ORNS,'Gold').replace(/"/g,'&quot;')+'</select></td><td><input name=vp_qty type=number value=1></td><td><input name=vp_wt type=number step=.001></td><td><input name=vp_wst type=number step=.01></td><td><input name=vp_amt type=number step=.01></td><td><button type=button class=rb-delete-btn onclick=this.closest(&quot;tr&quot;).remove()>×</button></td></tr>\')">＋ Add</button></h4>'
+          + '<div class="table"><table><thead><tr><th>Product</th><th>Ornament</th><th>Qty</th><th>Weight</th><th>Wst %</th><th>Amount</th><th></th></tr></thead><tbody id="rcoVisProds">'+(v?.products||[{}]).map(p=>'<tr class="rco-vis-prod"><td><input name="vp_prod" value="'+esc(p.product||'')+'"></td><td><select name="vp_orn">'+opts(RCO_ORNS,p.ornament||'Gold')+'</select></td><td><input name="vp_qty" type="number" value="'+(p.qty||1)+'"></td><td><input name="vp_wt" type="number" step=".001" value="'+(p.weight||0)+'"></td><td><input name="vp_wst" type="number" step=".01" value="'+(p.wst||0)+'"></td><td><input name="vp_amt" type="number" step=".01" value="'+(p.amount||0)+'"></td><td><button type="button" class="rb-delete-btn" onclick="this.closest(\'tr\').remove()">×</button></td></tr>').join('')+'</tbody></table></div>' : '')
           + '<div class="right" style="margin-top:12px"><button type="submit" class="primary">Save Visitor</button></div></form></section>';
       } else {
         body = '<div class="rco-toolbar"><input class="rco-search" placeholder="Search Visitor Name / Mobile..." value="'+esc(rcoState.crmSearch)+'" oninput="rcoState.crmSearch=this.value;render()"><button type="button" class="primary" onclick="rcoOpenCrmForm()">＋ Create Visitor</button></div>'

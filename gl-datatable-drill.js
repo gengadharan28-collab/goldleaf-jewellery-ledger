@@ -1,4 +1,4 @@
-// Universal Data Table (Search, Sort, Column Visibility, CSV Export, Table Lines) & Hierarchy Drill-Down across all Goldleaf histories and pages.
+// Universal Data Table (Search, Sort, Persistent Display Columns, CSV Export, Table Lines) & Hierarchy Drill-Down across all Goldleaf pages.
 (function(){
   const style = document.createElement('style');
   style.textContent = `
@@ -9,15 +9,13 @@
     .gl-dt-pill{font-size:11px;font-weight:750;padding:4px 9px;border-radius:999px;background:#ede8dc;color:#5a4d34}
     .gl-dt-btn{padding:5px 10px;border-radius:7px;border:1px solid var(--line,#d5d0c5);background:var(--white,#fff);color:var(--ink,#222);font-size:11.5px;font-weight:700;cursor:pointer}
     .gl-dt-col-menu{position:relative;display:inline-block}
-    .gl-dt-col-pop{position:absolute;right:0;top:100%;margin-top:4px;z-index:50;min-width:190px;max-height:240px;overflow:auto;background:var(--white,#fff);border:1px solid var(--line,#d5d0c5);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:none}
+    .gl-dt-col-pop{position:absolute;right:0;top:100%;margin-top:4px;z-index:80;min-width:205px;max-height:260px;overflow:auto;background:var(--white,#fff);border:1px solid var(--line,#d5d0c5);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none}
     .gl-dt-col-pop.open{display:block}
     .gl-dt-col-pop label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 2px;cursor:pointer;white-space:nowrap}
-    /* Crisp Table Grid Lines & Single-Line Straight Row Content across all pages */
+    /* Crisp Table Grid Lines across all pages */
     .table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line,#ded8cc);border-radius:10px}
-    .table table{border-collapse:collapse;width:max-content;min-width:100%}
-    .table table th,.table table td{border:1px solid var(--line,#e4dfd4)!important;vertical-align:middle!important}
-    .table table tr:not(.gl-drill-row):not(.rco-subtable-row) > th,.table table tr:not(.gl-drill-row):not(.rco-subtable-row) > td{white-space:nowrap!important}
-    .gl-drill-box th,.gl-drill-box td{white-space:nowrap!important;vertical-align:middle!important}
+    .table table{border-collapse:collapse;width:100%}
+    .table table th,.table table td{border:1px solid var(--line,#e4dfd4)!important}
     .table table thead th{background:var(--paper,#f4f0e6);font-weight:750;position:sticky;top:0;z-index:2}
     .table table tbody tr:nth-child(even):not(.gl-drill-row):not(.rco-subtable-row):not(.gl-history-total){background:rgba(0,0,0,.015)}
     .table table tbody tr:hover:not(.gl-drill-row):not(.rco-subtable-row){background:rgba(24,57,42,.04)}
@@ -68,8 +66,42 @@
     a.click();
   }
 
+  function applyColVisibility(tbl, hiddenSet){
+    tbl.querySelectorAll('tr').forEach(tr => {
+      if(tr.classList.contains('gl-drill-row') || tr.classList.contains('rco-subtable-row')) return;
+      Array.from(tr.children).forEach((cell, ci) => {
+        cell.style.display = hiddenSet.has(ci) ? 'none' : '';
+      });
+    });
+  }
+
+  function buildColMenu(tbl, storeKey){
+    const headCells = Array.from(tbl.querySelectorAll('thead th'));
+    if(headCells.length < 3) return null;
+    let hidden = new Set(JSON.parse(localStorage.getItem(storeKey) || '[]'));
+    if(hidden.size) applyColVisibility(tbl, hidden);
+
+    const wrap = document.createElement('div'); wrap.className = 'gl-dt-col-menu';
+    const checks = headCells.map((th, i) => {
+      const t = th.textContent.trim();
+      if(!t || th.classList.contains('gl-drill-col')) return '';
+      return '<label><input type="checkbox" '+(hidden.has(i)?'':'checked')+' data-col-idx="'+i+'"> '+esc(t)+'</label>';
+    }).filter(Boolean).join('');
+    wrap.innerHTML = '<button type="button" class="gl-dt-btn">⚙️ Display Columns ▾</button><div class="gl-dt-col-pop">'+checks+'</div>';
+    const btn = wrap.querySelector('button'), pop = wrap.querySelector('.gl-dt-col-pop');
+    btn.onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.gl-dt-col-pop.open').forEach(p=>{if(p!==pop)p.classList.remove('open');}); pop.classList.toggle('open'); };
+    pop.querySelectorAll('input[data-col-idx]').forEach(cb => {
+      cb.onchange = () => {
+        const ci = Number(cb.dataset.colIdx);
+        if(cb.checked) hidden.delete(ci); else hidden.add(ci);
+        localStorage.setItem(storeKey, JSON.stringify(Array.from(hidden)));
+        applyColVisibility(tbl, hidden);
+      };
+    });
+    return wrap;
+  }
+
   function findDrillHtml(tr){
-    // 1. Retail Sales History row
     const billBtn = tr.querySelector('[data-bill-id]');
     if(billBtn){
       const id = billBtn.dataset.billId;
@@ -81,7 +113,6 @@
           +(sale.exchangeAmount>0?'<p style="margin:6px 0 0;font-size:11px"><b>Old Gold Credit:</b> − '+rateMoney(sale.exchangeAmount)+' | <b>Collected:</b> '+rateMoney(sale.collectedAmount||0)+'</p>':'')+'</div>';
       }
     }
-    // 2. Retail Quotation History row
     const quoteBtn = tr.querySelector('[onclick*="rcEditEstimate("]');
     if(quoteBtn){
       const m = String(quoteBtn.getAttribute('onclick')||'').match(/rcEditEstimate\('([^']+)'\)/);
@@ -93,7 +124,6 @@
         }
       }
     }
-    // 3. Retail Product Master row (expand Cost Structure slabs + Tags)
     const prodBtn = tr.querySelector('[onclick*="rcEditProduct("]');
     if(prodBtn){
       const m = String(prodBtn.getAttribute('onclick')||'').match(/rcEditProduct\('([^']+)'\)/);
@@ -109,7 +139,6 @@
         }
       }
     }
-    // 4. Wholesale Lot row
     const cells = tr.querySelectorAll('td');
     if(cells.length >= 9 && page === 'Wholesale Lot'){
       const tag = cells[3]?.textContent?.trim();
@@ -120,7 +149,6 @@
         return '<div class="gl-drill-box"><h4>Packet Sales History · '+esc(tag)+'</h4>'+(sales.length?'<table><thead><tr><th>Date</th><th>Party</th><th>Pcs</th><th>Weight g</th><th>Pure g</th><th>Hallmark</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="muted" style="margin:0">No packet sales issued from this lot yet.</p>')+'</div>';
       }
     }
-    // 5. Summary Page (Customer / Party Summary drill-down)
     if(page === 'Summary' && cells.length >= 4){
       const name = cells[0]?.textContent?.trim();
       const isRetail = workspaceMode === 'retail';
@@ -133,9 +161,25 @@
     return '';
   }
 
+  function enhanceEntryFormTables(){
+    // Add Display Columns button to Retail Sales Entry (#rbItemsTable) and Estimation (#rcQuoteTable)
+    [['rbItemsTable','.rb-section-head > div'],['rcQuoteTable','.rc-section-title']].forEach(([tblId, headSel])=>{
+      const tbl = document.getElementById(tblId);
+      if(!tbl || tbl.dataset.glEntryDisp) return;
+      tbl.dataset.glEntryDisp = '1';
+      const sec = tbl.closest('section, .panel');
+      const headSlot = sec?.querySelector(headSel);
+      if(headSlot){
+        const menu = buildColMenu(tbl, 'goldleaf-dt-cols::entry::' + tblId);
+        if(menu) headSlot.prepend(menu);
+      }
+    });
+  }
+
   function enhanceTables(){
+    enhanceEntryFormTables();
     const app = document.getElementById('app'); if(!app) return;
-    app.querySelectorAll('.table').forEach((wrap) => {
+    app.querySelectorAll('.table').forEach((wrap, idx) => {
       if(wrap.dataset.glDtDone) return;
       const tbl = wrap.querySelector('table'); if(!tbl) return;
       if(tbl.id==='rbItemsTable' || tbl.id==='rcQuoteTable' || tbl.closest('form')) return;
@@ -145,7 +189,6 @@
 
       wrap.dataset.glDtDone = '1';
 
-      // Inject Hierarchy Drill-Down buttons if drillable rows exist and table doesn't already have expand buttons
       const hasNativeExpand = !!tbl.querySelector('tbody button[onclick*="Toggle"], tbody button[onclick*="Expanded"]');
       if(!hasNativeExpand){
         const sampleHtml = findDrillHtml(dataRows[0]);
@@ -179,10 +222,6 @@
         }
       }
 
-      const panel = wrap.closest('.panel, section');
-      const hasToolbar = panel && (panel.querySelector(':scope > .rco-toolbar') || panel.querySelector(':scope > .filters'));
-
-      // Sortable headers
       const headCells = Array.from(tbl.querySelectorAll('thead th'));
       headCells.forEach((th, colIdx) => {
         if(th.classList.contains('gl-drill-col') || !th.textContent.trim() || th.textContent.trim().toLowerCase()==='actions') return;
@@ -206,19 +245,28 @@
         };
       });
 
-      if(dataRows.length >= 1 && !hasToolbar){
-        const dtBar = document.createElement('div'); dtBar.className = 'gl-dt-bar';
-        const colChecks = headCells.map((th, i) => {
-          const t = th.textContent.trim();
-          if(!t || th.classList.contains('gl-drill-col')) return '';
-          return '<label><input type="checkbox" checked data-col-idx="'+i+'"> '+esc(t)+'</label>';
-        }).filter(Boolean).join('');
+      const storeKey = 'goldleaf-dt-cols::' + (page||'page') + '::' + idx;
+      const panel = wrap.closest('.panel, section');
+      const rcoBarRight = panel?.querySelector(':scope > .rco-toolbar .rco-toolbar-right');
 
-        dtBar.innerHTML = '<div class="gl-dt-left"><input type="search" class="gl-dt-search" placeholder="Search table rows…"><span class="gl-dt-pill">'+dataRows.length+' rows</span></div>'
-          + '<div class="gl-dt-right">'
-          + (headCells.length >= 5 ? '<div class="gl-dt-col-menu"><button type="button" class="gl-dt-btn">Columns ▾</button><div class="gl-dt-col-pop">'+colChecks+'</div></div>' : '')
-          + '<button type="button" class="gl-dt-btn gl-dt-csv">CSV</button>'
-          + '</div>';
+      if(rcoBarRight){
+        // Attach Display Columns & CSV directly into the existing .rco-toolbar-right
+        if(!rcoBarRight.querySelector('.gl-dt-col-menu')){
+          const colMenu = buildColMenu(tbl, storeKey);
+          if(colMenu) rcoBarRight.append(colMenu);
+          const csvBtn = document.createElement('button'); csvBtn.type='button'; csvBtn.className='gl-dt-btn gl-dt-csv'; csvBtn.textContent='CSV';
+          csvBtn.onclick = () => exportTableCsv(tbl);
+          rcoBarRight.append(csvBtn);
+        }
+      } else if(dataRows.length >= 1 && !panel?.querySelector(':scope > .filters')){
+        const dtBar = document.createElement('div'); dtBar.className = 'gl-dt-bar';
+        dtBar.innerHTML = '<div class="gl-dt-left"><input type="search" class="gl-dt-search" placeholder="Search table rows…"><span class="gl-dt-pill">'+dataRows.length+' rows</span></div><div class="gl-dt-right"></div>';
+        const dtRight = dtBar.querySelector('.gl-dt-right');
+        const colMenu = buildColMenu(tbl, storeKey);
+        if(colMenu) dtRight.append(colMenu);
+        const csvBtn = document.createElement('button'); csvBtn.type='button'; csvBtn.className='gl-dt-btn gl-dt-csv'; csvBtn.textContent='CSV';
+        csvBtn.onclick = () => exportTableCsv(tbl);
+        dtRight.append(csvBtn);
 
         const searchInp = dtBar.querySelector('.gl-dt-search');
         const pill = dtBar.querySelector('.gl-dt-pill');
@@ -234,23 +282,6 @@
           });
           pill.textContent = vis + ' / ' + dataRows.length + ' rows';
         };
-
-        const colBtn = dtBar.querySelector('.gl-dt-col-menu > button');
-        const colPop = dtBar.querySelector('.gl-dt-col-pop');
-        if(colBtn && colPop){
-          colBtn.onclick = (e) => { e.stopPropagation(); colPop.classList.toggle('open'); };
-          colPop.querySelectorAll('input[data-col-idx]').forEach(cb => {
-            cb.onchange = () => {
-              const ci = Number(cb.dataset.colIdx);
-              tbl.querySelectorAll('tr').forEach(tr => {
-                if(tr.classList.contains('gl-drill-row')) return;
-                const cell = tr.children[ci];
-                if(cell) cell.style.display = cb.checked ? '' : 'none';
-              });
-            };
-          });
-        }
-        dtBar.querySelector('.gl-dt-csv').onclick = () => exportTableCsv(tbl);
         wrap.parentNode.insertBefore(dtBar, wrap);
       }
     });
