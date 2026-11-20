@@ -585,29 +585,39 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   body.rb-active #customerSaleForm .rb-tag-field-unified .gl-add-tag-btn{width:56px!important;font-size:8px!important}
 }
 
-/* v2.11.3: compact desktop quotation settlement and readable mobile payment totals. */
+/* v2.12.30: clean desktop quotation settlement, full-width Old Gold & pills, and readable table columns. */
 @media screen and (min-width:761px){
-  #rcEstimateForm .rc-quote-adjustments-panel.rc-pos-strip-container{display:grid!important;grid-template-columns:minmax(350px,.8fr) minmax(470px,1.2fr)!important;grid-template-rows:auto auto 1fr!important;align-items:start!important;gap:7px 10px!important;padding:9px!important}
+  #rcEstimateForm .rc-quote-adjustments-panel.rc-pos-strip-container{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:auto!important;align-items:start!important;gap:12px!important;padding:14px!important}
   #rcEstimateForm .rc-pos-desktop-head{display:none!important}
-  #rcEstimateForm .rc-pos-pills-bar{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-column:1!important;grid-row:1!important;gap:4px!important;margin:0!important;padding:0!important;overflow:visible!important}
-  #rcEstimateForm .rc-pos-pill{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;min-height:29px!important;height:29px!important;padding:3px 5px!important;border-radius:7px!important;font-size:8px!important;font-weight:750!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  #rcEstimateForm .rc-pos-drawers-wrap{display:block!important;grid-column:1!important;grid-row:2!important;margin:0!important}
+  #rcEstimateForm .rc-pos-pills-bar{display:flex!important;flex-wrap:wrap!important;grid-column:1/-1!important;grid-row:auto!important;gap:8px!important;margin:0!important;padding:0!important;overflow:visible!important}
+  #rcEstimateForm .rc-pos-pill{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;flex:0 1 auto!important;min-width:max-content!important;min-height:34px!important;height:auto!important;padding:6px 14px!important;border-radius:8px!important;font-size:12px!important;font-weight:750!important;line-height:1.2!important;white-space:nowrap!important;overflow:visible!important}
+  #rcEstimateForm .rc-pos-drawers-wrap{display:block!important;grid-column:1/-1!important;grid-row:auto!important;margin:0!important}
   #rcEstimateForm .rc-pos-drawer{display:none!important;margin:0!important}
   #rcEstimateForm .rc-pos-drawer.rc-drawer-open{display:block!important}
-  #rcEstimateForm .rc-adj-cards-row .rc-adj-card{padding:6px 8px!important;border-radius:8px!important;box-shadow:none!important}
-  #rcEstimateForm .rc-adj-card-head{margin-bottom:3px!important}
-  #rcEstimateForm .rc-adj-card-title{font-size:9px!important}
-  #rcEstimateForm .rc-adj-label{font-size:8px!important;margin-bottom:1px!important}
-  #rcEstimateForm .rc-adj-input{height:29px!important;min-height:29px!important;padding:3px 6px!important;font-size:11px!important}
-  #rcEstimateForm #rcPosDrawer_oldgold{grid-column:1!important;grid-row:3!important}
-  #rcEstimateForm .rc-pos-payment-card{grid-column:2!important;grid-row:1/4!important;margin:0!important;padding:7px 9px!important;border-radius:9px!important;box-shadow:none!important}
-  #rcEstimateForm .rc-pos-payment-head{margin-bottom:5px!important;min-height:28px!important}
-  #rcEstimateForm .rc-pos-payment-title{font-size:11px!important}
-  #rcEstimateForm .rc-pos-payment-total-wrap{gap:5px!important;font-size:9px!important}
-  #rcEstimateForm .rc-pos-labels-row{grid-template-columns:1.1fr .85fr 1.2fr 26px!important;gap:5px!important;margin-bottom:3px!important;padding:0 3px!important;font-size:8px!important}
-  #rcEstimateForm .rc-pos-row{grid-template-columns:1.1fr .85fr 1.2fr 26px!important;gap:5px!important;margin-bottom:4px!important;padding:4px 5px!important;border-radius:6px!important}
-  #rcEstimateForm .rc-pos-row input,#rcEstimateForm .rc-pos-row select{height:28px!important;min-height:28px!important;padding:3px 5px!important;font-size:10px!important}
-  #rcEstimateForm .rc-pos-remove-btn{width:25px!important;height:25px!important;min-height:25px!important;padding:0!important}
+  #rcEstimateForm .rc-adj-cards-row .rc-adj-card{padding:10px 12px!important;border-radius:10px!important;box-shadow:none!important}
+  #rcEstimateForm .rc-adj-card-head{margin-bottom:6px!important}
+  #rcEstimateForm .rc-adj-card-title{font-size:12px!important}
+  #rcEstimateForm .rc-adj-label{font-size:11px!important;margin-bottom:3px!important}
+  #rcEstimateForm .rc-adj-input{height:34px!important;min-height:34px!important;padding:5px 8px!important;font-size:13px!important}
+  #rcEstimateForm #rcPosDrawer_oldgold{grid-column:1/-1!important;grid-row:auto!important}
+  #rcEstimateForm #rcOldGoldDropdown .rc-old-gold-fields-grid{display:grid!important;grid-template-columns:repeat(5,minmax(140px,1fr))!important;gap:10px 12px!important;align-items:end!important}
+  #rcEstimateForm #rcOldGoldDropdown .rc-og-field{min-width:0!important}
+  #rcEstimateForm #rcOldGoldDropdown .rc-og-field label{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px!important;white-space:nowrap!important}
+  #rcEstimateForm #rcOldGoldDropdown .rc-og-field input,#rcEstimateForm #rcOldGoldDropdown .rc-og-field select{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  #rcEstimateForm .rc-pos-payment-card{grid-column:1/2!important;grid-row:auto!important;margin:0!important;padding:12px!important;border-radius:10px!important;box-shadow:none!important;border:1px solid var(--line,#d8d3c8)!important}
+  #rcEstimateForm .rc-notes-wrap{grid-column:1/2!important;grid-row:auto!important;margin:0!important}
+  #rcEstimateForm .rc-totals{grid-column:2/3!important;grid-row:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:0!important}
+  #rcEstimateForm .rc-balance-box{grid-column:1/-1!important;grid-row:auto!important;margin:0!important}
+  #rcEstimateForm .rc-pos-payment-head{margin-bottom:8px!important;min-height:28px!important}
+  #rcEstimateForm .rc-pos-payment-title{font-size:12.5px!important}
+  #rcEstimateForm .rc-pos-payment-total-wrap{gap:6px!important;font-size:11px!important}
+  #rcEstimateForm .rc-pos-labels-row{grid-template-columns:1.1fr .9fr 1.2fr 28px!important;gap:6px!important;margin-bottom:4px!important;padding:0 3px!important;font-size:10px!important}
+  #rcEstimateForm .rc-pos-row{grid-template-columns:1.1fr .9fr 1.2fr 28px!important;gap:6px!important;margin-bottom:5px!important;padding:5px 6px!important;border-radius:8px!important}
+  #rcEstimateForm .rc-pos-row input,#rcEstimateForm .rc-pos-row select{height:32px!important;min-height:32px!important;padding:4px 7px!important;font-size:12px!important}
+  #rcEstimateForm .rc-pos-remove-btn{width:26px!important;height:26px!important;min-height:26px!important;padding:0!important}
+  #rcQuoteTable input,#rcQuoteTable select{min-width:0!important;max-width:110px!important}
+  #rcQuoteTable input[name="qProduct"],#rcQuoteTable select[name="qProduct"]{min-width:130px!important;max-width:170px!important}
+  .rb-tools .theme-toggle{min-width:36px!important;padding:0 10px!important}
 }
 
 @media screen and (max-width:760px){
