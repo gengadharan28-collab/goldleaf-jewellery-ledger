@@ -84,7 +84,18 @@
       const b = balance(l);
       return '<tr><td>' + x(l.lotNo) + '</td><td>' + x(l.supplier) + '</td><td>' + x(l.product) + '</td><td><b>' + x(l.packetTag) + '</b></td><td>' + l.pieces + '</td><td>' + g(l.netWeight) + '</td><td>' + g(l.touch) + '</td><td>' + g(l.pureWeight) + '</td><td><b>' + b.pieces + ' pcs · ' + g(b.weight) + ' g</b></td></tr>';
     }).join("");
+    const totalLotNet = db.wholesaleLots.reduce((s, l) => s + n(l.netWeight), 0);
+    const totalLotPieces = db.wholesaleLots.reduce((s, l) => s + n(l.pieces), 0);
+    const liveBalWeight = db.wholesaleLots.reduce((s, l) => s + balance(l).weight, 0);
+    const liveBalPieces = db.wholesaleLots.reduce((s, l) => s + balance(l).pieces, 0);
+    const lotCards = '<div class="cards">'
+      + '<div class="card"><label>TOTAL LOTS RECEIVED</label><b>' + db.wholesaleLots.length + '</b></div>'
+      + '<div class="card"><label>OPENING STOCK</label><b>' + g(totalLotNet) + ' g · ' + totalLotPieces + ' pcs</b></div>'
+      + '<div class="card"><label>LIVE STOCK BALANCE</label><b>' + g(liveBalWeight) + ' g</b></div>'
+      + '<div class="card"><label>REMAINING PIECES</label><b>' + liveBalPieces + ' pcs</b></div>'
+      + '</div>';
     return title('Supplier lot, packet tag and live stock in one connected page.')
+      + lotCards
       + '<section class="panel wl-panel"><h2>Supplier lot received</h2><form onsubmit="wlSaveLot(event)"><div class="grid">'
       + '<label class="field"><span>Lot no.</span><input name="lotNo" required value="WL-' + Date.now().toString().slice(-6) + '"></label>'
       + '<label class="field"><span>Date & time</span><input name="when" type="datetime-local" required value="' + new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) + '"></label>'
@@ -93,7 +104,7 @@
       + '<label class="field"><span>Stone · g</span><input name="stone" type="number" min="0" step=".001" value="0" oninput="wlLotCalc(this.form)"></label><label class="field"><span>Enamel / other less · g</span><input name="less" type="number" min="0" step=".001" value="0" oninput="wlLotCalc(this.form)"></label>'
       + '<label class="field"><span>Net gold · g</span><input name="net" readonly></label><label class="field"><span>Touch % *</span><input name="touch" type="number" min="1" max="100" step=".001" required oninput="wlLotCalc(this.form)"></label><label class="field"><span>Pure weight · g</span><input name="pure" readonly></label>'
       + '<label class="field"><span>Pure rate · ₹/g</span><input name="rate" type="number" min="0" step=".01"></label><label class="field"><span>Settlement</span><select name="settlement"><option>Gold</option><option>Cash converted to gold</option></select></label>'
-      + '<label class="field"><span>Packet tag *</span><input name="tag" required placeholder="PKT-0001"></label><label class="field"><span>Lot / packet photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
+      + '<label class="field"><span>Packet tag *</span><input name="tag" required placeholder="PKT-0001"></label><label class="field wide"><span>Lot / packet photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
       + '</div><div class="right"><button class="primary">Save lot & create packet tag</button></div></form></section>'
       + '<section class="panel"><h2>Wholesale lot stock</h2><div class="table"><table><thead><tr><th>Lot</th><th>Supplier</th><th>Product</th><th>Packet</th><th>Opening pcs</th><th>Net g</th><th>Touch</th><th>Pure g</th><th>Live balance</th></tr></thead><tbody>' + (rows || '<tr><td colspan="9" class="empty">No wholesale lots yet.</td></tr>') + '</tbody></table></div></section>';
   };
@@ -113,25 +124,36 @@
       const l = lotById(s.lotId), p = db.parties.find((v) => v.id === s.partyId);
       return '<tr><td>' + x(s.when.replace('T', ' ')) + '</td><td>' + x(p?.name || 'Party') + '</td><td><b>' + x(l?.packetTag || s.packetTag || s.lotId) + '</b></td><td>' + x(l?.product || s.product || '—') + '</td><td>' + s.pieces + '</td><td>' + g(s.weight) + '</td><td>' + g(s.purePayable) + '</td><td>₹ ' + n(s.hallmarkTotal).toFixed(2) + '</td><td><button type="button" class="rb-delete-btn" onclick="wlDeleteSale(\'' + s.id + '\')">×</button></td></tr>';
     }).join("");
+    const totalWeight = db.wholesalePacketSales.reduce((sum, s) => sum + n(s.weight), 0);
+    const totalPieces = db.wholesalePacketSales.reduce((sum, s) => sum + n(s.pieces || 1), 0);
+    const totalPure = db.wholesalePacketSales.reduce((sum, s) => sum + n(s.purePayable), 0);
+    const totalHallmark = db.wholesalePacketSales.reduce((sum, s) => sum + n(s.hallmarkTotal), 0);
+    const cards = '<div class="cards">'
+      + '<div class="card"><label>TOTAL WEIGHT ISSUED</label><b>' + g(totalWeight) + ' g</b></div>'
+      + '<div class="card"><label>TOTAL PIECES ISSUED</label><b>' + totalPieces + ' pcs</b></div>'
+      + '<div class="card"><label>PURE GOLD PAYABLE</label><b>' + g(totalPure) + ' g</b></div>'
+      + '<div class="card"><label>HALLMARK CHARGES</label><b>₹ ' + totalHallmark.toFixed(2) + '</b></div>'
+      + '</div>';
     return title('Scan a wholesale packet and issue partial pieces and weight to a party.')
-      + '<section class="panel"><div class="v2-section-head"><h2>Wholesale party sales entry</h2></div>'
+      + cards
+      + '<section class="panel wl-panel"><div class="v2-section-head"><h2>Wholesale party sales entry</h2></div>'
       + '<form onsubmit="wlSaveSale(event)"><div class="grid">'
       + '<label class="field"><span>Party *</span><div style="display:flex;gap:6px"><select name="partyId" required style="flex:1">' + partyOptions() + '</select><button type="button" onclick="go(\'Party Register\')" style="white-space:nowrap;font-size:12px;padding:4px 8px">＋ Party</button></div></label>'
       + '<label class="field"><span>Date & time</span><input name="when" type="datetime-local" required value="' + new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) + '"></label>'
       + '<label class="field wl-scan-field"><span>Packet tag / Search *</span><div class="wl-scan-row"><input id="wlSaleTagInput" placeholder="Scan / type tag" oninput="wlOnTagInput(this)" onchange="wlOnTagChange(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wlOnTagChange(this);}" style="max-width:140px"><select id="wlSaleLot" name="lotId" required onchange="wlLoadSalePacket(this.form)">' + lotOptions() + '</select><button type="button" class="gl-scan-btn" onclick="wlScanSale()">▣ Scan</button></div></label>'
       + '<label class="field"><span>Product *</span><input name="product" readonly placeholder="Auto from packet" style="font-weight:700;background:#fbfbfb"></label>'
       + '<label class="field"><span>Available stock</span><input name="available" readonly style="background:#fbfbfb"></label>'
-      + '<div class="field wide" style="margin:2px 0 6px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;color:var(--muted)">Sale mode:</span><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'1pc\',this.form)">1 Pc partial</button><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'full\',this.form)">Full packet</button><span id="wlRemainingBadge" style="margin-left:auto;font-size:12px;font-weight:750;color:#18392a;background:#edf7f0;padding:4px 8px;border-radius:6px">Select packet for stock balance</span></div></div>'
+      + '<div class="field wide wl-sale-mode-box"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div><span style="font-size:11px;font-weight:750;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:6px">Sale Mode:</span><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'1pc\',this.form)">1 Pc partial</button><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'full\',this.form)">Full packet</button></div><span id="wlRemainingBadge" style="font-size:12px;font-weight:750;color:#18392a;background:#edf7f0;padding:4px 8px;border-radius:6px;border:1px solid #cce5d4">Select packet for stock balance</span></div></div>'
       + '<label class="field"><span>Issued pieces *</span><input name="pieces" type="number" min="1" step="1" required oninput="wlOnPiecesInput(this.form)"></label>'
       + '<label class="field"><span>Issued weight · g *</span><input name="weight" type="number" min=".001" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
       + '<label class="field"><span>Touch %</span><input name="touch" type="number" min="1" max="100" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
       + '<label class="field"><span>Wastage %</span><input name="wastage" type="number" min="0" step=".001" value="0" oninput="wlSaleCalc(this.form)"></label>'
-      + '<label class="field"><span>Pure payable · g</span><input name="pure" readonly style="font-weight:700;color:var(--primary,#0a58ca)"></label>'
+      + '<label class="field"><span>Pure payable · g</span><input name="pure" readonly style="font-weight:700;color:var(--green,#194735);background:#f2f7f3"></label>'
       + '<label class="field"><span>Hallmark type</span><select name="hallmark"><option>None</option><option>HUID</option><option>Non-HUID</option></select></label>'
       + '<label class="field"><span>Hallmark ₹ / piece</span><input name="hallmarkRate" type="number" min="0" step=".01" value="0" oninput="wlSaleCalc(this.form)"></label>'
-      + '<label class="field"><span>Hallmark total</span><input name="hallmarkTotal" readonly></label>'
-      + '<label class="field"><span>Delivery photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
-      + '</div><div class="right"><button class="primary">Save party sale</button></div></form></section>'
+      + '<label class="field"><span>Hallmark total</span><input name="hallmarkTotal" readonly style="font-weight:700;background:#fbfbfb"></label>'
+      + '<label class="field wide"><span>Delivery photos</span><input name="photos" type="file" accept="image/*" capture="environment" multiple></label>'
+      + '</div><div class="right" style="margin-top:18px"><button class="primary" style="min-width:160px;font-weight:700">Save party sale</button></div></form></section>'
       + '<section class="panel"><h2>Live party sales</h2><div class="table"><table><thead><tr><th>Date</th><th>Party</th><th>Packet</th><th>Product</th><th>Pcs</th><th>Weight g</th><th>Pure payable</th><th>Hallmark</th><th></th></tr></thead><tbody>' + (rows || '<tr><td colspan="9" class="empty">No packet sales yet.</td></tr>') + '</tbody></table></div></section>';
   };
   window.wlOnTagInput = function (inp) {
