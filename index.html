@@ -173,6 +173,7 @@ function render(){
     'Order Tracking': () => window.rcoOrderTrackingView ? window.rcoOrderTrackingView() : dash(),
     'CRM': () => window.rcoCrmView ? window.rcoCrmView() : dash(),
     'Suppliers': () => window.rcoRetailSupplierView ? window.rcoRetailSupplierView() : dash(),
+    'Parent Group': () => window.rgaParentGroupPage ? window.rgaParentGroupPage() : dash(),
     'Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
     'Retail Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
     'Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
@@ -209,7 +210,7 @@ function setWorkspaceMode(mode){
   let type=workspaceMode==='retail'?'customer':'party';registerType=type;summaryType=type;ledgerType=type;
   if(edit&&['Sales Entry','Payments','Register'].includes(page))edit=null;
   if(workspaceMode==='wholesale'){
-    if(['Estimation / Quotation','Retail Estimation','Order Tracking','CRM','Suppliers','Products','Retail Products','Tagging','Retail Tagging','Stock Verification','Lot Entry','Chit','Retail Chit'].includes(page))page='Dashboard';
+    if(['Estimation / Quotation','Retail Estimation','Order Tracking','CRM','Suppliers','Parent Group','Products','Retail Products','Tagging','Retail Tagging','Stock Verification','Lot Entry','Chit','Retail Chit'].includes(page))page='Dashboard';
     else if(page==='Customer Register')page='Register';
     else if(page==='Customer Sales Entry')page='Sales Entry';
     else if(page==='Customer Payment')page='Payments';
@@ -1137,7 +1138,7 @@ window.go=function(target){
     localStorage.setItem('goldleaf-workspace-mode','retail');
     registerType=summaryType=ledgerType='customer';
   }
-  if(['Order Tracking','CRM','Suppliers'].includes(target)){
+  if(['Order Tracking','CRM','Suppliers','Parent Group'].includes(target)){
     workspaceMode = 'retail';
     localStorage.setItem('goldleaf-workspace-mode', 'retail');
     registerType = summaryType = ledgerType = 'customer';
@@ -1327,7 +1328,7 @@ window.render=function(){
 };
 window.setInterval(()=>{if(session)window.checkRateReminder()},30000);window.addEventListener('focus',()=>{if(session)checkRateReminder()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)checkRateReminder()});
 render();
-</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.8&layoutcards=1"></script><script src="./admin-panel.js?v=2.11.19&cloudfix=2"></script><script src="./pdf-templates.js?v=2.12.14"></script><script src="./erp-ui.js?v=2.11.19&sharedrate=1"></script><script src="./retail-sales.js?v=2.12.14&strictiso=1"></script><script src="./retail-purchases.js?v=2.11.15&deletefix=2"></script><script src="./retail-estimate-chit.js?v=2.12.19&historyview=1"></script><script src="./retail-crm-orders.js?v=2.12.22"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.10.90"></script><script src="./retail-lot-entry.js?v=2.10.90"></script><script src="./retail-chit-reports.js?v=2.10.77"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.80"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.11.5"></body></html>
+</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.8&layoutcards=1"></script><script src="./admin-panel.js?v=2.11.19&cloudfix=2"></script><script src="./pdf-templates.js?v=2.12.14"></script><script src="./erp-ui.js?v=2.11.19&sharedrate=1"></script><script src="./retail-sales.js?v=2.12.14&strictiso=1"></script><script src="./retail-purchases.js?v=2.11.15&deletefix=2"></script><script src="./retail-estimate-chit.js?v=2.12.19&historyview=1"></script><script src="./retail-crm-orders.js?v=2.12.23"></script><script src="./retail-groups-accounts.js?v=2.12.23"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.10.90"></script><script src="./retail-lot-entry.js?v=2.10.90"></script><script src="./retail-chit-reports.js?v=2.10.77"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.80"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.11.5"></body></html>
 
 
 

@@ -866,7 +866,7 @@
       team: f.team.value, relationType: f.relationType.value, relationName: f.relationName.value.trim(),
       allowMobileDuplicate: !!allowDup, isDnd: !!f.isDnd?.checked, isAddressVerified: !!f.isAddressVerified?.checked, isEnableLogin: !!f.isEnableLogin?.checked,
       dob: f.dob.value, gender: f.gender.value, bloodGroup: f.bloodGroup.value, anniversary: f.anniversary.value,
-      customerGroup: f.customerGroup.value.trim(), businessType: f.businessType.value, religion: f.religion.value, tcsTds: f.tcsTds.value, ornamentsType: f.ornamentsType.value,
+      customerGroup: f.customerGroup.value.trim(), parentGroup: f.parentGroup?.value || 'Sundry Debtors', businessType: f.businessType.value, religion: f.religion.value, tcsTds: f.tcsTds.value, ornamentsType: f.ornamentsType.value,
       contactPerson: f.contactPerson.value.trim(), stdCode: f.stdCode.value.trim(), landline: f.landline.value.trim(),
       aadhaar: f.aadhaar.value.trim(), gstRegType: f.gstRegType.value, gst: f.gst.value.trim().toUpperCase(), pan: f.pan.value.trim().toUpperCase(), udyam: f.udyam.value.trim(),
       excelRef: f.excelRef.value.trim(), whatsappGroup: f.whatsappGroup.value.trim(), segment: f.segment.value.trim(),
@@ -947,6 +947,7 @@
         + '<label class="rco-field"><span>Blood Group</span><select name="bloodGroup">'+opts(['','O+','O-','A+','A-','B+','B-','AB+','AB-','Unknown'], c?.bloodGroup||'')+'</select></label>'
         + '<label class="rco-field"><span>Anniversary Date</span><input name="anniversary" type="date" value="'+esc(c?.anniversary||'')+'"></label>'
         + '<label class="rco-field"><span>Customer Groups</span><input name="customerGroup" value="'+esc(c?.customerGroup||'')+'"></label>'
+        + '<label class="rco-field"><span>Parent Group (Accounts)</span><select name="parentGroup">'+(window.rgaAccountingGroupOptions?window.rgaAccountingGroupOptions(c?.parentGroup||'Sundry Debtors'):'<option value="Sundry Debtors">Sundry Debtors</option>')+'</select></label>'
         + '<label class="rco-field"><span>Business Type</span><select name="businessType">'+opts(['','LARGE','MEDIUM','SMALL'], c?.businessType||'')+'</select></label>'
         + '<label class="rco-field"><span>Religion Type</span><select name="religion">'+opts(['','HINDU','MUSLIM','CHRISTIAN'], c?.religion||'')+'</select></label>'
         + '<label class="rco-field"><span>TCS / TDS</span><select name="tcsTds">'+opts(['','TCS @ 0.01%'], c?.tcsTds||'')+'</select></label>'
@@ -1030,6 +1031,7 @@
       hallmarkLicense: f.hallmarkLicense.value.trim(), creditDays: f.creditDays.value.trim(),
       allowMobileDuplicate: !!f.allowMobileDuplicate?.checked,
       address: f.address.value.trim(), city, pinCode: f.pinCode.value.trim(), district: f.district.value.trim(), state: f.state.value, remarks: f.remarks.value.trim(),
+      parentGroup: f.parentGroup?.value || 'Sundry Creditors',
       openingAmount: n(f.openingAmount.value), openingGold: n(f.openingGold.value), openingSilver: n(f.openingSilver.value),
       updatedAt: new Date().toISOString(), createdAt: old?.createdAt || new Date().toISOString()
     });
@@ -1067,6 +1069,7 @@
         + '<label class="rco-field"><span>Print Name</span><input name="printName" value="'+esc(s?.printName||'')+'"></label>'
         + '<label class="rco-field"><span>Supplier Code</span><input name="supplierCode" value="'+esc(s?.supplierCode||'')+'"></label>'
         + '<label class="rco-field"><span>Supplier Number</span><input name="supplierNo" value="'+esc(s?.supplierNo||'')+'" placeholder="Auto if blank"></label>'
+        + '<label class="rco-field"><span>Parent Group (Accounts)</span><select name="parentGroup">'+(window.rgaAccountingGroupOptions?window.rgaAccountingGroupOptions(s?.parentGroup||'Sundry Creditors'):'<option value="Sundry Creditors">Sundry Creditors</option>')+'</select></label>'
         + '<label class="rco-field"><span>Contact Person Name</span><input name="contactPerson" value="'+esc(s?.contactPerson||'')+'"></label>'
         + '<label class="rco-field"><span>Mobile Number</span><input name="phone" type="tel" value="'+esc(s?.phone||'')+'"></label>'
         + '<label class="rco-field"><span>Alternate Number</span><input name="alternatePhone" type="tel" value="'+esc(s?.alternatePhone||'')+'"></label>'
