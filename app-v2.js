@@ -368,8 +368,8 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
     ...(Array.isArray(current.deletedRetailDocumentIds)?current.deletedRetailDocumentIds:[])
   ].map(String));
   merged.deletedRetailDocumentIds=[...deletedRetailDocumentIds];
-  // Preserve retail-only records during cloud merge too.
-  for(const key of ['parties','customers','sales','payments','retailDocuments']){
+  // Preserve wholesale and retail records during cloud merge too.
+  for(const key of ['parties','customers','sales','payments','retailDocuments','retailSuppliers','wholesaleLots','wholesalePacketSales','wholesalePacketReturns']){
     const combined=new Map();for(const item of Array.isArray(merged[key])?merged[key]:[])combined.set(item.id||JSON.stringify(item),item);
     for(const item of Array.isArray(current[key])?current[key]:[]){const id=item.id||JSON.stringify(item);if(preferLocal||!combined.has(id))combined.set(id,item)}
     merged[key]=[...combined.values()];

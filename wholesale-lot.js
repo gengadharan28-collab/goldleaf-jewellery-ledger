@@ -6,20 +6,35 @@
   const uid = () => crypto.randomUUID();
 
   function ensure() {
-    db.retailDocuments = Array.isArray(db.retailDocuments) ? db.retailDocuments : [];
     db.wholesaleLots = Array.isArray(db.wholesaleLots) ? db.wholesaleLots : [];
     db.wholesalePacketSales = Array.isArray(db.wholesalePacketSales) ? db.wholesalePacketSales : [];
     db.wholesalePacketReturns = Array.isArray(db.wholesalePacketReturns) ? db.wholesalePacketReturns : [];
-    const sync = (kind, list) => {
-      const map = new Map(list.map((v) => [v.id, v]));
-      db.retailDocuments.filter((v) => v.kind === kind).forEach((v) => map.set(v.id, v));
-      return [...map.values()];
-    };
-    db.wholesaleLots = sync('wholesale-lot', db.wholesaleLots);
-    db.wholesalePacketSales = sync('wholesale-packet-sale', db.wholesalePacketSales);
-    db.wholesalePacketReturns = sync('wholesale-packet-return', db.wholesalePacketReturns);
+    db.sales = Array.isArray(db.sales) ? db.sales : [];
+    db.parties = Array.isArray(db.parties) ? db.parties : [];
+    // Safely migrate any legacy wholesale records out of retailDocuments
+    if (Array.isArray(db.retailDocuments)) {
+      const legacyLots = db.retailDocuments.filter(d => d && d.kind === 'wholesale-lot');
+      const legacySales = db.retailDocuments.filter(d => d && d.kind === 'wholesale-packet-sale');
+      const legacyReturns = db.retailDocuments.filter(d => d && d.kind === 'wholesale-packet-return');
+      if (legacyLots.length) {
+        const lotMap = new Map(db.wholesaleLots.map(l => [l.id, l]));
+        legacyLots.forEach(l => lotMap.set(l.id, l));
+        db.wholesaleLots = [...lotMap.values()];
+      }
+      if (legacySales.length) {
+        const saleMap = new Map(db.wholesalePacketSales.map(s => [s.id, s]));
+        legacySales.forEach(s => saleMap.set(s.id, s));
+        db.wholesalePacketSales = [...saleMap.values()];
+      }
+      if (legacyReturns.length) {
+        const retMap = new Map(db.wholesalePacketReturns.map(r => [r.id, r]));
+        legacyReturns.forEach(r => retMap.set(r.id, r));
+        db.wholesalePacketReturns = [...retMap.values()];
+      }
+      db.retailDocuments = db.retailDocuments.filter(d => !d || !['wholesale-lot','wholesale-packet-sale','wholesale-packet-return'].includes(d.kind));
+    }
   }
-  function addCloudDocument(record, kind) { record.kind = kind; record.updatedAt = new Date().toISOString(); db.retailDocuments.push(record); }
+  function addCloudDocument(record, kind) { record.kind = kind; record.updatedAt = new Date().toISOString(); }
   function lotById(id) { ensure(); return db.wholesaleLots.find((v) => v.id === id); }
   function lotByTag(tag) {
     ensure();
@@ -70,7 +85,7 @@
     if (lotByTag(tag)) return say('This packet tag already exists.');
     const net = Math.max(0, n(d.get("gross")) - n(d.get("stone")) - n(d.get("less"))); const touch = n(d.get("touch"));
     if (!tag || net <= 0 || touch < 1 || touch > 100) return say('Enter a unique tag, valid weight and touch from 1 to 100.');
-    const record={ id: uid(), lotNo: d.get("lotNo"), when: d.get("when"), supplier: d.get("supplier"), product: d.get("product"), pieces: n(d.get("pieces")), grossWeight: n(d.get("gross")), stoneWeight: n(d.get("stone")), lessWeight: n(d.get("less")), netWeight: net, touch, pureWeight: net * touch / 100, pureRate: n(d.get("rate")), settlement: d.get("settlement"), packetTag: tag, photoNames: [...f.photos.files].map((v) => v.name) }; db.wholesaleLots.push(record); addCloudDocument(record,'wholesale-lot');
+    const record={ id: uid(), lotNo: d.get("lotNo"), when: d.get("when"), supplier: d.get("supplier"), product: d.get("product"), pieces: n(d.get("pieces")), grossWeight: n(d.get("gross")), stoneWeight: n(d.get("stone")), lessWeight: n(d.get("less")), netWeight: net, touch, pureWeight: net * touch / 100, pureRate: n(d.get("rate")), settlement: d.get("settlement"), packetTag: tag, photoNames: [...f.photos.files].map((v) => v.name), updatedAt: new Date().toISOString() }; db.wholesaleLots.push(record);
     save(); render(); say('Wholesale lot and packet tag saved.');
   };
 
@@ -153,15 +168,30 @@
     if (!confirm('Delete this party sale and restore packet balance?')) return;
     ensure();
     const idx = db.wholesalePacketSales.findIndex(s => s.id === id);
-    if (idx >= 0) {
-      db.wholesalePacketSales.splice(idx, 1);
-      db.retailDocuments = (db.retailDocuments || []).filter(d => d.id !== id);
-      save();
-      render();
-      say('Party sale deleted and packet balance restored.');
-    }
+    if (idx >= 0) db.wholesalePacketSales.splice(idx, 1);
+    const sIdx = db.sales.findIndex(s => s.id === id);
+    if (sIdx >= 0) db.sales.splice(sIdx, 1);
+    save();
+    render();
+    say('Party sale deleted and packet balance restored.');
   };
-  window.wlSaveSale = function (ev) { ev.preventDefault(); ensure(); const f = ev.target, d = new FormData(f), l = lotById(d.get("lotId")); if (!l) return say('Scan or select a packet.'); const b = balance(l), pieces = n(d.get("pieces")), weight = n(d.get("weight")); if (pieces < 1 || weight <= 0 || pieces > b.pieces || weight > b.weight + .0001) return say('Issued quantity is above packet stock.'); const touch = n(d.get("touch")), wastage = n(d.get("wastage")); const record={ id: uid(), lotId: l.id, partyId: d.get("partyId"), when: d.get("when"), pieces, weight, touch, wastage, purePayable: weight * (touch + wastage) / 100, hallmarkType: d.get("hallmark"), hallmarkRate: n(d.get("hallmarkRate")), hallmarkTotal: pieces * n(d.get("hallmarkRate")), photoNames: [...f.photos.files].map((v) => v.name) }; db.wholesalePacketSales.push(record); addCloudDocument(record,'wholesale-packet-sale'); save(); render(); say('Party sale saved and live packet balance updated.'); };
+  window.wlSaveSale = function (ev) {
+    ev.preventDefault(); ensure(); const f = ev.target, d = new FormData(f), l = lotById(d.get("lotId"));
+    if (!l) return say('Scan or select a packet.');
+    const b = balance(l), pieces = n(d.get("pieces")), weight = n(d.get("weight"));
+    if (pieces < 1 || weight <= 0 || pieces > b.pieces || weight > b.weight + .0001) return say('Issued quantity is above packet stock.');
+    const touch = n(d.get("touch")), wastage = n(d.get("wastage"));
+    const pure = weight * (touch + wastage) / 100;
+    const hallmarkRate = n(d.get("hallmarkRate"));
+    const hallmarkTotal = pieces * hallmarkRate;
+    const saleId = uid();
+    const record = { id: saleId, lotId: l.id, partyId: d.get("partyId"), when: d.get("when"), product: l.product || '', packetTag: l.packetTag || '', pieces, weight, touch, wastage, purePayable: pure, hallmarkType: d.get("hallmark"), hallmarkRate, hallmarkTotal, photoNames: [...f.photos.files].map((v) => v.name), updatedAt: new Date().toISOString() };
+    db.wholesalePacketSales.push(record);
+    const saleRecord = { id: saleId, partyId: record.partyId, accountType: 'party', when: record.when, product: l.product || 'Jewellery', weight: record.weight, pieces: record.pieces, purity: record.touch, wastage: record.wastage, hallmarkType: record.hallmarkType, hallmarkChargePerPiece: record.hallmarkRate, hallmarkChargeAmount: record.hallmarkTotal, partyNetGrams: record.purePayable, packetTag: l.packetTag, lotId: l.id, source: 'wholesale-packet-sale' };
+    const sIdx = db.sales.findIndex(s => s.id === saleId);
+    if (sIdx >= 0) db.sales[sIdx] = saleRecord; else db.sales.push(saleRecord);
+    save(); render(); say('Party sale saved and live packet balance updated.');
+  };
 
   window.wholesalePacketVerificationView = function () {
     ensure();
@@ -173,7 +203,7 @@
   };
   window.wlLoadReturn = function (f) { const l = lotByTag(f.tag.value); if (!l) { f.lotId.value = ''; return say('Packet tag not found.'); } const b = balance(l); f.lotId.value = l.id; f.original.value = l.pieces + ' pcs · ' + g(l.netWeight) + ' g'; f.sold.value = (l.pieces - b.pieces) + ' pcs · ' + g(l.netWeight - b.weight) + ' g'; f.expected.value = g(b.weight); wlCompareReturn(f); };
   window.wlCompareReturn = function (f) { const ok = f.physical.value !== '' && Math.abs(n(f.physical.value) - n(f.expected.value)) < .0005; f.result.textContent = f.physical.value === '' ? 'Waiting for weight' : ok ? '✓ Weight matched' : 'Weight does not match'; f.result.className = 'wl-result ' + (ok ? 'ok' : 'warn'); };
-  window.wlSaveReturn = function (ev) { ev.preventDefault(); ensure(); const f = ev.target; if (!f.lotId.value) return say('Scan a valid packet.'); if (Math.abs(n(f.physical.value) - n(f.expected.value)) >= .0005) return say('Physical weight must match expected weight.'); const record={ id: uid(), lotId: f.lotId.value, packetTag: f.tag.value, salesperson: f.salesperson.value, expectedWeight: n(f.expected.value), physicalWeight: n(f.physical.value), when: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }; db.wholesalePacketReturns.push(record); addCloudDocument(record,'wholesale-packet-return'); save(); render(); say('Packet verified and returned to stock.'); };
+  window.wlSaveReturn = function (ev) { ev.preventDefault(); ensure(); const f = ev.target; if (!f.lotId.value) return say('Scan a valid packet.'); if (Math.abs(n(f.physical.value) - n(f.expected.value)) >= .0005) return say('Physical weight must match expected weight.'); const record={ id: uid(), lotId: f.lotId.value, packetTag: f.tag.value, salesperson: f.salesperson.value, expectedWeight: n(f.expected.value), physicalWeight: n(f.physical.value), when: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16), updatedAt: new Date().toISOString() }; db.wholesalePacketReturns.push(record); save(); render(); say('Packet verified and returned to stock.'); };
 
   function scan(target) { if (typeof openQrScanner === 'function') return openQrScanner({ title: 'Scan wholesale packet', onScan: target }); const code = prompt('Enter packet tag'); if (code) target(code); }
   window.wlScanSale = function () {
