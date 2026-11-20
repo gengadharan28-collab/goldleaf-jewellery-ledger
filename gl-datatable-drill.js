@@ -1,9 +1,9 @@
-// Universal Data Table (Search, Sort, Column Visibility, CSV Export) & Hierarchy Drill-Down across all Goldleaf histories and pages.
+// Universal Data Table (Search, Sort, Column Visibility, CSV Export, Table Lines) & Hierarchy Drill-Down across all Goldleaf histories and pages.
 (function(){
   const style = document.createElement('style');
   style.textContent = `
     .gl-dt-wrap{display:flex;flex-direction:column;gap:8px;max-width:100%}
-    .gl-dt-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--paper,#f8f6f1);border:1px solid var(--line,#e2ddd3);border-radius:10px}
+    .gl-dt-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--paper,#f8f6f1);border:1px solid var(--line,#e2ddd3);border-radius:10px;margin-bottom:8px}
     .gl-dt-left,.gl-dt-right{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
     .gl-dt-search{min-width:180px;max-width:280px;padding:6px 10px;border:1px solid var(--line,#d5d0c5);border-radius:8px;font-size:12.5px;background:var(--white,#fff);color:var(--ink,#222)}
     .gl-dt-pill{font-size:11px;font-weight:750;padding:4px 9px;border-radius:999px;background:#ede8dc;color:#5a4d34}
@@ -12,8 +12,15 @@
     .gl-dt-col-pop{position:absolute;right:0;top:100%;margin-top:4px;z-index:50;min-width:190px;max-height:240px;overflow:auto;background:var(--white,#fff);border:1px solid var(--line,#d5d0c5);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:none}
     .gl-dt-col-pop.open{display:block}
     .gl-dt-col-pop label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 2px;cursor:pointer;white-space:nowrap}
+    /* Crisp Table Grid Lines across all pages */
+    .table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line,#ded8cc);border-radius:10px}
+    .table table{border-collapse:collapse;width:100%}
+    .table table th,.table table td{border:1px solid var(--line,#e4dfd4)!important}
+    .table table thead th{background:var(--paper,#f4f0e6);font-weight:750;position:sticky;top:0;z-index:2}
+    .table table tbody tr:nth-child(even):not(.gl-drill-row):not(.rco-subtable-row):not(.gl-history-total){background:rgba(0,0,0,.015)}
+    .table table tbody tr:hover:not(.gl-drill-row):not(.rco-subtable-row){background:rgba(24,57,42,.04)}
     th.gl-dt-sort{cursor:pointer;user-select:none;position:relative}
-    th.gl-dt-sort:hover{background:rgba(24,57,42,.06)}
+    th.gl-dt-sort:hover{background:rgba(24,57,42,.07)}
     th.gl-dt-sort::after{content:' ⇅';opacity:.35;font-size:10px}
     th.gl-dt-sort.asc::after{content:' ▲';opacity:.85}
     th.gl-dt-sort.desc::after{content:' ▼';opacity:.85}
@@ -22,8 +29,9 @@
     .gl-drill-box{background:var(--white,#fff);border:1px solid var(--line,#e2ddd3);border-radius:9px;padding:10px;overflow-x:auto}
     .gl-drill-box h4{margin:0 0 6px;font-size:12px;font-weight:800;color:var(--green,#18392a)}
     .gl-drill-box table{width:100%;min-width:480px!important;border-collapse:collapse;font-size:11.5px}
-    .gl-drill-box th,.gl-drill-box td{padding:5px 8px!important;border-bottom:1px solid var(--line,#ece8df)}
-    html[data-theme="dark"] .gl-dt-bar,html[data-theme="dark"] tr.gl-drill-row>td{background:#1b221d!important;border-color:#354038!important}
+    .gl-drill-box th,.gl-drill-box td{padding:5px 8px!important;border:1px solid var(--line,#e6e1d6)!important}
+    html[data-theme="dark"] .gl-dt-bar,html[data-theme="dark"] tr.gl-drill-row>td,html[data-theme="dark"] .table table thead th{background:#1b221d!important;border-color:#354038!important}
+    html[data-theme="dark"] .table,html[data-theme="dark"] .table table th,html[data-theme="dark"] .table table td,html[data-theme="dark"] .gl-drill-box th,html[data-theme="dark"] .gl-drill-box td{border-color:#354038!important}
     html[data-theme="dark"] .gl-dt-search,html[data-theme="dark"] .gl-dt-btn,html[data-theme="dark"] .gl-dt-col-pop,html[data-theme="dark"] .gl-drill-box,html[data-theme="dark"] .gl-drill-btn{background:#222b25!important;border-color:#3b463e!important;color:#eee8da!important}
     html[data-theme="dark"] .gl-dt-pill{background:#2d362f;color:#e6d8bb}
     @media(max-width:760px){
@@ -58,9 +66,8 @@
     a.click();
   }
 
-  // Build drill-down HTML for Retail Sales, Quotations, and Wholesale Lots/Sales
   function findDrillHtml(tr){
-    // 1. Retail Sales History row (has data-bill-id on Edit/PDF buttons)
+    // 1. Retail Sales History row
     const billBtn = tr.querySelector('[data-bill-id]');
     if(billBtn){
       const id = billBtn.dataset.billId;
@@ -72,7 +79,7 @@
           +(sale.exchangeAmount>0?'<p style="margin:6px 0 0;font-size:11px"><b>Old Gold Credit:</b> − '+rateMoney(sale.exchangeAmount)+' | <b>Collected:</b> '+rateMoney(sale.collectedAmount||0)+'</p>':'')+'</div>';
       }
     }
-    // 2. Retail Quotation History row (has rcEditEstimate / rcPrintSavedEstimate)
+    // 2. Retail Quotation History row
     const quoteBtn = tr.querySelector('[onclick*="rcEditEstimate("]');
     if(quoteBtn){
       const m = String(quoteBtn.getAttribute('onclick')||'').match(/rcEditEstimate\('([^']+)'\)/);
@@ -84,7 +91,23 @@
         }
       }
     }
-    // 3. Wholesale Lot row (has packet tag in column 4)
+    // 3. Retail Product Master row (expand Cost Structure slabs + Tags)
+    const prodBtn = tr.querySelector('[onclick*="rcEditProduct("]');
+    if(prodBtn){
+      const m = String(prodBtn.getAttribute('onclick')||'').match(/rcEditProduct\('([^']+)'\)/);
+      if(m){
+        const prod = (db.retailDocuments||[]).find(x=>x.id===m[1]);
+        if(prod){
+          const slabs = (db.retailDocuments||[]).filter(x=>x.type==='retail-cost-structure' && String(x.product||'').toLowerCase()===String(prod.name||'').toLowerCase());
+          const tags = (db.retailDocuments||[]).filter(x=>x.type==='retail-tagging' && String(x.product||'').toLowerCase()===String(prod.name||'').toLowerCase());
+          return '<div class="gl-drill-box"><h4>Product Drill-Down · '+esc(prod.name)+'</h4>'
+            + '<p style="margin:0 0 6px;font-size:11.5px"><b>Description:</b> '+esc(prod.description||'—')+' | <b>Tags in Stock:</b> '+tags.filter(t=>t.status!=='Sold').length+' | <b>Cost Slabs:</b> '+slabs.length+'</p>'
+            + (slabs.length ? '<table><thead><tr><th>From Wt</th><th>To Wt</th><th>MC</th><th>Wst</th><th>Rate</th></tr></thead><tbody>'+slabs.map(s=>'<tr><td>'+fmt(s.fromWeight)+' g</td><td>'+fmt(s.toWeight)+' g</td><td>'+rateMoney(s.mc)+' ('+esc(s.mcType)+')</td><td>'+n(s.wst)+' '+esc(s.wstType)+'</td><td>'+rateMoney(s.rate)+'</td></tr>').join('')+'</tbody></table>' : '')
+            + '</div>';
+        }
+      }
+    }
+    // 4. Wholesale Lot row
     const cells = tr.querySelectorAll('td');
     if(cells.length >= 9 && page === 'Wholesale Lot'){
       const tag = cells[3]?.textContent?.trim();
@@ -95,15 +118,24 @@
         return '<div class="gl-drill-box"><h4>Packet Sales History · '+esc(tag)+'</h4>'+(sales.length?'<table><thead><tr><th>Date</th><th>Party</th><th>Pcs</th><th>Weight g</th><th>Pure g</th><th>Hallmark</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="muted" style="margin:0">No packet sales issued from this lot yet.</p>')+'</div>';
       }
     }
+    // 5. Summary Page (Customer / Party Summary drill-down)
+    if(page === 'Summary' && cells.length >= 4){
+      const name = cells[0]?.textContent?.trim();
+      const isRetail = workspaceMode === 'retail';
+      const acc = (isRetail ? db.customers : db.parties)?.find(a=>a.name===name);
+      if(acc && typeof tx === 'function'){
+        const txs = tx(acc.id, isRetail?'customer':'party').slice(0,8);
+        return '<div class="gl-drill-box"><h4>Recent Transactions · '+esc(acc.name)+'</h4>'+(txs.length?'<table><thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Amount / Wt</th></tr></thead><tbody>'+txs.map(r=>'<tr><td>'+esc(String(r.when||r.date||'').slice(0,16).replace('T',' '))+'</td><td>'+esc(r.type)+'</td><td>'+esc(r.product||r.desc||'—')+'</td><td>'+(isRetail?rateMoney(r.amount):fmt(r.amount)+' g')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted" style="margin:0">No transactions yet.</p>')+'</div>';
+      }
+    }
     return '';
   }
 
   function enhanceTables(){
     const app = document.getElementById('app'); if(!app) return;
-    app.querySelectorAll('.table').forEach((wrap, idx) => {
+    app.querySelectorAll('.table').forEach((wrap) => {
       if(wrap.dataset.glDtDone) return;
       const tbl = wrap.querySelector('table'); if(!tbl) return;
-      // Skip editable entry tables inside forms
       if(tbl.id==='rbItemsTable' || tbl.id==='rcQuoteTable' || tbl.closest('form')) return;
       const tbody = tbl.querySelector('tbody'); if(!tbody) return;
       const dataRows = Array.from(tbody.querySelectorAll(':scope > tr:not(.gl-history-total):not(.rco-subtable-row):not(.gl-drill-row)'));
@@ -113,11 +145,9 @@
 
       // Inject Hierarchy Drill-Down buttons if drillable rows exist and table doesn't already have expand buttons
       const hasNativeExpand = !!tbl.querySelector('tbody button[onclick*="Toggle"], tbody button[onclick*="Expanded"]');
-      let addedDrillCol = false;
       if(!hasNativeExpand){
         const sampleHtml = findDrillHtml(dataRows[0]);
         if(sampleHtml){
-          addedDrillCol = true;
           const headTr = tbl.querySelector('thead tr');
           if(headTr) headTr.insertAdjacentHTML('afterbegin', '<th class="gl-drill-col" style="width:32px"></th>');
           tbody.querySelectorAll(':scope > tr').forEach(tr => {
@@ -147,7 +177,6 @@
         }
       }
 
-      // Skip adding toolbar if a dedicated .rco-toolbar is already directly above inside the same panel
       const panel = wrap.closest('.panel, section');
       const hasToolbar = panel && (panel.querySelector(':scope > .rco-toolbar') || panel.querySelector(':scope > .filters'));
 
@@ -160,7 +189,6 @@
           const asc = !th.classList.contains('asc');
           headCells.forEach(h=>h.classList.remove('asc','desc'));
           th.classList.add(asc?'asc':'desc');
-          // Close open drill rows before sorting
           tbody.querySelectorAll('.gl-drill-row').forEach(r=>r.remove());
           tbody.querySelectorAll('.gl-drill-btn').forEach(b=>b.textContent='+');
           const totalRows = Array.from(tbody.querySelectorAll(':scope > tr.gl-history-total'));
@@ -176,7 +204,7 @@
         };
       });
 
-      if(dataRows.length >= 2 && !hasToolbar){
+      if(dataRows.length >= 1 && !hasToolbar){
         const dtBar = document.createElement('div'); dtBar.className = 'gl-dt-bar';
         const colChecks = headCells.map((th, i) => {
           const t = th.textContent.trim();
