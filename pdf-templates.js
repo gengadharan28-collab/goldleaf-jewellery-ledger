@@ -617,8 +617,67 @@ function pdfGrid80Markup(model,c){
     +'</div>';
 }
 
+function pdfRupeesWords(num){
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eightyg','Ninety'];
+  b[8]='Eighty';
+  const two=n=>n<20?a[n]:b[Math.floor(n/10)]+(n%10?' '+a[n%10]:'');
+  const three=n=>n>=100?a[Math.floor(n/100)]+' Hundred'+(n%100?' '+two(n%100):''):two(n);
+  const v=Math.round(Math.abs(Number(num)||0));
+  if(!v)return 'Zero Rupees Only';
+  const cr=Math.floor(v/10000000),lk=Math.floor((v%10000000)/100000),th=Math.floor((v%100000)/1000),hu=v%1000;
+  return [cr?three(cr)+' Crore':'',lk?two(lk)+' Lakh':'',th?two(th)+' Thousand':'',hu?three(hu):''].filter(Boolean).join(' ')+' Rupees Only';
+}
+
+function pdfOrderSalesMarkup(model,c){
+  const copyLabel=model.copyType?`<span style="float:right;font-size:10px;border:1px solid #333;padding:2px 8px;border-radius:4px;font-weight:700">${esc(String(model.copyType).toUpperCase())}</span>`:'';
+  const rows=(model.invoiceItems||[]).map((x,i)=>`<tr>
+    <td style="text-align:center">${i+1}</td>
+    <td><b>${esc(x.product||'—')}</b>${x.huid?'<br><small>HUID: '+esc(x.huid)+'</small>':''}${x.notes?'<br><small>'+esc(x.notes)+'</small>':''}</td>
+    <td style="text-align:right">${esc(x.pieces||x.qty||1)}</td>
+    <td style="text-align:right">${fmt(x.grossWeight||x.weight||0)} g</td>
+    <td style="text-align:right">${x.rate?pdfMoney(x.rate):'—'}</td>
+    <td style="text-align:right">${x.makingTotal||x.mc?pdfMoney(x.makingTotal||x.mc):'0.00'}</td>
+    <td style="text-align:right">${x.wastage?esc(x.wastage)+'%':'0%'}</td>
+    <td style="text-align:right"><b>${pdfMoney(x.subtotal||x.amount||0)}</b></td>
+  </tr>`).join('');
+  const totalsRows=(model.totals||[]).map(([lbl,val,hi])=>`<tr class="${hi?'pdf-highlight':''}"><th>${esc(lbl)}</th><td style="text-align:right">${esc(val)}</td></tr>`).join('');
+  return `
+    <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:6px;margin-bottom:10px">
+      ${copyLabel}
+      <h2 style="margin:0;font-size:16px;letter-spacing:1px">${esc(model.title||'ORDER SALES')}</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-bottom:10px;font-size:11px;border:1px solid #ddd;padding:8px;border-radius:4px">
+      <div>
+        <div><b>${esc(model.entityLabel||'Customer')}:</b> ${esc(model.entityName||'—')}</div>
+        ${model.customerAddress?`<div><b>Address:</b> ${esc(model.customerAddress)}</div>`:''}
+        ${model.customerMobile?`<div><b>Mobile:</b> ${esc(model.customerMobile)}</div>`:''}
+        ${model.customerState?`<div><b>State:</b> ${esc(model.customerState)}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div><b>Order No.:</b> ${esc(model.reference||'—')}</div>
+        <div><b>Date:</b> ${esc(model.date||'—')}</div>
+        ${model.deliveryDate?`<div><b>Delivery Date:</b> ${esc(model.deliveryDate)}</div>`:''}
+        ${model.goldRate?`<div><b>Ord. Gold Rate:</b> ${pdfMoney(model.goldRate)}/g</div>`:''}
+      </div>
+    </div>
+    <table class="gl-pdf-table">
+      <thead><tr><th>S.No</th><th>Product</th><th>Qty</th><th>Grs.Wt</th><th>Rate</th><th>MC</th><th>Wastage</th><th>Amount</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="8" style="text-align:center">No items</td></tr>'}</tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-top:12px;align-items:start">
+      <div style="font-size:11px;padding:8px;background:#fafaf8;border:1px solid #e5e5e5;border-radius:4px">
+        <b>Rupees in Words:</b><br>${esc(pdfRupeesWords(model.netAmount||0))}
+        ${model.notes?`<div style="margin-top:8px"><b>Remarks:</b> ${esc(model.notes)}</div>`:''}
+      </div>
+      <table class="pdf-totals"><tbody>${totalsRows}</tbody></table>
+    </div>
+  `;
+}
+
 function pdfDocument(model,c,forcedTemplate=null){
   const sample = model.sample ? '<div class="pdf-sample">SAMPLE PREVIEW · not a saved transaction</div>' : '';
+  const isOrder = model.kind==='order';
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
   const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
   const isThermal = template.startsWith('thermal');
@@ -632,10 +691,10 @@ function pdfDocument(model,c,forcedTemplate=null){
       +'</article>';
   }
 
-  return '<article class="gl-pdf pdf-'+template+' '+(model.kind==='ledger'?'pdf-ledger':isEstimate?'pdf-estimate':'pdf-bill')+'">'
+  return '<article class="gl-pdf pdf-'+template+' '+(model.kind==='ledger'?'pdf-ledger':isOrder?'pdf-order':isEstimate?'pdf-estimate':'pdf-bill')+'">'
     +sample
     +pdfHeader(model, c, false)
-    +(model.heads && model.rows && (!model.invoiceItems || model.kind==='purchase' || model.kind==='ledger') ? pdfTable(model.heads, model.rows) + pdfTotals(model.totals||[]) + (model.kind==='purchase'?pdfBankAndQRMarkup(c):'') : pdfBillMarkup(model, c, template))
+    +(isOrder ? pdfOrderSalesMarkup(model, c) : (model.heads && model.rows && (!model.invoiceItems || model.kind==='purchase' || model.kind==='ledger') ? pdfTable(model.heads, model.rows) + pdfTotals(model.totals||[]) + (model.kind==='purchase'?pdfBankAndQRMarkup(c):'') : pdfBillMarkup(model, c, template)))
     +(c.showTerms ? '<div class="pdf-signatures"><span>Customer / Party Signature</span><span>Authorised Signatory</span></div><footer>'+esc(isEstimate ? (c.estimateBottomMargin || c.footerText) : c.footerText)+'</footer>' : '')
     +'</article>';
 }
