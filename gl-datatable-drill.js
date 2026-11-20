@@ -101,12 +101,13 @@
 
     let html = '<div id="glDtDispModal" class="retail-modal-backdrop" role="dialog" aria-modal="true"><section class="retail-modal" style="max-width:740px">'
       + '<div class="retail-modal-head"><div><h2>'+esc(titleLabel)+'</h2><p>Show or hide columns for ' + esc(page||'this table') + '</p></div><button type="button" onclick="document.getElementById(\'glDtDispModal\').remove()">Close</button></div>'
-      + '<div style="display:flex;gap:8px;margin-bottom:10px"><button type="button" id="glDispAll">Select All</button><button type="button" id="glDispReset">Reset Defaults</button></div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px"><input type="search" id="glDispSearch" placeholder="Search columns…" style="flex:1;min-width:180px;padding:6px 10px;border:1px solid var(--line,#d5d0c5);border-radius:8px;font-size:13px"><button type="button" id="glDispAll">Select All</button><button type="button" id="glDispReset">Reset Defaults</button></div>'
       + '<div class="rco-display-cols">';
     for(const [grp, cols] of Object.entries(groups)){
-      html += '<div class="rco-display-group"><h4>'+esc(grp)+'</h4>';
+      const allChk = cols.every(c=>c.checked);
+      html += '<div class="rco-display-group"><h4><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="gl-grp-chk" '+(allChk?'checked':'')+'> <span>'+esc(grp)+' ('+cols.filter(c=>c.checked).length+'/'+cols.length+')</span></label></h4>';
       cols.forEach(c => {
-        html += '<label><input type="checkbox" data-gl-col="'+c.idx+'" '+(c.checked?'checked':'')+'> <span>'+esc(c.label)+'</span></label>';
+        html += '<label class="gl-disp-item"><input type="checkbox" data-gl-col="'+c.idx+'" '+(c.checked?'checked':'')+'> <span>'+esc(c.label)+'</span></label>';
       });
       html += '</div>';
     }
@@ -114,7 +115,18 @@
     document.body.insertAdjacentHTML('beforeend', html);
 
     const modal = document.getElementById('glDtDispModal');
-    modal.querySelector('#glDispAll').onclick = () => modal.querySelectorAll('[data-gl-col]').forEach(cb=>cb.checked=true);
+    modal.querySelector('#glDispSearch').oninput = (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      modal.querySelectorAll('.gl-disp-item').forEach(lbl => {
+        lbl.style.display = (!q || lbl.textContent.toLowerCase().includes(q)) ? 'flex' : 'none';
+      });
+    };
+    modal.querySelectorAll('.gl-grp-chk').forEach(gcb => {
+      gcb.onchange = () => {
+        gcb.closest('.rco-display-group').querySelectorAll('[data-gl-col]').forEach(cb => { cb.checked = gcb.checked; });
+      };
+    });
+    modal.querySelector('#glDispAll').onclick = () => modal.querySelectorAll('[data-gl-col], .gl-grp-chk').forEach(cb=>cb.checked=true);
     modal.querySelector('#glDispReset').onclick = () => {
       localStorage.removeItem(storeKey);
       modal.querySelectorAll('[data-gl-col]').forEach(cb=>cb.checked=true);
@@ -197,12 +209,18 @@
         document.getElementById('glCustFilterModal')?.remove();
         let mHtml = '<div id="glCustFilterModal" class="retail-modal-backdrop" role="dialog" aria-modal="true"><section class="retail-modal" style="max-width:440px">'
           + '<div class="retail-modal-head"><div><h2>Customize Filters</h2><p>Choose filter fields for this table</p></div><button type="button" onclick="document.getElementById(\'glCustFilterModal\').remove()">Close</button></div>'
-          + '<div class="rco-check-row" style="flex-direction:column;align-items:flex-start">'
-          + (dateColIdx>=0 ? '<label><input type="checkbox" data-cf-key="date" '+(activeFilterKeys.has('date')?'checked':'')+'> Date Range (From / To)</label>' : '')
-          + catCols.map(c=>'<label><input type="checkbox" data-cf-key="'+c.idx+'" '+(activeFilterKeys.has(String(c.idx))?'checked':'')+'> '+esc(c.label)+'</label>').join('')
+          + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="search" id="glCfSearch" placeholder="Search filters…" style="flex:1;padding:6px 10px;border:1px solid var(--line,#d5d0c5);border-radius:8px;font-size:13px"><button type="button" id="glCfAll">Select All</button></div>'
+          + '<div class="rco-check-row" style="flex-direction:column;align-items:flex-start;max-height:50vh;overflow:auto">'
+          + (dateColIdx>=0 ? '<label class="gl-cf-item"><input type="checkbox" data-cf-key="date" '+(activeFilterKeys.has('date')?'checked':'')+'> Date Range (From / To)</label>' : '')
+          + catCols.map(c=>'<label class="gl-cf-item"><input type="checkbox" data-cf-key="'+c.idx+'" '+(activeFilterKeys.has(String(c.idx))?'checked':'')+'> '+esc(c.label)+'</label>').join('')
           + '</div><div class="retail-modal-actions"><button type="button" class="primary" id="glCfApply">Apply</button></div></section></div>';
         document.body.insertAdjacentHTML('beforeend', mHtml);
         const cm = document.getElementById('glCustFilterModal');
+        cm.querySelector('#glCfSearch').oninput = (e) => {
+          const q = e.target.value.trim().toLowerCase();
+          cm.querySelectorAll('.gl-cf-item').forEach(lbl => { lbl.style.display = (!q || lbl.textContent.toLowerCase().includes(q)) ? 'inline-flex' : 'none'; });
+        };
+        cm.querySelector('#glCfAll').onclick = () => cm.querySelectorAll('[data-cf-key]').forEach(cb=>cb.checked=true);
         cm.querySelector('#glCfApply').onclick = () => {
           const next = [];
           cm.querySelectorAll('[data-cf-key]').forEach(cb => { if(cb.checked) next.push(cb.dataset.cfKey); });
