@@ -796,8 +796,10 @@ function pdfRenderDocumentModal(){
     +'<p>'+esc((model.reference||'Live view')+' · '+(model.entityName||'')+(model.chit?.passbook?' · Chit '+model.chit.passbook:''))+'</p></div>'
     +'<div class="pdf-preview-head-actions">'
     +'<button type="button" class="primary" onclick="pdfPrintPreviewActive()">Print / Save PDF</button>'
+    +'<button type="button" onclick="pdfOpenNewTabActive()">Open in New Tab</button>'
     +'<button type="button" onclick="document.getElementById(\'pdfDocumentPreview\')?.remove()">Close</button>'
     +'</div></div>'
+    +'<div class="pdf-preview-toolbar"><div class="pdf-preview-pills">'+pillHtml+'</div></div>'
     +(missingGstin?'<div class="pdf-preview-warning">GST is enabled on this bill, but Shop GSTIN (15 chars) is not set in Retail PDF Settings — showing draft preview.</div>':'')
     +'<iframe title="Live PDF preview"></iframe>'
     +'</section>';
@@ -832,6 +834,18 @@ window.pdfPrintPreviewActive=function(){
   const { model, mode, template } = pdfActiveDocPreview;
   const isDraft = !!(model.sample || String(model.reference||'').startsWith('DRAFT'));
   pdfTriggerPrint(model, mode, template, isDraft);
+};
+
+window.pdfOpenNewTabActive=function(){
+  if(!pdfActiveDocPreview)return;
+  const { model, template, config } = pdfActiveDocPreview;
+  const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
+  const layouts = isEstimate ? PDF_ESTIMATE_LAYOUTS : PDF_LAYOUTS;
+  const chosen = layouts[template] ? template : (isEstimate ? 'detailed-estimate' : 'classic');
+  const html = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(model.title||'Document')+' · '+esc(model.reference||'')+'</title><style>body{margin:0;padding:18px;background:#fff;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 };
 
 async function pdfPrintModel(model,mode,forcedTemplate=null,options={}){

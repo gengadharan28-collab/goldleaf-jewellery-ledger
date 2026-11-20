@@ -1576,11 +1576,11 @@ function rcQuoteForm(){
     // Actions
     +'<div class="rc-actions rp-print-actions" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;margin-top:10px">'
     +'<button type="button" aria-label="New Quote" onclick="rcResetEstimate()"><span class="rc-action-long">＋ New Quote</span><span class="rc-action-short">＋ New</span></button>'
+    +'<button type="button" class="rb-pill-btn" aria-label="View Quotation PDF" onclick="rcViewEstimate()" style="background:#18392a;border-color:#18392a;color:#fff;font-weight:750"><span class="rc-action-long">👁️ View PDF</span><span class="rc-action-short">👁️ View</span></button>'
     +'<button type="button" class="rb-pill-btn" aria-label="80mm Thermal POS" onclick="rcPrintEstimate(\'thermal-estimate-80\')" style="font-weight:750">🖨️ 80mm POS</button>'
     +'<button type="button" class="rb-pill-btn" aria-label="80mm Compact Grid" onclick="rcPrintEstimate(\'thermal-estimate-grid-80\')" style="font-weight:750">📋 80mm Grid</button>'
     +'<button type="button" class="rb-pill-btn" aria-label="A4 Detailed" onclick="rcPrintEstimate(\'detailed-estimate\')">📄 A4 Detailed</button>'
     +'<button type="button" class="rb-pill-btn" aria-label="A5 Slip" onclick="rcPrintEstimate(\'compact-estimate-a5\')">📋 A5 Slip</button>'
-    +'<button type="button" aria-label="Print or Save PDF" onclick="rcPrintEstimate()"><span class="rc-action-long">📄 View PDF</span><span class="rc-action-short">📄 PDF</span></button>'
     +'<button type="button" aria-label="WhatsApp Customer" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700" onclick="rcShareQuoteWhatsApp('+(q?.id?'\''+esc(q.id)+'\'':'')+')"><span class="rc-action-long">📲 WhatsApp Customer</span><span class="rc-action-short">📲 WhatsApp</span></button>'
     +(q?.id ? '<button type="button" style="background:#e88a1a;border-color:#e88a1a;color:#fff;font-weight:700" onclick="rcConvert(\''+esc(q.id)+'\')">⚡ Convert to Sales Bill</button>' : '')
     +'<button type="submit" class="primary" aria-label="'+(q?'Save Changes':'Save Quotation')+'" style="padding:0 20px;font-weight:750"><span class="rc-action-long">'+(q?'Save Changes':'Save Quotation')+'</span><span class="rc-action-short">Save</span></button>'
@@ -1632,6 +1632,7 @@ function rcEstimateHistory(){
     '<b style="color:var(--green,#18392a)">'+rateMoney(q.amount)+'</b>',
     '<span class="pill">'+esc(q.status||'Draft')+'</span>',
     '<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
+    +'<button type="button" class="rb-pill-btn" style="background:#18392a;border-color:#18392a;color:#fff;font-weight:750" onclick="rcViewSavedEstimate(\''+esc(q.id)+'\')" title="View Quotation PDF">View</button> '
     +'<button type="button" class="rb-pill-btn" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm POS Receipt">POS</button> '
     +'<button type="button" class="rb-pill-btn" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-grid-80\')" title="Print 80mm Compact Grid">Grid</button> '
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'detailed-estimate\')" title="Print A4 PDF">PDF</button> '
@@ -1880,6 +1881,26 @@ function rcQuoteModel(q){
     notes: [q.validUntil ? 'Valid until: ' + q.validUntil : '', q.reference, q.notes].filter(Boolean).join(' · ')
   };
 }
+
+window.rcViewEstimate = function(forcedTemplate='detailed-estimate'){
+  const f = document.getElementById('rcEstimateForm');
+  if(!f?.reportValidity()) return;
+  const q = rcEstimateRead(f);
+  if(!q.customerId || q.items.some(x=>!x.product || x.netWeight<=0)){
+    return say('Complete the customer and jewellery items before viewing PDF.');
+  }
+  const cfg = pdfConfig('retail');
+  const chosen = forcedTemplate || (cfg.estimateTemplate && !cfg.estimateTemplate.startsWith('thermal') ? cfg.estimateTemplate : 'detailed-estimate');
+  pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
+};
+
+window.rcViewSavedEstimate = function(id, forcedTemplate='detailed-estimate'){
+  const q = rcDocs('retail-estimate').find(x=>x.id===id);
+  if(!q) return say('Quotation not found.');
+  const cfg = pdfConfig('retail');
+  const chosen = forcedTemplate || (cfg.estimateTemplate && !cfg.estimateTemplate.startsWith('thermal') ? cfg.estimateTemplate : 'detailed-estimate');
+  pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
+};
 
 window.rcPrintEstimate = function(forcedTemplate){
   const f = document.getElementById('rcEstimateForm');
