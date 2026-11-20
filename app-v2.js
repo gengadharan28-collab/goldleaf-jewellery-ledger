@@ -362,12 +362,31 @@ function v2CloudMarker(){return session?V2_CLOUD_PENDING_KEY+'-'+session.user.id
 function v2MergeCloudLedgers(remote,local,preferLocal=true){
   const merged=JSON.parse(JSON.stringify(remote||{})),current=local||{};
   // Keep deletion tombstones so an older cloud/device copy cannot recreate a
-  // Retail document after it has been deleted and the app is refreshed.
+  // document or sale after it has been deleted and the app is refreshed.
   const deletedRetailDocumentIds=new Set([
     ...(Array.isArray(merged.deletedRetailDocumentIds)?merged.deletedRetailDocumentIds:[]),
     ...(Array.isArray(current.deletedRetailDocumentIds)?current.deletedRetailDocumentIds:[])
   ].map(String));
   merged.deletedRetailDocumentIds=[...deletedRetailDocumentIds];
+
+  const deletedWholesaleSaleIds=new Set([
+    ...(Array.isArray(merged.deletedWholesaleSaleIds)?merged.deletedWholesaleSaleIds:[]),
+    ...(Array.isArray(current.deletedWholesaleSaleIds)?current.deletedWholesaleSaleIds:[])
+  ].map(String));
+  merged.deletedWholesaleSaleIds=[...deletedWholesaleSaleIds];
+
+  const deletedSaleIds=new Set([
+    ...(Array.isArray(merged.deletedSaleIds)?merged.deletedSaleIds:[]),
+    ...(Array.isArray(current.deletedSaleIds)?current.deletedSaleIds:[])
+  ].map(String));
+  merged.deletedSaleIds=[...deletedSaleIds];
+
+  const deletedLotIds=new Set([
+    ...(Array.isArray(merged.deletedLotIds)?merged.deletedLotIds:[]),
+    ...(Array.isArray(current.deletedLotIds)?current.deletedLotIds:[])
+  ].map(String));
+  merged.deletedLotIds=[...deletedLotIds];
+
   // Preserve wholesale and retail records during cloud merge too.
   for(const key of ['parties','customers','sales','payments','retailDocuments','retailSuppliers','wholesaleLots','wholesalePacketSales','wholesalePacketReturns']){
     const combined=new Map();for(const item of Array.isArray(merged[key])?merged[key]:[])combined.set(item.id||JSON.stringify(item),item);
@@ -375,6 +394,9 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
     merged[key]=[...combined.values()];
   }
   merged.retailDocuments=(merged.retailDocuments||[]).filter(item=>!deletedRetailDocumentIds.has(String(item?.id||'')));
+  merged.wholesalePacketSales=(merged.wholesalePacketSales||[]).filter(item=>!deletedWholesaleSaleIds.has(String(item?.id||'')));
+  merged.sales=(merged.sales||[]).filter(item=>!deletedSaleIds.has(String(item?.id||'')));
+  merged.wholesaleLots=(merged.wholesaleLots||[]).filter(item=>!deletedLotIds.has(String(item?.id||'')));
   for(const key of ['products','purities','partyPurities']){const seen=new Map();for(const item of [...(merged[key]||[]),...(current[key]||[])])seen.set(String(item).toLowerCase(),item);merged[key]=[...seen.values()]}
   const remotePdf=merged.pdfSettings||{},localPdf=current.pdfSettings||{};
   merged.pdfSettings=Object.assign({},remotePdf);

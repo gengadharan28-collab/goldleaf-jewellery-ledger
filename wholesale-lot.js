@@ -11,6 +11,16 @@
     db.wholesalePacketReturns = Array.isArray(db.wholesalePacketReturns) ? db.wholesalePacketReturns : [];
     db.sales = Array.isArray(db.sales) ? db.sales : [];
     db.parties = Array.isArray(db.parties) ? db.parties : [];
+    db.deletedWholesaleSaleIds = Array.isArray(db.deletedWholesaleSaleIds) ? db.deletedWholesaleSaleIds : [];
+    db.deletedSaleIds = Array.isArray(db.deletedSaleIds) ? db.deletedSaleIds : [];
+    if (db.deletedWholesaleSaleIds.length) {
+      const delSet = new Set(db.deletedWholesaleSaleIds.map(String));
+      db.wholesalePacketSales = db.wholesalePacketSales.filter(s => !delSet.has(String(s.id)));
+    }
+    if (db.deletedSaleIds.length) {
+      const delSet = new Set(db.deletedSaleIds.map(String));
+      db.sales = db.sales.filter(s => !delSet.has(String(s.id)));
+    }
     // Safely migrate any legacy wholesale records out of retailDocuments
     if (Array.isArray(db.retailDocuments)) {
       const legacyLots = db.retailDocuments.filter(d => d && d.kind === 'wholesale-lot');
@@ -44,9 +54,15 @@
   }
   function balance(lot) {
     const sold = db.wholesalePacketSales.filter((v) => v.lotId === lot.id);
+    const soldPcs = sold.reduce((a, v) => a + n(v.pieces), 0);
+    const soldWt = sold.reduce((a, v) => a + n(v.weight), 0);
     return {
-      pieces: Math.max(0, n(lot.pieces) - sold.reduce((a, v) => a + n(v.pieces), 0)),
-      weight: Math.max(0, n(lot.netWeight) - sold.reduce((a, v) => a + n(v.weight), 0)),
+      openingPieces: n(lot.pieces),
+      openingWeight: n(lot.netWeight),
+      soldPieces: soldPcs,
+      soldWeight: soldWt,
+      pieces: Math.max(0, n(lot.pieces) - soldPcs),
+      weight: Math.max(0, n(lot.netWeight) - soldWt),
     };
   }
   function partyOptions() {
@@ -55,7 +71,9 @@
   function lotOptions() {
     return '<option value="">Select packet tag</option>' + (db.wholesaleLots || []).map((l) => {
       const b = balance(l);
-      return '<option value="' + x(l.id) + '">' + x(l.packetTag || l.lotNo) + ' · ' + x(l.product || 'Item') + ' · ' + g(b.weight) + ' g (' + b.pieces + ' pcs)</option>';
+      const isExhausted = b.pieces <= 0 || b.weight <= 0.0001;
+      const status = isExhausted ? ' [Sold out]' : b.soldPieces > 0 ? ' [Partial: ' + b.pieces + ' pcs left]' : '';
+      return '<option value="' + x(l.id) + '">' + x(l.packetTag || l.lotNo) + ' · ' + x(l.product || 'Item') + ' · ' + g(b.weight) + ' g (' + b.pieces + ' pcs left)' + status + '</option>';
     }).join("");
   }
   function title(sub) { return header(sub, '<span class="wl-pill">Wholesale only</span>'); }
@@ -93,7 +111,7 @@
     ensure();
     const rows = db.wholesalePacketSales.slice().reverse().map((s) => {
       const l = lotById(s.lotId), p = db.parties.find((v) => v.id === s.partyId);
-      return '<tr><td>' + x(s.when.replace('T', ' ')) + '</td><td>' + x(p?.name || 'Party') + '</td><td><b>' + x(l?.packetTag || s.lotId) + '</b></td><td>' + x(l?.product || '—') + '</td><td>' + s.pieces + '</td><td>' + g(s.weight) + '</td><td>' + g(s.purePayable) + '</td><td>₹ ' + n(s.hallmarkTotal).toFixed(2) + '</td><td><button type="button" class="rb-delete-btn" onclick="wlDeleteSale(\'' + s.id + '\')">×</button></td></tr>';
+      return '<tr><td>' + x(s.when.replace('T', ' ')) + '</td><td>' + x(p?.name || 'Party') + '</td><td><b>' + x(l?.packetTag || s.packetTag || s.lotId) + '</b></td><td>' + x(l?.product || s.product || '—') + '</td><td>' + s.pieces + '</td><td>' + g(s.weight) + '</td><td>' + g(s.purePayable) + '</td><td>₹ ' + n(s.hallmarkTotal).toFixed(2) + '</td><td><button type="button" class="rb-delete-btn" onclick="wlDeleteSale(\'' + s.id + '\')">×</button></td></tr>';
     }).join("");
     return title('Scan a wholesale packet and issue partial pieces and weight to a party.')
       + '<section class="panel"><div class="v2-section-head"><h2>Wholesale party sales entry</h2></div>'
@@ -103,7 +121,8 @@
       + '<label class="field wl-scan-field"><span>Packet tag / Search *</span><div class="wl-scan-row"><input id="wlSaleTagInput" placeholder="Scan / type tag" oninput="wlOnTagInput(this)" onchange="wlOnTagChange(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wlOnTagChange(this);}" style="max-width:140px"><select id="wlSaleLot" name="lotId" required onchange="wlLoadSalePacket(this.form)">' + lotOptions() + '</select><button type="button" class="gl-scan-btn" onclick="wlScanSale()">▣ Scan</button></div></label>'
       + '<label class="field"><span>Product *</span><input name="product" readonly placeholder="Auto from packet" style="font-weight:700;background:#fbfbfb"></label>'
       + '<label class="field"><span>Available stock</span><input name="available" readonly style="background:#fbfbfb"></label>'
-      + '<label class="field"><span>Issued pieces *</span><input name="pieces" type="number" min="1" step="1" required oninput="wlSaleCalc(this.form)"></label>'
+      + '<div class="field wide" style="margin:2px 0 6px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;color:var(--muted)">Sale mode:</span><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'1pc\',this.form)">1 Pc partial</button><button type="button" class="gl-scan-btn" style="padding:4px 10px;font-size:12px" onclick="wlApplySaleMode(\'full\',this.form)">Full packet</button><span id="wlRemainingBadge" style="margin-left:auto;font-size:12px;font-weight:750;color:#18392a;background:#edf7f0;padding:4px 8px;border-radius:6px">Select packet for stock balance</span></div></div>'
+      + '<label class="field"><span>Issued pieces *</span><input name="pieces" type="number" min="1" step="1" required oninput="wlOnPiecesInput(this.form)"></label>'
       + '<label class="field"><span>Issued weight · g *</span><input name="weight" type="number" min=".001" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
       + '<label class="field"><span>Touch %</span><input name="touch" type="number" min="1" max="100" step=".001" required oninput="wlSaleCalc(this.form)"></label>'
       + '<label class="field"><span>Wastage %</span><input name="wastage" type="number" min="0" step=".001" value="0" oninput="wlSaleCalc(this.form)"></label>'
@@ -135,6 +154,44 @@
       say('Packet tag "' + inp.value.trim() + '" not found in wholesale lots.');
     }
   };
+  window.wlApplySaleMode = function(mode, f) {
+    if (!f) return;
+    const lotId = f.lotId ? f.lotId.value : (f.elements && f.elements.lotId ? f.elements.lotId.value : '');
+    const l = lotById(lotId);
+    if (!l) return say('Select a packet first.');
+    const b = balance(l);
+    if (b.pieces <= 0 || b.weight <= 0.0001) return say('This packet is already fully sold out.');
+    if (mode === 'full') {
+      f.pieces.value = b.pieces;
+      f.weight.value = g(b.weight);
+    } else if (mode === '1pc') {
+      f.pieces.value = 1;
+      const avg = b.pieces > 0 ? (b.weight / b.pieces) : b.weight;
+      f.weight.value = g(avg);
+    }
+    wlSaleCalc(f);
+  };
+  window.wlOnPiecesInput = function(f) {
+    if (!f) return;
+    const lotId = f.lotId ? f.lotId.value : (f.elements && f.elements.lotId ? f.elements.lotId.value : '');
+    const l = lotById(lotId);
+    if (!l) { wlSaleCalc(f); return; }
+    const b = balance(l);
+    const pcs = n(f.pieces.value);
+    if (pcs > b.pieces) {
+      say('Packet only has ' + b.pieces + ' pieces available.');
+      f.pieces.value = b.pieces;
+    }
+    if (b.pieces > 0 && n(f.pieces.value) > 0) {
+      if (n(f.pieces.value) === b.pieces) {
+        f.weight.value = g(b.weight);
+      } else {
+        const avg = b.weight / b.pieces;
+        f.weight.value = g(avg * n(f.pieces.value));
+      }
+    }
+    wlSaleCalc(f);
+  };
   window.wlLoadSalePacket = function (f) {
     if (!f) return;
     const lotId = f.lotId ? f.lotId.value : (f.elements && f.elements.lotId ? f.elements.lotId.value : '');
@@ -142,13 +199,17 @@
     if (!l) {
       if (f.product) f.product.value = '';
       if (f.available) f.available.value = '';
+      const badge = document.getElementById('wlRemainingBadge');
+      if (badge) badge.textContent = 'Select packet for stock balance';
       return;
     }
     const b = balance(l);
     if (f.product) f.product.value = l.product || '';
-    if (f.available) f.available.value = b.pieces + ' pcs · ' + g(b.weight) + ' g';
-    if (f.pieces) f.pieces.value = b.pieces > 0 ? (n(f.pieces.value) > 0 && n(f.pieces.value) <= b.pieces ? f.pieces.value : 1) : 0;
-    if (f.weight) f.weight.value = g(b.weight);
+    if (f.available) f.available.value = b.pieces + ' pcs · ' + g(b.weight) + ' g available (Opening: ' + b.openingPieces + ' pcs · ' + g(b.openingWeight) + ' g)';
+    const defPieces = b.pieces > 0 ? 1 : 0;
+    if (f.pieces) f.pieces.value = defPieces;
+    const avg = b.pieces > 0 ? (b.weight / b.pieces) : b.weight;
+    if (f.weight) f.weight.value = defPieces === b.pieces ? g(b.weight) : g(avg * defPieces);
     if (f.touch) f.touch.value = l.touch || '';
     const tagIn = document.getElementById('wlSaleTagInput');
     if (tagIn && l.packetTag) tagIn.value = l.packetTag;
@@ -156,6 +217,9 @@
   };
   window.wlSaleCalc = function (f) {
     if (!f) return;
+    const lotId = f.lotId ? f.lotId.value : (f.elements && f.elements.lotId ? f.elements.lotId.value : '');
+    const l = lotById(lotId);
+    const b = l ? balance(l) : null;
     const weight = n(f.weight ? f.weight.value : 0);
     const touch = n(f.touch ? f.touch.value : 0);
     const wastage = n(f.wastage ? f.wastage.value : 0);
@@ -163,14 +227,26 @@
     const hallmarkRate = n(f.hallmarkRate ? f.hallmarkRate.value : 0);
     if (f.pure) f.pure.value = g(weight * (touch + wastage) / 100);
     if (f.hallmarkTotal) f.hallmarkTotal.value = (pieces * hallmarkRate).toFixed(2);
+    const badge = document.getElementById('wlRemainingBadge');
+    if (badge && b) {
+      const remPcs = Math.max(0, b.pieces - pieces);
+      const remWt = Math.max(0, b.weight - weight);
+      badge.textContent = 'Packet after sale: ' + remPcs + ' pcs · ' + g(remWt) + ' g';
+      badge.style.color = (remPcs === 0 || remWt <= 0.001) ? '#b45309' : '#18392a';
+      badge.style.background = (remPcs === 0 || remWt <= 0.001) ? '#fffbeb' : '#edf7f0';
+    }
   };
   window.wlDeleteSale = function (id) {
     if (!confirm('Delete this party sale and restore packet balance?')) return;
     ensure();
-    const idx = db.wholesalePacketSales.findIndex(s => s.id === id);
-    if (idx >= 0) db.wholesalePacketSales.splice(idx, 1);
-    const sIdx = db.sales.findIndex(s => s.id === id);
-    if (sIdx >= 0) db.sales.splice(sIdx, 1);
+    const strId = String(id);
+    db.deletedWholesaleSaleIds = Array.isArray(db.deletedWholesaleSaleIds) ? db.deletedWholesaleSaleIds : [];
+    if (!db.deletedWholesaleSaleIds.includes(strId)) db.deletedWholesaleSaleIds.push(strId);
+    db.deletedSaleIds = Array.isArray(db.deletedSaleIds) ? db.deletedSaleIds : [];
+    if (!db.deletedSaleIds.includes(strId)) db.deletedSaleIds.push(strId);
+
+    db.wholesalePacketSales = (db.wholesalePacketSales || []).filter(s => String(s.id) !== strId);
+    db.sales = (db.sales || []).filter(s => String(s.id) !== strId);
     save();
     render();
     say('Party sale deleted and packet balance restored.');
