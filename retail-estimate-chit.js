@@ -1631,14 +1631,16 @@ function rcEstimateHistory(){
     (q.items?.length||0)+' pcs',
     '<b style="color:var(--green,#18392a)">'+rateMoney(q.amount)+'</b>',
     '<span class="pill">'+esc(q.status||'Draft')+'</span>',
-    '<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
-    +'<button type="button" class="rb-pill-btn" style="background:#18392a;border-color:#18392a;color:#fff;font-weight:750" onclick="rcViewSavedEstimate(\''+esc(q.id)+'\')" title="View Quotation PDF">View</button> '
-    +'<button type="button" class="rb-pill-btn" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm POS Receipt">POS</button> '
-    +'<button type="button" class="rb-pill-btn" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-grid-80\')" title="Print 80mm Compact Grid">Grid</button> '
+    '<div class="rc-history-actions" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'
+    +'<button type="button" class="primary" onclick="rcViewSavedEstimate(\''+esc(q.id)+'\')" title="View Quotation PDF" style="font-weight:750">View</button> '
+    +'<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
     +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'detailed-estimate\')" title="Print A4 PDF">PDF</button> '
+    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-80\')" title="Print 80mm POS Receipt">POS</button> '
+    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\',\'thermal-estimate-grid-80\')" title="Print 80mm Compact Grid">Grid</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
-    +'<button type="button" class="primary" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button> '
+    +'<button type="button" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button> '
     +'<button type="button" class="rc-history-delete" onclick="rcDeleteEstimate(\''+esc(q.id)+'\')" title="Delete quotation">Delete</button>'
+    +'</div>'
   ]);
   if(rows.length)rows.push(['TOTAL · '+all.length,'','',all.reduce((s,q)=>s+(q.items?.length||0),0)+' pcs',rateMoney(all.reduce((s,q)=>s+n(q.amount),0)),'','']);
   return rows.length?'<div class="rb-total-history">'+table(['Quote #','Date','Customer','Items','Amount','Status','Actions'],rows)+'</div>':'<p class="muted">Saved estimations and quotations will appear here.</p>';
