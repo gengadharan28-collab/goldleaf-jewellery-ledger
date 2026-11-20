@@ -12,10 +12,12 @@
     .gl-dt-col-pop{position:absolute;right:0;top:100%;margin-top:4px;z-index:50;min-width:190px;max-height:240px;overflow:auto;background:var(--white,#fff);border:1px solid var(--line,#d5d0c5);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:none}
     .gl-dt-col-pop.open{display:block}
     .gl-dt-col-pop label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 2px;cursor:pointer;white-space:nowrap}
-    /* Crisp Table Grid Lines across all pages */
+    /* Crisp Table Grid Lines & Single-Line Straight Row Content across all pages */
     .table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line,#ded8cc);border-radius:10px}
-    .table table{border-collapse:collapse;width:100%}
-    .table table th,.table table td{border:1px solid var(--line,#e4dfd4)!important}
+    .table table{border-collapse:collapse;width:max-content;min-width:100%}
+    .table table th,.table table td{border:1px solid var(--line,#e4dfd4)!important;vertical-align:middle!important}
+    .table table tr:not(.gl-drill-row):not(.rco-subtable-row) > th,.table table tr:not(.gl-drill-row):not(.rco-subtable-row) > td{white-space:nowrap!important}
+    .gl-drill-box th,.gl-drill-box td{white-space:nowrap!important;vertical-align:middle!important}
     .table table thead th{background:var(--paper,#f4f0e6);font-weight:750;position:sticky;top:0;z-index:2}
     .table table tbody tr:nth-child(even):not(.gl-drill-row):not(.rco-subtable-row):not(.gl-history-total){background:rgba(0,0,0,.015)}
     .table table tbody tr:hover:not(.gl-drill-row):not(.rco-subtable-row){background:rgba(24,57,42,.04)}
