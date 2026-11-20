@@ -17,19 +17,18 @@
     'Other': [['huid','HUID'],['skin','Skin'],['size','Length/Size'],['salesReturn','Sales Return'],['salesPerson','Sales Person']]
   };
 
-  let rcoOrderTab = 'All', rcoOrderFilterOpen = false, rcoOrderDetailMode = false, rcoOrderEditId = '', rcoOrderViewId = '', rcoOrderViewTab = 'Details';
-  let rcoExpandedOrders = new Set();
-  let rcoOrderDisplay = JSON.parse(localStorage.getItem('goldleaf-order-display') || '{"oldJewel":true,"chit":true,"huid":true,"deliveryDate":true,"mc":true,"wst":true,"netWt":true}');
-  let rcoOrderFilter = { q:'', dateBy:'orderDate', from:'', to:'', supplierId:'', ornament:'All', product:'', salesPerson:'' };
-
-  let rcoCrmTab = 'Leads', rcoCrmEditId = '', rcoCrmFilterOpen = false, rcoCrmSearch = '', rcoCallTypeFilter = 'All';
-  let rcoCalMonth = new Date().toISOString().slice(0,7);
-
-  let rcoCustViewId = '', rcoCustViewTab = 'Details', rcoCustEditId = '', rcoCustShowForm = false, rcoCustSearch = '', rcoCustFilterOpen = false;
-  let rcoCustFilter = { city:'', team:'', group:'', gender:'', segment:'', dnd:'', verified:'' };
-
-  let rcoSupViewId = '', rcoSupViewTab = 'Details', rcoSupEditId = '', rcoSupShowForm = false, rcoSupSearch = '', rcoSupFilterOpen = false;
-  let rcoSupFilter = { ornament:'', businessType:'', city:'' };
+  window.rcoState = window.rcoState || {
+    orderTab: 'All', orderFilterOpen: false, orderDetailMode: false, orderShowForm: false, orderEditId: '', orderViewId: '', orderViewTab: 'Details',
+    expandedOrders: new Set(),
+    orderDisplay: JSON.parse(localStorage.getItem('goldleaf-order-display') || '{"oldJewel":true,"chit":true,"huid":true,"deliveryDate":true,"mc":true,"wst":true,"netWt":true}'),
+    orderFilter: { q:'', dateBy:'orderDate', from:'', to:'', supplierId:'', ornament:'All', product:'', salesPerson:'' },
+    crmTab: 'Leads', crmShowForm: false, crmEditId: '', crmFilterOpen: false, crmSearch: '', callTypeFilter: 'All',
+    calMonth: new Date().toISOString().slice(0,7),
+    custViewId: '', custViewTab: 'Details', custEditId: '', custShowForm: false, custSearch: '', custFilterOpen: false,
+    custFilter: { city:'', team:'', group:'', gender:'', segment:'', dnd:'', verified:'' },
+    supViewId: '', supViewTab: 'Details', supEditId: '', supShowForm: false, supSearch: '', supFilterOpen: false,
+    supFilter: { ornament:'', businessType:'', city:'' }
+  };
 
   const docs = (type) => (window.rcDocs ? window.rcDocs(type) : (db.retailDocuments||[]).filter(d=>d.type===type));
   const saveDoc = (type, doc) => {
@@ -53,13 +52,12 @@
   const todayStr = () => new Date().toISOString().slice(0,10);
 
   // ======================== 1. ORDER TRACKING ========================
-  window.rcoOpenOrderForm = (id='') => { rcoOrderEditId = id; rcoOrderViewId = ''; rcoOrderShowFormFlag = true; render(); };
-  let rcoOrderShowFormFlag = false;
-  window.rcoCloseOrderForm = () => { rcoOrderShowFormFlag = false; rcoOrderEditId = ''; render(); };
-  window.rcoToggleOrderExpand = (id) => { if(rcoExpandedOrders.has(id)) rcoExpandedOrders.delete(id); else rcoExpandedOrders.add(id); render(); };
-  window.rcoSetOrderTab = (tab) => { rcoOrderTab = tab; render(); };
-  window.rcoViewOrder = (id) => { rcoOrderViewId = id; rcoOrderViewTab = 'Details'; render(); };
-  window.rcoCloseOrderView = () => { rcoOrderViewId = ''; render(); };
+  window.rcoOpenOrderForm = (id='') => { rcoState.orderEditId = id; rcoState.orderViewId = ''; rcoState.orderShowForm = true; render(); };
+  window.rcoCloseOrderForm = () => { rcoState.orderShowForm = false; rcoState.orderEditId = ''; render(); };
+  window.rcoToggleOrderExpand = (id) => { if(rcoState.expandedOrders.has(id)) rcoState.expandedOrders.delete(id); else rcoState.expandedOrders.add(id); render(); };
+  window.rcoSetOrderTab = (tab) => { rcoState.orderTab = tab; render(); };
+  window.rcoViewOrder = (id) => { rcoState.orderViewId = id; rcoState.orderViewTab = 'Details'; render(); };
+  window.rcoCloseOrderView = () => { rcoState.orderViewId = ''; render(); };
 
   window.rcoOpenDisplayCustomizer = () => {
     document.getElementById('rcoDisplayModal')?.remove();
@@ -69,7 +67,7 @@
     for(const [grp, items] of Object.entries(RCO_DISPLAY_GROUPS)){
       html += '<div class="rco-display-group"><h4>'+esc(grp)+'</h4>';
       for(const [k, lbl] of items){
-        html += '<label><input type="checkbox" data-disp-key="'+esc(k)+'" '+(rcoOrderDisplay[k]?'checked':'')+'> <span>'+esc(lbl)+'</span></label>';
+        html += '<label><input type="checkbox" data-disp-key="'+esc(k)+'" '+(rcoState.orderDisplay[k]?'checked':'')+'> <span>'+esc(lbl)+'</span></label>';
       }
       html += '</div>';
     }
@@ -77,8 +75,8 @@
     document.body.insertAdjacentHTML('beforeend', html);
   };
   window.rcoSaveDisplayCustomizer = () => {
-    document.querySelectorAll('#rcoDisplayModal [data-disp-key]').forEach(cb => { rcoOrderDisplay[cb.dataset.dispKey] = cb.checked; });
-    localStorage.setItem('goldleaf-order-display', JSON.stringify(rcoOrderDisplay));
+    document.querySelectorAll('#rcoDisplayModal [data-disp-key]').forEach(cb => { rcoState.orderDisplay[cb.dataset.dispKey] = cb.checked; });
+    localStorage.setItem('goldleaf-order-display', JSON.stringify(rcoState.orderDisplay));
     document.getElementById('rcoDisplayModal')?.remove();
     render();
   };
@@ -105,7 +103,7 @@
   };
 
   function rcoOrderRowMarkup(it){
-    const d = rcoOrderDisplay;
+    const d = rcoState.orderDisplay;
     return '<tr class="rco-order-row">'
       + '<td><select name="item_product" onchange="rcoRecalcOrder()">'+prodOpts(it.product)+'</select>'
       + '<input name="item_product_text" placeholder="Or type product" value="'+esc(it.product||'')+'" style="margin-top:4px;font-size:11px" oninput="rcoRecalcOrder()"></td>'
@@ -269,7 +267,7 @@
     const paidAmount = receipts.reduce((s,x)=>s+x.amount, 0);
     const advanceAmount = receipts.filter(x=>x.advance).reduce((s,x)=>s+x.amount, 0);
 
-    const existing = rcoOrderEditId ? docs('retail-order').find(x=>x.id===rcoOrderEditId) : null;
+    const existing = rcoState.orderEditId ? docs('retail-order').find(x=>x.id===rcoState.orderEditId) : null;
     const history = Array.isArray(existing?.history) ? existing.history.slice() : [];
     history.unshift({ at: new Date().toISOString(), action: existing ? 'Updated Order' : 'Created Order', status: f.status.value, by: goldleafContext?.user_email || 'Staff' });
 
@@ -292,7 +290,7 @@
       balanceAmount: Math.round((netAmount - paidAmount)*100)/100,
       history
     });
-    rcoOrderShowFormFlag = false; rcoOrderEditId = '';
+    rcoState.orderShowForm = false; rcoState.orderEditId = '';
     say('Order saved successfully.');
     render();
   };
@@ -352,9 +350,9 @@
 
   function rcoOrderTrackingView(){
     const all = docs('retail-order');
-    if(rcoOrderViewId){
-      const o = all.find(x=>x.id===rcoOrderViewId);
-      if(!o){ rcoOrderViewId=''; }
+    if(rcoState.orderViewId){
+      const o = all.find(x=>x.id===rcoState.orderViewId);
+      if(!o){ rcoState.orderViewId=''; }
       else {
         const cust = (db.customers||[]).find(c=>c.id===o.customerId) || {};
         return header('Order Details · ' + o.orderNo, '<button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> '
@@ -362,8 +360,8 @@
           + '<button type="button" class="primary" onclick="rcoPrintOrderPdf(\''+esc(o.id)+'\',document.getElementById(\'rcoCopyType\').value)">🖨️ Print / PDF</button> '
           + '<button type="button" onclick="rcoConvertOrderToBill(\''+esc(o.id)+'\')">⚡ Convert Into Sale Bill</button> '
           + '<button type="button" onclick="rcoCloseOrderView()">← Back</button>')
-          + '<div class="rco-tabs"><button type="button" class="'+(rcoOrderViewTab==='Details'?'active':'')+'" onclick="rcoOrderViewTab=\'Details\';render()">Order Details</button><button type="button" class="'+(rcoOrderViewTab==='History'?'active':'')+'" onclick="rcoOrderViewTab=\'History\';render()">History ('+(o.history?.length||0)+')</button></div>'
-          + (rcoOrderViewTab==='History'
+          + '<div class="rco-tabs"><button type="button" class="'+(rcoState.orderViewTab==='Details'?'active':'')+'" onclick="rcoState.orderViewTab=\'Details\';render()">Order Details</button><button type="button" class="'+(rcoState.orderViewTab==='History'?'active':'')+'" onclick="rcoState.orderViewTab=\'History\';render()">History ('+(o.history?.length||0)+')</button></div>'
+          + (rcoState.orderViewTab==='History'
             ? '<section class="panel"><h2>Audit History</h2>'+table(['Date & Time','Action','Status','User'], (o.history||[]).map(h=>[esc(String(h.at).replace('T',' ').slice(0,19)), esc(h.action), '<span class="rco-badge rco-badge-open">'+esc(h.status)+'</span>', esc(h.by)]))+'</section>'
             : '<div class="rco-grid-2">'
               + '<section class="rco-section-card"><h3>Order Information</h3><p><b>Order No:</b> '+esc(o.orderNo)+'</p><p><b>Order Date:</b> '+esc(o.orderDate)+'</p><p><b>Delivery Date:</b> '+esc(o.deliveryDate||'—')+'</p><p><b>Customer:</b> '+esc(cust.name||'—')+' ('+esc(cust.phone||'')+')</p><p><b>Status:</b> <span class="rco-badge rco-badge-'+(o.status==='Cancel'?'cancel':o.status==='Closed'?'closed':'open')+'">'+esc(o.status)+'</span></p><p><b>Sales Person:</b> '+esc(o.salesPerson||'—')+'</p><p><b>Reference:</b> '+esc(o.reference||o.orderRef||'—')+'</p></section>'
@@ -375,9 +373,9 @@
       }
     }
 
-    if(rcoOrderShowFormFlag){
-      const o = rcoOrderEditId ? all.find(x=>x.id===rcoOrderEditId) : null;
-      const d = rcoOrderDisplay;
+    if(rcoState.orderShowForm){
+      const o = rcoState.orderEditId ? all.find(x=>x.id===rcoState.orderEditId) : null;
+      const d = rcoState.orderDisplay;
       const items = o?.items?.length ? o.items : [{}];
       const receipts = o?.receipts?.length ? o.receipts : [{}];
       const oldJ = o?.oldJewels?.length ? o.oldJewels : [];
@@ -427,25 +425,25 @@
 
     // List View
     const filtered = all.filter(o => {
-      if(rcoOrderTab === 'Open' && o.status !== 'Open') return false;
-      if(rcoOrderTab === 'Closed' && o.status !== 'Closed') return false;
-      if(rcoOrderTab === 'Cancel' && o.status !== 'Cancel') return false;
-      if(rcoOrderTab === 'By Due Date' && !o.deliveryDate) return false;
-      if(rcoOrderTab === 'Convert Into Sale Bill' && !o.convertedToBill) return false;
+      if(rcoState.orderTab === 'Open' && o.status !== 'Open') return false;
+      if(rcoState.orderTab === 'Closed' && o.status !== 'Closed') return false;
+      if(rcoState.orderTab === 'Cancel' && o.status !== 'Cancel') return false;
+      if(rcoState.orderTab === 'By Due Date' && !o.deliveryDate) return false;
+      if(rcoState.orderTab === 'Convert Into Sale Bill' && !o.convertedToBill) return false;
       const cust = (db.customers||[]).find(c=>c.id===o.customerId) || {};
-      const q = rcoOrderFilter.q.trim().toLowerCase();
+      const q = rcoState.orderFilter.q.trim().toLowerCase();
       if(q && !(String(o.orderNo).toLowerCase().includes(q) || String(cust.name||'').toLowerCase().includes(q) || String(cust.phone||'').includes(q))) return false;
-      if(rcoOrderFilter.supplierId && !(o.items||[]).some(it=>it.supplierId===rcoOrderFilter.supplierId)) return false;
-      if(rcoOrderFilter.ornament !== 'All' && !(o.items||[]).some(it=>it.ornament===rcoOrderFilter.ornament)) return false;
-      if(rcoOrderFilter.salesPerson && !String(o.salesPerson||'').toLowerCase().includes(rcoOrderFilter.salesPerson.toLowerCase())) return false;
-      const dt = o[rcoOrderFilter.dateBy] || o.orderDate || '';
-      if(rcoOrderFilter.from && dt < rcoOrderFilter.from) return false;
-      if(rcoOrderFilter.to && dt > rcoOrderFilter.to) return false;
+      if(rcoState.orderFilter.supplierId && !(o.items||[]).some(it=>it.supplierId===rcoState.orderFilter.supplierId)) return false;
+      if(rcoState.orderFilter.ornament !== 'All' && !(o.items||[]).some(it=>it.ornament===rcoState.orderFilter.ornament)) return false;
+      if(rcoState.orderFilter.salesPerson && !String(o.salesPerson||'').toLowerCase().includes(rcoState.orderFilter.salesPerson.toLowerCase())) return false;
+      const dt = o[rcoState.orderFilter.dateBy] || o.orderDate || '';
+      if(rcoState.orderFilter.from && dt < rcoState.orderFilter.from) return false;
+      if(rcoState.orderFilter.to && dt > rcoState.orderFilter.to) return false;
       return true;
     }).sort((a,b)=>String(b.orderDate||'').localeCompare(String(a.orderDate||'')));
 
     let tableHtml = '';
-    if(rcoOrderDetailMode){
+    if(rcoState.orderDetailMode){
       const flatRows = [];
       filtered.forEach(o => (o.items||[]).forEach((it, idx) => {
         const sup = (db.retailSuppliers||[]).find(s=>s.id===it.supplierId)?.name || '—';
@@ -460,7 +458,7 @@
         const silvWt = (o.items||[]).filter(x=>x.ornament==='Silver').reduce((s,x)=>s+n(x.netWt),0);
         const goldAmt = (o.items||[]).filter(x=>x.ornament==='Gold').reduce((s,x)=>s+n(x.amount),0);
         const silvAmt = (o.items||[]).filter(x=>x.ornament==='Silver').reduce((s,x)=>s+n(x.amount),0);
-        const exp = rcoExpandedOrders.has(o.id);
+        const exp = rcoState.expandedOrders.has(o.id);
         body += '<tr>'
           + '<td><button type="button" onclick="rcoToggleOrderExpand(\''+esc(o.id)+'\')">'+(exp?'−':'+')+'</button></td>'
           + '<td><b>'+esc(o.orderNo)+'</b></td>'
@@ -484,33 +482,32 @@
       tableHtml = filtered.length ? '<div class="table"><table><thead><tr><th></th><th>Order No</th><th>Customer</th><th>Order Date</th><th>Delivery Date</th><th>Advance Amt</th><th>Paid Amt</th><th>Gold Wt</th><th>Silver Wt</th><th>Gold Amt</th><th>Silver Amt</th><th>Estimated Amt</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+body+'</tbody></table></div>' : '<p class="empty">No orders yet. Click + Create to add your first retail order.</p>';
     }
 
-    return header('Order Tracking', '<button type="button" class="primary" onclick="rcoOpenOrderForm()">＋ Create Order</button> <button type="button" onclick="rcoOrderDetailMode=!rcoOrderDetailMode;render()">'+(rcoOrderDetailMode?'View Lists':'Detail Lists')+'</button>')
-      + '<div class="rco-tabs">' + ['All','By Due Date','Open','Cancel','Closed','Convert Into Sale Bill'].map(t=>'<button type="button" class="'+(rcoOrderTab===t?'active':'')+'" onclick="rcoSetOrderTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
-      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search by Customer Name, Mobile, Order No..." value="'+esc(rcoOrderFilter.q)+'" oninput="rcoOrderFilter.q=this.value;render()"></div>'
-      + '<div class="rco-toolbar-right"><button type="button" onclick="rcoOrderFilterOpen=!rcoOrderFilterOpen;render()">🔍 Filter</button><button type="button" onclick="rcoOrderFilter={q:\'\',dateBy:\'orderDate\',from:\'\',to:\'\',supplierId:\'\',ornament:\'All\',product:\'\',salesPerson:\'\'};render()">Reset</button></div></div>'
-      + (rcoOrderFilterOpen ? '<div class="rco-filter-box">'
-        + '<label class="rco-field"><span>Date Filter By</span><select onchange="rcoOrderFilter.dateBy=this.value;render()">'+opts(['orderDate','deliveryDate','createdAt'], rcoOrderFilter.dateBy)+'</select></label>'
-        + '<label class="rco-field"><span>From Date</span><input type="date" value="'+esc(rcoOrderFilter.from)+'" onchange="rcoOrderFilter.from=this.value;render()"></label>'
-        + '<label class="rco-field"><span>To Date</span><input type="date" value="'+esc(rcoOrderFilter.to)+'" onchange="rcoOrderFilter.to=this.value;render()"></label>'
-        + '<label class="rco-field"><span>Supplier</span><select onchange="rcoOrderFilter.supplierId=this.value;render()">'+supOpts(rcoOrderFilter.supplierId,'All Suppliers')+'</select></label>'
-        + '<label class="rco-field"><span>Ornament Type</span><select onchange="rcoOrderFilter.ornament=this.value;render()">'+opts(['All','Gold','Silver','Diamond','Alloy'], rcoOrderFilter.ornament)+'</select></label>'
-        + '<label class="rco-field"><span>Sales Person</span><input value="'+esc(rcoOrderFilter.salesPerson)+'" oninput="rcoOrderFilter.salesPerson=this.value;render()"></label>'
+    return header('Order Tracking', '<button type="button" class="primary" onclick="rcoOpenOrderForm()">＋ Create Order</button> <button type="button" onclick="rcoState.orderDetailMode=!rcoState.orderDetailMode;render()">'+(rcoState.orderDetailMode?'View Lists':'Detail Lists')+'</button>')
+      + '<div class="rco-tabs">' + ['All','By Due Date','Open','Cancel','Closed','Convert Into Sale Bill'].map(t=>'<button type="button" class="'+(rcoState.orderTab===t?'active':'')+'" onclick="rcoSetOrderTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
+      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search by Customer Name, Mobile, Order No..." value="'+esc(rcoState.orderFilter.q)+'" oninput="rcoState.orderFilter.q=this.value;render()"></div>'
+      + '<div class="rco-toolbar-right"><button type="button" onclick="rcoState.orderFilterOpen=!rcoState.orderFilterOpen;render()">🔍 Filter</button><button type="button" onclick="rcoState.orderFilter={q:\'\',dateBy:\'orderDate\',from:\'\',to:\'\',supplierId:\'\',ornament:\'All\',product:\'\',salesPerson:\'\'};render()">Reset</button></div></div>'
+      + (rcoState.orderFilterOpen ? '<div class="rco-filter-box">'
+        + '<label class="rco-field"><span>Date Filter By</span><select onchange="rcoState.orderFilter.dateBy=this.value;render()">'+opts(['orderDate','deliveryDate','createdAt'], rcoState.orderFilter.dateBy)+'</select></label>'
+        + '<label class="rco-field"><span>From Date</span><input type="date" value="'+esc(rcoState.orderFilter.from)+'" onchange="rcoState.orderFilter.from=this.value;render()"></label>'
+        + '<label class="rco-field"><span>To Date</span><input type="date" value="'+esc(rcoState.orderFilter.to)+'" onchange="rcoState.orderFilter.to=this.value;render()"></label>'
+        + '<label class="rco-field"><span>Supplier</span><select onchange="rcoState.orderFilter.supplierId=this.value;render()">'+supOpts(rcoState.orderFilter.supplierId,'All Suppliers')+'</select></label>'
+        + '<label class="rco-field"><span>Ornament Type</span><select onchange="rcoState.orderFilter.ornament=this.value;render()">'+opts(['All','Gold','Silver','Diamond','Alloy'], rcoState.orderFilter.ornament)+'</select></label>'
+        + '<label class="rco-field"><span>Sales Person</span><input value="'+esc(rcoState.orderFilter.salesPerson)+'" oninput="rcoState.orderFilter.salesPerson=this.value;render()"></label>'
         + '</div>' : '')
       + tableHtml + '</section>';
   }
   window.rcoDelOrder = (id) => { delDoc('retail-order', id); render(); };
 
   // ======================== 2. CRM MODULE (8 SUB-PAGES) ========================
-  window.rcoSetCrmTab = (t) => { rcoCrmTab = t; rcoCrmEditId = ''; rcoCrmShowFormFlag = false; rcoCrmSearch = ''; render(); };
-  let rcoCrmShowFormFlag = false;
-  window.rcoOpenCrmForm = (id='') => { rcoCrmEditId = id; rcoCrmShowFormFlag = true; render(); };
-  window.rcoCloseCrmForm = () => { rcoCrmShowFormFlag = false; rcoCrmEditId = ''; render(); };
+  window.rcoSetCrmTab = (t) => { rcoState.crmTab = t; rcoState.crmEditId = ''; rcoState.crmShowForm = false; rcoState.crmSearch = ''; render(); };
+  window.rcoOpenCrmForm = (id='') => { rcoState.crmEditId = id; rcoState.crmShowForm = true; render(); };
+  window.rcoCloseCrmForm = () => { rcoState.crmShowForm = false; rcoState.crmEditId = ''; render(); };
 
   window.rcoSaveLead = (e) => {
     e.preventDefault(); const f = e.target;
     saveDoc('crm-lead', {
-      id: rcoCrmEditId || undefined,
-      leadNo: (rcoCrmEditId && docs('crm-lead').find(x=>x.id===rcoCrmEditId)?.leadNo) || ('LD-' + Date.now().toString().slice(-5)),
+      id: rcoState.crmEditId || undefined,
+      leadNo: (rcoState.crmEditId && docs('crm-lead').find(x=>x.id===rcoState.crmEditId)?.leadNo) || ('LD-' + Date.now().toString().slice(-5)),
       campaign: f.campaign.value, status: f.status.value, source: f.source.value, owner: f.owner.value,
       name: f.name.value.trim(), mobile: f.mobile.value.trim(), email: f.email.value.trim(), city: f.city.value.trim(),
       interestedProducts: f.interestedProducts.value.trim(), budget: n(f.budget.value), followupDate: f.followupDate.value, notes: f.notes.value.trim()
@@ -532,7 +529,7 @@
       if(p) prods.push({ product:p, ornament:tr.querySelector('[name="vp_orn"]').value, qty:n(tr.querySelector('[name="vp_qty"]').value), weight:n(tr.querySelector('[name="vp_wt"]').value), wst:n(tr.querySelector('[name="vp_wst"]').value), amount:n(tr.querySelector('[name="vp_amt"]').value) });
     });
     saveDoc('crm-visitor', {
-      id: rcoCrmEditId || undefined,
+      id: rcoState.crmEditId || undefined,
       visitDate: f.visitDate.value, customerNo: f.customerNo.value, mobile: f.mobile.value.trim(), name: f.name.value.trim(), email: f.email.value.trim(),
       contactPerson: f.contactPerson.value, contactMobile: f.contactMobile.value, doorNo: f.doorNo.value, street: f.street.value, area: f.area.value, city: f.city.value, district: f.district.value, pinCode: f.pinCode.value, state: f.state.value,
       businessType: f.businessType.value, religion: f.religion.value, gender: f.gender.value, refName: f.refName.value, refMobile: f.refMobile.value,
@@ -578,13 +575,13 @@
 
   window.rcoSaveQuestion = (e) => {
     e.preventDefault(); const f = e.target;
-    saveDoc('crm-question', { id: rcoCrmEditId||undefined, question: f.question.value.trim(), questionType: f.questionType.value, isRequired: f.isRequired.value });
+    saveDoc('crm-question', { id: rcoState.crmEditId||undefined, question: f.question.value.trim(), questionType: f.questionType.value, isRequired: f.isRequired.value });
     rcoCloseCrmForm(); say('Feedback question saved.');
   };
   window.rcoSaveCampaign = (e) => {
     e.preventDefault(); const f = e.target;
     const qIds = Array.from(f.querySelectorAll('[name="camp_q"]:checked')).map(c=>c.value);
-    saveDoc('crm-campaign', { id: rcoCrmEditId||undefined, name: f.name.value.trim(), description: f.description.value.trim(), questionIds: qIds });
+    saveDoc('crm-campaign', { id: rcoState.crmEditId||undefined, name: f.name.value.trim(), description: f.description.value.trim(), questionIds: qIds });
     rcoCloseCrmForm(); say('Campaign saved.');
   };
   window.rcoSaveFeedback = (e) => {
@@ -618,10 +615,10 @@
     const subTabs = ['Leads','Visitors','Call Logs','Calendar','Feedback','Campaign','Questions','Gift Voucher'];
     let body = '';
 
-    if(rcoCrmTab === 'Leads'){
-      const list = docs('crm-lead').filter(l=>!rcoCrmSearch || (l.name+l.mobile+l.leadNo).toLowerCase().includes(rcoCrmSearch.toLowerCase()));
-      if(rcoCrmShowFormFlag){
-        const l = rcoCrmEditId ? docs('crm-lead').find(x=>x.id===rcoCrmEditId) : null;
+    if(rcoState.crmTab === 'Leads'){
+      const list = docs('crm-lead').filter(l=>!rcoState.crmSearch || (l.name+l.mobile+l.leadNo).toLowerCase().includes(rcoState.crmSearch.toLowerCase()));
+      if(rcoState.crmShowForm){
+        const l = rcoState.crmEditId ? docs('crm-lead').find(x=>x.id===rcoState.crmEditId) : null;
         body = '<section class="rco-section-card"><h3>'+(l?'Edit Lead':'New Lead')+' <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveLead(event)"><div class="rco-grid">'
           + '<label class="rco-field"><span>Campaign</span><select name="campaign">'+opts(['None (Walk-in)', ...docs('crm-campaign').map(c=>c.name)], l?.campaign||'None (Walk-in)')+'</select></label>'
           + '<label class="rco-field"><span>Lead Status *</span><select name="status" required>'+opts(RCO_LEAD_STATUS, l?.status||'Open')+'</select></label>'
@@ -637,14 +634,14 @@
           + '<label class="rco-field wide"><span>Notes</span><textarea name="notes" rows="2">'+esc(l?.notes||'')+'</textarea></label>'
           + '</div><div class="right" style="margin-top:12px"><button type="submit" class="primary">Save Lead</button></div></form></section>';
       } else {
-        body = '<div class="rco-toolbar"><input class="rco-search" placeholder="Search Name / Mobile / Lead No..." value="'+esc(rcoCrmSearch)+'" oninput="rcoCrmSearch=this.value;render()"><button type="button" class="primary" onclick="rcoOpenCrmForm()">＋ Create Lead</button></div>'
+        body = '<div class="rco-toolbar"><input class="rco-search" placeholder="Search Name / Mobile / Lead No..." value="'+esc(rcoState.crmSearch)+'" oninput="rcoState.crmSearch=this.value;render()"><button type="button" class="primary" onclick="rcoOpenCrmForm()">＋ Create Lead</button></div>'
           + (list.length ? table(['Lead No','Name','Mobile','Campaign','Source','Owner','Status','Follow-up','Actions'], list.map(l=>[esc(l.leadNo), '<b>'+esc(l.name)+'</b>', esc(l.mobile), esc(l.campaign), esc(l.source), esc(l.owner||'—'), '<span class="rco-badge rco-badge-open">'+esc(l.status)+'</span>', esc(l.followupDate||'—'), '<button type="button" onclick="rcoOpenCrmForm(\''+esc(l.id)+'\')">Edit</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(l.name)+'\',\''+esc(l.mobile)+'\',\'Leads\',\''+esc(l.id)+'\')">📞 Call</button> <button type="button" class="primary" onclick="rcoConvertLeadToCustomer(\''+esc(l.id)+'\')">Convert</button> <button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-lead\',\''+esc(l.id)+'\')">×</button>'])) : '<p class="empty">No leads yet.</p>');
       }
     }
-    else if(rcoCrmTab === 'Visitors'){
-      const list = docs('crm-visitor').filter(v=>!rcoCrmSearch || (v.name+v.mobile).toLowerCase().includes(rcoCrmSearch.toLowerCase()));
-      if(rcoCrmShowFormFlag){
-        const v = rcoCrmEditId ? docs('crm-visitor').find(x=>x.id===rcoCrmEditId) : null;
+    else if(rcoState.crmTab === 'Visitors'){
+      const list = docs('crm-visitor').filter(v=>!rcoState.crmSearch || (v.name+v.mobile).toLowerCase().includes(rcoState.crmSearch.toLowerCase()));
+      if(rcoState.crmShowForm){
+        const v = rcoState.crmEditId ? docs('crm-visitor').find(x=>x.id===rcoState.crmEditId) : null;
         body = '<section class="rco-section-card"><h3>'+(v?'Edit Visitor':'New Visitor')+' <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveVisitor(event)">'
           + '<h4 style="margin:6px 0">Customer Information</h4><div class="rco-grid">'
           + '<label class="rco-field"><span>Visit Date</span><input name="visitDate" type="date" value="'+esc(v?.visitDate||todayStr())+'"></label>'
@@ -698,43 +695,43 @@
           + '<div class="table"><table><thead><tr><th>Product</th><th>Ornament</th><th>Qty</th><th>Weight</th><th>Wst %</th><th>Amount</th><th></th></tr></thead><tbody id="rcoVisProds">'+(v?.products||[{}]).map(p=>'<tr class="rco-vis-prod"><td><input name="vp_prod" value="'+esc(p.product||'')+'"></td><td><select name="vp_orn">'+opts(RCO_ORNS,p.ornament||'Gold')+'</select></td><td><input name="vp_qty" type="number" value="'+(p.qty||1)+'"></td><td><input name="vp_wt" type="number" step=".001" value="'+(p.weight||0)+'"></td><td><input name="vp_wst" type="number" step=".01" value="'+(p.wst||0)+'"></td><td><input name="vp_amt" type="number" step=".01" value="'+(p.amount||0)+'"></td><td><button type="button" class="rb-delete-btn" onclick="this.closest(\'tr\').remove()">×</button></td></tr>').join('')+'</tbody></table></div>'
           + '<div class="right" style="margin-top:12px"><button type="submit" class="primary">Save Visitor</button></div></form></section>';
       } else {
-        body = '<div class="rco-toolbar"><input class="rco-search" placeholder="Search Visitor Name / Mobile..." value="'+esc(rcoCrmSearch)+'" oninput="rcoCrmSearch=this.value;render()"><button type="button" class="primary" onclick="rcoOpenCrmForm()">＋ Create Visitor</button></div>'
+        body = '<div class="rco-toolbar"><input class="rco-search" placeholder="Search Visitor Name / Mobile..." value="'+esc(rcoState.crmSearch)+'" oninput="rcoState.crmSearch=this.value;render()"><button type="button" class="primary" onclick="rcoOpenCrmForm()">＋ Create Visitor</button></div>'
           + (list.length ? table(['Visit Date','Name','Mobile','City','Attend By','Visit Status','Follow-up','Actions'], list.map(v=>[esc(v.visitDate), '<b>'+esc(v.name)+'</b>', esc(v.mobile), esc(v.city||'—'), esc(v.attendBy||'—'), '<span class="rco-badge rco-badge-open">'+esc(v.visitStatus)+'</span>', esc(v.followupDate||'—'), '<button type="button" onclick="rcoOpenCrmForm(\''+esc(v.id)+'\')">Edit</button> <button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-visitor\',\''+esc(v.id)+'\')">×</button>'])) : '<p class="empty">No visitors recorded yet.</p>');
       }
     }
-    else if(rcoCrmTab === 'Call Logs'){
-      const list = docs('crm-call-log').filter(c=>(rcoCallTypeFilter==='All'||c.callTargetType===rcoCallTypeFilter) && (!rcoCrmSearch || (c.name+c.mobile+c.notes).toLowerCase().includes(rcoCrmSearch.toLowerCase())));
-      body = '<div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Customer Name / Mobile..." value="'+esc(rcoCrmSearch)+'" oninput="rcoCrmSearch=this.value;render()"><select onchange="rcoCallTypeFilter=this.value;render()">'+opts(['All','Customers','Visitors','Leads'], rcoCallTypeFilter)+'</select></div><button type="button" class="primary" onclick="rcoOpenCallModal()">＋ Log Call</button></div>'
+    else if(rcoState.crmTab === 'Call Logs'){
+      const list = docs('crm-call-log').filter(c=>(rcoState.callTypeFilter==='All'||c.callTargetType===rcoState.callTypeFilter) && (!rcoState.crmSearch || (c.name+c.mobile+c.notes).toLowerCase().includes(rcoState.crmSearch.toLowerCase())));
+      body = '<div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Customer Name / Mobile..." value="'+esc(rcoState.crmSearch)+'" oninput="rcoState.crmSearch=this.value;render()"><select onchange="rcoState.callTypeFilter=this.value;render()">'+opts(['All','Customers','Visitors','Leads'], rcoState.callTypeFilter)+'</select></div><button type="button" class="primary" onclick="rcoOpenCallModal()">＋ Log Call</button></div>'
         + (list.length ? table(['Date','Type','Name','Mobile','Call Type','Response','Employee','Follow-up','Notes',''], list.map(c=>[esc(c.callDate), esc(c.callTargetType), '<b>'+esc(c.name)+'</b>', esc(c.mobile), esc(c.callType), '<span class="rco-badge rco-badge-open">'+esc(c.callResponse)+'</span>', esc(c.employee), esc(c.followupDate||'—'), esc(c.notes||'—'), '<button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-call-log\',\''+esc(c.id)+'\')">×</button>'])) : '<p class="empty">No call logs yet.</p>');
     }
-    else if(rcoCrmTab === 'Calendar'){
-      const [yr, mo] = rcoCalMonth.split('-').map(Number);
+    else if(rcoState.crmTab === 'Calendar'){
+      const [yr, mo] = rcoState.calMonth.split('-').map(Number);
       const first = new Date(yr, mo-1, 1), startDay = first.getDay(), daysInMo = new Date(yr, mo, 0).getDate();
       const eventsByDay = {};
-      const addEv = (dt, label, cls='') => { if(!dt||!dt.startsWith(rcoCalMonth)) return; const d = parseInt(dt.slice(8,10),10); (eventsByDay[d]=eventsByDay[d]||[]).push({label,cls}); };
+      const addEv = (dt, label, cls='') => { if(!dt||!dt.startsWith(rcoState.calMonth)) return; const d = parseInt(dt.slice(8,10),10); (eventsByDay[d]=eventsByDay[d]||[]).push({label,cls}); };
       docs('crm-lead').forEach(l=>addEv(l.followupDate, 'Lead: '+l.name));
       docs('crm-visitor').forEach(v=>addEv(v.followupDate, 'Visit: '+v.name));
       docs('crm-call-log').forEach(c=>addEv(c.followupDate, 'Call: '+c.name));
       docs('retail-order').forEach(o=>addEv(o.deliveryDate, 'Order Due: '+o.orderNo, 'order'));
       (db.customers||[]).forEach(c=>{
-        if(c.dob && c.dob.slice(5,7)===rcoCalMonth.slice(5,7)) addEv(rcoCalMonth+'-'+c.dob.slice(8,10), '🎂 '+c.name, 'bday');
-        if(c.anniversary && c.anniversary.slice(5,7)===rcoCalMonth.slice(5,7)) addEv(rcoCalMonth+'-'+c.anniversary.slice(8,10), '💍 '+c.name, 'bday');
+        if(c.dob && c.dob.slice(5,7)===rcoState.calMonth.slice(5,7)) addEv(rcoState.calMonth+'-'+c.dob.slice(8,10), '🎂 '+c.name, 'bday');
+        if(c.anniversary && c.anniversary.slice(5,7)===rcoState.calMonth.slice(5,7)) addEv(rcoState.calMonth+'-'+c.anniversary.slice(8,10), '💍 '+c.name, 'bday');
       });
       const prevM = new Date(yr, mo-2, 1).toISOString().slice(0,7), nextM = new Date(yr, mo, 1).toISOString().slice(0,7);
       let cells = '';
       for(let i=0;i<startDay;i++) cells += '<div class="rco-cal-cell muted"></div>';
       const tod = todayStr();
       for(let d=1; d<=daysInMo; d++){
-        const dStr = rcoCalMonth + '-' + String(d).padStart(2,'0');
+        const dStr = rcoState.calMonth + '-' + String(d).padStart(2,'0');
         const evs = (eventsByDay[d]||[]).map(e=>'<div class="rco-cal-ev '+e.cls+'" title="'+esc(e.label)+'">'+esc(e.label)+'</div>').join('');
         cells += '<div class="rco-cal-cell '+(dStr===tod?'today':'')+'"><b>'+d+'</b>'+evs+'</div>';
       }
-      body = '<div class="rco-toolbar"><div class="rco-toolbar-left"><button type="button" onclick="rcoCalMonth=\''+prevM+'\';render()">◀</button><b>'+first.toLocaleString('en-IN',{month:'long',year:'numeric'})+'</b><button type="button" onclick="rcoCalMonth=\''+nextM+'\';render()">▶</button><button type="button" onclick="rcoCalMonth=\''+todayStr().slice(0,7)+'\';render()">Today</button></div></div>'
-        + '<div class="rco-cal-grid">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(w=>'<div class="rco-cal-head">'+w+'</div>').join('')+cells+'</div>';
+      body = '<div class="rco-toolbar"><div class="rco-toolbar-left"><button type="button" onclick="rcoState.calMonth=\''+prevM+'\';render()">◀</button><b>'+first.toLocaleString('en-IN',{month:'long',year:'numeric'})+'</b><button type="button" onclick="rcoState.calMonth=\''+nextM+'\';render()">▶</button><button type="button" onclick="rcoState.calMonth=\''+todayStr().slice(0,7)+'\';render()">Today</button></div></div>'
+        + '<div class="rco-cal-wrap"><div class="rco-cal-grid">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(w=>'<div class="rco-cal-head">'+w+'</div>').join('')+cells+'</div></div>';
     }
-    else if(rcoCrmTab === 'Feedback'){
+    else if(rcoState.crmTab === 'Feedback'){
       const list = docs('crm-feedback');
-      if(rcoCrmShowFormFlag){
+      if(rcoState.crmShowForm){
         body = '<section class="rco-section-card"><h3>Record Feedback <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveFeedback(event)"><div class="rco-grid">'
           + '<label class="rco-field"><span>Customer</span><select name="customerId">'+custOpts('','Walk-in / Manual')+'</select></label>'
           + '<label class="rco-field"><span>Customer Name</span><input name="customerName"></label>'
@@ -751,10 +748,10 @@
           + (list.length ? table(['Customer','Mobile','Campaign','Source','Bill No','Sent On','Response','Status','Description',''], list.map(f=>['<b>'+esc(f.customerName)+'</b>', esc(f.mobile), esc(f.campaign), esc(f.source), esc(f.saleBillNo||'—'), esc(f.sentOn), '<span class="rco-badge rco-badge-open">'+esc(f.response)+'</span>', esc(f.status), esc(f.description||'—'), '<button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-feedback\',\''+esc(f.id)+'\')">×</button>'])) : '<p class="empty">No feedback entries yet.</p>');
       }
     }
-    else if(rcoCrmTab === 'Campaign'){
+    else if(rcoState.crmTab === 'Campaign'){
       const list = docs('crm-campaign'), qs = docs('crm-question');
-      if(rcoCrmShowFormFlag){
-        const c = rcoCrmEditId ? list.find(x=>x.id===rcoCrmEditId) : null;
+      if(rcoState.crmShowForm){
+        const c = rcoState.crmEditId ? list.find(x=>x.id===rcoState.crmEditId) : null;
         body = '<section class="rco-section-card"><h3>'+(c?'Edit Campaign':'Create Campaign')+' <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveCampaign(event)"><div class="rco-grid-2">'
           + '<label class="rco-field"><span>Campaign Name *</span><input name="name" required value="'+esc(c?.name||'')+'"></label>'
           + '<label class="rco-field wide"><span>Description</span><textarea name="description" rows="2">'+esc(c?.description||'')+'</textarea></label>'
@@ -765,10 +762,10 @@
           + (list.length ? table(['Campaign Name','Description','Questions','Actions'], list.map(c=>['<b>'+esc(c.name)+'</b>', esc(c.description||'—'), (c.questionIds?.length||0)+' questions', '<button type="button" onclick="rcoOpenCrmForm(\''+esc(c.id)+'\')">Edit</button> <button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-campaign\',\''+esc(c.id)+'\')">×</button>'])) : '<p class="empty">No campaigns yet.</p>');
       }
     }
-    else if(rcoCrmTab === 'Questions'){
+    else if(rcoState.crmTab === 'Questions'){
       const list = docs('crm-question');
-      if(rcoCrmShowFormFlag){
-        const q = rcoCrmEditId ? list.find(x=>x.id===rcoCrmEditId) : null;
+      if(rcoState.crmShowForm){
+        const q = rcoState.crmEditId ? list.find(x=>x.id===rcoState.crmEditId) : null;
         body = '<section class="rco-section-card"><h3>'+(q?'Edit Question':'Create Question')+' <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveQuestion(event)"><div class="rco-grid-3">'
           + '<label class="rco-field wide"><span>Question *</span><input name="question" required value="'+esc(q?.question||'')+'"></label>'
           + '<label class="rco-field"><span>Question Type *</span><select name="questionType" required>'+opts(['Smiley','Thumbs','Rating','Options','Notes'], q?.questionType||'Rating')+'</select></label>'
@@ -779,9 +776,9 @@
           + (list.length ? table(['Question','Type','Required','Actions'], list.map(q=>['<b>'+esc(q.question)+'</b>', esc(q.questionType), esc(q.isRequired), '<button type="button" onclick="rcoOpenCrmForm(\''+esc(q.id)+'\')">Edit</button> <button type="button" class="rb-delete-btn" onclick="rcoDelCrm(\'crm-question\',\''+esc(q.id)+'\')">×</button>'])) : '<p class="empty">No questions yet.</p>');
       }
     }
-    else if(rcoCrmTab === 'Gift Voucher'){
+    else if(rcoState.crmTab === 'Gift Voucher'){
       const list = docs('crm-voucher');
-      if(rcoCrmShowFormFlag){
+      if(rcoState.crmShowForm){
         body = '<section class="rco-section-card"><h3>Create Gift Vouchers <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveVoucher(event)"><div class="rco-grid">'
           + '<label class="rco-field"><span>Name *</span><input name="name" required placeholder="e.g. Diwali Gift"></label>'
           + '<label class="rco-field"><span>Ledger Name *</span><input name="ledgerName" required value="Gift Voucher Account"></label>'
@@ -805,7 +802,7 @@
     }
 
     return header('Retail CRM', '')
-      + '<div class="rco-tabs">' + subTabs.map(t=>'<button type="button" class="'+(rcoCrmTab===t?'active':'')+'" onclick="rcoSetCrmTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
+      + '<div class="rco-tabs">' + subTabs.map(t=>'<button type="button" class="'+(rcoState.crmTab===t?'active':'')+'" onclick="rcoSetCrmTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
       + '<section class="panel">' + body + '</section>';
   }
   window.rcoDelCrm = (t, id) => { if(confirm('Delete record?')){ delDoc(t, id); render(); } };
@@ -839,7 +836,7 @@
     const name = f.name.value.trim(), phone = f.phone.value.trim();
     if(!name) return say('Customer Name is required.');
     const allowDup = f.allowMobileDuplicate?.checked;
-    if(!allowDup && phone && db.customers.some(c=>c.id!==rcoCustEditId && String(c.phone||c.mobile||'')===phone)){
+    if(!allowDup && phone && db.customers.some(c=>c.id!==rcoState.custEditId && String(c.phone||c.mobile||'')===phone)){
       return say('Mobile number already registered. Tick "Is Allow Mobile Duplicate" if intentional.');
     }
     if(f.bankAccNo.value && f.bankAccNo.value !== f.bankAccConfirm.value){
@@ -858,7 +855,7 @@
         maritalStatus: card.querySelector('[name="fm_marital"]')?.value||'MARRIED'
       });
     });
-    const old = rcoCustEditId ? db.customers.find(c=>c.id===rcoCustEditId) : null;
+    const old = rcoState.custEditId ? db.customers.find(c=>c.id===rcoState.custEditId) : null;
     const row = Object.assign({}, old || {}, {
       id: old?.id || crypto.randomUUID(),
       customerNo: f.customerNo.value.trim() || old?.customerNo || ('C-' + Date.now().toString().slice(-5)),
@@ -883,14 +880,14 @@
     const idx = db.customers.findIndex(c=>c.id===row.id);
     if(idx<0) db.customers.push(row); else db.customers[idx] = row;
     save(); pushCloud();
-    rcoCustShowForm = false; rcoCustEditId = '';
+    rcoState.custShowForm = false; rcoState.custEditId = '';
     say('Customer profile saved.'); render();
   };
 
   function rcoRetailCustomerView(){
-    if(rcoCustViewId){
-      const c = (db.customers||[]).find(x=>x.id===rcoCustViewId);
-      if(!c) { rcoCustViewId = ''; }
+    if(rcoState.custViewId){
+      const c = (db.customers||[]).find(x=>x.id===rcoState.custViewId);
+      if(!c) { rcoState.custViewId = ''; }
       else {
         const cTabs = ['Details','Transactions','Chit Mappings','Similar Address','Call Logs','Visitors','Recent Transactions','Feedback','History'];
         const chits = docs('retail-chit-mapping').filter(m=>m.customerId===c.id);
@@ -900,7 +897,7 @@
         const similar = (db.customers||[]).filter(o=>o.id!==c.id && ((c.address && o.address===c.address) || (c.city && o.city===c.city && c.pinCode && o.pinCode===c.pinCode)));
         const txs = typeof tx==='function' ? tx(c.id,'customer') : [];
         let tabContent = '';
-        if(rcoCustViewTab==='Details'){
+        if(rcoState.custViewTab==='Details'){
           tabContent = '<div class="rco-grid-2">'
             + '<section class="rco-section-card"><h3>Customer Information</h3><p><b>Customer No:</b> '+esc(c.customerNo||'—')+'</p><p><b>Name:</b> '+esc((c.salutation?c.salutation+' ':'')+c.name)+'</p><p><b>Mobile:</b> '+esc(c.phone||'—')+' | <b>WhatsApp:</b> '+esc(c.whatsapp||'—')+'</p><p><b>Email:</b> '+esc(c.email||'—')+'</p><p><b>Team:</b> '+esc(c.team||'—')+'</p><p><b>DOB / Anniversary:</b> '+esc(c.dob||'—')+' / '+esc(c.anniversary||'—')+'</p></section>'
             + '<section class="rco-section-card"><h3>Address & KYC</h3><p><b>Address:</b> '+esc([c.doorNo,c.address,c.area,c.city,c.district,c.state,c.pinCode].filter(Boolean).join(', ')||'—')+'</p><p><b>Aadhaar:</b> '+esc(c.aadhaar||'—')+'</p><p><b>PAN / GST:</b> '+esc(c.pan||'—')+' / '+esc(c.gst||'—')+'</p><p><b>Segment / Group:</b> '+esc(c.segment||'—')+' / '+esc(c.customerGroup||'—')+'</p></section>'
@@ -908,23 +905,23 @@
             + '<section class="rco-section-card"><h3>Family Members ('+(c.family?.length||0)+')</h3>'+((c.family||[]).length?(c.family.map(fm=>'<p><b>'+esc(fm.name)+'</b> ('+esc(fm.relationship)+') · '+esc(fm.mobile)+(fm.nominee?' · <span class="pill">Nominee</span>':'')+'</p>').join('')):'<p class="muted">No family members added.</p>')+'</section>'
             + '</div>';
         }
-        else if(rcoCustViewTab==='Transactions'||rcoCustViewTab==='Recent Transactions') tabContent = '<section class="panel">'+(txs.length?table(['Date','Type','Details','Amount'], txs.map(r=>[esc(String(r.when||r.date||'').slice(0,16)), esc(r.type), esc(r.product||r.desc||'—'), rateMoney(r.amount)])):'<p class="empty">No transactions found.</p>')+'</section>';
-        else if(rcoCustViewTab==='Chit Mappings') tabContent = '<section class="panel">'+(chits.length?table(['Chit #','Group','Type','Instalment','Status'], chits.map(m=>[esc(m.chitNumber), esc(m.groupName||'—'), esc(m.schemeName||'—'), rateMoney(m.instalmentAmount), esc(m.status||'Active')])):'<p class="empty">No chit mappings.</p>')+'</section>';
-        else if(rcoCustViewTab==='Similar Address') tabContent = '<section class="panel">'+(similar.length?table(['Name','Mobile','Address','City'], similar.map(s=>[esc(s.name), esc(s.phone||'—'), esc(s.address||'—'), esc(s.city||'—')])):'<p class="empty">No customers with similar address.</p>')+'</section>';
-        else if(rcoCustViewTab==='Call Logs') tabContent = '<section class="panel"><div class="right" style="margin-bottom:8px"><button type="button" class="primary" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">＋ Log Call</button></div>'+(calls.length?table(['Date','Type','Response','Follow-up','Notes'], calls.map(l=>[esc(l.callDate), esc(l.callType), esc(l.callResponse), esc(l.followupDate||'—'), esc(l.notes||'—')])):'<p class="empty">No call logs.</p>')+'</section>';
-        else if(rcoCustViewTab==='Visitors') tabContent = '<section class="panel">'+(vis.length?table(['Visit Date','Attend By','Status','Feedback'], vis.map(v=>[esc(v.visitDate), esc(v.attendBy||'—'), esc(v.visitStatus), esc(v.feedback||'—')])):'<p class="empty">No visitor records.</p>')+'</section>';
-        else if(rcoCustViewTab==='Feedback') tabContent = '<section class="panel">'+(fbs.length?table(['Date','Campaign','Source','Response','Comments'], fbs.map(f=>[esc(f.sentOn), esc(f.campaign), esc(f.source), esc(f.response), esc(f.description||'—')])):'<p class="empty">No feedback.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Transactions'||rcoState.custViewTab==='Recent Transactions') tabContent = '<section class="panel">'+(txs.length?table(['Date','Type','Details','Amount'], txs.map(r=>[esc(String(r.when||r.date||'').slice(0,16)), esc(r.type), esc(r.product||r.desc||'—'), rateMoney(r.amount)])):'<p class="empty">No transactions found.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Chit Mappings') tabContent = '<section class="panel">'+(chits.length?table(['Chit #','Group','Type','Instalment','Status'], chits.map(m=>[esc(m.chitNumber), esc(m.groupName||'—'), esc(m.schemeName||'—'), rateMoney(m.instalmentAmount), esc(m.status||'Active')])):'<p class="empty">No chit mappings.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Similar Address') tabContent = '<section class="panel">'+(similar.length?table(['Name','Mobile','Address','City'], similar.map(s=>[esc(s.name), esc(s.phone||'—'), esc(s.address||'—'), esc(s.city||'—')])):'<p class="empty">No customers with similar address.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Call Logs') tabContent = '<section class="panel"><div class="right" style="margin-bottom:8px"><button type="button" class="primary" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">＋ Log Call</button></div>'+(calls.length?table(['Date','Type','Response','Follow-up','Notes'], calls.map(l=>[esc(l.callDate), esc(l.callType), esc(l.callResponse), esc(l.followupDate||'—'), esc(l.notes||'—')])):'<p class="empty">No call logs.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Visitors') tabContent = '<section class="panel">'+(vis.length?table(['Visit Date','Attend By','Status','Feedback'], vis.map(v=>[esc(v.visitDate), esc(v.attendBy||'—'), esc(v.visitStatus), esc(v.feedback||'—')])):'<p class="empty">No visitor records.</p>')+'</section>';
+        else if(rcoState.custViewTab==='Feedback') tabContent = '<section class="panel">'+(fbs.length?table(['Date','Campaign','Source','Response','Comments'], fbs.map(f=>[esc(f.sentOn), esc(f.campaign), esc(f.source), esc(f.response), esc(f.description||'—')])):'<p class="empty">No feedback.</p>')+'</section>';
         else tabContent = '<section class="panel"><p><b>Created:</b> '+esc(c.createdAt||'—')+'</p><p><b>Last Updated:</b> '+esc(c.updatedAt||'—')+'</p></section>';
 
-        return header('Customer 360° · ' + c.name, '<button type="button" onclick="rcoCustEditId=\''+esc(c.id)+'\';rcoCustShowForm=true;rcoCustViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button> <button type="button" onclick="rcoCustViewId=\'\';render()">← Back</button>')
-          + '<div class="rco-tabs">'+cTabs.map(t=>'<button type="button" class="'+(rcoCustViewTab===t?'active':'')+'" onclick="rcoCustViewTab=\''+t+'\';render()">'+esc(t)+'</button>').join('')+'</div>'
+        return header('Customer 360° · ' + c.name, '<button type="button" onclick="rcoState.custEditId=\''+esc(c.id)+'\';rcoState.custShowForm=true;rcoState.custViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button> <button type="button" onclick="rcoState.custViewId=\'\';render()">← Back</button>')
+          + '<div class="rco-tabs">'+cTabs.map(t=>'<button type="button" class="'+(rcoState.custViewTab===t?'active':'')+'" onclick="rcoState.custViewTab=\''+t+'\';render()">'+esc(t)+'</button>').join('')+'</div>'
           + tabContent;
       }
     }
 
-    if(rcoCustShowForm){
-      const c = rcoCustEditId ? (db.customers||[]).find(x=>x.id===rcoCustEditId) : null;
-      return header(c ? 'Edit Customer · ' + c.name : 'Add Retail Customer', '<button type="button" onclick="rcoCustShowForm=false;rcoCustEditId=\'\';render()">← Back</button>')
+    if(rcoState.custShowForm){
+      const c = rcoState.custEditId ? (db.customers||[]).find(x=>x.id===rcoState.custEditId) : null;
+      return header(c ? 'Edit Customer · ' + c.name : 'Add Retail Customer', '<button type="button" onclick="rcoState.custShowForm=false;rcoState.custEditId=\'\';render()">← Back</button>')
         + '<form onsubmit="rcoSaveRetailCustomer(event)">'
         + '<section class="rco-section-card"><h3>1. Customer Information</h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Salutation</span><select name="salutation">'+opts(['MR.','MRS.','Ms'], c?.salutation||'MR.')+'</select></label>'
@@ -995,17 +992,17 @@
     }
 
     const list = (db.customers||[]).filter(c => {
-      const q = rcoCustSearch.trim().toLowerCase();
+      const q = rcoState.custSearch.trim().toLowerCase();
       if(q && !(String(c.name||'').toLowerCase().includes(q) || String(c.phone||c.mobile||'').includes(q) || String(c.customerNo||'').toLowerCase().includes(q))) return false;
-      if(rcoCustFilter.city && !String(c.city||'').toLowerCase().includes(rcoCustFilter.city.toLowerCase())) return false;
-      if(rcoCustFilter.team && c.team !== rcoCustFilter.team) return false;
-      if(rcoCustFilter.gender && c.gender !== rcoCustFilter.gender) return false;
+      if(rcoState.custFilter.city && !String(c.city||'').toLowerCase().includes(rcoState.custFilter.city.toLowerCase())) return false;
+      if(rcoState.custFilter.team && c.team !== rcoState.custFilter.team) return false;
+      if(rcoState.custFilter.gender && c.gender !== rcoState.custFilter.gender) return false;
       return true;
     });
-    return header('Customer Register', '<button type="button" class="primary" onclick="rcoCustEditId=\'\';rcoCustShowForm=true;render()">＋ Add Customer</button>')
-      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Customer Name, Mobile, Customer No..." value="'+esc(rcoCustSearch)+'" oninput="rcoCustSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoCustFilterOpen=!rcoCustFilterOpen;render()">🔍 Filter</button></div></div>'
-      + (rcoCustFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>City</span><input value="'+esc(rcoCustFilter.city)+'" oninput="rcoCustFilter.city=this.value;render()"></label><label class="rco-field"><span>Team</span><select onchange="rcoCustFilter.team=this.value;render()">'+opts(['','AK','Arjeeth','SSJ','SSN','VKL'], rcoCustFilter.team)+'</select></label><label class="rco-field"><span>Gender</span><select onchange="rcoCustFilter.gender=this.value;render()">'+opts(['','Female','Male','Others'], rcoCustFilter.gender)+'</select></label></div>' : '')
-      + (list.length ? table(['Customer No','Name','Mobile','City','Team','Segment','Actions'], list.map(c=>[esc(c.customerNo||'—'), '<b>'+esc(c.name)+'</b>', esc(c.phone||c.mobile||'—'), esc(c.city||'—'), esc(c.team||'—'), esc(c.segment||'—'), '<button type="button" onclick="rcoCustEditId=\''+esc(c.id)+'\';rcoCustShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoCustViewId=\''+esc(c.id)+'\';rcoCustViewTab=\'Details\';render()">View</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button>'])) : '<p class="empty">No customers yet.</p>')
+    return header('Customer Register', '<button type="button" class="primary" onclick="rcoState.custEditId=\'\';rcoState.custShowForm=true;render()">＋ Add Customer</button>')
+      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Customer Name, Mobile, Customer No..." value="'+esc(rcoState.custSearch)+'" oninput="rcoState.custSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoState.custFilterOpen=!rcoState.custFilterOpen;render()">🔍 Filter</button></div></div>'
+      + (rcoState.custFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>City</span><input value="'+esc(rcoState.custFilter.city)+'" oninput="rcoState.custFilter.city=this.value;render()"></label><label class="rco-field"><span>Team</span><select onchange="rcoState.custFilter.team=this.value;render()">'+opts(['','AK','Arjeeth','SSJ','SSN','VKL'], rcoState.custFilter.team)+'</select></label><label class="rco-field"><span>Gender</span><select onchange="rcoState.custFilter.gender=this.value;render()">'+opts(['','Female','Male','Others'], rcoState.custFilter.gender)+'</select></label></div>' : '')
+      + (list.length ? table(['Customer No','Name','Mobile','City','Team','Segment','Actions'], list.map(c=>[esc(c.customerNo||'—'), '<b>'+esc(c.name)+'</b>', esc(c.phone||c.mobile||'—'), esc(c.city||'—'), esc(c.team||'—'), esc(c.segment||'—'), '<button type="button" onclick="rcoState.custEditId=\''+esc(c.id)+'\';rcoState.custShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoState.custViewId=\''+esc(c.id)+'\';rcoState.custViewTab=\'Details\';render()">View</button> <button type="button" onclick="rcoOpenCallModal(\''+esc(c.name)+'\',\''+esc(c.phone||'')+'\',\'Customers\',\''+esc(c.id)+'\')">📞 Call</button>'])) : '<p class="empty">No customers yet.</p>')
       + '</section>';
   }
 
@@ -1015,10 +1012,10 @@
     const name = f.name.value.trim(), city = f.city.value.trim();
     if(!name || !city) return say('Supplier Name and City are required.');
     const phone = f.phone.value.trim();
-    if(!f.allowMobileDuplicate?.checked && phone && (db.retailSuppliers||[]).some(s=>s.id!==rcoSupEditId && String(s.phone||'')===phone)){
+    if(!f.allowMobileDuplicate?.checked && phone && (db.retailSuppliers||[]).some(s=>s.id!==rcoState.supEditId && String(s.phone||'')===phone)){
       return say('Mobile number already exists for another supplier.');
     }
-    const old = rcoSupEditId ? (db.retailSuppliers||[]).find(s=>s.id===rcoSupEditId) : null;
+    const old = rcoState.supEditId ? (db.retailSuppliers||[]).find(s=>s.id===rcoState.supEditId) : null;
     const row = Object.assign({}, old || {}, {
       id: old?.id || crypto.randomUUID(),
       supplierNo: f.supplierNo.value.trim() || old?.supplierNo || ('SUP-' + Date.now().toString().slice(-5)),
@@ -1040,18 +1037,18 @@
     const idx = db.retailSuppliers.findIndex(s=>s.id===row.id);
     if(idx<0) db.retailSuppliers.push(row); else db.retailSuppliers[idx] = row;
     save(); pushCloud();
-    rcoSupShowForm = false; rcoSupEditId = '';
+    rcoState.supShowForm = false; rcoState.supEditId = '';
     say('Supplier saved.'); render();
   };
 
   function rcoRetailSupplierView(){
-    if(rcoSupViewId){
-      const s = (db.retailSuppliers||[]).find(x=>x.id===rcoSupViewId);
-      if(!s) { rcoSupViewId = ''; }
+    if(rcoState.supViewId){
+      const s = (db.retailSuppliers||[]).find(x=>x.id===rcoState.supViewId);
+      if(!s) { rcoState.supViewId = ''; }
       else {
-        return header('Supplier · ' + s.name, '<button type="button" onclick="rcoSupEditId=\''+esc(s.id)+'\';rcoSupShowForm=true;rcoSupViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoSupViewId=\'\';render()">← Back</button>')
-          + '<div class="rco-tabs"><button type="button" class="'+(rcoSupViewTab==='Details'?'active':'')+'" onclick="rcoSupViewTab=\'Details\';render()">Details</button><button type="button" class="'+(rcoSupViewTab==='History'?'active':'')+'" onclick="rcoSupViewTab=\'History\';render()">History</button></div>'
-          + (rcoSupViewTab==='History'
+        return header('Supplier · ' + s.name, '<button type="button" onclick="rcoState.supEditId=\''+esc(s.id)+'\';rcoState.supShowForm=true;rcoState.supViewId=\'\';render()">Edit</button> <button type="button" onclick="rcoState.supViewId=\'\';render()">← Back</button>')
+          + '<div class="rco-tabs"><button type="button" class="'+(rcoState.supViewTab==='Details'?'active':'')+'" onclick="rcoState.supViewTab=\'Details\';render()">Details</button><button type="button" class="'+(rcoState.supViewTab==='History'?'active':'')+'" onclick="rcoState.supViewTab=\'History\';render()">History</button></div>'
+          + (rcoState.supViewTab==='History'
             ? '<section class="panel"><p><b>Created On:</b> '+esc(s.createdAt||'—')+'</p><p><b>Updated On:</b> '+esc(s.updatedAt||'—')+'</p></section>'
             : '<div class="rco-grid-2">'
               + '<section class="rco-section-card"><h3>Supplier Information</h3><p><b>Supplier No:</b> '+esc(s.supplierNo||'—')+'</p><p><b>Name:</b> '+esc(s.name)+'</p><p><b>Code:</b> '+esc(s.supplierCode||'—')+'</p><p><b>Hallmark License No:</b> '+esc(s.hallmarkLicense||'—')+'</p><p><b>Mobile:</b> '+esc(s.phone||'—')+' | <b>WhatsApp:</b> '+esc(s.whatsapp||'—')+'</p><p><b>Ornaments Type:</b> '+esc(s.ornamentsType||'—')+'</p><p><b>GST / PAN:</b> '+esc(s.gst||'—')+' / '+esc(s.pan||'—')+'</p><p><b>Credit Days:</b> '+esc(s.creditDays||'—')+'</p></section>'
@@ -1060,9 +1057,9 @@
       }
     }
 
-    if(rcoSupShowForm){
-      const s = rcoSupEditId ? (db.retailSuppliers||[]).find(x=>x.id===rcoSupEditId) : null;
-      return header(s ? 'Edit Supplier · ' + s.name : 'New Supplier Registration', '<button type="button" onclick="rcoSupShowForm=false;rcoSupEditId=\'\';render()">← Back</button>')
+    if(rcoState.supShowForm){
+      const s = rcoState.supEditId ? (db.retailSuppliers||[]).find(x=>x.id===rcoState.supEditId) : null;
+      return header(s ? 'Edit Supplier · ' + s.name : 'New Supplier Registration', '<button type="button" onclick="rcoState.supShowForm=false;rcoState.supEditId=\'\';render()">← Back</button>')
         + '<form onsubmit="rcoSaveRetailSupplier(event)">'
         + '<section class="rco-section-card"><h3>1. Supplier Information</h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Salutation</span><select name="salutation">'+opts(['MR.','MRS.','Ms','M/S'], s?.salutation||'M/S')+'</select></label>'
@@ -1107,17 +1104,17 @@
     }
 
     const list = (db.retailSuppliers||[]).filter(s => {
-      const q = rcoSupSearch.trim().toLowerCase();
+      const q = rcoState.supSearch.trim().toLowerCase();
       if(q && !(String(s.name||'').toLowerCase().includes(q) || String(s.phone||'').includes(q) || String(s.supplierCode||'').toLowerCase().includes(q))) return false;
-      if(rcoSupFilter.ornament && s.ornamentsType !== rcoSupFilter.ornament) return false;
-      if(rcoSupFilter.businessType && s.businessType !== rcoSupFilter.businessType) return false;
-      if(rcoSupFilter.city && !String(s.city||'').toLowerCase().includes(rcoSupFilter.city.toLowerCase())) return false;
+      if(rcoState.supFilter.ornament && s.ornamentsType !== rcoState.supFilter.ornament) return false;
+      if(rcoState.supFilter.businessType && s.businessType !== rcoState.supFilter.businessType) return false;
+      if(rcoState.supFilter.city && !String(s.city||'').toLowerCase().includes(rcoState.supFilter.city.toLowerCase())) return false;
       return true;
     });
-    return header('Retail Suppliers', '<button type="button" class="primary" onclick="rcoSupEditId=\'\';rcoSupShowForm=true;render()">＋ New Supplier</button>')
-      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Supplier Name, Code, Mobile..." value="'+esc(rcoSupSearch)+'" oninput="rcoSupSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoSupFilterOpen=!rcoSupFilterOpen;render()">🔍 Filter</button></div></div>'
-      + (rcoSupFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>Ornaments Type</span><select onchange="rcoSupFilter.ornament=this.value;render()">'+opts(['','GOLD','SILVER','ALLOY','DIAMOND','STONE','PLATINUM','GIFT ITEM'], rcoSupFilter.ornament)+'</select></label><label class="rco-field"><span>Business Type</span><select onchange="rcoSupFilter.businessType=this.value;render()">'+opts(['','LARGE','MEDIUM','SMALL'], rcoSupFilter.businessType)+'</select></label><label class="rco-field"><span>City</span><input value="'+esc(rcoSupFilter.city)+'" oninput="rcoSupFilter.city=this.value;render()"></label></div>' : '')
-      + (list.length ? table(['Supplier No','Supplier Name','Hallmark Lic','Code','Mobile','Ornaments','City','Actions'], list.map(s=>[esc(s.supplierNo||'—'), '<b>'+esc(s.name)+'</b>', esc(s.hallmarkLicense||'—'), esc(s.supplierCode||'—'), esc(s.phone||'—'), esc(s.ornamentsType||'—'), esc(s.city||'—'), '<button type="button" onclick="rcoSupEditId=\''+esc(s.id)+'\';rcoSupShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoSupViewId=\''+esc(s.id)+'\';rcoSupViewTab=\'Details\';render()">View</button>'])) : '<p class="empty">No retail suppliers yet.</p>')
+    return header('Retail Suppliers', '<button type="button" class="primary" onclick="rcoState.supEditId=\'\';rcoState.supShowForm=true;render()">＋ New Supplier</button>')
+      + '<section class="panel"><div class="rco-toolbar"><input class="rco-search" placeholder="Search Supplier Name, Code, Mobile..." value="'+esc(rcoState.supSearch)+'" oninput="rcoState.supSearch=this.value;render()"><div class="rco-toolbar-right"><button type="button" onclick="rcoState.supFilterOpen=!rcoState.supFilterOpen;render()">🔍 Filter</button></div></div>'
+      + (rcoState.supFilterOpen ? '<div class="rco-filter-box"><label class="rco-field"><span>Ornaments Type</span><select onchange="rcoState.supFilter.ornament=this.value;render()">'+opts(['','GOLD','SILVER','ALLOY','DIAMOND','STONE','PLATINUM','GIFT ITEM'], rcoState.supFilter.ornament)+'</select></label><label class="rco-field"><span>Business Type</span><select onchange="rcoState.supFilter.businessType=this.value;render()">'+opts(['','LARGE','MEDIUM','SMALL'], rcoState.supFilter.businessType)+'</select></label><label class="rco-field"><span>City</span><input value="'+esc(rcoState.supFilter.city)+'" oninput="rcoState.supFilter.city=this.value;render()"></label></div>' : '')
+      + (list.length ? table(['Supplier No','Supplier Name','Hallmark Lic','Code','Mobile','Ornaments','City','Actions'], list.map(s=>[esc(s.supplierNo||'—'), '<b>'+esc(s.name)+'</b>', esc(s.hallmarkLicense||'—'), esc(s.supplierCode||'—'), esc(s.phone||'—'), esc(s.ornamentsType||'—'), esc(s.city||'—'), '<button type="button" onclick="rcoState.supEditId=\''+esc(s.id)+'\';rcoState.supShowForm=true;render()">Edit</button> <button type="button" class="primary" onclick="rcoState.supViewId=\''+esc(s.id)+'\';rcoState.supViewTab=\'Details\';render()">View</button>'])) : '<p class="empty">No retail suppliers yet.</p>')
       + '</section>';
   }
 
@@ -1170,7 +1167,7 @@
       if(appEl){
         if(page === 'Order Tracking'){
           appEl.innerHTML = rcoOrderTrackingView();
-          if(rcoOrderShowFormFlag) rcoRecalcOrder();
+          if(rcoState.orderShowForm) rcoRecalcOrder();
         } else if(page === 'CRM'){
           appEl.innerHTML = rcoCrmView();
         } else if(page === 'Suppliers'){

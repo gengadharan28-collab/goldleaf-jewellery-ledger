@@ -1,29 +1,31 @@
 /* Retail Order Tracking, CRM, Customer 360 & Supplier Registration */
-.rco-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:6px;background:var(--paper,#f6f4ef);border:1px solid var(--line,#e2ddd3);border-radius:12px}
-.rco-tabs button{padding:7px 14px;border-radius:8px;border:1px solid transparent;background:transparent;font-size:12.5px;font-weight:700;color:var(--muted,#5e5c56);cursor:pointer}
+.rco-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:6px;background:var(--paper,#f6f4ef);border:1px solid var(--line,#e2ddd3);border-radius:12px;max-width:100%}
+.rco-tabs button{padding:7px 14px;border-radius:8px;border:1px solid transparent;background:transparent;font-size:12.5px;font-weight:700;color:var(--muted,#5e5c56);cursor:pointer;white-space:nowrap;flex-shrink:0}
 .rco-tabs button.active{background:var(--green,#18392a);color:#fff;box-shadow:0 2px 6px rgba(24,57,42,.18)}
-.rco-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
-.rco-toolbar-left,.rco-toolbar-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.rco-search{min-width:220px;flex:1;max-width:340px;padding:8px 12px;border:1px solid var(--line,#ddd);border-radius:9px;font-size:13px;background:var(--white,#fff)}
+.rco-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;max-width:100%}
+.rco-toolbar-left,.rco-toolbar-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:100%}
+.rco-search{min-width:200px;flex:1 1 200px;max-width:340px;padding:8px 12px;border:1px solid var(--line,#ddd);border-radius:9px;font-size:13px;background:var(--white,#fff)}
 .rco-filter-box{background:var(--paper,#faf8f4);border:1px solid var(--line,#e2ddd3);border-radius:12px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px}
 .rco-filter-box.hidden,.rco-hidden{display:none!important}
 .rco-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px}
 .rco-grid-3{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:10px}
 .rco-grid-2{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:12px}
-.rco-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:650;color:var(--ink,#222)}
-.rco-field input,.rco-field select,.rco-field textarea{padding:8px 10px;border:1px solid var(--line,#d8d3c8);border-radius:8px;font-size:13px;background:var(--white,#fff);color:var(--ink,#222);min-height:38px}
+.rco-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:650;color:var(--ink,#222);min-width:0}
+.rco-field input,.rco-field select,.rco-field textarea{padding:8px 10px;border:1px solid var(--line,#d8d3c8);border-radius:8px;font-size:13px;background:var(--white,#fff);color:var(--ink,#222);min-height:38px;width:100%;max-width:100%;box-sizing:border-box}
 .rco-field.wide{grid-column:1/-1}
-.rco-section-card{background:var(--white,#fff);border:1px solid var(--line,#e4dfd5);border-radius:12px;padding:14px;margin-bottom:14px}
-.rco-section-card h3{margin:0 0 10px;font-size:14px;font-weight:800;color:var(--green,#18392a);border-bottom:1px solid var(--line,#ece8df);padding-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.rco-section-card{background:var(--white,#fff);border:1px solid var(--line,#e4dfd5);border-radius:12px;padding:14px;margin-bottom:14px;max-width:100%;overflow:hidden}
+.rco-section-card .table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rco-section-card h3{margin:0 0 10px;font-size:14px;font-weight:800;color:var(--green,#18392a);border-bottom:1px solid var(--line,#ece8df);padding-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
 .rco-check-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:8px 10px;background:var(--paper,#faf8f4);border-radius:8px;border:1px solid var(--line,#e5e0d5)}
 .rco-check-row label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;cursor:pointer}
-.rco-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:750}
+.rco-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:750;white-space:nowrap}
 .rco-badge-open{background:#e6f4ea;color:#137333}
 .rco-badge-closed{background:#e8eaed;color:#3c4043}
 .rco-badge-cancel{background:#fce8e6;color:#c5221f}
 .rco-badge-converted{background:#fef7e0;color:#b06000}
 .rco-subtable-row td{background:#f9f8f4!important;padding:10px 14px!important}
 .rco-family-card{border:1px solid var(--line,#dfd9ce);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--paper,#fcfbf8);position:relative}
+.rco-cal-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .rco-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:10px}
 .rco-cal-head{text-align:center;font-size:11px;font-weight:800;color:var(--muted,#666);padding:6px 0;text-transform:uppercase}
 .rco-cal-cell{min-height:84px;border:1px solid var(--line,#e5e0d5);border-radius:9px;padding:6px;background:var(--white,#fff);display:flex;flex-direction:column;gap:4px;font-size:11px}
@@ -40,8 +42,14 @@ html[data-theme="dark"] .rco-tabs,html[data-theme="dark"] .rco-filter-box,html[d
 html[data-theme="dark"] .rco-section-card,html[data-theme="dark"] .rco-cal-cell,html[data-theme="dark"] .rco-search{background:#202923;border-color:#3b463e;color:#eee8da}
 html[data-theme="dark"] .rco-field input,html[data-theme="dark"] .rco-field select,html[data-theme="dark"] .rco-field textarea{background:#18201b;border-color:#3b463e;color:#eee8da}
 @media(max-width:760px){
+  .rco-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .rco-toolbar{flex-direction:column;align-items:stretch}
+  .rco-toolbar-left,.rco-toolbar-right{width:100%}
+  .rco-search{max-width:100%;width:100%;font-size:16px;min-height:42px}
+  .rco-field input,.rco-field select,.rco-field textarea{font-size:16px;min-height:42px}
   .rco-filter-box,.rco-grid,.rco-grid-3,.rco-grid-2,.rco-display-cols{grid-template-columns:1fr 1fr}
-  .rco-cal-cell{min-height:60px;padding:4px}
+  .rco-cal-grid{min-width:520px}
+  .rco-cal-cell{min-height:66px;padding:4px}
 }
 @media(max-width:480px){
   .rco-filter-box,.rco-grid,.rco-grid-3,.rco-grid-2,.rco-display-cols{grid-template-columns:1fr}
