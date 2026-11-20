@@ -604,10 +604,11 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   #rcEstimateForm #rcOldGoldDropdown .rc-og-field{min-width:0!important}
   #rcEstimateForm #rcOldGoldDropdown .rc-og-field label{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px!important;white-space:nowrap!important}
   #rcEstimateForm #rcOldGoldDropdown .rc-og-field input,#rcEstimateForm #rcOldGoldDropdown .rc-og-field select{width:100%!important;min-width:0!important;box-sizing:border-box!important}
-  #rcEstimateForm .rc-pos-payment-card{grid-column:1/2!important;grid-row:auto!important;margin:0!important;padding:12px!important;border-radius:10px!important;box-shadow:none!important;border:1px solid var(--line,#d8d3c8)!important}
-  #rcEstimateForm .rc-notes-wrap{grid-column:1/2!important;grid-row:auto!important;margin:0!important}
-  #rcEstimateForm .rc-totals{grid-column:2/3!important;grid-row:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:0!important}
-  #rcEstimateForm .rc-balance-box{grid-column:1/-1!important;grid-row:auto!important;margin:0!important}
+  #rcEstimateForm .rc-pos-payment-card{grid-column:1/2!important;grid-row:3!important;margin:0!important;padding:12px!important;border-radius:10px!important;box-shadow:none!important;border:1px solid var(--line,#d8d3c8)!important;height:100%!important}
+  #rcEstimateForm .rc-totals{grid-column:2/3!important;grid-row:3!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:0!important;align-self:stretch!important}
+  #rcEstimateForm .rc-notes-wrap{grid-column:1/-1!important;grid-row:4!important;margin:0!important}
+  #rcEstimateForm .rc-balance-box{grid-column:1/-1!important;grid-row:5!important;margin:0!important}
+  #rcEstimateForm .rc-pos-split-btn{white-space:nowrap!important;width:auto!important;min-width:max-content!important;height:28px!important;min-height:28px!important;padding:4px 10px!important;font-size:11px!important}
   #rcEstimateForm .rc-pos-payment-head{margin-bottom:8px!important;min-height:28px!important}
   #rcEstimateForm .rc-pos-payment-title{font-size:12.5px!important}
   #rcEstimateForm .rc-pos-payment-total-wrap{gap:6px!important;font-size:11px!important}
