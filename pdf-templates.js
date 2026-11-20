@@ -35,7 +35,7 @@ function pdfConfig(mode=pdfMode()){
   const saved=db.pdfSettings?.[mode]||{},profile=pdfProfileShop===goldleafContext?.shop_id?pdfProfile||{}:{};
   const defaults = {
     template: 'classic',
-    estimateTemplate: 'thermal-estimate-80',
+    estimateTemplate: 'detailed-estimate',
     estimateGridFields: PDF_GRID_DEFAULTS,
     chitTemplate: 'compact-a5-p',
     thermalSize: '3inch',
@@ -69,7 +69,7 @@ function pdfConfig(mode=pdfMode()){
   };
   return Object.assign(defaults, saved, {
     template: PDF_LAYOUTS[saved.template] ? saved.template : 'classic',
-    estimateTemplate: PDF_ESTIMATE_LAYOUTS[saved.estimateTemplate] ? saved.estimateTemplate : 'thermal-estimate-80',
+    estimateTemplate: PDF_ESTIMATE_LAYOUTS[saved.estimateTemplate] ? saved.estimateTemplate : 'detailed-estimate',
     estimateGridFields: Array.isArray(saved.estimateGridFields)?saved.estimateGridFields.filter(key=>PDF_GRID_KEYS.includes(key)):PDF_GRID_DEFAULTS,
     gst: Object.assign({ enabled: false, rate: 3, mode: 'cgst_sgst', hsn: '' }, saved.gst || {})
   });
