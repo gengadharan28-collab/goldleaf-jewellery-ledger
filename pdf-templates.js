@@ -35,7 +35,7 @@ function pdfConfig(mode=pdfMode()){
   const saved=db.pdfSettings?.[mode]||{},profile=pdfProfileShop===goldleafContext?.shop_id?pdfProfile||{}:{};
   const defaults = {
     template: 'classic',
-    estimateTemplate: 'detailed-estimate',
+    estimateTemplate: 'thermal-estimate-80',
     estimateGridFields: PDF_GRID_DEFAULTS,
     chitTemplate: 'compact-a5-p',
     thermalSize: '3inch',
@@ -69,7 +69,7 @@ function pdfConfig(mode=pdfMode()){
   };
   return Object.assign(defaults, saved, {
     template: PDF_LAYOUTS[saved.template] ? saved.template : 'classic',
-    estimateTemplate: PDF_ESTIMATE_LAYOUTS[saved.estimateTemplate] ? saved.estimateTemplate : 'detailed-estimate',
+    estimateTemplate: PDF_ESTIMATE_LAYOUTS[saved.estimateTemplate] ? saved.estimateTemplate : 'thermal-estimate-80',
     estimateGridFields: Array.isArray(saved.estimateGridFields)?saved.estimateGridFields.filter(key=>PDF_GRID_KEYS.includes(key)):PDF_GRID_DEFAULTS,
     gst: Object.assign({ enabled: false, rate: 3, mode: 'cgst_sgst', hsn: '' }, saved.gst || {})
   });
@@ -216,7 +216,7 @@ function pdfReadSettingsForm(){
   const f=new FormData(form),mode=form.dataset.mode,c=pdfConfig(mode);
   return Object.assign({},c,{
     template: f.get('template')||'classic',
-    estimateTemplate: f.get('estimateTemplate')||'detailed-estimate',
+    estimateTemplate: f.get('estimateTemplate')||'thermal-estimate-80',
     estimateGridFields: f.getAll('estimateGridFields').filter(key=>PDF_GRID_KEYS.includes(key)),
     chitTemplate: f.get('chitTemplate')||c.chitTemplate||'compact-a5-p',
     thermalSize: f.get('thermalSize')||'3inch',
@@ -705,10 +705,10 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     pageMargin = isEstimate ? '5mm' : '8mm';
   } else if(template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80'){
     pageSize = '80mm auto';
-    pageMargin = '1mm 2mm';
+    pageMargin = '0';
   } else if(template === 'thermal-58' || template === 'thermal-estimate-58'){
     pageSize = '58mm auto';
-    pageMargin = '1mm 2mm';
+    pageMargin = '0';
   }
 
   document.body.classList.add('goldleaf-pdf-printing');
@@ -718,19 +718,21 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const printDoc = root.querySelector('.gl-pdf');
   let measuredContentMm = 0;
   if(thermalWidth){
+    const printWidth = thermalWidth === 80 ? 72 : 52;
     // #goldleafPdfRoot is hidden on screen, so temporarily measure it at the real roll width.
     const rootStyleBefore = root.getAttribute('style') || '';
     const docStyleBefore = printDoc?.getAttribute('style') || '';
-    root.style.cssText = 'display:block!important;position:fixed!important;left:-10000px!important;top:0!important;visibility:hidden!important;width:'+(thermalWidth-4)+'mm!important;height:auto!important;margin:0!important;padding:0!important;';
+    root.style.cssText = 'display:block!important;position:fixed!important;left:-10000px!important;top:0!important;visibility:hidden!important;width:'+printWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;';
     if(printDoc){
-      printDoc.style.cssText += ';display:block!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;margin:0!important;';
+      printDoc.style.cssText += ';display:block!important;width:100%!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;';
     }
     void root.offsetHeight;
     const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0);
-    measuredContentMm = Math.max(35, Math.ceil(contentPx * 25.4 / 96) + 3);
+    measuredContentMm = Math.max(30, Math.ceil(contentPx * 25.4 / 96) + 2);
     root.setAttribute('style',rootStyleBefore);
     if(printDoc) printDoc.setAttribute('style',docStyleBefore);
-    pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
+    pageSize = thermalWidth + 'mm auto';
+    pageMargin = '0';
   }else{
     root.style.width = '';
     root.style.margin = '0 auto';
@@ -741,7 +743,8 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     }
   }
   // Use the global @page rule: Chrome and the CITIZEN CT-D150 driver ignore variable height on named pages.
-  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+'}';
+  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}'
+    + (thermalWidth ? '@media print{html,body{width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important;overflow:visible!important}#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important}.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?72:52)+'mm!important;max-width:'+(thermalWidth===80?72:52)+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important}}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Let Chrome finish laying out the hidden receipt before opening the native printer window.
   // This remains direct printing: there is no intermediate Goldleaf preview.
@@ -1018,8 +1021,8 @@ const PDF_DOCUMENT_CSS=`
 
 /* Thermal POS Receipts (80mm & 58mm) */
 .gl-pdf-thermal{background:#fff;padding:8px;font-family:"Courier New",Courier,monospace;line-height:1.25;box-shadow:0 1px 6px rgba(0,0,0,.15);border:1px dashed #aaa}
-.pdf-thermal-80{max-width:300px;font-size:9.5px}
-.pdf-thermal-58{max-width:220px;font-size:8.5px;padding:4px}
+.pdf-thermal-80{max-width:72mm;font-size:9.5px;margin:0 auto}
+.pdf-thermal-58{max-width:52mm;font-size:8.5px;padding:2px;margin:0 auto}
 .thermal-center{text-align:center}
 .thermal-right{text-align:right}
 .thermal-bold{font-weight:bold}
@@ -1037,7 +1040,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:7.5px;font-weight:bold}
 .thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
-.pdf-thermal-estimate-grid-80{width:100%;max-width:76mm;box-sizing:border-box;border:0;padding:1mm 1mm;font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.3;margin:0 auto;color:#000;font-weight:500}
+.pdf-thermal-estimate-grid-80{width:100%;max-width:72mm;box-sizing:border-box;border:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.3;margin:0 auto;color:#000;font-weight:500}
 .grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:8px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:8px;font-weight:650;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:7.2px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:6.8px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:6.8px;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #bbb;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:6.8px;text-transform:uppercase;color:#555}.grid80-detail-cell b,.grid80-item-details b{font-size:8px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:10px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:9px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:8.5px}.grid80-summary-row.grid80-highlight{font-size:10.5px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:8px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:7.5px;text-align:center;margin-top:8px}
 .grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:7px;font-weight:600;padding:4px 1px}.grid80-items th{font-size:6.6px}.grid80-item-main td small{font-size:6.4px;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #203d32}.grid80-detail-cell>span,.grid80-item-details>span{padding:2px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:3px 4px;font-size:9px}.grid80-summary-row{font-size:8.4px;line-height:1.25;padding:2px 1px;border-bottom:1px solid #e2e7e4}.grid80-summary-row.grid80-highlight{font-size:10px;padding:5px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:2px 1px}.grid80-ticket footer{margin-top:3px}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.15}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
