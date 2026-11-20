@@ -285,7 +285,7 @@ window.calcSale=function(form){pdfPreviousCalcSale(form);if(form?.elements.accou
 const pdfPreviousSaveSale=window.saveSale;
 window.saveSale=function(event){const f=event.target;if(f.elements.accountType?.value==='customer'){const gst=pdfGSTInputs(f);if(gst.gstEnabled&&(gst.gstRate<=0||gst.gstRate>100)){event.preventDefault();return say('Enter a valid GST percentage, or switch it off.');}}return pdfPreviousSaveSale(event);};
 
-function pdfTable(heads,rows){return '<div class="gl-pdf-table-wrap"><table class="gl-pdf-table"><thead><tr>'+heads.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
+function pdfTable(heads,rows){return '<table class="gl-pdf-table"><thead><tr>'+heads.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
 function pdfTotals(rows){return '<table class="pdf-totals"><tbody>'+rows.map(([label,value,highlight])=>'<tr class="'+(highlight?'pdf-highlight':'')+'"><th>'+esc(label)+'</th><td>'+esc(value)+'</td></tr>').join('')+'</tbody></table>';}
 
 function pdfHeader(model,c,isThermal=false){
@@ -796,10 +796,8 @@ function pdfRenderDocumentModal(){
     +'<p>'+esc((model.reference||'Live view')+' · '+(model.entityName||'')+(model.chit?.passbook?' · Chit '+model.chit.passbook:''))+'</p></div>'
     +'<div class="pdf-preview-head-actions">'
     +'<button type="button" class="primary" onclick="pdfPrintPreviewActive()">Print / Save PDF</button>'
-    +'<button type="button" onclick="pdfOpenNewTabActive()">Open in New Tab</button>'
     +'<button type="button" onclick="document.getElementById(\'pdfDocumentPreview\')?.remove()">Close</button>'
     +'</div></div>'
-    +'<div class="pdf-preview-toolbar"><div class="pdf-preview-pills">'+pillHtml+'</div></div>'
     +(missingGstin?'<div class="pdf-preview-warning">GST is enabled on this bill, but Shop GSTIN (15 chars) is not set in Retail PDF Settings — showing draft preview.</div>':'')
     +'<iframe title="Live PDF preview"></iframe>'
     +'</section>';
@@ -834,18 +832,6 @@ window.pdfPrintPreviewActive=function(){
   const { model, mode, template } = pdfActiveDocPreview;
   const isDraft = !!(model.sample || String(model.reference||'').startsWith('DRAFT'));
   pdfTriggerPrint(model, mode, template, isDraft);
-};
-
-window.pdfOpenNewTabActive=function(){
-  if(!pdfActiveDocPreview)return;
-  const { model, template, config } = pdfActiveDocPreview;
-  const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
-  const layouts = isEstimate ? PDF_ESTIMATE_LAYOUTS : PDF_LAYOUTS;
-  const chosen = layouts[template] ? template : (isEstimate ? 'detailed-estimate' : 'classic');
-  const html = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(model.title||'Document')+' · '+esc(model.reference||'')+'</title><style>body{margin:0;padding:18px;background:#fff;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
 };
 
 async function pdfPrintModel(model,mode,forcedTemplate=null,options={}){
@@ -989,15 +975,13 @@ const PDF_DOCUMENT_CSS=`
 .pdf-meta p{margin:4px 0;font-size:10px;color:#444}
 .pdf-expiry-tag{color:#b33e28;font-weight:750;background:#fdeeed;display:inline-block;padding:2px 6px;border-radius:4px;margin-top:4px!important}
 
-.gl-pdf-table-wrap{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;margin:10px 0!important}
-.gl-pdf table,.gl-pdf-table{display:table!important;width:100%!important;min-width:680px!important;border-collapse:collapse!important;table-layout:auto!important;margin:0!important}
+.gl-pdf table,.gl-pdf-table{display:table!important;width:100%!important;min-width:0!important;border-collapse:collapse!important;table-layout:auto!important;margin:10px 0}
 .gl-pdf thead{display:table-header-group!important;position:static!important;width:auto!important;height:auto!important;clip:auto!important;overflow:visible!important}
 .gl-pdf tbody{display:table-row-group!important}
 .gl-pdf tr{display:table-row!important;break-inside:avoid;page-break-inside:avoid;box-shadow:none!important;padding:0!important}
-.gl-pdf th,.gl-pdf td{display:table-cell!important;border:1px solid #bbb!important;padding:8px 9px!important;text-align:left!important;vertical-align:middle!important;font-size:10px!important;line-height:1.35!important;white-space:nowrap!important}
-.gl-pdf th:first-child,.gl-pdf td:first-child{white-space:normal!important;min-width:140px!important}
+.gl-pdf th,.gl-pdf td{display:table-cell!important;border:1px solid #bbb!important;padding:7px 6px!important;text-align:left!important;vertical-align:top;font-size:9px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
 .gl-pdf td:before{display:none!important}
-.gl-pdf th{background:#f2ede3!important;color:#242820!important;font-size:9px!important;font-weight:700!important;letter-spacing:.2px;text-transform:none}
+.gl-pdf th{background:#f2ede3!important;color:#242820!important;font-size:8px;font-weight:700;letter-spacing:.2px;text-transform:none}
 .pdf-section-title{font-size:11px;font-weight:750;margin:16px 0 6px;color:#1e2d25;border-bottom:1px solid #ccc;padding-bottom:4px}
 
 .gl-pdf .pdf-totals{margin:18px 0 0 auto;width:58%!important;min-width:270px!important}
@@ -1028,8 +1012,7 @@ const PDF_DOCUMENT_CSS=`
 
 /* Detailed Landscape Styles */
 .pdf-detailed,.pdf-detailed-estimate{max-width:1050px}
-.pdf-detailed th,.pdf-detailed td,.pdf-detailed-estimate th,.pdf-detailed-estimate td{font-size:9.5px!important;padding:7px 9px!important;white-space:nowrap!important}
-.pdf-detailed th:first-child,.pdf-detailed td:first-child,.pdf-detailed-estimate th:first-child,.pdf-detailed-estimate td:first-child{white-space:normal!important;min-width:140px!important}
+.pdf-detailed th,.pdf-detailed td,.pdf-detailed-estimate th,.pdf-detailed-estimate td{font-size:8px;padding:5px!important}
 .pdf-detailed th{background:#e4eaf0!important}
 .pdf-detailed .pdf-brand{border-bottom-color:#405d78}
 
@@ -1088,17 +1071,7 @@ const PDF_DOCUMENT_CSS=`
 .pdf-chit-highlight th,.pdf-chit-highlight td{background:#e6f6ec!important;border-color:#2e6b4e!important;font-weight:700!important;color:#14532d!important}
 .pdf-compact-a5-p .pdf-chit-kpis,.pdf-compact-estimate-a5 .pdf-chit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 
-@media(max-width:760px){
-  body{padding:6px!important;justify-content:flex-start!important}
-  .gl-pdf{padding:14px 10px!important;width:100%!important;box-shadow:none!important}
-  .pdf-meta{grid-template-columns:1fr!important;gap:6px!important}
-  .pdf-meta>div:last-child{text-align:left!important}
-  .gl-pdf .pdf-totals{width:100%!important;min-width:100%!important;margin:12px 0 0!important}
-}
-
 @media print{
-  .gl-pdf-table-wrap{overflow:visible!important}
-  .gl-pdf table,.gl-pdf-table{min-width:0!important;width:100%!important}
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf{box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;break-after:avoid!important;page-break-after:avoid!important}
@@ -1146,16 +1119,16 @@ pdfStyle.textContent=PDF_DOCUMENT_CSS+`
 .pdf-toggle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
 .pdf-checkbox{display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer}
 .pdf-settings-panel textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px}
-.pdf-preview-overlay{z-index:99999!important;position:fixed!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(10,25,44,0.7)!important;backdrop-filter:blur(4px)!important;padding:14px!important}
-.pdf-preview-modal{width:min(1180px,96vw)!important;height:92dvh!important;max-height:92dvh!important;display:flex!important;flex-direction:column!important;gap:8px!important;padding:16px!important;background:#fff!important;border-radius:14px!important;box-shadow:0 25px 80px rgba(0,0,0,0.4)!important;box-sizing:border-box!important}
-.pdf-preview-head-actions{display:flex!important;gap:8px!important;align-items:center!important;flex-wrap:wrap!important}
-.pdf-preview-toolbar{display:flex!important;gap:8px!important;align-items:center!important;justify-content:space-between!important;padding:8px 10px!important;background:#f4f7f5!important;border:1px solid #dbe4de!important;border-radius:8px!important;flex-wrap:wrap!important}
-.pdf-preview-pills{display:flex!important;gap:6px!important;flex-wrap:wrap!important;align-items:center!important}
-.pdf-preview-pill{background:#fff!important;color:#1e293b!important;border:1px solid #cbd5e1!important;border-radius:999px!important;padding:5px 11px!important;font-size:12px!important;font-weight:600!important;cursor:pointer!important}
-.pdf-preview-pill:hover{border-color:#2e6b4e!important;color:#14532d!important}
-.pdf-preview-pill.active{background:#18392a!important;color:#fff!important;border-color:#18392a!important}
-.pdf-preview-warning{padding:7px 10px!important;border-radius:6px!important;background:#fffbeb!important;border:1px solid #f59e0b!important;color:#92400e!important;font-size:12px!important;font-weight:600!important}
-.pdf-preview-modal iframe{flex:1 1 0!important;width:100%!important;min-height:300px!important;border:1px solid #cbd5e1!important;background:#fff!important;border-radius:6px!important}
+.pdf-preview-overlay{z-index:60}
+.pdf-preview-modal{width:min(1180px,100%);height:92dvh;display:flex;flex-direction:column;gap:8px}
+.pdf-preview-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pdf-preview-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:#f4f7f5;border:1px solid #dbe4de;border-radius:8px;flex-wrap:wrap}
+.pdf-preview-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pdf-preview-pill{background:#fff;color:#1e293b;border:1px solid #cbd5e1;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
+.pdf-preview-pill:hover{border-color:#2e6b4e;color:#14532d}
+.pdf-preview-pill.active{background:#18392a;color:#fff;border-color:#18392a}
+.pdf-preview-warning{padding:7px 10px;border-radius:6px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;font-size:12px;font-weight:600}
+.pdf-preview-modal iframe{flex:1;width:100%;min-height:0;border:1px solid #ddd;background:#fff;border-radius:6px}
 @media(max-width:850px){
   .pdf-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .pdf-toggle-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -1164,17 +1137,7 @@ pdfStyle.textContent=PDF_DOCUMENT_CSS+`
   .pdf-choices{grid-template-columns:1fr;gap:8px}
   .pdf-toggle-grid{grid-template-columns:1fr;gap:6px}
 }
-@media(max-width:760px){
-  body{padding:6px!important;justify-content:flex-start!important}
-  .gl-pdf{padding:14px 10px!important;width:100%!important;box-shadow:none!important}
-  .pdf-meta{grid-template-columns:1fr!important;gap:6px!important}
-  .pdf-meta>div:last-child{text-align:left!important}
-  .gl-pdf .pdf-totals{width:100%!important;min-width:100%!important;margin:12px 0 0!important}
-}
-
 @media print{
-  .gl-pdf-table-wrap{overflow:visible!important}
-  .gl-pdf table,.gl-pdf-table{min-width:0!important;width:100%!important}
   body.goldleaf-pdf-printing>:not(#goldleafPdfRoot){display:none!important}
   body.goldleaf-pdf-printing #goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:100%!important;max-width:100%!important;margin:0 auto!important;padding:0!important}
   html,body.goldleaf-pdf-printing{height:auto!important;overflow:visible!important;background:#fff!important}
