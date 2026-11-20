@@ -1628,9 +1628,8 @@ function rcEstimateHistory(){
     '<b style="color:var(--green,#18392a)">'+rateMoney(q.amount)+'</b>',
     '<span class="pill">'+esc(q.status||'Draft')+'</span>',
     '<div class="rc-history-actions" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'
-    +'<button type="button" class="primary" onclick="rcViewSavedEstimate(\''+esc(q.id)+'\')" title="View Quotation PDF" style="font-weight:750">View</button> '
     +'<button type="button" onclick="rcEditEstimate(\''+esc(q.id)+'\')">Edit</button> '
-    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\')" title="Print PDF">PDF</button> '
+    +'<button type="button" onclick="rcPrintSavedEstimate(\''+esc(q.id)+'\')" title="Print / Save PDF">View</button> '
     +'<button type="button" onclick="rcShareQuoteWhatsApp(\''+esc(q.id)+'\')" style="background:#25d366;border-color:#25d366;color:#fff">WA</button> '
     +'<button type="button" onclick="rcConvert(\''+esc(q.id)+'\')">Convert</button> '
     +'<button type="button" class="rc-history-delete" onclick="rcDeleteEstimate(\''+esc(q.id)+'\')" title="Delete quotation">Delete</button>'
