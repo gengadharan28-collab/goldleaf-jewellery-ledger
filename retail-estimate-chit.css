@@ -42,7 +42,7 @@ html body.rc-active,html body.rc-active .layout,html body.rc-active .main{height
   body:not(.goldleaf-pdf-printing)>*:not(#rcTagPrintSheet):has(#rcTagPrintSheet){display:none!important}
   body.goldleaf-tag-printing,
   body:has(#rcTagPrintSheet){height:auto!important;overflow:visible!important;background:#fff!important}
-  @page{margin:4mm;size:auto}
+  @page{margin:4mm}
   #rcTagPrintSheet{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4mm;padding:3mm;background:#fff!important;width:100%!important;box-sizing:border-box!important}
   .rc-tag-print-item{box-sizing:border-box!important;page-break-inside:avoid!important;break-inside:avoid!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;min-height:28mm!important;padding:2.5mm 3mm!important;border:1px solid #000!important;border-radius:4px!important;background:#fff!important;color:#000!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .rc-tag-print-head{display:flex!important;justify-content:space-between!important;align-items:center!important;padding-bottom:1.5mm!important;border-bottom:0.5px solid #000!important;font-size:7pt!important;font-weight:800!important;letter-spacing:.5px!important;text-transform:uppercase!important}

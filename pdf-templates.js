@@ -727,11 +727,14 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       printDoc.style.cssText += ';display:block!important;width:100%!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;';
     }
     void root.offsetHeight;
-    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0);
-    measuredContentMm = Math.max(30, Math.ceil(contentPx * 25.4 / 96) + 2);
+    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0, printDoc?.offsetHeight || 0, root.offsetHeight || 0);
+    const calculatedMm = Math.ceil(contentPx * 25.4 / 96);
+    measuredContentMm = Math.max(40, (calculatedMm > 0 ? calculatedMm : 100) + 4);
     root.setAttribute('style',rootStyleBefore);
     if(printDoc) printDoc.setAttribute('style',docStyleBefore);
-    pageSize = thermalWidth + 'mm auto';
+    // Explicit Width x Height in millimeters is valid CSS Paged Media syntax.
+    // Chrome drops '80mm auto' because 'auto' is not allowed after a length, which was causing Chrome to fall back to the driver default (80x297mm).
+    pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
     pageMargin = '0';
   }else{
     root.style.width = '';
@@ -742,9 +745,12 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       printDoc.style.margin = '0 auto';
     }
   }
-  // Use the global @page rule: Chrome and the CITIZEN CT-D150 driver ignore variable height on named pages.
-  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}'
-    + (thermalWidth ? '@media print{html,body{width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important;overflow:visible!important}#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important}.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?72:52)+'mm!important;max-width:'+(thermalWidth===80?72:52)+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important}}' : '');
+  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}\n'
+    + (thermalWidth ? '@media print{\n'
+      + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important;overflow:hidden!important}\n'
+      + '#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}\n'
+      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?72:52)+'mm!important;max-width:'+(thermalWidth===80?72:52)+'mm!important;height:auto!important;max-height:'+measuredContentMm+'mm!important;margin:0 auto!important;padding:0!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}\n'
+      + '}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Let Chrome finish laying out the hidden receipt before opening the native printer window.
   // This remains direct printing: there is no intermediate Goldleaf preview.
