@@ -1,4 +1,4 @@
-// Universal Data Table (Search, Sort, Persistent Display Columns, CSV Export, Table Lines) & Hierarchy Drill-Down across all Goldleaf pages.
+// Universal Data Table (Grouped Display Columns Modal, Customize Filters & Filter Bar, Search, Sort, CSV Export, Table Lines) & Hierarchy Drill-Down across all Goldleaf pages.
 (function(){
   const style = document.createElement('style');
   style.textContent = `
@@ -7,11 +7,12 @@
     .gl-dt-left,.gl-dt-right{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
     .gl-dt-search{min-width:180px;max-width:280px;padding:6px 10px;border:1px solid var(--line,#d5d0c5);border-radius:8px;font-size:12.5px;background:var(--white,#fff);color:var(--ink,#222)}
     .gl-dt-pill{font-size:11px;font-weight:750;padding:4px 9px;border-radius:999px;background:#ede8dc;color:#5a4d34}
-    .gl-dt-btn{padding:5px 10px;border-radius:7px;border:1px solid var(--line,#d5d0c5);background:var(--white,#fff);color:var(--ink,#222);font-size:11.5px;font-weight:700;cursor:pointer}
-    .gl-dt-col-menu{position:relative;display:inline-block}
-    .gl-dt-col-pop{position:absolute;right:0;top:100%;margin-top:4px;z-index:80;min-width:205px;max-height:260px;overflow:auto;background:var(--white,#fff);border:1px solid var(--line,#d5d0c5);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none}
-    .gl-dt-col-pop.open{display:block}
-    .gl-dt-col-pop label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 2px;cursor:pointer;white-space:nowrap}
+    .gl-dt-btn{padding:5px 10px;border-radius:7px;border:1px solid var(--line,#d5d0c5);background:var(--white,#fff);color:var(--ink,#222);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .gl-dt-btn.active{background:var(--green,#18392a);color:#fff;border-color:var(--green,#18392a)}
+    .gl-dt-filter-bar{display:none;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:10px;background:var(--paper,#faf8f4);border:1px solid var(--line,#e2ddd3);border-radius:10px;margin-bottom:8px}
+    .gl-dt-filter-bar.open{display:flex}
+    .gl-dt-fitem{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--muted,#555);min-width:130px;flex:1 1 130px;max-width:210px}
+    .gl-dt-fitem input,.gl-dt-fitem select{padding:5px 8px;border:1px solid var(--line,#d5d0c5);border-radius:7px;font-size:12px;background:var(--white,#fff);color:var(--ink,#222);min-height:32px}
     /* Crisp Table Grid Lines across all pages */
     .table{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line,#ded8cc);border-radius:10px}
     .table table{border-collapse:collapse;width:100%}
@@ -30,13 +31,14 @@
     .gl-drill-box h4{margin:0 0 6px;font-size:12px;font-weight:800;color:var(--green,#18392a)}
     .gl-drill-box table{width:100%;min-width:480px!important;border-collapse:collapse;font-size:11.5px}
     .gl-drill-box th,.gl-drill-box td{padding:5px 8px!important;border:1px solid var(--line,#e6e1d6)!important}
-    html[data-theme="dark"] .gl-dt-bar,html[data-theme="dark"] tr.gl-drill-row>td,html[data-theme="dark"] .table table thead th{background:#1b221d!important;border-color:#354038!important}
+    html[data-theme="dark"] .gl-dt-bar,html[data-theme="dark"] .gl-dt-filter-bar,html[data-theme="dark"] tr.gl-drill-row>td,html[data-theme="dark"] .table table thead th{background:#1b221d!important;border-color:#354038!important}
     html[data-theme="dark"] .table,html[data-theme="dark"] .table table th,html[data-theme="dark"] .table table td,html[data-theme="dark"] .gl-drill-box th,html[data-theme="dark"] .gl-drill-box td{border-color:#354038!important}
-    html[data-theme="dark"] .gl-dt-search,html[data-theme="dark"] .gl-dt-btn,html[data-theme="dark"] .gl-dt-col-pop,html[data-theme="dark"] .gl-drill-box,html[data-theme="dark"] .gl-drill-btn{background:#222b25!important;border-color:#3b463e!important;color:#eee8da!important}
+    html[data-theme="dark"] .gl-dt-search,html[data-theme="dark"] .gl-dt-btn,html[data-theme="dark"] .gl-dt-fitem input,html[data-theme="dark"] .gl-dt-fitem select,html[data-theme="dark"] .gl-drill-box,html[data-theme="dark"] .gl-drill-btn{background:#222b25!important;border-color:#3b463e!important;color:#eee8da!important}
     html[data-theme="dark"] .gl-dt-pill{background:#2d362f;color:#e6d8bb}
     @media(max-width:760px){
       .gl-dt-bar{flex-direction:column;align-items:stretch}
       .gl-dt-search{max-width:100%;width:100%;font-size:15px}
+      .gl-dt-fitem{max-width:100%}
     }
   `;
   document.head.append(style);
@@ -66,6 +68,16 @@
     a.click();
   }
 
+  function classifyColumnGroup(title){
+    const t = title.toLowerCase();
+    if(/date|created|updated|status|valid|from|to/.test(t)) return 'Dates & Status';
+    if(/amt|amount|rate|total|bal|paid|disc|tax|gst|value|advance|credit|debit/.test(t)) return 'Amounts & Taxes';
+    if(/wt|weight|gross|less|net|pure|qty|pcs|pieces|carat|ct/.test(t)) return 'Quantity & Weight';
+    if(/mc|making|wst|wastage|stone|hallmark|charge/.test(t)) return 'Charges';
+    if(/action/.test(t)) return 'Actions';
+    return 'Details & Identity';
+  }
+
   function applyColVisibility(tbl, hiddenSet){
     tbl.querySelectorAll('tr').forEach(tr => {
       if(tr.classList.contains('gl-drill-row') || tr.classList.contains('rco-subtable-row')) return;
@@ -75,30 +87,134 @@
     });
   }
 
-  function buildColMenu(tbl, storeKey){
+  function openDisplayColumnsModal(tbl, storeKey, titleLabel='Display Columns'){
+    document.getElementById('glDtDispModal')?.remove();
     const headCells = Array.from(tbl.querySelectorAll('thead th'));
-    if(headCells.length < 3) return null;
-    let hidden = new Set(JSON.parse(localStorage.getItem(storeKey) || '[]'));
-    if(hidden.size) applyColVisibility(tbl, hidden);
-
-    const wrap = document.createElement('div'); wrap.className = 'gl-dt-col-menu';
-    const checks = headCells.map((th, i) => {
+    const hidden = new Set(JSON.parse(localStorage.getItem(storeKey) || '[]'));
+    const groups = {};
+    headCells.forEach((th, i) => {
       const t = th.textContent.trim();
-      if(!t || th.classList.contains('gl-drill-col')) return '';
-      return '<label><input type="checkbox" '+(hidden.has(i)?'':'checked')+' data-col-idx="'+i+'"> '+esc(t)+'</label>';
-    }).filter(Boolean).join('');
-    wrap.innerHTML = '<button type="button" class="gl-dt-btn">⚙️ Display Columns ▾</button><div class="gl-dt-col-pop">'+checks+'</div>';
-    const btn = wrap.querySelector('button'), pop = wrap.querySelector('.gl-dt-col-pop');
-    btn.onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.gl-dt-col-pop.open').forEach(p=>{if(p!==pop)p.classList.remove('open');}); pop.classList.toggle('open'); };
-    pop.querySelectorAll('input[data-col-idx]').forEach(cb => {
-      cb.onchange = () => {
-        const ci = Number(cb.dataset.colIdx);
-        if(cb.checked) hidden.delete(ci); else hidden.add(ci);
-        localStorage.setItem(storeKey, JSON.stringify(Array.from(hidden)));
-        applyColVisibility(tbl, hidden);
-      };
+      if(!t || th.classList.contains('gl-drill-col')) return;
+      const g = classifyColumnGroup(t);
+      (groups[g] = groups[g] || []).push({ idx: i, label: t, checked: !hidden.has(i) });
     });
-    return wrap;
+
+    let html = '<div id="glDtDispModal" class="retail-modal-backdrop" role="dialog" aria-modal="true"><section class="retail-modal" style="max-width:740px">'
+      + '<div class="retail-modal-head"><div><h2>'+esc(titleLabel)+'</h2><p>Show or hide columns for ' + esc(page||'this table') + '</p></div><button type="button" onclick="document.getElementById(\'glDtDispModal\').remove()">Close</button></div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:10px"><button type="button" id="glDispAll">Select All</button><button type="button" id="glDispReset">Reset Defaults</button></div>'
+      + '<div class="rco-display-cols">';
+    for(const [grp, cols] of Object.entries(groups)){
+      html += '<div class="rco-display-group"><h4>'+esc(grp)+'</h4>';
+      cols.forEach(c => {
+        html += '<label><input type="checkbox" data-gl-col="'+c.idx+'" '+(c.checked?'checked':'')+'> <span>'+esc(c.label)+'</span></label>';
+      });
+      html += '</div>';
+    }
+    html += '</div><div class="retail-modal-actions"><button type="button" class="primary" id="glDispApply">Apply Columns</button></div></section></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const modal = document.getElementById('glDtDispModal');
+    modal.querySelector('#glDispAll').onclick = () => modal.querySelectorAll('[data-gl-col]').forEach(cb=>cb.checked=true);
+    modal.querySelector('#glDispReset').onclick = () => {
+      localStorage.removeItem(storeKey);
+      modal.querySelectorAll('[data-gl-col]').forEach(cb=>cb.checked=true);
+    };
+    modal.querySelector('#glDispApply').onclick = () => {
+      const nextHidden = [];
+      modal.querySelectorAll('[data-gl-col]').forEach(cb => { if(!cb.checked) nextHidden.push(Number(cb.dataset.glCol)); });
+      localStorage.setItem(storeKey, JSON.stringify(nextHidden));
+      applyColVisibility(tbl, new Set(nextHidden));
+      modal.remove();
+    };
+  }
+
+  function buildFilterBar(tbl, dataRows, storeFilterKey, onFilterApplied){
+    const headCells = Array.from(tbl.querySelectorAll('thead th'));
+    // Auto-detect filterable categorical & date columns
+    let dateColIdx = -1;
+    const catCols = [];
+    headCells.forEach((th, i) => {
+      const t = th.textContent.trim();
+      if(!t || th.classList.contains('gl-drill-col') || t.toLowerCase()==='actions') return;
+      if(dateColIdx < 0 && /date|when/i.test(t)) dateColIdx = i;
+      if(/group|status|type|ornament|metal|purity|city|team|segment|source|owner/i.test(t)){
+        const vals = Array.from(new Set(dataRows.map(tr=>tr.children[i]?.innerText?.trim()).filter(v=>v && v!=='—'))).sort();
+        if(vals.length >= 1 && vals.length <= 40) catCols.push({ idx: i, label: t, vals });
+      }
+    });
+
+    let activeFilterKeys = new Set(JSON.parse(localStorage.getItem(storeFilterKey) || 'null') || ['date', ...catCols.slice(0,4).map(c=>String(c.idx))]);
+
+    const bar = document.createElement('div');
+    bar.className = 'gl-dt-filter-bar';
+
+    const renderBar = () => {
+      let inner = '';
+      if(dateColIdx >= 0 && activeFilterKeys.has('date')){
+        inner += '<label class="gl-dt-fitem"><span>From Date</span><input type="date" data-f-from></label>'
+          + '<label class="gl-dt-fitem"><span>To Date</span><input type="date" data-f-to></label>';
+      }
+      catCols.forEach(c => {
+        if(!activeFilterKeys.has(String(c.idx))) return;
+        inner += '<label class="gl-dt-fitem"><span>'+esc(c.label)+'</span><select data-f-col="'+c.idx+'"><option value="">All</option>'+c.vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('')+'</select></label>';
+      });
+      inner += '<div style="display:flex;gap:6px;align-items:center">'
+        + '<button type="button" class="gl-dt-btn" data-f-cust>⚙️ Customize Filters</button>'
+        + '<button type="button" class="gl-dt-btn" data-f-reset>Reset</button>'
+        + '</div>';
+      bar.innerHTML = inner;
+
+      const apply = () => {
+        const fromV = bar.querySelector('[data-f-from]')?.value || '';
+        const toV = bar.querySelector('[data-f-to]')?.value || '';
+        const sels = Array.from(bar.querySelectorAll('select[data-f-col]')).map(s=>({ idx:Number(s.dataset.fCol), val:s.value }));
+        let vis = 0;
+        dataRows.forEach(tr => {
+          let ok = true;
+          if(dateColIdx >= 0 && (fromV || toV)){
+            const txt = (tr.children[dateColIdx]?.innerText || '').trim().slice(0,10);
+            if(fromV && txt && txt < fromV) ok = false;
+            if(toV && txt && txt > toV) ok = false;
+          }
+          for(const s of sels){
+            if(s.val && (tr.children[s.idx]?.innerText?.trim() || '') !== s.val){ ok = false; break; }
+          }
+          tr.dataset.glFilterHide = ok ? '' : '1';
+          const qHide = tr.dataset.glSearchHide === '1';
+          tr.style.display = (ok && !qHide) ? '' : 'none';
+          if(ok && !qHide) vis++;
+        });
+        onFilterApplied?.(vis);
+      };
+
+      bar.querySelectorAll('input,select').forEach(el => el.onchange = apply);
+      bar.querySelector('[data-f-reset]').onclick = () => {
+        bar.querySelectorAll('input').forEach(i=>i.value='');
+        bar.querySelectorAll('select').forEach(s=>s.value='');
+        apply();
+      };
+      bar.querySelector('[data-f-cust]').onclick = () => {
+        document.getElementById('glCustFilterModal')?.remove();
+        let mHtml = '<div id="glCustFilterModal" class="retail-modal-backdrop" role="dialog" aria-modal="true"><section class="retail-modal" style="max-width:440px">'
+          + '<div class="retail-modal-head"><div><h2>Customize Filters</h2><p>Choose filter fields for this table</p></div><button type="button" onclick="document.getElementById(\'glCustFilterModal\').remove()">Close</button></div>'
+          + '<div class="rco-check-row" style="flex-direction:column;align-items:flex-start">'
+          + (dateColIdx>=0 ? '<label><input type="checkbox" data-cf-key="date" '+(activeFilterKeys.has('date')?'checked':'')+'> Date Range (From / To)</label>' : '')
+          + catCols.map(c=>'<label><input type="checkbox" data-cf-key="'+c.idx+'" '+(activeFilterKeys.has(String(c.idx))?'checked':'')+'> '+esc(c.label)+'</label>').join('')
+          + '</div><div class="retail-modal-actions"><button type="button" class="primary" id="glCfApply">Apply</button></div></section></div>';
+        document.body.insertAdjacentHTML('beforeend', mHtml);
+        const cm = document.getElementById('glCustFilterModal');
+        cm.querySelector('#glCfApply').onclick = () => {
+          const next = [];
+          cm.querySelectorAll('[data-cf-key]').forEach(cb => { if(cb.checked) next.push(cb.dataset.cfKey); });
+          activeFilterKeys = new Set(next);
+          localStorage.setItem(storeFilterKey, JSON.stringify(next));
+          cm.remove();
+          renderBar();
+        };
+      };
+    };
+    renderBar();
+    return { bar, hasAny: (dateColIdx >= 0 || catCols.length > 0) };
   }
 
   function findDrillHtml(tr){
@@ -162,16 +278,19 @@
   }
 
   function enhanceEntryFormTables(){
-    // Add Display Columns button to Retail Sales Entry (#rbItemsTable) and Estimation (#rcQuoteTable)
-    [['rbItemsTable','.rb-section-head > div'],['rcQuoteTable','.rc-section-title']].forEach(([tblId, headSel])=>{
+    [['rbItemsTable','.rb-section-head > div','Sales Bill Columns'],['rcQuoteTable','.rc-section-title','Quotation Item Columns']].forEach(([tblId, headSel, lbl])=>{
       const tbl = document.getElementById(tblId);
       if(!tbl || tbl.dataset.glEntryDisp) return;
       tbl.dataset.glEntryDisp = '1';
+      const storeKey = 'goldleaf-dt-cols::entry::' + tblId;
+      const hidden = new Set(JSON.parse(localStorage.getItem(storeKey) || '[]'));
+      if(hidden.size) applyColVisibility(tbl, hidden);
       const sec = tbl.closest('section, .panel');
       const headSlot = sec?.querySelector(headSel);
       if(headSlot){
-        const menu = buildColMenu(tbl, 'goldleaf-dt-cols::entry::' + tblId);
-        if(menu) headSlot.prepend(menu);
+        const btn = document.createElement('button'); btn.type='button'; btn.className='gl-dt-btn'; btn.textContent='⚙️ Display';
+        btn.onclick = () => openDisplayColumnsModal(tbl, storeKey, lbl);
+        headSlot.prepend(btn);
       }
     });
   }
@@ -246,14 +365,18 @@
       });
 
       const storeKey = 'goldleaf-dt-cols::' + (page||'page') + '::' + idx;
+      const storeFilterKey = 'goldleaf-dt-filters::' + (page||'page') + '::' + idx;
+      const hidden = new Set(JSON.parse(localStorage.getItem(storeKey) || '[]'));
+      if(hidden.size) applyColVisibility(tbl, hidden);
+
       const panel = wrap.closest('.panel, section');
       const rcoBarRight = panel?.querySelector(':scope > .rco-toolbar .rco-toolbar-right');
 
       if(rcoBarRight){
-        // Attach Display Columns & CSV directly into the existing .rco-toolbar-right
-        if(!rcoBarRight.querySelector('.gl-dt-col-menu')){
-          const colMenu = buildColMenu(tbl, storeKey);
-          if(colMenu) rcoBarRight.append(colMenu);
+        if(!rcoBarRight.querySelector('.gl-dt-disp-trigger')){
+          const dispBtn = document.createElement('button'); dispBtn.type='button'; dispBtn.className='gl-dt-btn gl-dt-disp-trigger'; dispBtn.textContent='⚙️ Display Columns';
+          dispBtn.onclick = () => openDisplayColumnsModal(tbl, storeKey);
+          rcoBarRight.append(dispBtn);
           const csvBtn = document.createElement('button'); csvBtn.type='button'; csvBtn.className='gl-dt-btn gl-dt-csv'; csvBtn.textContent='CSV';
           csvBtn.onclick = () => exportTableCsv(tbl);
           rcoBarRight.append(csvBtn);
@@ -262,14 +385,26 @@
         const dtBar = document.createElement('div'); dtBar.className = 'gl-dt-bar';
         dtBar.innerHTML = '<div class="gl-dt-left"><input type="search" class="gl-dt-search" placeholder="Search table rows…"><span class="gl-dt-pill">'+dataRows.length+' rows</span></div><div class="gl-dt-right"></div>';
         const dtRight = dtBar.querySelector('.gl-dt-right');
-        const colMenu = buildColMenu(tbl, storeKey);
-        if(colMenu) dtRight.append(colMenu);
+        const pill = dtBar.querySelector('.gl-dt-pill');
+
+        const { bar: filterBar, hasAny } = buildFilterBar(tbl, dataRows, storeFilterKey, (vis) => {
+          pill.textContent = vis + ' / ' + dataRows.length + ' rows';
+        });
+        if(hasAny){
+          const fBtn = document.createElement('button'); fBtn.type='button'; fBtn.className='gl-dt-btn'; fBtn.textContent='🔍 Filter';
+          fBtn.onclick = () => { fBtn.classList.toggle('active'); filterBar.classList.toggle('open'); };
+          dtRight.append(fBtn);
+        }
+
+        const dispBtn = document.createElement('button'); dispBtn.type='button'; dispBtn.className='gl-dt-btn'; dispBtn.textContent='⚙️ Display Columns';
+        dispBtn.onclick = () => openDisplayColumnsModal(tbl, storeKey);
+        dtRight.append(dispBtn);
+
         const csvBtn = document.createElement('button'); csvBtn.type='button'; csvBtn.className='gl-dt-btn gl-dt-csv'; csvBtn.textContent='CSV';
         csvBtn.onclick = () => exportTableCsv(tbl);
         dtRight.append(csvBtn);
 
         const searchInp = dtBar.querySelector('.gl-dt-search');
-        const pill = dtBar.querySelector('.gl-dt-pill');
         searchInp.oninput = () => {
           const q = searchInp.value.trim().toLowerCase();
           let vis = 0;
@@ -277,19 +412,18 @@
           tbody.querySelectorAll('.gl-drill-btn').forEach(b=>b.textContent='+');
           dataRows.forEach(tr => {
             const match = !q || tr.innerText.toLowerCase().includes(q);
-            tr.style.display = match ? '' : 'none';
-            if(match) vis++;
+            tr.dataset.glSearchHide = match ? '' : '1';
+            const fHide = tr.dataset.glFilterHide === '1';
+            tr.style.display = (match && !fHide) ? '' : 'none';
+            if(match && !fHide) vis++;
           });
           pill.textContent = vis + ' / ' + dataRows.length + ' rows';
         };
         wrap.parentNode.insertBefore(dtBar, wrap);
+        if(hasAny) wrap.parentNode.insertBefore(filterBar, wrap);
       }
     });
   }
-
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.gl-dt-col-pop.open').forEach(p=>p.classList.remove('open'));
-  });
 
   const dtPrevRender = window.render;
   window.render = function(){
