@@ -1216,6 +1216,9 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const c=pdfConfig(mode);
   const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
   const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
+  const waUrl=phone?'https://wa.me/'+phone+'?text='+encodeURIComponent('Please find attached '+filename.replace(/\.pdf$/i,'')):'';
+  // Open WhatsApp tab synchronously on user click so popup blockers never block directing to the customer's number
+  const waWin=waUrl?window.open('about:blank','_blank','noopener'):null;
   await pdfLoadProfile();
   say('Generating PDF…');
   if(!window.html2pdf){
@@ -1228,8 +1231,9 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
     }).catch(()=>null);
   }
   if(!window.html2pdf){
+    if(waWin)waWin.location.href=waUrl;
+    else if(waUrl)window.open(waUrl,'_blank','noopener');
     pdfPrintModel(model,mode,template);
-    if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
     return;
   }
   const host=document.createElement('div');
@@ -1249,7 +1253,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
     const file=new File([blob],filename,{type:'application/pdf'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
+    if(!waUrl&&navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:filename,text:'Quotation '+filename.replace(/\.pdf$/i,'')});
       say('PDF ready to share.');
     }else{
@@ -1258,12 +1262,14 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
       a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),4000);
       say('PDF downloaded — attach it in WhatsApp.');
-      if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
+      if(waWin&&!waWin.closed)waWin.location.href=waUrl;
+      else if(waUrl)window.open(waUrl,'_blank','noopener');
     }
   }catch(err){
+    if(waWin&&!waWin.closed)waWin.close();
     if(err&&err.name==='AbortError')return;
     pdfPrintModel(model,mode,template);
-    if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
+    if(waUrl)window.open(waUrl,'_blank','noopener');
   }finally{
     host.remove();
   }
