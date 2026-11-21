@@ -798,12 +798,12 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   if(!printFrame){
     printFrame = document.createElement('iframe');
     printFrame.id = 'goldleafPdfPrintFrame';
-    printFrame.style.cssText = 'position:fixed!important;right:0!important;bottom:0!important;width:0!important;height:0!important;border:0!important;visibility:hidden!important;z-index:-999!important;';
+    printFrame.style.cssText = 'position:fixed!important;right:0!important;bottom:0!important;width:80mm!important;height:auto!important;border:0!important;visibility:hidden!important;z-index:-999!important;';
     document.body.appendChild(printFrame);
   }
 
   const printDocHtml = '<!doctype html><html><head><meta charset="utf-8">'
-    + '<style>'
+    + '<style id="goldleafPrintPageStyle">'
     + '@page{size:' + pageSize + ';margin:0mm!important;}\n'
     + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
     + '@media print{\n'
@@ -821,6 +821,25 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     fDoc.open();
     fDoc.write(printDocHtml);
     fDoc.close();
+
+    if(thermalWidth){
+      const target = fDoc.querySelector('.pdf-thermal-estimate-grid-80') || fDoc.querySelector('.gl-pdf') || fDoc.body;
+      const hPx = Math.ceil(target ? (target.offsetHeight || target.getBoundingClientRect().height || target.scrollHeight) : 400);
+      const measuredMm = Math.max(30, Math.ceil(hPx * 25.4 / 96) + 1);
+      const dynamicPageSize = thermalWidth + 'mm ' + measuredMm + 'mm';
+      const styleEl = fDoc.getElementById('goldleafPrintPageStyle');
+      if(styleEl){
+        styleEl.textContent = '@page{size:' + dynamicPageSize + ';margin:0mm!important;}\n'
+          + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
+          + '@media print{\n'
+          + '  html,body{width:' + thermalWidth + 'mm!important;max-width:' + thermalWidth + 'mm!important;height:' + measuredMm + 'mm!important;max-height:' + measuredMm + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;overflow:hidden!important;}\n'
+          + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;margin:0 auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+          + '}\n'
+          + 'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}'
+          + PDF_DOCUMENT_CSS;
+      }
+    }
+
     setTimeout(()=>{
       try {
         printFrame.contentWindow.focus();
