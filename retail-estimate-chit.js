@@ -1984,8 +1984,13 @@ window.rcShareQuoteWhatsApp = function(id){
   };
   document.getElementById('rcWaSendPdfBtn').onclick=()=>{
     backdrop.remove();
-    pdfPrintModel(rcQuoteModel(q),'retail',chosen);
-    window.open('https://wa.me/'+phone,'_blank','noopener');
+    const fname=String(q.documentNo||'Quotation').replace(/[^A-Za-z0-9_-]+/g,'-')+'.pdf';
+    if(typeof window.pdfShareOrDownload==='function'){
+      window.pdfShareOrDownload(rcQuoteModel(q),'retail',chosen,phone,fname);
+    }else{
+      pdfPrintModel(rcQuoteModel(q),'retail',chosen);
+      window.open('https://wa.me/'+phone,'_blank','noopener');
+    }
   };
 };
 

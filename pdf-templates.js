@@ -1212,6 +1212,63 @@ window.updateHistoryView=function(){
     .replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.10.44 · Current</h3><ul><li>Added complete Sales Bill & Estimation format selection in Settings across A4 portrait/landscape, A5 compact, and 80mm/58mm thermal rolls.</li><li>Integrated column visibility toggles (Gross/Less, Net, Wastage, Making, HUID, Stones, Exchange, Bank & UPI QR).</li><li>Added live interactive template preview and instant estimation format switching.</li></ul></article>');
 };
 
+window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone='',filename='Quotation.pdf'){
+  const c=pdfConfig(mode);
+  const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
+  const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
+  await pdfLoadProfile();
+  say('Generating PDF…');
+  if(!window.html2pdf){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
+      s.onload=res;
+      s.onerror=()=>rej(new Error('Could not load PDF generator'));
+      document.head.append(s);
+    }).catch(()=>null);
+  }
+  if(!window.html2pdf){
+    pdfPrintModel(model,mode,template);
+    if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
+    return;
+  }
+  const host=document.createElement('div');
+  host.style.cssText='position:fixed;left:-99999px;top:0;width:794px;background:#fff;z-index:-1;';
+  host.innerHTML=pdfDocument(model,c,template);
+  document.body.append(host);
+  const target=host.querySelector('.gl-pdf')||host;
+  const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
+  const isA5=template.includes('a5');
+  const format=template.includes('80')?[80,220]:template.includes('58')?[58,200]:(isA5?'a5':'a4');
+  try{
+    const blob=await window.html2pdf().set({
+      margin:isEstimate?6:8,
+      filename,
+      image:{type:'jpeg',quality:0.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
+    }).from(target).outputPdf('blob');
+    const file=new File([blob],filename,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:filename,text:'Quotation '+filename.replace(/\.pdf$/i,'')});
+      say('PDF ready to share.');
+    }else{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+      say('PDF downloaded — attach it in WhatsApp.');
+      if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
+    }
+  }catch(err){
+    if(err&&err.name==='AbortError')return;
+    pdfPrintModel(model,mode,template);
+    if(phone)window.open('https://wa.me/'+phone,'_blank','noopener');
+  }finally{
+    host.remove();
+  }
+};
+
 window.goldleafV2Ready=true;
 window.dispatchEvent(new Event('goldleaf-v2-ready'));
 if(session)window.pullCloud();
