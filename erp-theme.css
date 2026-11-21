@@ -750,3 +750,187 @@ html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button.active {
 .platform-toggle-track{width:39px;height:22px;min-width:39px;border-radius:999px;background:#aaa;padding:3px;transition:.2s}.platform-toggle-track>span{display:block;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:.2s}.platform-access-toggle>input:checked+.platform-toggle-track{background:#218b59}.platform-access-toggle>input:checked+.platform-toggle-track>span{transform:translateX(17px)}
 .platform-access-toggle b,.platform-access-toggle small{display:block}.platform-access-toggle b{font-size:11px}.platform-access-toggle small{font-size:8px;color:var(--muted);margin-top:2px}
 @media(max-width:760px){.platform-checks{grid-template-columns:1fr!important}.platform-access-toggle{padding:8px!important}}
+
+/* =====================================================================
+   ROYAL IVORY BENTO DESIGN SYSTEM + COLLAPSIBLE EMERALD SIDEBAR
+   ===================================================================== */
+@media screen {
+  html:not([data-theme="dark"]) {
+    --paper: #f6f2e8;
+    --white: #ffffff;
+    --ink: #17231d;
+    --muted: #5b6d63;
+    --green: #143d2b;
+    --green-2: #1b4d37;
+    --mint: #e6f2ec;
+    --gold: #c89d3c;
+    --line: #e3dac6;
+    --erp-soft: #efe9da;
+    --erp-soft-2: #fbf9f3;
+    --erp-accent: #c89d3c;
+    --shadow: 0 8px 26px rgba(20, 61, 43, 0.06);
+  }
+
+  body[data-erp] {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+  }
+
+  /* Emerald Sidebar */
+  body[data-erp] .side {
+    background: linear-gradient(180deg, #143d2b 0%, #0b2419 100%) !important;
+    color: #e6efe9 !important;
+    border-right: 2px solid #c89d3c !important;
+    box-shadow: 6px 0 28px rgba(11, 36, 25, 0.22) !important;
+    transition: width 0.22s ease, opacity 0.2s ease, transform 0.22s ease !important;
+  }
+  body[data-erp] .side .brand,
+  body[data-erp] .side .erp-brand-name {
+    color: #f7eed6 !important;
+  }
+  body[data-erp] .side .brand small,
+  body[data-erp] .side .erp-side-caption {
+    color: #e0b95b !important;
+  }
+  body[data-erp] .side .erp-side-search {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(224, 185, 91, 0.35) !important;
+  }
+  body[data-erp] .side .erp-side-search input {
+    color: #f6f2e8 !important;
+  }
+  body[data-erp] .side .erp-side-search input::placeholder {
+    color: rgba(230, 239, 233, 0.65) !important;
+  }
+  body[data-erp] .side .nav > button {
+    color: #d8e5de !important;
+    border-radius: 10px !important;
+  }
+  body[data-erp] .side .nav > button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+  body[data-erp] .side .nav > button.active {
+    background: rgba(224, 185, 91, 0.2) !important;
+    color: #ffffff !important;
+    box-shadow: inset 3.5px 0 0 #e0b95b !important;
+  }
+  body[data-erp] .side .nav-icon {
+    color: #e0b95b !important;
+  }
+  body[data-erp] .side .foot,
+  body[data-erp] .side .erp-side-install-btn {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(224, 185, 91, 0.3) !important;
+    color: #e6efe9 !important;
+  }
+  body[data-erp] .side .erp-drawer-close {
+    color: #f7eed6 !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(224, 185, 91, 0.35) !important;
+  }
+
+  /* Collapsible Left Sidebar on Desktop (opens only on Menu click) */
+  @media (min-width: 761px) {
+    body[data-erp].erp-sidebar-collapsed .layout {
+      grid-template-columns: 0 minmax(0, 1fr) !important;
+    }
+    body[data-erp].erp-sidebar-collapsed .side {
+      width: 0 !important;
+      min-width: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      overflow: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      box-shadow: none !important;
+    }
+    body[data-erp]:not(.erp-sidebar-collapsed) .layout {
+      grid-template-columns: var(--erp-sidebar) minmax(0, 1fr) !important;
+    }
+  }
+
+  /* Top Header Bar (Menu, Rates 24K/22K/Silver, Dark/Night Mode, Sign out) */
+  body[data-erp] .erp-workbar {
+    background: var(--white) !important;
+    border-bottom: 2px solid rgba(200, 157, 60, 0.35) !important;
+    box-shadow: 0 3px 14px rgba(20, 61, 43, 0.05) !important;
+  }
+  body[data-erp] .erp-sidebar-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 0 12px !important;
+    width: auto !important;
+    min-width: 82px !important;
+    background: #143d2b !important;
+    color: #f7eed6 !important;
+    border: 1px solid #c89d3c !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+  }
+  body[data-erp] .erp-sidebar-toggle:hover {
+    background: #1b4d37 !important;
+    color: #ffffff !important;
+  }
+  body[data-erp] .erp-menu-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  body[data-erp] .erp-rate-chip {
+    background: #fbf9f3 !important;
+    border: 1px solid #d9ccb0 !important;
+    border-radius: 10px !important;
+    padding: 4px 11px !important;
+    gap: 12px !important;
+  }
+  body[data-erp] .erp-rate-chip small {
+    color: #85682a !important;
+    font-weight: 750 !important;
+  }
+  body[data-erp] .erp-rate-chip b {
+    color: #143d2b !important;
+    font-weight: 800 !important;
+  }
+  html[data-theme="dark"] body[data-erp] .erp-rate-chip {
+    background: #292e2c !important;
+    border-color: #4a4536 !important;
+  }
+  html[data-theme="dark"] body[data-erp] .erp-rate-chip small {
+    color: #e0b95b !important;
+  }
+  html[data-theme="dark"] body[data-erp] .erp-rate-chip b {
+    color: #f6f2e8 !important;
+  }
+
+  /* Bento Cards & Panels */
+  html:not([data-theme="dark"]) body[data-erp] .panel,
+  html:not([data-theme="dark"]) body[data-erp] .card,
+  html:not([data-theme="dark"]) body[data-erp] .erp-metric {
+    background: #ffffff !important;
+    border-color: #e3dac6 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(20, 61, 43, 0.045) !important;
+  }
+  html:not([data-theme="dark"]) body[data-erp] .card {
+    border-top: 3px solid #c89d3c !important;
+  }
+  html:not([data-theme="dark"]) body[data-erp] .erp-metric-balance {
+    background: #143d2b !important;
+    border-color: #c89d3c !important;
+    color: #f7eed6 !important;
+  }
+  html:not([data-theme="dark"]) body[data-erp] .erp-metric-balance span,
+  html:not([data-theme="dark"]) body[data-erp] .erp-metric-balance b {
+    color: #f7eed6 !important;
+  }
+  html:not([data-theme="dark"]) body[data-erp] .primary {
+    background: #143d2b !important;
+    border-color: #143d2b !important;
+    color: #ffffff !important;
+  }
+  html:not([data-theme="dark"]) body[data-erp] .primary:hover {
+    background: #0b2419 !important;
+  }
+}

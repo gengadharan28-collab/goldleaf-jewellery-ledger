@@ -1961,8 +1961,32 @@ window.rcShareQuoteWhatsApp = function(id){
   const raw=String(customer?.whatsapp||customer?.phone||'').replace(/\D/g,'');
   const phone=raw.length===10?'91'+raw:raw;
   if(!/^\d{11,15}$/.test(phone))return say('Add a valid WhatsApp or mobile number to this customer.');
-  const url='https://wa.me/'+phone+'?text='+encodeURIComponent(rcQuoteWhatsAppText(q,customer));
-  window.open(url,'_blank','noopener');
+
+  document.getElementById('rcWaChoiceModal')?.remove();
+  const cfg=pdfConfig('retail');
+  const chosen=cfg.estimateTemplate||'detailed-estimate';
+  const backdrop=document.createElement('div');
+  backdrop.id='rcWaChoiceModal';
+  backdrop.className='retail-modal-backdrop';
+  backdrop.innerHTML='<section class="retail-modal" role="dialog" aria-modal="true" aria-labelledby="rcWaChoiceTitle" style="width:min(420px,100%);padding:22px">'
+    +'<header class="retail-modal-head"><div><h2 id="rcWaChoiceTitle">WhatsApp Quotation</h2><p>Send <strong>'+esc(q.documentNo||'Quotation')+'</strong> to '+esc(customer?.name||'Customer')+' (+'+esc(phone)+')</p></div><button type="button" onclick="this.closest(\'.retail-modal-backdrop\').remove()">×</button></header>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
+    +'<button type="button" id="rcWaSendSmsBtn" class="primary" style="min-height:54px;font-weight:750">💬 SMS / Letter<br><small style="font-weight:500;opacity:.85">Direct text message</small></button>'
+    +'<button type="button" id="rcWaSendPdfBtn" style="min-height:54px;font-weight:750;background:#143d2b;color:#f7eed6;border-color:#c89d3c">📄 PDF<br><small style="font-weight:500;opacity:.85">Settings format</small></button>'
+    +'</div></section>';
+  backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.remove();});
+  document.body.append(backdrop);
+
+  document.getElementById('rcWaSendSmsBtn').onclick=()=>{
+    backdrop.remove();
+    const url='https://wa.me/'+phone+'?text='+encodeURIComponent(rcQuoteWhatsAppText(q,customer));
+    window.open(url,'_blank','noopener');
+  };
+  document.getElementById('rcWaSendPdfBtn').onclick=()=>{
+    backdrop.remove();
+    pdfPrintModel(rcQuoteModel(q),'retail',chosen);
+    window.open('https://wa.me/'+phone,'_blank','noopener');
+  };
 };
 
 window.rcConvert = function(id){
