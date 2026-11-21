@@ -575,11 +575,11 @@ function pdfGrid80Markup(model,c){
   const items=model.invoiceItems?.length?model.invoiceItems:(model.item?[model.item]:[]);
   const fields=(c.estimateGridFields||PDF_GRID_DEFAULTS).filter(key=>PDF_GRID_KEYS.includes(key));
   const detailKeys=['hallmark','stone','stoneCharge'];
-  // Keep row fields in logical receipt order: product first, then weight & charge details, itemTotal always on the right side!
+  const showItemTotal=fields.includes('itemTotal');
+  // Row fields contains table columns in a straight line: Product, Gross, Less, Net, Wastage, Making etc.
   const rowFields=fields.filter(key=>!detailKeys.includes(key)&&key!=='itemTotal');
-  if(fields.includes('itemTotal')) rowFields.push('itemTotal');
   const detailFields=fields.filter(key=>detailKeys.includes(key));
-  const rowWidths={product:17,purity:10,huid:11,pieces:6,gross:11,less:10,net:11,wastage:10,making:11,itemTotal:30};
+  const rowWidths={product:22,purity:13,huid:14,pieces:9,gross:15,less:13,net:15,wastage:17,making:18};
   const widthTotal=rowFields.reduce((sum,key)=>sum+(rowWidths[key]||10),0);
   const compactAmount=value=>n(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
   const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross',less:'Less',net:'Net',wastage:'Wastage',making:'Making',hallmark:'H/M',stone:'Stone',stoneCharge:'Stone ₹',itemTotal:'Total'};
@@ -605,12 +605,6 @@ function pdfGrid80Markup(model,c){
       default:return '—';
     }
   };
-  const hasDetail=it=>detailFields.some(k=>{
-    if(k==='stone')return n(it.stoneWeight)>0;
-    if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
-    if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
-    return false;
-  });
   const metalOf=it=>String(it.metalType||it.product||'').toLowerCase();
   const gold=items.find(it=>metalOf(it).includes('gold')),silver=items.find(it=>metalOf(it).includes('silver'));
   const goldRate=n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24),silverRate=n(silver?.rate)||n(db.rates?.silver);
@@ -619,15 +613,19 @@ function pdfGrid80Markup(model,c){
   const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange">'+model.exchange.map(it=>'<div>'+esc(it.product||'Old gold')+' · '+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%'+(n(it.rate)>0?' · '+pdfMoney(it.rate)+'/g':'')+' <b>'+pdfMoney(it.amount)+'</b></div>').join('')+'</div>':'';
   const itemsMarkup=rowFields.length?'<table class="grid80-items"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
     +items.map(it=>{
-      const showSub=hasDetail(it);
       const activeDetails=detailFields.filter(k=>{
         if(k==='stone')return n(it.stoneWeight)>0;
         if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
         if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
         return false;
       });
-      const mainRow='<tr class="grid80-item-main '+(!showSub?'grid80-item-end':'')+'">'+rowFields.map(key=>'<td data-col="'+key+'">'+cell(it,key)+'</td>').join('')+'</tr>';
-      const subRow=showSub?'<tr class="grid80-item-end"><td class="grid80-detail-cell" colspan="'+rowFields.length+'"><div class="grid80-detail-flex">'+activeDetails.map(key=>'<span><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</div></td></tr>':'';
+      const extraHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('  ');
+      const hasSubRow=showItemTotal||activeDetails.length>0;
+      const mainRow='<tr class="grid80-item-main '+(!hasSubRow?'grid80-item-end':'')+'">'+rowFields.map(key=>'<td data-col="'+key+'">'+cell(it,key)+'</td>').join('')+'</tr>';
+      const subRow=hasSubRow?'<tr class="grid80-item-end grid80-item-total-row"><td colspan="'+rowFields.length+'" class="grid80-item-total-cell"><div class="grid80-item-total-box">'
+        +(extraHtml?'<div class="grid80-extra-details">'+extraHtml+'</div>':'')
+        +(showItemTotal?'<div class="grid80-tot-right"><span class="grid80-tot-label">Item Total:</span><b class="grid80-tot-val">'+pdfMoney(it.subtotal||0)+'</b></div>':'')
+        +'</div></td></tr>':'';
       return mainRow+subRow;
     }).join('')+'</tbody></table>':'';
   return '<div class="grid80-ticket">'
@@ -812,13 +810,14 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       printDoc.style.cssText += ';display:block!important;width:'+printWidth+'mm!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:'+padCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;';
     }
     void root.offsetHeight;
-    const contentPx = Math.max(printDoc?.offsetHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0, root.scrollHeight || 0, root.offsetHeight || 0);
-    const calculatedMm = Math.ceil(contentPx * 25.4 / 96);
+    const targetEl = root.querySelector('.pdf-thermal-estimate-grid-80') || printDoc;
+    const finalPx = Math.ceil(targetEl ? (targetEl.getBoundingClientRect().height || targetEl.offsetHeight || targetEl.scrollHeight) : (printDoc?.offsetHeight || 320));
+    const calculatedMm = Math.ceil(finalPx * 25.4 / 96);
     measuredContentMm = Math.max(36, calculatedMm + 2);
     root.setAttribute('style',rootStyleBefore);
     if(printDoc) printDoc.setAttribute('style',docStyleBefore);
     pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
-    pageMargin = '0';
+    pageMargin = '0mm';
   }else{
     root.style.width = '';
     root.style.margin = '0 auto';
@@ -830,10 +829,11 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   }
   const printBoxW = thermalWidth === 80 ? 70 : 48;
   const printPadCss = thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm';
-  pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}\n'
+  pageStyle.textContent='@page{size:'+pageSize+';margin:0mm;}\n'
+    + '@page:first{margin-top:0mm;}\n'
     + (thermalWidth ? '@media print{\n'
-      + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}\n'
-      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important}\n'
+      + 'html,body,body.goldleaf-pdf-printing{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;overflow:hidden!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}\n'
+      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;overflow:hidden!important;margin:0 auto!important;padding:0!important}\n'
       + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;margin:0 auto!important;padding:'+printPadCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
       + '}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
@@ -1160,23 +1160,24 @@ const PDF_DOCUMENT_CSS=`
 .grid80-rates{text-align:right;font-size:9px;font-weight:800;color:#000;padding:1px 0 3px}
 .grid80-meta{border-block:1.5px solid #000;padding:3px 0;margin-bottom:5px;font-size:9px;font-weight:800;color:#000;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 .grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:4px}
-.grid80-items th{border:1px solid #000;padding:2.5px 1px;font-size:7.2px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:normal;word-break:break-word;line-height:1.15}
-.grid80-items td{border:1px solid #000;padding:3.5px 2px;font-size:8.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25}
-.grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:2px}
-.grid80-items th:not(:first-child){text-align:right;padding-right:2px}
-.grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:2.5px 0.5px}
-.grid80-items td[data-col="product"]{text-align:left;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"],.grid80-items td[data-col="making"]{text-align:right;white-space:nowrap}
-.grid80-items td[data-col="wastage"]{text-align:right;line-height:1.1}
-.grid80-items td[data-col="wastage"] small{display:block;font-size:7px;font-weight:700;color:#000}
-.grid80-items td[data-col="itemTotal"]{text-align:right;font-weight:900;font-size:8.5px;white-space:nowrap}
+.grid80-items th{border:1px solid #000;padding:3px 1.5px;font-size:8px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:normal;word-break:break-word;line-height:1.15}
+.grid80-items td{border:1px solid #000;padding:4px 3px;font-size:10px;font-weight:700;color:#000;vertical-align:middle;line-height:1.3}
+.grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:3px}
+.grid80-items th:not(:first-child){text-align:right;padding-right:3px}
+.grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:3px 1px}
+.grid80-items td[data-col="product"]{text-align:left;font-weight:800;font-size:10.5px;padding-left:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"],.grid80-items td[data-col="making"]{text-align:right;padding-right:3px;font-size:10px;white-space:nowrap}
+.grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;line-height:1.15;font-size:10px}
+.grid80-items td[data-col="wastage"] small{display:block;font-size:8px;font-weight:700;color:#000}
 .grid80-items td[data-col="purity"],.grid80-items td[data-col="pieces"]{text-align:center;white-space:nowrap}
 .grid80-item-end td{border-bottom:2px solid #000}
-.grid80-detail-cell{padding:0!important;background:#fbfbfb}
-.grid80-detail-flex{display:flex!important;align-items:stretch;width:100%}
-.grid80-detail-flex>span{display:flex;flex-direction:column;flex:0 0 auto;padding:2px 5px;border-right:1px solid #000;box-sizing:border-box;white-space:nowrap}
-.grid80-detail-flex small{font-size:7px;font-weight:800;text-transform:uppercase;color:#000}
-.grid80-detail-flex b{font-size:8.5px;font-weight:800;color:#000}
+.grid80-item-total-row td{border-top:1px dashed #777!important;border-bottom:2px solid #000!important;padding:4px 5px!important;background:#fafafa}
+.grid80-item-total-box{display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:8px}
+.grid80-extra-details{font-size:8.5px;font-weight:700;color:#222;display:flex;gap:6px;align-items:center}
+.grid80-extra-details span{white-space:nowrap}
+.grid80-tot-right{margin-left:auto;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.grid80-tot-label{font-size:9.5px;font-weight:800;color:#222;text-transform:uppercase;letter-spacing:0.3px}
+.grid80-tot-val{font-size:12px;font-weight:900;color:#000;white-space:nowrap}
 .grid80-product-total{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:4px 2px;font-size:11px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:4px 0 5px;color:#000}
 .grid80-ticket h3{background:#eaeaea;font-size:9.5px;font-weight:900;color:#000;text-transform:uppercase;margin:5px 0 3px;padding:3px 4px;border-bottom:1px solid #000}
 .grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:3px 2px;border-bottom:1px dashed #ccc;font-size:9.5px;font-weight:700;color:#000;line-height:1.35}
