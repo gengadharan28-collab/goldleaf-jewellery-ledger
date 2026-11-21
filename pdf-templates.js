@@ -1217,8 +1217,9 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
   const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
   const waUrl=phone?'https://wa.me/'+phone+'?text='+encodeURIComponent('Please find attached '+filename.replace(/\.pdf$/i,'')):'';
-  // Open WhatsApp tab synchronously on user click so popup blockers never block directing to the customer's number
-  const waWin=waUrl?window.open('about:blank','_blank','noopener'):null;
+  const canNativeFileShare=!!(navigator.share&&navigator.canShare);
+  // Pre-open WhatsApp tab only on desktop/browsers without native file share
+  const waWin=(waUrl&&!canNativeFileShare)?window.open('about:blank','_blank','noopener'):null;
   await pdfLoadProfile();
   say('Generating PDF…');
   if(!window.html2pdf){
@@ -1253,9 +1254,12 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
     const file=new File([blob],filename,{type:'application/pdf'});
-    if(!waUrl&&navigator.canShare&&navigator.canShare({files:[file]})){
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      if(phone){
+        navigator.clipboard?.writeText(phone).catch(()=>{});
+        say('Copied +'+phone+' — choose WhatsApp to send PDF.');
+      }
       await navigator.share({files:[file],title:filename,text:'Quotation '+filename.replace(/\.pdf$/i,'')});
-      say('PDF ready to share.');
     }else{
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
