@@ -770,89 +770,67 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
   const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
 
+  const isThermal80 = template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80';
+  const isThermal58 = template === 'thermal-58' || template === 'thermal-estimate-58';
+  const isGrid80 = template === 'thermal-estimate-grid-80';
+  const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
+
+  let pageSize = 'A4 portrait';
+  if(template === 'detailed' || template === 'compact-estimate-a5l' || template === 'compact-a5-l'){
+    pageSize = template.startsWith('compact') ? 'A5 landscape' : 'A4 landscape';
+  } else if(template === 'compact-a5-p' || template === 'compact-estimate-a5'){
+    pageSize = 'A5 portrait';
+  } else if(thermalWidth){
+    pageSize = thermalWidth + 'mm auto';
+  }
+
+  const printBoxW = isGrid80 ? 76 : (thermalWidth === 80 ? 72 : 48);
+  const printPadCss = isGrid80 ? '1mm 1.5mm' : (thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm');
+
+  // Fallback DOM root
   let root=document.getElementById('goldleafPdfRoot');
   if(!root){root=document.createElement('div');root.id='goldleafPdfRoot';document.body.append(root);}
   root.innerHTML=pdfDocument(model, c, template);
 
-  let pageStyle=document.getElementById('goldleafPdfPageStyle');
-  if(!pageStyle){pageStyle=document.createElement('style');pageStyle.id='goldleafPdfPageStyle';document.head.append(pageStyle);}
-
-  let pageSize = 'A4 portrait';
-  let pageMargin = isEstimate ? '6mm' : '10mm';
-  if(template === 'detailed' || template === 'compact-estimate-a5l' || template === 'compact-a5-l'){
-    pageSize = template.startsWith('compact') ? 'A5 landscape' : 'A4 landscape';
-    pageMargin = isEstimate ? '5mm' : '8mm';
-  } else if(template === 'compact-a5-p' || template === 'compact-estimate-a5'){
-    pageSize = 'A5 portrait';
-    pageMargin = isEstimate ? '5mm' : '8mm';
-  } else if(template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80'){
-    pageSize = '80mm auto';
-    pageMargin = '0';
-  } else if(template === 'thermal-58' || template === 'thermal-estimate-58'){
-    pageSize = '58mm auto';
-    pageMargin = '0';
+  // Dedicated isolated print iframe: isolates print from ERP scroll position & DOM.
+  // Guarantees zero blank feed on page 1, starts immediately at line 0, and auto-cuts at content end.
+  let printFrame = document.getElementById('goldleafPdfPrintFrame');
+  if(!printFrame){
+    printFrame = document.createElement('iframe');
+    printFrame.id = 'goldleafPdfPrintFrame';
+    printFrame.style.cssText = 'position:fixed!important;right:0!important;bottom:0!important;width:0!important;height:0!important;border:0!important;visibility:hidden!important;z-index:-999!important;';
+    document.body.appendChild(printFrame);
   }
 
-  document.body.classList.add('goldleaf-pdf-printing');
-  const isThermal80 = template === 'thermal-80' || template === 'thermal-estimate-80' || template === 'thermal-estimate-grid-80';
-  const isThermal58 = template === 'thermal-58' || template === 'thermal-estimate-58';
-  const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
-  const printDoc = root.querySelector('.gl-pdf');
-  let measuredContentMm = 0;
-  const isGrid80 = template === 'thermal-estimate-grid-80';
-  if(thermalWidth){
-    const printWidth = isGrid80 ? 76 : (thermalWidth === 80 ? 72 : 48);
-    const padCss = isGrid80 ? '1mm 1.5mm' : (thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm');
-    // Measure at the exact printable width, padding, and border so the cutter stops right after content.
-    const rootStyleBefore = root.getAttribute('style') || '';
-    const docStyleBefore = printDoc?.getAttribute('style') || '';
-    root.style.cssText = 'display:flex!important;justify-content:center!important;align-items:flex-start!important;position:fixed!important;left:0!important;top:0!important;visibility:hidden!important;width:'+thermalWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;z-index:-1!important;';
-    if(printDoc){
-      printDoc.style.cssText += ';display:block!important;width:'+printWidth+'mm!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:'+padCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;';
-    }
-    void root.offsetHeight;
-    const targetEl = root.querySelector('.pdf-thermal-estimate-grid-80') || printDoc;
-    const finalPx = Math.ceil(targetEl ? (targetEl.getBoundingClientRect().height || targetEl.offsetHeight || targetEl.scrollHeight) : (printDoc?.offsetHeight || 320));
-    const calculatedMm = Math.ceil(finalPx * 25.4 / 96);
-    measuredContentMm = Math.max(36, calculatedMm + 2);
-    root.setAttribute('style',rootStyleBefore);
-    if(printDoc) printDoc.setAttribute('style',docStyleBefore);
-    pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
-    pageMargin = '0mm';
-  }else{
-    root.style.width = '';
-    root.style.margin = '0 auto';
-    if(printDoc){
-      printDoc.style.width = '100%';
-      printDoc.style.maxWidth = '';
-      printDoc.style.margin = '0 auto';
-    }
-  }
-  const printBoxW = isGrid80 ? 76 : (thermalWidth === 80 ? 72 : 48);
-  const printPadCss = isGrid80 ? '1mm 1.5mm' : (thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm');
-  pageStyle.textContent='@page{size:'+pageSize+';margin:0mm!important;}\n'
+  const printDocHtml = '<!doctype html><html><head><meta charset="utf-8">'
+    + '<style>'
+    + '@page{size:' + pageSize + ';margin:0mm!important;}\n'
     + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
-    + (thermalWidth ? '@media print{\n'
-      + '@page{size:'+thermalWidth+'mm auto!important;margin:0mm!important;}\n'
-      + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
-      + 'html,body,body.goldleaf-pdf-printing{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}\n'
-      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{position:absolute!important;top:0!important;left:0!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;margin:0!important;padding:0!important}\n'
-      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;margin:0 auto!important;padding:'+printPadCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
-      + '}' : '');
-  window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
-  // Let Chrome finish laying out the hidden receipt before opening the native printer window.
-  // This remains direct printing: there is no intermediate Goldleaf preview.
-  const openNativePrint=()=>{
-    try{ window.print(); }
-    catch(err){
-      document.body.classList.remove('goldleaf-pdf-printing');
-      say('Print could not open. Please try Print / Save PDF again.');
-    }
-  };
-  if(typeof requestAnimationFrame==='function'){
-    requestAnimationFrame(()=>requestAnimationFrame(openNativePrint));
-  }else{
-    setTimeout(openNativePrint,80);
+    + '@media print{\n'
+    + '  html,body{width:' + (thermalWidth || 80) + 'mm!important;max-width:' + (thermalWidth || 80) + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;overflow:visible!important;}\n'
+    + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;margin:0 auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+    + '}\n'
+    + 'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}'
+    + PDF_DOCUMENT_CSS
+    + '</style></head><body>'
+    + pdfDocument(model, c, template)
+    + '</body></html>';
+
+  try {
+    const fDoc = printFrame.contentWindow.document;
+    fDoc.open();
+    fDoc.write(printDocHtml);
+    fDoc.close();
+    setTimeout(()=>{
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch(e) {
+        window.print();
+      }
+    }, 120);
+  } catch(err) {
+    window.print();
   }
 }
 
@@ -907,6 +885,7 @@ function pdfPreviewSrcdoc(model,config,layoutId){
     +'#glFitOuter{margin:0 auto;overflow:hidden}'
     +'#glFitWrap{width:'+pw+'px;max-width:none;transform-origin:top left}'
     +'#glFitWrap>.gl-pdf{width:100%!important;max-width:100%!important;margin:0!important;box-sizing:border-box}'
+    +'@media print{html,body{background:#fff!important;padding:0!important;margin:0!important;overflow:visible!important}#glFitOuter,#glFitWrap{width:100%!important;transform:none!important;margin:0!important;padding:0!important}}'
     +PDF_DOCUMENT_CSS+'</style></head><body><div id="glFitOuter"><div id="glFitWrap">'+pdfDocument(model,config,layoutId)+'</div></div>'
     +'<script>function fit(){var o=document.getElementById("glFitOuter"),w=document.getElementById("glFitWrap");if(!o||!w)return;w.style.transform="";var avail=Math.max(220,document.documentElement.clientWidth-20);var s=Math.min(1,avail/'+pw+');o.style.width=Math.floor('+pw+'*s)+"px";o.style.height=Math.ceil(w.scrollHeight*s)+"px";w.style.transform=s<1?"scale("+s+")":"";}window.addEventListener("load",function(){fit();setTimeout(fit,80);});window.addEventListener("resize",fit);fit();<\/script>'
     +'</body></html>';
