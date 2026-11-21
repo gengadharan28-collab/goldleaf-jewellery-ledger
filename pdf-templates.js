@@ -862,10 +862,29 @@ function pdfRenderDocumentModal(){
     +'<iframe title="Live PDF preview"></iframe>'
     +'</section>';
 
+function pdfPaperPx(template){
+  if(template==='thermal-80'||template==='thermal-estimate-80'||template==='thermal-estimate-grid-80')return 302;
+  if(template==='thermal-58'||template==='thermal-estimate-58')return 219;
+  if(template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l')return template.startsWith('compact')?794:1060;
+  if(template==='compact-a5-p'||template==='compact-estimate-a5')return 559;
+  return 794;
+}
+
+function pdfPreviewSrcdoc(model,config,layoutId){
+  const pw=pdfPaperPx(layoutId);
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<style>html,body{margin:0;padding:0;background:#e8ecea;overflow-x:hidden}body{padding:12px;display:flex;justify-content:center;align-items:flex-start}'
+    +'#glFitWrap{width:'+pw+'px;max-width:none;transform-origin:top center}'
+    +'#glFitWrap>.gl-pdf{width:100%!important;max-width:100%!important;margin:0 auto!important}'
+    +PDF_DOCUMENT_CSS+'</style></head><body><div id="glFitWrap">'+pdfDocument(model,config,layoutId)+'</div>'
+    +'<script>function fit(){var w=document.getElementById("glFitWrap");if(!w)return;var avail=Math.max(240,window.innerWidth-24);var s=Math.min(1,avail/'+pw+');w.style.transform=s<1?"scale("+s+")":"";w.style.marginBottom=s<1?(-w.offsetHeight*(1-s))+"px":"0";}window.addEventListener("load",fit);window.addEventListener("resize",fit);fit();<\/script>'
+    +'</body></html>';
+}
+
   document.body.append(modal);
   const frame=modal.querySelector('iframe');
   if(frame){
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,chosen)+'</body></html>';
+    frame.srcdoc=pdfPreviewSrcdoc(model,config,chosen);
   }
 }
 
@@ -883,7 +902,7 @@ window.pdfSwitchDocumentPreview=function(layoutId){
   modal.querySelectorAll('.pdf-preview-pill').forEach(btn=>btn.classList.toggle('active',btn.dataset.pdfLayout===layoutId));
   const frame=modal.querySelector('iframe');
   if(frame){
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:18px;background:#e8ecea;display:flex;justify-content:center;align-items:flex-start}'+PDF_DOCUMENT_CSS+'</style></head><body>'+pdfDocument(model,config,layoutId)+'</body></html>';
+    frame.srcdoc=pdfPreviewSrcdoc(model,config,layoutId);
   }
 };
 
@@ -1238,20 +1257,22 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
     pdfPrintModel(model,mode,template);
     return;
   }
-  const host=document.createElement('div');
-  host.style.cssText='position:fixed;left:-99999px;top:0;width:794px;background:#fff;z-index:-1;';
-  host.innerHTML=pdfDocument(model,c,template);
-  document.body.append(host);
-  const target=host.querySelector('.gl-pdf')||host;
   const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
   const isA5=template.includes('a5');
-  const format=template.includes('80')?[80,220]:template.includes('58')?[58,200]:(isA5?'a5':'a4');
+  const is80=template.includes('80'),is58=template.includes('58');
+  const hostW=is80?302:is58?219:(isLand?(isA5?794:1060):(isA5?559:794));
+  const format=is80?[80,220]:is58?[58,200]:(isA5?'a5':'a4');
+  const host=document.createElement('div');
+  host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:-9999;pointer-events:none;overflow:visible;';
+  host.innerHTML='<style>.gl-pdf{width:100%!important;max-width:100%!important;box-shadow:none!important;margin:0!important;padding:'+(is80||is58?'8px':'16px')+'!important}</style>'+pdfDocument(model,c,template);
+  document.body.append(host);
+  const target=host.querySelector('.gl-pdf')||host;
   try{
     const blob=await window.html2pdf().set({
-      margin:isEstimate?6:8,
+      margin:(is80||is58)?2:5,
       filename,
-      image:{type:'jpeg',quality:0.95},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      image:{type:'jpeg',quality:0.96},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',width:hostW,windowWidth:hostW,scrollX:0,scrollY:0},
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
     const file=new File([blob],filename,{type:'application/pdf'});
