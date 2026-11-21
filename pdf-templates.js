@@ -574,12 +574,15 @@ function pdfBillMarkup(model,c,template){
 function pdfGrid80Markup(model,c){
   const items=model.invoiceItems?.length?model.invoiceItems:(model.item?[model.item]:[]);
   const fields=(c.estimateGridFields||PDF_GRID_DEFAULTS).filter(key=>PDF_GRID_KEYS.includes(key));
-  const rowFields=fields.filter(key=>!['hallmark','stone','stoneCharge','itemTotal'].includes(key));
-  const detailFields=fields.filter(key=>['hallmark','stone','stoneCharge','itemTotal'].includes(key));
-  const rowWidths={product:19,purity:11,huid:13,pieces:6,gross:10,less:9,net:9,wastage:11,making:12};
+  const detailKeys=['hallmark','stone','stoneCharge'];
+  // Keep row fields in logical receipt order: product first, then weight & charge details, itemTotal always on the right side!
+  const rowFields=fields.filter(key=>!detailKeys.includes(key)&&key!=='itemTotal');
+  if(fields.includes('itemTotal')) rowFields.push('itemTotal');
+  const detailFields=fields.filter(key=>detailKeys.includes(key));
+  const rowWidths={product:17,purity:10,huid:11,pieces:6,gross:11,less:10,net:11,wastage:10,making:11,itemTotal:30};
   const widthTotal=rowFields.reduce((sum,key)=>sum+(rowWidths[key]||10),0);
   const compactAmount=value=>n(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross',less:'Less',net:'Net',wastage:'Wastage',making:'Making',hallmark:'H/M',stone:'Stone',stoneCharge:'Stone charge',itemTotal:'Item total'};
+  const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross',less:'Less',net:'Net',wastage:'Wastage',making:'Making',hallmark:'H/M',stone:'Stone',stoneCharge:'Stone ₹',itemTotal:'Total'};
   const cell=(it,key)=>{
     switch(key){
       case 'product':return esc(it.product||'—');
@@ -589,7 +592,11 @@ function pdfGrid80Markup(model,c){
       case 'gross':return fmt(it.grossWeight??it.weight);
       case 'less':return fmt(it.lessWeight||0);
       case 'net':return fmt(it.netWeight??it.weight);
-      case 'wastage':return esc(n(it.wastage))+(it.wastageMode==='grams'?'g':'%')+'<small>'+esc(compactAmount(it.wastageAmount||0))+'</small>';
+      case 'wastage':{
+        const wVal=esc(n(it.wastage))+(it.wastageMode==='grams'?'g':'%');
+        const wAmt=n(it.wastageAmount||0);
+        return wVal+(wAmt>0?'<small>'+esc(compactAmount(wAmt))+'</small>':'');
+      }
       case 'making':return esc(compactAmount(it.makingTotal??it.making??0));
       case 'hallmark':return it.hallmarkCharge!=null||it.hallmark!=null?pdfMoney(it.hallmarkCharge??it.hallmark):'—';
       case 'stone':return n(it.stoneWeight)>0?fmt(it.stoneWeight)+'g':'—';
@@ -598,19 +605,37 @@ function pdfGrid80Markup(model,c){
       default:return '—';
     }
   };
+  const hasDetail=it=>detailFields.some(k=>{
+    if(k==='stone')return n(it.stoneWeight)>0;
+    if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
+    if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
+    return false;
+  });
   const metalOf=it=>String(it.metalType||it.product||'').toLowerCase();
   const gold=items.find(it=>metalOf(it).includes('gold')),silver=items.find(it=>metalOf(it).includes('silver'));
   const goldRate=n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24),silverRate=n(silver?.rate)||n(db.rates?.silver);
   const phone=String(model.entityDetails||'').match(/(?:\+91[\s-]?)?\d{10}/)?.[0]||'';
   const summary=(model.totals||[]).map(([label,value,highlight])=>'<div class="grid80-summary-row '+(highlight?'grid80-highlight':'')+'"><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>').join('');
   const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange">'+model.exchange.map(it=>'<div>'+esc(it.product||'Old gold')+' · '+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%'+(n(it.rate)>0?' · '+pdfMoney(it.rate)+'/g':'')+' <b>'+pdfMoney(it.amount)+'</b></div>').join('')+'</div>':'';
+  const itemsMarkup=rowFields.length?'<table class="grid80-items"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+    +items.map(it=>{
+      const showSub=hasDetail(it);
+      const activeDetails=detailFields.filter(k=>{
+        if(k==='stone')return n(it.stoneWeight)>0;
+        if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
+        if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
+        return false;
+      });
+      const mainRow='<tr class="grid80-item-main '+(!showSub?'grid80-item-end':'')+'">'+rowFields.map(key=>'<td data-col="'+key+'">'+cell(it,key)+'</td>').join('')+'</tr>';
+      const subRow=showSub?'<tr class="grid80-item-end"><td class="grid80-detail-cell" colspan="'+rowFields.length+'"><div class="grid80-detail-flex">'+activeDetails.map(key=>'<span><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</div></td></tr>':'';
+      return mainRow+subRow;
+    }).join('')+'</tbody></table>':'';
   return '<div class="grid80-ticket">'
     +'<div class="grid80-top"><small>NOT A TAX INVOICE</small><strong>ESTIMATE</strong></div>'
     +'<div class="grid80-rates">Gold '+(goldRate?pdfMoney(goldRate)+'/g':'—')+' · Silver '+(silverRate?pdfMoney(silverRate)+'/g':'—')+'</div>'
     +'<div class="grid80-meta">'+[model.reference,model.date,model.entityName,phone].filter(Boolean).map(esc).join('  |  ')+'</div>'
-    +(rowFields.length?'<table class="grid80-items"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th>'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
-    +items.map(it=>'<tr class="grid80-item-main '+(!detailFields.length?'grid80-item-end':'')+'">'+rowFields.map(key=>'<td data-col="'+key+'">'+cell(it,key)+'</td>').join('')+'</tr>'+(detailFields.length?'<tr class="grid80-item-end"><td class="grid80-detail-cell" colspan="'+rowFields.length+'"><div class="grid80-detail-flex">'+detailFields.map(key=>'<span class="'+(key==='itemTotal'?'grid80-item-total':'')+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</div></td></tr>':'')).join('')+'</tbody></table>':'')
-    +(!rowFields.length?items.map(it=>'<div class="grid80-item-details">'+detailFields.map(key=>'<span class="'+(key==='itemTotal'?'grid80-item-total':'')+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></span>').join('')+'</div>').join(''):'')
+    +itemsMarkup
+    +(!rowFields.length?items.map(it=>'<div class="grid80-item-details"><span><b>'+esc(it.product)+'</b></span><span><b>'+pdfMoney(it.subtotal||0)+'</b></span></div>').join(''):'')
     +(items.length?'<div class="grid80-product-total"><span>Total product amount</span><b>'+pdfMoney(items.reduce((sum,it)=>sum+n(it.subtotal),0))+'</b></div>':'')
     +exchange+'<h3>Estimate settlement</h3>'+summary
     +(c.showTerms?'<footer>'+esc(c.estimateBottomMargin||c.footerText||'')+'</footer>':'')
@@ -777,19 +802,19 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const printDoc = root.querySelector('.gl-pdf');
   let measuredContentMm = 0;
   if(thermalWidth){
-    const printWidth = thermalWidth === 80 ? 68 : 48;
-    const padCss = thermalWidth === 80 ? '2mm 2.5mm' : '1.5mm 2mm';
+    const printWidth = thermalWidth === 80 ? 70 : 48;
+    const padCss = thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm';
     // Measure at the exact printable width, padding, and border so the cutter stops right after content.
     const rootStyleBefore = root.getAttribute('style') || '';
     const docStyleBefore = printDoc?.getAttribute('style') || '';
-    root.style.cssText = 'display:block!important;position:fixed!important;left:0!important;top:0!important;visibility:hidden!important;width:'+printWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;z-index:-1!important;';
+    root.style.cssText = 'display:flex!important;justify-content:center!important;align-items:flex-start!important;position:fixed!important;left:0!important;top:0!important;visibility:hidden!important;width:'+thermalWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;z-index:-1!important;';
     if(printDoc){
-      printDoc.style.cssText += ';display:block!important;width:'+printWidth+'mm!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:'+padCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;';
+      printDoc.style.cssText += ';display:block!important;width:'+printWidth+'mm!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:'+padCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;';
     }
     void root.offsetHeight;
-    const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0, printDoc?.offsetHeight || 0, root.offsetHeight || 0);
+    const contentPx = Math.max(printDoc?.offsetHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0, root.scrollHeight || 0, root.offsetHeight || 0);
     const calculatedMm = Math.ceil(contentPx * 25.4 / 96);
-    measuredContentMm = Math.max(36, (calculatedMm > 0 ? calculatedMm : 80) + 3);
+    measuredContentMm = Math.max(36, calculatedMm + 2);
     root.setAttribute('style',rootStyleBefore);
     if(printDoc) printDoc.setAttribute('style',docStyleBefore);
     pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
@@ -803,13 +828,13 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       printDoc.style.margin = '0 auto';
     }
   }
-  const printBoxW = thermalWidth === 80 ? 68 : 48;
-  const printPadCss = thermalWidth === 80 ? '2mm 2.5mm' : '1.5mm 2mm';
+  const printBoxW = thermalWidth === 80 ? 70 : 48;
+  const printPadCss = thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm';
   pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}\n'
     + (thermalWidth ? '@media print{\n'
       + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}\n'
-      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important}\n'
-      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;margin:0!important;padding:'+printPadCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important}\n'
+      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;margin:0 auto!important;padding:'+printPadCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
       + '}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Let Chrome finish laying out the hidden receipt before opening the native printer window.
@@ -864,7 +889,7 @@ function pdfRenderDocumentModal(){
     +'</section>';
 
 function pdfPaperPx(template){
-  if(template==='thermal-80'||template==='thermal-estimate-80'||template==='thermal-estimate-grid-80')return 258;
+  if(template==='thermal-80'||template==='thermal-estimate-80'||template==='thermal-estimate-grid-80')return 265;
   if(template==='thermal-58'||template==='thermal-estimate-58')return 182;
   if(template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l')return template.startsWith('compact')?794:1060;
   if(template==='compact-a5-p'||template==='compact-estimate-a5')return 559;
@@ -1127,11 +1152,39 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:100%;max-width:68mm;box-sizing:border-box;border:1.5px solid #000;padding:2mm 2.5mm;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.32;margin:0 auto;color:#000;font-weight:600}
-.grid80-ticket{width:100%;color:#000}.grid80-top{min-height:22px;display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:2px}.grid80-top small{font-size:8px;font-weight:800;color:#000;white-space:nowrap}.grid80-top strong{font-size:13.5px;font-weight:800;color:#000;position:static;transform:none;white-space:nowrap}.grid80-rates{text-align:right;font-size:8.5px;font-weight:700;color:#000;padding:0 0 4px}.grid80-meta{border-block:1.5px solid #000;padding:4px 0;margin-bottom:6px;font-size:8.5px;font-weight:700;color:#000;white-space:normal;overflow-wrap:anywhere}
-.grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:7px;color:#000}.grid80-items th,.grid80-items td{border:1px solid #000;padding:2px 1.5px;text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:clip;color:#000}.grid80-item-main td[data-col="product"]{text-overflow:ellipsis}.grid80-items th{font-size:6.4px;font-weight:800;background:#e9e9e9;text-transform:uppercase;color:#000}.grid80-items td small{display:block;font-size:6.3px;font-weight:700;color:#000;margin-top:1px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell!important}.grid80-detail-flex,.grid80-item-details{display:flex!important;align-items:stretch;width:100%}.grid80-detail-flex>span,.grid80-item-details>span{display:flex;flex-direction:column;flex:0 0 auto;padding:3px 5px;border-right:1px solid #000;box-sizing:border-box;white-space:nowrap}.grid80-detail-flex>span.grid80-item-total,.grid80-item-details>span.grid80-item-total{margin-left:auto!important;border-right:0!important;text-align:right!important;align-items:flex-end}.grid80-detail-cell small,.grid80-item-details small{font-size:7px;font-weight:700;text-transform:uppercase;color:#000}.grid80-detail-cell b,.grid80-item-details b{font-size:8.6px;font-weight:800;color:#000;margin-top:1px;white-space:nowrap}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:3px 2px;color:#000}.grid80-product-total{font-size:11px;font-weight:800;border-bottom:1.5px solid #000;margin-top:4px}.grid80-ticket h3{background:#e9e9e9;font-size:9.5px;font-weight:800;color:#000;text-transform:uppercase;margin:6px 0 3px;padding:3px 4px}.grid80-summary-row{font-size:9.5px;font-weight:700;color:#000;line-height:1.28;border-bottom:1px solid #bbb}.grid80-summary-row.grid80-highlight{font-size:11.5px;font-weight:800;color:#000;border-top:1.5px solid #000;padding:5px 3px;margin-top:2px;background:#e6f0e8}.grid80-exchange{font-size:9px;font-weight:700;color:#000;margin-top:4px;border-top:1px dashed #000;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:8.5px;font-weight:700;color:#000;text-align:center;margin-top:6px}
-.grid80-item-end td{border-bottom:2px solid #000}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.2}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
-.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{text-align:right;white-space:nowrap;color:#000;font-weight:800}
+.pdf-thermal-estimate-grid-80{width:70mm;max-width:70mm;box-sizing:border-box;border:1.5px solid #000;padding:1.5mm 2mm;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:10px;line-height:1.3;margin:0 auto;color:#000;font-weight:600;background:#fff}
+.grid80-ticket{width:100%;color:#000}
+.grid80-top{min-height:22px;display:flex;align-items:baseline;justify-content:space-between;gap:6px;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:3px}
+.grid80-top small{font-size:9px;font-weight:800;color:#000;white-space:nowrap;letter-spacing:0.3px}
+.grid80-top strong{font-size:14.5px;font-weight:900;color:#000;letter-spacing:0.8px;white-space:nowrap}
+.grid80-rates{text-align:right;font-size:9px;font-weight:800;color:#000;padding:1px 0 3px}
+.grid80-meta{border-block:1.5px solid #000;padding:3px 0;margin-bottom:5px;font-size:9px;font-weight:800;color:#000;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:4px}
+.grid80-items th{border:1px solid #000;padding:2.5px 1px;font-size:7.2px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:normal;word-break:break-word;line-height:1.15}
+.grid80-items td{border:1px solid #000;padding:3.5px 2px;font-size:8.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25}
+.grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:2px}
+.grid80-items th:not(:first-child){text-align:right;padding-right:2px}
+.grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:2.5px 0.5px}
+.grid80-items td[data-col="product"]{text-align:left;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"],.grid80-items td[data-col="making"]{text-align:right;white-space:nowrap}
+.grid80-items td[data-col="wastage"]{text-align:right;line-height:1.1}
+.grid80-items td[data-col="wastage"] small{display:block;font-size:7px;font-weight:700;color:#000}
+.grid80-items td[data-col="itemTotal"]{text-align:right;font-weight:900;font-size:8.5px;white-space:nowrap}
+.grid80-items td[data-col="purity"],.grid80-items td[data-col="pieces"]{text-align:center;white-space:nowrap}
+.grid80-item-end td{border-bottom:2px solid #000}
+.grid80-detail-cell{padding:0!important;background:#fbfbfb}
+.grid80-detail-flex{display:flex!important;align-items:stretch;width:100%}
+.grid80-detail-flex>span{display:flex;flex-direction:column;flex:0 0 auto;padding:2px 5px;border-right:1px solid #000;box-sizing:border-box;white-space:nowrap}
+.grid80-detail-flex small{font-size:7px;font-weight:800;text-transform:uppercase;color:#000}
+.grid80-detail-flex b{font-size:8.5px;font-weight:800;color:#000}
+.grid80-product-total{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:4px 2px;font-size:11px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:4px 0 5px;color:#000}
+.grid80-ticket h3{background:#eaeaea;font-size:9.5px;font-weight:900;color:#000;text-transform:uppercase;margin:5px 0 3px;padding:3px 4px;border-bottom:1px solid #000}
+.grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:3px 2px;border-bottom:1px dashed #ccc;font-size:9.5px;font-weight:700;color:#000;line-height:1.35}
+.grid80-summary-row.grid80-highlight{font-size:12px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:5px 3px;margin-top:3px;background:#f2f2f2}
+.grid80-exchange{font-size:9px;font-weight:700;color:#000;margin:4px 0;border-top:1px dashed #000;padding-top:3px}
+.grid80-exchange div{display:flex;justify-content:space-between;gap:3px;padding:2px 0}
+.grid80-ticket footer{font-size:8.5px;font-weight:700;color:#000;text-align:center;margin-top:6px;padding-top:4px;border-top:1px solid #ccc;line-height:1.3}
+.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{text-align:right;white-space:nowrap;color:#000;font-weight:900}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
@@ -1154,8 +1207,8 @@ const PDF_DOCUMENT_CSS=`
 
 @media print{
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
-  .gl-pdf{box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;break-after:avoid!important;page-break-after:avoid!important}
+  .gl-pdf:not(.gl-pdf-thermal){box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;padding:1.5mm 2mm!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:8.5px!important;line-height:1.22!important}
   .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
   .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}
@@ -1262,22 +1315,24 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
   const isA5=template.includes('a5');
   const is80=template.includes('80'),is58=template.includes('58');
-  const hostW=is80?258:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
-  const format=is80?[80,220]:is58?[58,200]:(isA5?'a5':'a4');
+  const hostW=is80?265:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
-  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+hostW+'px!important;max-width:'+hostW+'px!important;box-sizing:border-box!important;box-shadow:none!important;margin:0!important;padding:'+(is80||is58?'8px':'14px')+'!important}</style>'+pdfDocument(model,c,template);
+  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1.5mm 2mm':'14px')+'!important}</style>'+pdfDocument(model,c,template);
   const mask=document.createElement('div');
   mask.style.cssText='position:fixed;inset:0;z-index:2147483645;background:rgba(246,242,232,0.92);display:grid;place-items:center;font:700 14px Inter,sans-serif;color:#143d2b;';
   mask.textContent='Preparing PDF…';
   document.body.append(host,mask);
   const target=host.querySelector('.gl-pdf')||host;
   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,60)));
+  const targetHeightPx = target.offsetHeight || target.scrollHeight || 300;
+  const targetMmH = Math.ceil(targetHeightPx * 25.4 / 96) + 3;
+  const format = is80 ? [80, targetMmH] : is58 ? [58, targetMmH] : (isA5 ? 'a5' : 'a4');
   try{
     const blob=await window.html2pdf().set({
-      margin:(is80||is58)?2:5,
+      margin:(is80||is58)?[1, 5, 1, 5]:5,
       filename,
-      image:{type:'jpeg',quality:0.96},
+      image:{type:'jpeg',quality:0.98},
       html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',width:hostW,windowWidth:hostW,scrollX:0,scrollY:0},
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
