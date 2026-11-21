@@ -808,7 +808,7 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     + (thermalWidth ? '@media print{\n'
       + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important;overflow:hidden!important}\n'
       + '#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}\n'
-      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?72:52)+'mm!important;max-width:'+(thermalWidth===80?72:52)+'mm!important;height:auto!important;max-height:'+measuredContentMm+'mm!important;margin:0 auto!important;padding:0!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}\n'
+      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?68:48)+'mm!important;max-width:'+(thermalWidth===80?68:48)+'mm!important;height:auto!important;max-height:'+measuredContentMm+'mm!important;margin:0 auto!important;padding:'+(thermalWidth===80?'2mm 2.5mm':'1.5mm 2mm')+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important;color:#000!important}\n'
       + '}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Let Chrome finish laying out the hidden receipt before opening the native printer window.
@@ -863,8 +863,8 @@ function pdfRenderDocumentModal(){
     +'</section>';
 
 function pdfPaperPx(template){
-  if(template==='thermal-80'||template==='thermal-estimate-80'||template==='thermal-estimate-grid-80')return 302;
-  if(template==='thermal-58'||template==='thermal-estimate-58')return 219;
+  if(template==='thermal-80'||template==='thermal-estimate-80'||template==='thermal-estimate-grid-80')return 258;
+  if(template==='thermal-58'||template==='thermal-estimate-58')return 182;
   if(template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l')return template.startsWith('compact')?794:1060;
   if(template==='compact-a5-p'||template==='compact-estimate-a5')return 559;
   return 794;
@@ -1106,31 +1106,31 @@ const PDF_DOCUMENT_CSS=`
 .pdf-modern .pdf-totals th{color:#213b34!important;background:#fff!important}
 
 /* Thermal POS Receipts (80mm & 58mm) */
-.gl-pdf-thermal{background:#fff;padding:8px;font-family:"Courier New",Courier,monospace;line-height:1.25;box-shadow:0 1px 6px rgba(0,0,0,.15);border:1px dashed #aaa}
-.pdf-thermal-80{max-width:72mm;font-size:9.5px;margin:0 auto}
-.pdf-thermal-58{max-width:52mm;font-size:8.5px;padding:2px;margin:0 auto}
+.gl-pdf-thermal{background:#fff;padding:2mm 2.5mm;font-family:"Courier New",Courier,monospace;line-height:1.28;box-shadow:0 1px 6px rgba(0,0,0,.15);border:1.5px solid #000;color:#000;box-sizing:border-box}
+.pdf-thermal-80{max-width:68mm;font-size:11px;font-weight:600;color:#000;margin:0 auto}
+.pdf-thermal-58{max-width:48mm;font-size:9.5px;font-weight:600;color:#000;padding:1.5mm 2mm;margin:0 auto}
 .thermal-center{text-align:center}
 .thermal-right{text-align:right}
-.thermal-bold{font-weight:bold}
-.thermal-title{font-size:13px;letter-spacing:.3px;margin-bottom:2px}
-.thermal-addr{font-size:8px;margin-bottom:3px}
-.thermal-doc-title{font-size:11px;margin:5px 0;font-weight:800;letter-spacing:.8px}
-.thermal-divider{overflow:hidden;white-space:nowrap;margin:4px 0;font-family:monospace;letter-spacing:-1px}
-.thermal-row{display:flex;justify-content:space-between;margin:2px 0}
-.thermal-items-head{display:flex;justify-content:space-between;font-weight:bold;margin:4px 0 2px;border-bottom:1px dashed #777;padding-bottom:2px}
-.thermal-item-entry{margin:4px 0}
-.thermal-item-main{display:flex;justify-content:space-between}
-.thermal-item-meta{font-size:8px;color:#333;margin-top:1px}
-.thermal-total-highlight{font-size:11px;border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 0;margin:3px 0}
+.thermal-bold{font-weight:800;color:#000}
+.thermal-title{font-size:15px;font-weight:800;letter-spacing:.3px;margin-bottom:2px;color:#000}
+.thermal-addr{font-size:9.5px;font-weight:600;margin-bottom:3px;color:#000}
+.thermal-doc-title{font-size:12.5px;margin:5px 0;font-weight:800;letter-spacing:.8px;color:#000}
+.thermal-divider{overflow:hidden;white-space:nowrap;margin:4px 0;font-family:monospace;letter-spacing:-1px;color:#000;font-weight:700}
+.thermal-row{display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:600}
+.thermal-items-head{display:flex;justify-content:space-between;font-weight:800;margin:4px 0 2px;border-bottom:1.5px solid #000;padding-bottom:2px;color:#000}
+.thermal-item-entry{margin:4px 0;color:#000}
+.thermal-item-main{display:flex;justify-content:space-between;font-weight:700;color:#000}
+.thermal-item-meta{font-size:9.5px;font-weight:600;color:#000;margin-top:1px}
+.thermal-total-highlight{font-size:13px;font-weight:800;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 0;margin:4px 0;color:#000}
 .thermal-qr{margin:8px 0}
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
-.thermal-qr div{font-size:7.5px;font-weight:bold}
-.thermal-footer-text{font-size:8px;margin-top:6px;line-height:1.3}
-.pdf-thermal-estimate-grid-80{width:100%;max-width:72mm;box-sizing:border-box;border:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.3;margin:0 auto;color:#000;font-weight:500}
-.grid80-ticket{width:100%;color:#111}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:8px;font-weight:bold;margin-top:3px}.grid80-top strong{font-size:14px;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:8px;font-weight:650;padding:0 0 5px}.grid80-meta{border-block:1px solid #222;padding:5px 0;margin-bottom:7px;font-size:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:7.2px}.grid80-items th,.grid80-items td{border:1px solid #777;padding:3px 1px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.grid80-items th{font-size:6.8px;background:#e9e9e9;text-transform:uppercase}.grid80-items td small{display:block;font-size:6.8px;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #bbb;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:6.8px;text-transform:uppercase;color:#555}.grid80-detail-cell b,.grid80-item-details b{font-size:8px;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 1px}.grid80-product-total{font-size:10px;font-weight:bold;border-bottom:1px solid #222;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:9px;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:8.5px}.grid80-summary-row.grid80-highlight{font-size:10.5px;font-weight:bold;border-top:1px solid #222;margin-top:3px}.grid80-exchange{font-size:8px;margin-top:5px;border-top:1px dashed #777;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:7.5px;text-align:center;margin-top:8px}
-.grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:7px;font-weight:600;padding:4px 1px}.grid80-items th{font-size:6.6px}.grid80-item-main td small{font-size:6.4px;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #203d32}.grid80-detail-cell>span,.grid80-item-details>span{padding:2px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:3px 4px;font-size:9px}.grid80-summary-row{font-size:8.4px;line-height:1.25;padding:2px 1px;border-bottom:1px solid #e2e7e4}.grid80-summary-row.grid80-highlight{font-size:10px;padding:5px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:2px 1px}.grid80-ticket footer{margin-top:3px}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.15}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
-.grid80-detail-cell>span:last-child,.grid80-item-details>span:last-child{float:right;margin-left:auto;border-right:0;text-align:right;min-width:27%}.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:34%;text-align:right;white-space:nowrap}
+.thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
+.thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
+.pdf-thermal-estimate-grid-80{width:100%;max-width:68mm;box-sizing:border-box;border:1.5px solid #000;padding:2mm 2.5mm;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.32;margin:0 auto;color:#000;font-weight:600}
+.grid80-ticket{width:100%;color:#000}.grid80-top{height:29px;display:flex;align-items:flex-start;position:relative}.grid80-top small{font-size:9.5px;font-weight:800;margin-top:3px;color:#000}.grid80-top strong{font-size:15px;font-weight:800;color:#000;position:absolute;left:50%;transform:translateX(-50%)}.grid80-rates{text-align:right;font-size:9.5px;font-weight:700;color:#000;padding:0 0 5px}.grid80-meta{border-block:1.5px solid #000;padding:5px 0;margin-bottom:7px;font-size:9.5px;font-weight:700;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid80-items{width:100%;table-layout:fixed;border-collapse:collapse;font-size:8.8px;color:#000}.grid80-items th,.grid80-items td{border:1px solid #000;padding:3px 2px;text-align:left;vertical-align:top;overflow-wrap:anywhere;color:#000}.grid80-items th{font-size:8px;font-weight:800;background:#e9e9e9;text-transform:uppercase;color:#000}.grid80-items td small{display:block;font-size:8px;font-weight:700;color:#000;margin-top:2px}.grid80-detail-cell,.grid80-item-details{padding:0!important;background:#fafafa}.grid80-detail-cell{display:table-cell}.grid80-detail-cell>span,.grid80-item-details>span{display:inline-flex;flex-direction:column;min-width:20%;padding:3px 4px;border-right:1px solid #000;box-sizing:border-box}.grid80-detail-cell small,.grid80-item-details small{font-size:7.8px;font-weight:700;text-transform:uppercase;color:#000}.grid80-detail-cell b,.grid80-item-details b{font-size:9.5px;font-weight:800;color:#000;margin-top:2px}.grid80-product-total,.grid80-summary-row{display:flex;justify-content:space-between;gap:5px;padding:3px 2px;color:#000}.grid80-product-total{font-size:11.5px;font-weight:800;border-bottom:1.5px solid #000;margin-top:5px}.grid80-ticket h3{background:#e9e9e9;font-size:10px;font-weight:800;color:#000;text-transform:uppercase;margin:8px 0 4px;padding:4px}.grid80-summary-row{font-size:10px;font-weight:700;color:#000}.grid80-summary-row.grid80-highlight{font-size:12px;font-weight:800;color:#000;border-top:1.5px solid #000;margin-top:3px}.grid80-exchange{font-size:9.5px;font-weight:700;color:#000;margin-top:5px;border-top:1px dashed #000;padding-top:4px}.grid80-exchange div{display:flex;justify-content:space-between;gap:3px}.grid80-ticket footer{font-size:9px;font-weight:700;color:#000;text-align:center;margin-top:8px}
+.grid80-items th,.grid80-item-main td{overflow:hidden;overflow-wrap:normal;white-space:nowrap;text-overflow:clip;font-size:8.6px;font-weight:700;color:#000;padding:4px 2px}.grid80-items th{font-size:7.8px;font-weight:800}.grid80-item-main td small{font-size:7.8px;font-weight:700;color:#000;white-space:nowrap}.grid80-item-end td{border-bottom:2px solid #000}.grid80-detail-cell>span,.grid80-item-details>span{padding:3px 3px;white-space:nowrap}.grid80-ticket h3{margin:5px 0 2px;padding:3px 4px;font-size:10px;font-weight:800}.grid80-summary-row{font-size:9.8px;font-weight:700;color:#000;line-height:1.28;padding:3px 2px;border-bottom:1px solid #999}.grid80-summary-row.grid80-highlight{font-size:12px;font-weight:800;color:#000;padding:5px 2px;margin-top:2px;background:#e6f0e8}.grid80-product-total{margin-top:3px;padding:3px 2px}.grid80-ticket footer{margin-top:4px}.pdf-thermal-estimate-80 .thermal-item-entry{margin:2px 0}.pdf-thermal-estimate-80 .thermal-divider{margin:2px 0}.pdf-thermal-estimate-80 .thermal-qr{margin:4px 0}.pdf-thermal-estimate-80 .thermal-footer-text{margin-top:3px;line-height:1.2}.pdf-thermal-estimate-80 .thermal-feed{height:8px!important}
+.grid80-detail-cell>span:last-child,.grid80-item-details>span:last-child{float:right;margin-left:auto;border-right:0;text-align:right;min-width:27%}.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:34%;text-align:right;white-space:nowrap;color:#000;font-weight:800}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
@@ -1261,7 +1261,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
   const isA5=template.includes('a5');
   const is80=template.includes('80'),is58=template.includes('58');
-  const hostW=is80?280:is58?200:(isLand?(isA5?750:1040):(isA5?515:750));
+  const hostW=is80?258:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
   const format=is80?[80,220]:is58?[58,200]:(isA5?'a5':'a4');
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
