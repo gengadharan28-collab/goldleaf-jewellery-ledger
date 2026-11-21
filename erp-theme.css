@@ -776,58 +776,132 @@ html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button.active {
     color: var(--ink) !important;
   }
 
-  /* Emerald Sidebar */
-  body[data-erp] .side {
-    background: linear-gradient(180deg, #143d2b 0%, #0b2419 100%) !important;
-    color: #e6efe9 !important;
-    border-right: 2px solid #c89d3c !important;
-    box-shadow: 6px 0 28px rgba(11, 36, 25, 0.22) !important;
+  /* Light Royal Ivory Side Navigation (crisp dark letters on warm ivory) */
+  html:not([data-theme="dark"]) body[data-erp] .side {
+    background: linear-gradient(180deg, #fbf8f0 0%, #efe7d6 100%) !important;
+    color: #17231d !important;
+    border-right: 1.5px solid #dfd5c3 !important;
+    box-shadow: 6px 0 24px rgba(20, 61, 43, 0.1) !important;
     transition: width 0.22s ease, opacity 0.2s ease, transform 0.22s ease !important;
   }
-  body[data-erp] .side .brand,
-  body[data-erp] .side .erp-brand-name {
-    color: #f7eed6 !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .brand,
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-brand-name {
+    color: #143d2b !important;
   }
-  body[data-erp] .side .brand small,
-  body[data-erp] .side .erp-side-caption {
-    color: #e0b95b !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .brand small,
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-side-caption {
+    color: #85682a !important;
   }
-  body[data-erp] .side .erp-side-search {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(224, 185, 91, 0.35) !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search {
+    background: #ffffff !important;
+    border-color: #d9ccb0 !important;
   }
-  body[data-erp] .side .erp-side-search input {
-    color: #f6f2e8 !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input {
+    color: #17231d !important;
   }
-  body[data-erp] .side .erp-side-search input::placeholder {
-    color: rgba(230, 239, 233, 0.65) !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input::placeholder {
+    color: #7c857e !important;
   }
-  body[data-erp] .side .nav > button {
-    color: #d8e5de !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .nav > button,
+  html:not([data-theme="dark"]) body[data-erp] .side .nav > button:not(.more-button) {
+    color: #1f2e26 !important;
     border-radius: 10px !important;
   }
-  body[data-erp] .side .nav > button:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .nav > button:hover {
+    background: #e9e0cd !important;
+    color: #143d2b !important;
   }
-  body[data-erp] .side .nav > button.active {
-    background: rgba(224, 185, 91, 0.2) !important;
-    color: #ffffff !important;
-    box-shadow: inset 3.5px 0 0 #e0b95b !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .nav > button.active {
+    background: #e6dac2 !important;
+    color: #143d2b !important;
+    box-shadow: inset 3.5px 0 0 #c89d3c !important;
+    font-weight: 750 !important;
   }
-  body[data-erp] .side .nav-icon {
-    color: #e0b95b !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .nav-icon {
+    color: #9a7424 !important;
   }
-  body[data-erp] .side .foot,
-  body[data-erp] .side .erp-side-install-btn {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(224, 185, 91, 0.3) !important;
-    color: #e6efe9 !important;
+  html:not([data-theme="dark"]) body[data-erp] .side .foot,
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-side-install-btn {
+    background: #ffffff !important;
+    border-color: #dfd5c3 !important;
+    color: #4a5950 !important;
   }
-  body[data-erp] .side .erp-drawer-close {
+  html:not([data-theme="dark"]) body[data-erp] .side .erp-drawer-close {
+    color: #143d2b !important;
+    background: #ffffff !important;
+    border-color: #d9ccb0 !important;
+  }
+  @media (max-width: 760px) {
+    body[data-erp] .erp-workbar {
+      flex-wrap: nowrap !important;
+      padding: 6px 10px !important;
+      gap: 6px !important;
+      overflow: hidden !important;
+    }
+    body[data-erp] .erp-bar-left {
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
+      gap: 6px !important;
+      overflow: hidden !important;
+    }
+    body[data-erp] .erp-sidebar-toggle {
+      width: 36px !important;
+      min-width: 36px !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      padding: 0 !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+    }
+    body[data-erp] .erp-menu-label {
+      display: none !important;
+    }
+    body[data-erp] .erp-page-tab {
+      max-width: 105px !important;
+      min-width: 0 !important;
+      padding: 5px 8px !important;
+      overflow: hidden !important;
+    }
+    body[data-erp] .erp-page-tab span {
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+    body[data-erp] .erp-bar-right {
+      flex-shrink: 0 !important;
+      gap: 4px !important;
+    }
+    body[data-erp] .erp-rate-chip {
+      display: inline-flex !important;
+      padding: 3px 6px !important;
+      gap: 5px !important;
+      min-height: 32px !important;
+    }
+    body[data-erp] .erp-rate-chip small {
+      font-size: 7px !important;
+    }
+    body[data-erp] .erp-rate-chip b {
+      font-size: 9.5px !important;
+    }
+    body[data-erp] .erp-user-badge {
+      display: none !important;
+    }
+  }
+  #toast:empty { display: none !important; }
+  #toast:not(:empty) {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    z-index: 12050 !important;
+    background: #143d2b !important;
     color: #f7eed6 !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-    border-color: rgba(224, 185, 91, 0.35) !important;
+    padding: 11px 16px !important;
+    border-radius: 12px !important;
+    border: 1px solid #c89d3c !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    max-width: min(360px, calc(100vw - 32px)) !important;
   }
 
   /* Collapsible Left Sidebar on Desktop (opens only on Menu click) */
