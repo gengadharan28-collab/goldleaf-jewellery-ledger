@@ -777,22 +777,21 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const printDoc = root.querySelector('.gl-pdf');
   let measuredContentMm = 0;
   if(thermalWidth){
-    const printWidth = thermalWidth === 80 ? 72 : 52;
-    // #goldleafPdfRoot is hidden on screen, so temporarily measure it at the real roll width.
+    const printWidth = thermalWidth === 80 ? 68 : 48;
+    const padCss = thermalWidth === 80 ? '2mm 2.5mm' : '1.5mm 2mm';
+    // Measure at the exact printable width, padding, and border so the cutter stops right after content.
     const rootStyleBefore = root.getAttribute('style') || '';
     const docStyleBefore = printDoc?.getAttribute('style') || '';
-    root.style.cssText = 'display:block!important;position:fixed!important;left:-10000px!important;top:0!important;visibility:hidden!important;width:'+printWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;';
+    root.style.cssText = 'display:block!important;position:fixed!important;left:0!important;top:0!important;visibility:hidden!important;width:'+printWidth+'mm!important;height:auto!important;margin:0!important;padding:0!important;z-index:-1!important;';
     if(printDoc){
-      printDoc.style.cssText += ';display:block!important;width:100%!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;';
+      printDoc.style.cssText += ';display:block!important;width:'+printWidth+'mm!important;max-width:'+printWidth+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:'+padCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;';
     }
     void root.offsetHeight;
     const contentPx = Math.max(root.scrollHeight || 0, printDoc?.scrollHeight || 0, printDoc?.getBoundingClientRect?.().height || 0, printDoc?.offsetHeight || 0, root.offsetHeight || 0);
     const calculatedMm = Math.ceil(contentPx * 25.4 / 96);
-    measuredContentMm = Math.max(40, (calculatedMm > 0 ? calculatedMm : 100) + 4);
+    measuredContentMm = Math.max(36, (calculatedMm > 0 ? calculatedMm : 80) + 3);
     root.setAttribute('style',rootStyleBefore);
     if(printDoc) printDoc.setAttribute('style',docStyleBefore);
-    // Explicit Width x Height in millimeters is valid CSS Paged Media syntax.
-    // Chrome drops '80mm auto' because 'auto' is not allowed after a length, which was causing Chrome to fall back to the driver default (80x297mm).
     pageSize = thermalWidth + 'mm ' + measuredContentMm + 'mm';
     pageMargin = '0';
   }else{
@@ -804,11 +803,13 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       printDoc.style.margin = '0 auto';
     }
   }
+  const printBoxW = thermalWidth === 80 ? 68 : 48;
+  const printPadCss = thermalWidth === 80 ? '2mm 2.5mm' : '1.5mm 2mm';
   pageStyle.textContent='@page{size:'+pageSize+';margin:'+pageMargin+';}\n'
     + (thermalWidth ? '@media print{\n'
-      + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important;overflow:hidden!important}\n'
-      + '#goldleafPdfRoot{display:flex!important;justify-content:center!important;align-items:flex-start!important;width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:'+measuredContentMm+'mm!important;max-height:'+measuredContentMm+'mm!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}\n'
-      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{width:'+(thermalWidth===80?68:48)+'mm!important;max-width:'+(thermalWidth===80?68:48)+'mm!important;height:auto!important;max-height:'+measuredContentMm+'mm!important;margin:0 auto!important;padding:'+(thermalWidth===80?'2mm 2.5mm':'1.5mm 2mm')+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important;color:#000!important}\n'
+      + 'html,body{width:'+thermalWidth+'mm!important;max-width:'+thermalWidth+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important}\n'
+      + 'body.goldleaf-pdf-printing #goldleafPdfRoot,#goldleafPdfRoot{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important}\n'
+      + '.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:'+printBoxW+'mm!important;max-width:'+printBoxW+'mm!important;height:auto!important;margin:0!important;padding:'+printPadCss+'!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
       + '}' : '');
   window.addEventListener('afterprint',()=>document.body.classList.remove('goldleaf-pdf-printing'),{once:true});
   // Let Chrome finish laying out the hidden receipt before opening the native printer window.
