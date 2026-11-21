@@ -803,12 +803,13 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   }
 
   const printDocHtml = '<!doctype html><html><head><meta charset="utf-8">'
+    + '<title>' + esc(model.reference || 'Estimate') + '</title>'
     + '<style id="goldleafPrintPageStyle">'
     + '@page{size:' + pageSize + ';margin:0mm!important;}\n'
     + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
     + '@media print{\n'
-    + '  html,body{width:' + (thermalWidth || 80) + 'mm!important;max-width:' + (thermalWidth || 80) + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;overflow:visible!important;}\n'
-    + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;margin:0 auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+    + '  html,body{width:' + (thermalWidth || 80) + 'mm!important;max-width:' + (thermalWidth || 80) + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;position:relative!important;}\n'
+    + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:absolute!important;top:0!important;left:0!important;right:0!important;margin:0 auto!important;margin-top:0!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
     + '}\n'
     + 'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}'
     + PDF_DOCUMENT_CSS
@@ -832,8 +833,8 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
         styleEl.textContent = '@page{size:' + dynamicPageSize + ';margin:0mm!important;}\n'
           + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
           + '@media print{\n'
-          + '  html,body{width:' + thermalWidth + 'mm!important;max-width:' + thermalWidth + 'mm!important;height:' + measuredMm + 'mm!important;max-height:' + measuredMm + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;overflow:hidden!important;}\n'
-          + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;margin:0 auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+          + '  html,body{width:' + thermalWidth + 'mm!important;max-width:' + thermalWidth + 'mm!important;height:' + measuredMm + 'mm!important;max-height:' + measuredMm + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;position:relative!important;}\n'
+          + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:absolute!important;top:0!important;left:0!important;right:0!important;margin:0 auto!important;margin-top:0!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
           + '}\n'
           + 'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}'
           + PDF_DOCUMENT_CSS;
