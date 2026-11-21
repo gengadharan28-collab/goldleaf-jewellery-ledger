@@ -873,11 +873,12 @@ function pdfPaperPx(template){
 function pdfPreviewSrcdoc(model,config,layoutId){
   const pw=pdfPaperPx(layoutId);
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    +'<style>html,body{margin:0;padding:0;background:#e8ecea;overflow-x:hidden}body{padding:12px;display:flex;justify-content:center;align-items:flex-start}'
-    +'#glFitWrap{width:'+pw+'px;max-width:none;transform-origin:top center}'
-    +'#glFitWrap>.gl-pdf{width:100%!important;max-width:100%!important;margin:0 auto!important}'
-    +PDF_DOCUMENT_CSS+'</style></head><body><div id="glFitWrap">'+pdfDocument(model,config,layoutId)+'</div>'
-    +'<script>function fit(){var w=document.getElementById("glFitWrap");if(!w)return;var avail=Math.max(240,window.innerWidth-24);var s=Math.min(1,avail/'+pw+');w.style.transform=s<1?"scale("+s+")":"";w.style.marginBottom=s<1?(-w.offsetHeight*(1-s))+"px":"0";}window.addEventListener("load",fit);window.addEventListener("resize",fit);fit();<\/script>'
+    +'<style>html,body{margin:0;padding:0;background:#e8ecea;overflow-x:hidden}body{padding:10px;box-sizing:border-box}'
+    +'#glFitOuter{margin:0 auto;overflow:hidden}'
+    +'#glFitWrap{width:'+pw+'px;max-width:none;transform-origin:top left}'
+    +'#glFitWrap>.gl-pdf{width:100%!important;max-width:100%!important;margin:0!important;box-sizing:border-box}'
+    +PDF_DOCUMENT_CSS+'</style></head><body><div id="glFitOuter"><div id="glFitWrap">'+pdfDocument(model,config,layoutId)+'</div></div>'
+    +'<script>function fit(){var o=document.getElementById("glFitOuter"),w=document.getElementById("glFitWrap");if(!o||!w)return;w.style.transform="";var avail=Math.max(220,document.documentElement.clientWidth-20);var s=Math.min(1,avail/'+pw+');o.style.width=Math.floor('+pw+'*s)+"px";o.style.height=Math.ceil(w.scrollHeight*s)+"px";w.style.transform=s<1?"scale("+s+")":"";}window.addEventListener("load",function(){fit();setTimeout(fit,80);});window.addEventListener("resize",fit);fit();<\/script>'
     +'</body></html>';
 }
 
@@ -1260,13 +1261,17 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
   const isA5=template.includes('a5');
   const is80=template.includes('80'),is58=template.includes('58');
-  const hostW=is80?302:is58?219:(isLand?(isA5?794:1060):(isA5?559:794));
+  const hostW=is80?280:is58?200:(isLand?(isA5?750:1040):(isA5?515:750));
   const format=is80?[80,220]:is58?[58,200]:(isA5?'a5':'a4');
   const host=document.createElement('div');
-  host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:-9999;pointer-events:none;overflow:visible;';
-  host.innerHTML='<style>.gl-pdf{width:100%!important;max-width:100%!important;box-shadow:none!important;margin:0!important;padding:'+(is80||is58?'8px':'16px')+'!important}</style>'+pdfDocument(model,c,template);
-  document.body.append(host);
+  host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
+  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+hostW+'px!important;max-width:'+hostW+'px!important;box-sizing:border-box!important;box-shadow:none!important;margin:0!important;padding:'+(is80||is58?'8px':'14px')+'!important}</style>'+pdfDocument(model,c,template);
+  const mask=document.createElement('div');
+  mask.style.cssText='position:fixed;inset:0;z-index:2147483645;background:rgba(246,242,232,0.92);display:grid;place-items:center;font:700 14px Inter,sans-serif;color:#143d2b;';
+  mask.textContent='Preparing PDF…';
+  document.body.append(host,mask);
   const target=host.querySelector('.gl-pdf')||host;
+  await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,60)));
   try{
     const blob=await window.html2pdf().set({
       margin:(is80||is58)?2:5,
@@ -1298,6 +1303,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
     if(waUrl)window.open(waUrl,'_blank','noopener');
   }finally{
     host.remove();
+    mask.remove();
   }
 };
 
