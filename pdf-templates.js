@@ -1160,14 +1160,14 @@ const PDF_DOCUMENT_CSS=`
 .grid80-rates{text-align:right;font-size:9px;font-weight:800;color:#000;padding:1px 0 3px}
 .grid80-meta{border-block:1.5px solid #000;padding:3px 0;margin-bottom:5px;font-size:9px;font-weight:800;color:#000;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 .grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:4px}
-.grid80-items th{border:1px solid #000;padding:3px 1.5px;font-size:8px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:normal;word-break:break-word;line-height:1.15}
+.grid80-items th{border:1px solid #000;padding:3px 1px;font-size:7.2px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:nowrap;line-height:1.15;letter-spacing:-0.2px}
 .grid80-items td{border:1px solid #000;padding:4px 3px;font-size:10px;font-weight:700;color:#000;vertical-align:middle;line-height:1.3}
 .grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:3px}
 .grid80-items th:not(:first-child){text-align:right;padding-right:3px}
 .grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:3px 1px}
 .grid80-items td[data-col="product"]{text-align:left;font-weight:800;font-size:10.5px;padding-left:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"],.grid80-items td[data-col="making"]{text-align:right;padding-right:3px;font-size:10px;white-space:nowrap}
-.grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;line-height:1.15;font-size:10px}
+.grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;white-space:nowrap;line-height:1.15;font-size:10px}
 .grid80-items td[data-col="wastage"] small{display:block;font-size:8px;font-weight:700;color:#000}
 .grid80-items td[data-col="purity"],.grid80-items td[data-col="pieces"]{text-align:center;white-space:nowrap}
 .grid80-item-end td{border-bottom:2px solid #000}
