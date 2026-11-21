@@ -855,6 +855,7 @@ function pdfRenderDocumentModal(){
     +'<p>'+esc((model.reference||'Live view')+' · '+(model.entityName||'')+(model.chit?.passbook?' · Chit '+model.chit.passbook:''))+'</p></div>'
     +'<div class="pdf-preview-head-actions">'
     +'<button type="button" class="primary" onclick="pdfPrintPreviewActive()">Print / Save PDF</button>'
+    +'<button type="button" onclick="if(pdfActiveDocPreview)pdfShareOrDownload(pdfActiveDocPreview.model,pdfActiveDocPreview.mode,pdfActiveDocPreview.template,\'\',String(pdfActiveDocPreview.model.reference||\'Document\').replace(/[^A-Za-z0-9_-]+/g,\'-\')+\'.pdf\')">Download PDF</button>'
     +'<button type="button" onclick="document.getElementById(\'pdfDocumentPreview\')?.remove()">Close</button>'
     +'</div></div>'
     +(missingGstin?'<div class="pdf-preview-warning">GST is enabled on this bill, but Shop GSTIN (15 chars) is not set in Retail PDF Settings — showing draft preview.</div>':'')

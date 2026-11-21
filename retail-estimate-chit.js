@@ -1899,23 +1899,23 @@ window.rcViewSavedEstimate = function(id, forcedTemplate=null){
 
 window.rcPrintEstimate = function(forcedTemplate){
   const f = document.getElementById('rcEstimateForm');
-  if(!f?.reportValidity()) return;
+  if(!f) return say('Open a quotation first.');
   const q = rcEstimateRead(f);
-  if(!q.customerId || q.items.some(x=>!x.product || x.netWeight<=0)){
-    return say('Complete the customer and jewellery items before printing.');
+  if(!q.customerId || !q.items?.length || q.items.some(x=>!x.product || x.netWeight<=0)){
+    f.reportValidity?.();
+    return say('Complete the customer and jewellery items before viewing PDF.');
   }
   const cfg = pdfConfig('retail');
   const chosen = forcedTemplate || cfg.estimateTemplate || 'detailed-estimate';
-  pdfPrintModel(rcQuoteModel(q), 'retail', chosen);
+  pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
 };
 
 window.rcPrintSavedEstimate = function(id, forcedTemplate){
   const q = rcDocs('retail-estimate').find(x=>x.id===id);
-  if(q) {
-    const cfg = pdfConfig('retail');
-    const chosen = forcedTemplate || cfg.estimateTemplate || 'detailed-estimate';
-    pdfPrintModel(rcQuoteModel(q), 'retail', chosen);
-  }
+  if(!q) return say('Quotation not found.');
+  const cfg = pdfConfig('retail');
+  const chosen = forcedTemplate || cfg.estimateTemplate || 'detailed-estimate';
+  pdfPrintModel(rcQuoteModel(q), 'retail', chosen, { preview: true });
 };
 
 function rcQuoteWhatsAppText(q,c){
