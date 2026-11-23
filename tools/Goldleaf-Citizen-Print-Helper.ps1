@@ -36,6 +36,12 @@ try{while($true){
     if($header-match'(?im)^Content-Length:\s*(\d+)'){$contentLength=[int]$Matches[1]};$bodyStart=$headerEnd+4
     while(($data.Length-$bodyStart)-lt$contentLength){$n=$stream.Read($buffer,0,$buffer.Length);if($n-le 0){break};$old=$data.Length;[Array]::Resize([ref]$data,$old+$n);[Array]::Copy($buffer,0,$data,$old,$n)}
     if($method-eq'OPTIONS'){Send-Response $stream;continue};if($method-eq'GET'-and$path-eq'/health'){Send-Response $stream 200 '{"ok":true,"service":"Goldleaf Citizen Print"}';continue}
+    if($method-eq'POST'-and$path-eq'/print-form'){
+      $body=[Text.Encoding]::UTF8.GetString($data,$bodyStart,$contentLength);$fields=@{}
+      foreach($pair in ($body-split'&')){$kv=$pair-split'=',2;if($kv.Count-eq 2){$fields[[Net.WebUtility]::UrlDecode($kv[0])]=[Net.WebUtility]::UrlDecode($kv[1])}}
+      $payload=[PSCustomObject]@{printer=$fields.printer;imageDataUrl=$fields.imageDataUrl;widthMm=$fields.widthMm;cut=$fields.cut};$result=Print-Receipt $payload
+      Send-Response $stream 200 '<!doctype html><title>Goldleaf Print</title><body style="font:14px Segoe UI;padding:20px">Receipt sent to Citizen printer.<script>setTimeout(()=>window.close(),350)</script></body>' 'text/html';continue
+    }
     if($method-eq'POST'-and$path-eq'/print'){$json=[Text.Encoding]::UTF8.GetString($data,$bodyStart,$contentLength);$payload=$json|ConvertFrom-Json;$result=Print-Receipt $payload;Send-Response $stream 200 ($result|ConvertTo-Json -Compress);continue}
     Send-Response $stream 404 '{"ok":false,"error":"Not found"}'
   }catch{try{Send-Response $stream 500 ((@{ok=$false;error=$_.Exception.Message}|ConvertTo-Json -Compress))}catch{}}finally{$client.Close()}
