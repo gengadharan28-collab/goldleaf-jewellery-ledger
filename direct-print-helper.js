@@ -3,6 +3,7 @@
   const HELPER='http://127.0.0.1:17655';
   const THERMAL=new Set(['thermal-80','thermal-estimate-80','thermal-estimate-grid-80']);
   let patchTimer=0;
+  let lastPrintAt=0;
 
   function notify(message,type){
     if(typeof window.say==='function') window.say(message,type);
@@ -55,6 +56,9 @@
   }
   async function directPrint(model,mode,template){
     if(!THERMAL.has(template)) return false;
+    const now=Date.now();
+    if(now-lastPrintAt<4000) return true;
+    lastPrintAt=now;
     const targetName='GoldleafCitizenPrintBridge';
     const bridge=window.open('about:blank',targetName,'popup=yes,width=260,height=140');
     if(!bridge) return false;
@@ -80,6 +84,7 @@
       notify('Receipt sent to Citizen printer');
       return true;
     }catch(err){
+      lastPrintAt=0;
       try{bridge.close();}catch(_){}
       throw err;
     }
