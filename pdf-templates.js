@@ -779,14 +779,16 @@ async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=fa
   // page. On the CT-D150 that fallback creates a second 80 x 279 mm job and
   // feeds blank paper after the receipt. Use only the exact-height helper.
   if(thermalWidth){
+    let helperError='';
     if(window.goldleafDirectPrint && typeof window.goldleafDirectPrint.print==='function'){
       try{
         if(await window.goldleafDirectPrint.print(model,mode,template)) return;
       }catch(err){
         console.warn('Citizen direct print unavailable.',err);
+        helperError=String(err&&err.message||err||'Unknown print error');
       }
     }
-    return say('Citizen 80 mm print helper is not ready. Please restart Goldleaf Print Helper and try again.');
+    return say(helperError?'Citizen print error: '+helperError:'Citizen print bridge did not load. Refresh Goldleaf once and try again.');
   }
 
   let pageSize = 'A4 portrait';
