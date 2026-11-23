@@ -784,8 +784,8 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
     pageSize = thermalWidth + 'mm auto';
   }
 
-  const printBoxW = isGrid80 ? 76 : (thermalWidth === 80 ? 72 : 48);
-  const printPadCss = isGrid80 ? '1mm 1.5mm' : (thermalWidth === 80 ? '1.5mm 2mm' : '1.5mm 2mm');
+  const printBoxW = isGrid80 ? 62 : (thermalWidth === 80 ? 62 : 48);
+  const printPadCss = isGrid80 ? '0.8mm 1mm' : (thermalWidth === 80 ? '1.2mm 1mm' : '1.5mm 2mm');
 
   // Fallback DOM root
   let root=document.getElementById('goldleafPdfRoot');
@@ -828,6 +828,7 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       const hPx = Math.ceil(target ? (target.offsetHeight || target.getBoundingClientRect().height || target.scrollHeight) : 400);
       const measuredMm = Math.max(30, Math.ceil(hPx * 25.4 / 96) + 1);
       const driverPageMm = thermalWidth === 80 ? 279 : measuredMm;
+      const printTopOffsetMm = thermalWidth === 80 ? -Math.max(0, (driverPageMm - measuredMm) / 2) : 0;
       const dynamicPageSize = thermalWidth + 'mm ' + driverPageMm + 'mm';
       const styleEl = fDoc.getElementById('goldleafPrintPageStyle');
       if(styleEl){
@@ -835,7 +836,7 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
           + '@page:first{margin:0mm!important;margin-top:0mm!important;}\n'
           + '@media print{\n'
           + '  html,body{width:' + thermalWidth + 'mm!important;max-width:' + thermalWidth + 'mm!important;height:' + driverPageMm + 'mm!important;max-height:' + driverPageMm + 'mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;position:relative!important;}\n'
-          + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:absolute!important;top:0!important;left:0!important;right:0!important;margin:0 auto!important;margin-top:0!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
+          + '  .gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:absolute!important;top:' + printTopOffsetMm + 'mm!important;left:0!important;right:0!important;margin:0 auto!important;margin-top:0!important;width:' + printBoxW + 'mm!important;max-width:' + printBoxW + 'mm!important;height:auto!important;padding:' + printPadCss + '!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;color:#000!important;background:#fff!important}\n'
           + '}\n'
           + 'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}'
           + PDF_DOCUMENT_CSS;
@@ -1156,7 +1157,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:76mm;max-width:76mm;box-sizing:border-box;border:1.5px solid #000;padding:1mm 1.5mm;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:10.5px;line-height:1.3;margin:0 auto;color:#000;font-weight:700;background:#fff}
+.pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:1.5px solid #000;padding:.8mm 1mm;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:11.5px;line-height:1.3;margin:0 auto;color:#000;font-weight:700;background:#fff}
 .grid80-ticket{width:100%;color:#000}
 .grid80-top{min-height:22px;display:flex;align-items:baseline;justify-content:space-between;gap:6px;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:3px}
 .grid80-top small{font-size:9.5px;font-weight:800;color:#000;white-space:nowrap;letter-spacing:0.3px}
@@ -1165,14 +1166,14 @@ const PDF_DOCUMENT_CSS=`
 .grid80-meta{border-block:1.5px solid #000;padding:3px 0;margin-bottom:4px;font-size:9.5px;font-weight:800;color:#000;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 .grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:3px}
 .grid80-items th{border:1px solid #000;padding:3px 1px;font-size:7.8px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:nowrap!important;overflow:hidden;line-height:1.15;letter-spacing:-0.2px}
-.grid80-items td{border:1px solid #000;padding:3px 2px;font-size:10.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25}
+.grid80-items td{border:1px solid #000;padding:3px 2px;font-size:11.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25}
 .grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:3px}
 .grid80-items th:not(:first-child){text-align:right;padding-right:3px}
 .grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:3px 1px}
-.grid80-items td[data-col="product"]{text-align:left;font-weight:800;font-size:11px;padding-left:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"]{text-align:right;padding-right:3px;font-size:10.5px;font-weight:700;white-space:nowrap}
-.grid80-items td[data-col="making"]{text-align:right;padding-right:3px;font-size:10.5px;font-weight:700;white-space:nowrap}
-.grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;white-space:nowrap;line-height:1.15;font-size:10.5px}
+.grid80-items td[data-col="product"]{text-align:left;font-weight:800;font-size:12px;padding-left:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"]{text-align:right;padding-right:3px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.grid80-items td[data-col="making"]{text-align:right;padding-right:3px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;white-space:nowrap;line-height:1.15;font-size:11.5px}
 .grid80-items td[data-col="wastage"] small{display:block;font-size:8px;font-weight:700;color:#000}
 .grid80-items td[data-col="purity"],.grid80-items td[data-col="pieces"]{text-align:center;white-space:nowrap}
 .grid80-item-end td{border-bottom:2px solid #000}
@@ -1182,11 +1183,11 @@ const PDF_DOCUMENT_CSS=`
 .grid80-extra-details span{white-space:nowrap}
 .grid80-tot-right{margin-left:auto;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
 .grid80-tot-label{font-size:9.5px;font-weight:800;color:#222;text-transform:uppercase;letter-spacing:0.3px}
-.grid80-tot-val{font-size:12.5px;font-weight:900;color:#000;white-space:nowrap}
-.grid80-product-total{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:3px 2px;font-size:11.5px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:3px 0 4px;color:#000}
+.grid80-tot-val{font-size:13.5px;font-weight:900;color:#000;white-space:nowrap}
+.grid80-product-total{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:3px 2px;font-size:12.5px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:3px 0 4px;color:#000}
 .grid80-ticket h3{background:#eaeaea;font-size:10px;font-weight:900;color:#000;text-transform:uppercase;margin:4px 0 2px;padding:2px 4px;border-bottom:1px solid #000}
-.grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:2px 2px;border-bottom:1px dashed #ccc;font-size:10px;font-weight:700;color:#000;line-height:1.3}
-.grid80-summary-row.grid80-highlight{font-size:12.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 3px;margin-top:3px;background:#f2f2f2}
+.grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:2px 2px;border-bottom:1px dashed #ccc;font-size:11px;font-weight:700;color:#000;line-height:1.3}
+.grid80-summary-row.grid80-highlight{font-size:13.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 3px;margin-top:3px;background:#f2f2f2}
 .grid80-exchange{font-size:9.5px;font-weight:700;color:#000;margin:3px 0;border-top:1px dashed #000;padding-top:2px}
 .grid80-exchange div{display:flex;justify-content:space-between;gap:3px;padding:1px 0}
 .grid80-ticket footer{font-size:9px;font-weight:700;color:#000;text-align:center;margin-top:4px;padding-top:3px;border-top:1px solid #ccc;line-height:1.25}
