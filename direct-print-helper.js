@@ -17,13 +17,14 @@
   }
   async function ensureRasterizer(){
     if(window.html2canvas) return true;
-    if(!window.html2pdf){
-      await new Promise((resolve,reject)=>{
-        const s=document.createElement('script');
-        s.src='https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
-        s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
-      }).catch(()=>null);
-    }
+    await new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-goldleaf-html2canvas]');
+      if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}
+      const s=document.createElement('script');
+      s.src='./html2canvas.min.js?v=1.4.1';
+      s.dataset.goldleafHtml2canvas='1';
+      s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+    }).catch(()=>null);
     return !!window.html2canvas;
   }
   async function renderReceipt(model,mode,template){
