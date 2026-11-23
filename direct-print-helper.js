@@ -2,7 +2,6 @@
   'use strict';
   const HELPER='http://127.0.0.1:17655';
   const THERMAL=new Set(['thermal-80','thermal-estimate-80','thermal-estimate-grid-80']);
-  let patchTimer=0;
   let lastPrintAt=0;
 
   function notify(message,type){
@@ -89,26 +88,7 @@
       throw err;
     }
   }
-  function patch(){
-    if(typeof window.pdfTriggerPrint!=='function') return false;
-    if(window.pdfTriggerPrint.__goldleafDirect) return true;
-    const original=window.pdfTriggerPrint;
-    const wrapped=async function(model,mode,forcedTemplate=null,allowMissingGst=false){
-      const cfg=pdfConfig(mode);
-      const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
-      const template=forcedTemplate||(isEstimate?(cfg.estimateTemplate||'detailed-estimate'):(cfg.template||'classic'));
-      try{
-        if(await directPrint(model,mode,template)) return;
-      }catch(err){
-        console.warn('Goldleaf direct print fallback',err);
-        notify('Direct printer unavailable — opening normal print preview.');
-      }
-      return original.call(this,model,mode,forcedTemplate,allowMissingGst);
-    };
-    wrapped.__goldleafDirect=true;
-    window.pdfTriggerPrint=wrapped;
-    return true;
-  }
-  if(!patch()) patchTimer=setInterval(()=>{if(patch())clearInterval(patchTimer);},100);
+  // pdf-templates.js owns the single print entry point. Wrapping the global
+  // function here can dispatch the Citizen job and Chrome's 279 mm dialog.
   window.goldleafDirectPrint={health:helperReady,print:directPrint,helperUrl:HELPER};
 })();
