@@ -59,12 +59,16 @@
     if(now-lastPrintAt<4000) return true;
     lastPrintAt=now;
     const targetName='GoldleafCitizenPrintBridge';
-    const bridge=window.open('about:blank',targetName,'popup=yes,width=260,height=140');
-    if(!bridge) return false;
+    let bridge=document.getElementById('goldleafCitizenPrintBridge');
+    if(!bridge){
+      bridge=document.createElement('iframe');
+      bridge.id='goldleafCitizenPrintBridge';
+      bridge.name=targetName;
+      bridge.setAttribute('aria-hidden','true');
+      bridge.style.cssText='position:fixed;width:1px;height:1px;left:-10000px;top:-10000px;border:0;visibility:hidden;';
+      document.body.appendChild(bridge);
+    }
     try{
-      bridge.document.open();
-      bridge.document.write('<!doctype html><title>Goldleaf Print</title><body style="font:14px Segoe UI;padding:20px">Preparing Citizen receipt…</body>');
-      bridge.document.close();
       notify('Sending receipt to Citizen printer…');
       const imageDataUrl=await renderReceipt(model,mode,template);
       const form=document.createElement('form');
@@ -84,7 +88,6 @@
       return true;
     }catch(err){
       lastPrintAt=0;
-      try{bridge.close();}catch(_){}
       throw err;
     }
   }
