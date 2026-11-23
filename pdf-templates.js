@@ -775,14 +775,18 @@ async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=fa
   const isGrid80 = template === 'thermal-estimate-grid-80';
   const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
 
-  // Citizen direct printing: send the exact-height receipt to the local helper first.
-  // If the helper is unavailable, continue to the normal browser print dialog.
-  if(thermalWidth && window.goldleafDirectPrint && typeof window.goldleafDirectPrint.print==='function'){
-    try{
-      if(await window.goldleafDirectPrint.print(model,mode,template)) return;
-    }catch(err){
-      console.warn('Citizen direct print unavailable; using browser preview.',err);
+  // Thermal receipts must never fall back to Chrome's fixed-length printer
+  // page. On the CT-D150 that fallback creates a second 80 x 279 mm job and
+  // feeds blank paper after the receipt. Use only the exact-height helper.
+  if(thermalWidth){
+    if(window.goldleafDirectPrint && typeof window.goldleafDirectPrint.print==='function'){
+      try{
+        if(await window.goldleafDirectPrint.print(model,mode,template)) return;
+      }catch(err){
+        console.warn('Citizen direct print unavailable.',err);
+      }
     }
+    return say('Citizen 80 mm print helper is not ready. Please restart Goldleaf Print Helper and try again.');
   }
 
   let pageSize = 'A4 portrait';
