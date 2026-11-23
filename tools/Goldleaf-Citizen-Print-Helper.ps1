@@ -2,6 +2,47 @@ param([int]$Port = 17655)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class GoldleafRawPrinter {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+  public class DOC_INFO_1 {
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDataType;
+  }
+  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
+  static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+  [DllImport("winspool.drv", SetLastError=true)]
+  static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
+  static extern int StartDocPrinter(IntPtr hPrinter, int level, [In] DOC_INFO_1 di);
+  [DllImport("winspool.drv", SetLastError=true)]
+  static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)]
+  static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)]
+  static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError=true)]
+  static extern bool WritePrinter(IntPtr hPrinter, byte[] pBytes, int dwCount, out int dwWritten);
+  public static void Send(string printer, byte[] data) {
+    IntPtr h;
+    if(!OpenPrinter(printer,out h,IntPtr.Zero)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    try {
+      var di=new DOC_INFO_1{pDocName="Goldleaf 80mm Receipt",pDataType="RAW"};
+      if(StartDocPrinter(h,1,di)==0) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+      try {
+        if(!StartPagePrinter(h)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        try {
+          int written;
+          if(!WritePrinter(h,data,data.Length,out written) || written!=data.Length) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        } finally { EndPagePrinter(h); }
+      } finally { EndDocPrinter(h); }
+    } finally { ClosePrinter(h); }
+  }
+}
+"@
 function Send-Response {
   param($Stream,[int]$Status=200,[string]$Body='{"ok":true}',[string]$Type='application/json')
   $reason=if($Status -eq 200){'OK'}else{'Error'};$bytes=[Text.Encoding]::UTF8.GetBytes($Body);$crlf=[string][char]13+[char]10
@@ -14,18 +55,42 @@ function Print-Receipt($Payload){
   $encoded=[string]$Payload.imageDataUrl;if($encoded -notmatch '^data:image/png;base64,'){throw 'Invalid receipt image'}
   $raw=[Convert]::FromBase64String(($encoded-replace'^data:image/png;base64,',''));$ms=New-Object IO.MemoryStream(,$raw);$image=[Drawing.Image]::FromStream($ms)
   try{
-    $widthMm=if($Payload.widthMm){[double]$Payload.widthMm}else{64.0};$heightMm=[Math]::Max(18.0,($image.Height/[double]$image.Width)*$widthMm)
-    $w=[Math]::Max(1,[int][Math]::Ceiling($widthMm/25.4*100));$h=[Math]::Max(1,[int][Math]::Ceiling($heightMm/25.4*100));$doc=New-Object Drawing.Printing.PrintDocument
+    $dotWidth=512
+    $dotHeight=[Math]::Max(1,[int][Math]::Ceiling($image.Height*($dotWidth/[double]$image.Width)))
+    $bmp=New-Object Drawing.Bitmap($dotWidth,$dotHeight,[Drawing.Imaging.PixelFormat]::Format24bppRgb)
     try{
-      $doc.PrinterSettings.PrinterName=$printer;if(-not $doc.PrinterSettings.IsValid){throw "Printer not found: $printer"}
-      $doc.DefaultPageSettings.PaperSize=New-Object Drawing.Printing.PaperSize('Goldleaf Exact Receipt',$w,$h);$doc.DefaultPageSettings.Margins=New-Object Drawing.Printing.Margins(0,0,0,0)
-      $doc.OriginAtMargins=$false;$doc.PrintController=New-Object Drawing.Printing.StandardPrintController
-      $handler={param($sender,$e);$e.Graphics.PageUnit=[Drawing.GraphicsUnit]::Display;$e.Graphics.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic;$e.Graphics.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality;$e.Graphics.DrawImage($image,(New-Object Drawing.RectangleF(0,0,$w,$h)));$e.HasMorePages=$false}
-      $doc.add_PrintPage($handler);try{$doc.Print()}finally{$doc.remove_PrintPage($handler)}
-    }finally{$doc.Dispose()}
-    return @{ok=$true;printer=$printer;widthMm=$widthMm;heightMm=[Math]::Round($heightMm,1)}
+      $g=[Drawing.Graphics]::FromImage($bmp)
+      try{
+        $g.Clear([Drawing.Color]::White)
+        $g.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $g.DrawImage($image,0,0,$dotWidth,$dotHeight)
+      }finally{$g.Dispose()}
+      $rowBytes=[int][Math]::Ceiling($dotWidth/8.0)
+      $bytes=[Collections.Generic.List[byte]]::new()
+      $bytes.AddRange([byte[]]@(0x1B,0x40,0x1B,0x61,0x00,0x1D,0x4C,0x00,0x00))
+      $bytes.AddRange([byte[]]@(0x1D,0x76,0x30,0x00,($rowBytes-band 0xFF),(($rowBytes-shr 8)-band 0xFF),($dotHeight-band 0xFF),(($dotHeight-shr 8)-band 0xFF)))
+      for($y=0;$y-lt$dotHeight;$y++){
+        for($bx=0;$bx-lt$rowBytes;$bx++){
+          $value=0
+          for($bit=0;$bit-lt 8;$bit++){
+            $x=$bx*8+$bit
+            if($x-lt$dotWidth){
+              $p=$bmp.GetPixel($x,$y)
+              $luma=(299*[int]$p.R+587*[int]$p.G+114*[int]$p.B)/1000
+              if($luma-lt 190){$value=$value-bor(0x80-shr$bit)}
+            }
+          }
+          $bytes.Add([byte]$value)
+        }
+      }
+      $bytes.AddRange([byte[]]@(0x0A,0x1D,0x56,0x42,0x00))
+      [GoldleafRawPrinter]::Send($printer,$bytes.ToArray())
+    }finally{$bmp.Dispose()}
+    return @{ok=$true;printer=$printer;widthDots=$dotWidth;heightDots=$dotHeight;mode='ESC-POS raw'}
   }finally{$image.Dispose();$ms.Dispose()}
 }
+
 $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$Port);$listener.Start();Write-Host "Goldleaf Citizen print helper ready on 127.0.0.1:$Port"
 try{while($true){
   $client=$listener.AcceptTcpClient()
