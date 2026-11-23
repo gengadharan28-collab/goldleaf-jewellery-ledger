@@ -763,7 +763,7 @@ function pdfLedgerModel(type,template){
 
 let pdfActiveDocPreview = null;
 
-function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
+async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const c=pdfConfig(mode);
   if(!allowMissingGst&&model.retail&&model.taxEnabled&&!/^[A-Za-z0-9]{15}$/.test(c.gstNumber))return say('Set the shop GSTIN in Retail PDF Settings before printing a GST bill.');
 
@@ -774,6 +774,16 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
   const isThermal58 = template === 'thermal-58' || template === 'thermal-estimate-58';
   const isGrid80 = template === 'thermal-estimate-grid-80';
   const thermalWidth = isThermal80 ? 80 : (isThermal58 ? 58 : 0);
+
+  // Citizen direct printing: send the exact-height receipt to the local helper first.
+  // If the helper is unavailable, continue to the normal browser print dialog.
+  if(thermalWidth && window.goldleafDirectPrint && typeof window.goldleafDirectPrint.print==='function'){
+    try{
+      if(await window.goldleafDirectPrint.print(model,mode,template)) return;
+    }catch(err){
+      console.warn('Citizen direct print unavailable; using browser preview.',err);
+    }
+  }
 
   let pageSize = 'A4 portrait';
   if(template === 'detailed' || template === 'compact-estimate-a5l' || template === 'compact-a5-l'){
@@ -827,8 +837,8 @@ function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=false){
       const target = fDoc.querySelector('.pdf-thermal-estimate-grid-80') || fDoc.querySelector('.gl-pdf') || fDoc.body;
       const hPx = Math.ceil(target ? (target.offsetHeight || target.getBoundingClientRect().height || target.scrollHeight) : 400);
       const measuredMm = Math.max(30, Math.ceil(hPx * 25.4 / 96) + 1);
-      const driverPageMm = thermalWidth === 80 ? 279 : measuredMm;
-      const printTopOffsetMm = thermalWidth === 80 ? -Math.max(0, (driverPageMm - measuredMm) / 2) : 0;
+      const driverPageMm = measuredMm;
+      const printTopOffsetMm = 0;
       const dynamicPageSize = thermalWidth + 'mm ' + driverPageMm + 'mm';
       const styleEl = fDoc.getElementById('goldleafPrintPageStyle');
       if(styleEl){
