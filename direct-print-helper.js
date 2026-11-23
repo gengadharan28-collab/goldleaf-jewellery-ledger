@@ -55,17 +55,34 @@
   }
   async function directPrint(model,mode,template){
     if(!THERMAL.has(template)) return false;
-    if(!(await helperReady())) return false;
-    notify('Sending receipt to Citizen printer…');
-    const imageDataUrl=await renderReceipt(model,mode,template);
-    const res=await fetch(HELPER+'/print',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:64,cut:true})
-    });
-    if(!res.ok) throw new Error((await res.text())||'Direct print failed');
-    notify('Printed successfully');
-    return true;
+    const targetName='GoldleafCitizenPrintBridge';
+    const bridge=window.open('about:blank',targetName,'popup=yes,width=260,height=140');
+    if(!bridge) return false;
+    try{
+      bridge.document.open();
+      bridge.document.write('<!doctype html><title>Goldleaf Print</title><body style="font:14px Segoe UI;padding:20px">Preparing Citizen receipt…</body>');
+      bridge.document.close();
+      notify('Sending receipt to Citizen printer…');
+      const imageDataUrl=await renderReceipt(model,mode,template);
+      const form=document.createElement('form');
+      form.method='POST';
+      form.action=HELPER+'/print-form';
+      form.target=targetName;
+      form.style.display='none';
+      const fields={printer:'CITIZEN CT-D150',imageDataUrl,widthMm:'64',cut:'true'};
+      Object.entries(fields).forEach(([name,value])=>{
+        const input=document.createElement('input');
+        input.type='hidden';input.name=name;input.value=value;form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(()=>form.remove(),1000);
+      notify('Receipt sent to Citizen printer');
+      return true;
+    }catch(err){
+      try{bridge.close();}catch(_){}
+      throw err;
+    }
   }
   function patch(){
     if(typeof window.pdfTriggerPrint!=='function') return false;
