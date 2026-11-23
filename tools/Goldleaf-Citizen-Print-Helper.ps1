@@ -14,7 +14,7 @@ function Print-Receipt($Payload){
   $encoded=[string]$Payload.imageDataUrl;if($encoded -notmatch '^data:image/png;base64,'){throw 'Invalid receipt image'}
   $raw=[Convert]::FromBase64String(($encoded-replace'^data:image/png;base64,',''));$ms=New-Object IO.MemoryStream(,$raw);$image=[Drawing.Image]::FromStream($ms)
   try{
-    $widthMm=if($Payload.widthMm){[double]$Payload.widthMm}else{64.0};$heightMm=[Math]::Max(18.0,($image.Height/[double]$image.Width)*$widthMm+1.5)
+    $widthMm=if($Payload.widthMm){[double]$Payload.widthMm}else{64.0};$heightMm=[Math]::Max(18.0,($image.Height/[double]$image.Width)*$widthMm)
     $w=[Math]::Max(1,[int][Math]::Ceiling($widthMm/25.4*100));$h=[Math]::Max(1,[int][Math]::Ceiling($heightMm/25.4*100));$doc=New-Object Drawing.Printing.PrintDocument
     try{
       $doc.PrinterSettings.PrinterName=$printer;if(-not $doc.PrinterSettings.IsValid){throw "Printer not found: $printer"}
