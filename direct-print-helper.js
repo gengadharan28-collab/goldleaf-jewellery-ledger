@@ -36,7 +36,7 @@
     const doc=frame.contentDocument;
     doc.open();
     doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'
-      +'html,body{margin:0!important;padding:0!important;width:64mm!important;background:#fff!important;color:#000!important;}'
+      +'html{margin:0!important;padding:0!important;width:64mm!important;background:#fff!important;}body{margin:0!important;padding:2mm 0!important;width:64mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;}'
       +PDF_DOCUMENT_CSS
       +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:62mm!important;max-width:62mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;}'
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
@@ -44,10 +44,10 @@
     try{
       await doc.fonts?.ready;
       await Promise.all(Array.from(doc.images||[]).map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r;})));
-      const target=doc.querySelector('.pdf-thermal-estimate-grid-80,.pdf-thermal-ticket,.gl-pdf-thermal,.gl-pdf')||doc.body;
-      const rect=target.getBoundingClientRect();
-      frame.style.height=Math.ceil(Math.max(rect.height,target.scrollHeight,doc.body.scrollHeight)+2)+'px';
-      const canvas=await window.html2canvas(target,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false});
+      const receipt=doc.querySelector('.pdf-thermal-estimate-grid-80,.pdf-thermal-ticket,.gl-pdf-thermal,.gl-pdf')||doc.body;
+      const receiptHeight=Math.max(receipt.getBoundingClientRect().height,receipt.scrollHeight);
+      frame.style.height=Math.ceil(receiptHeight+(4*96/25.4)+2)+'px';
+      const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(64*96/25.4),height:Math.ceil(receiptHeight+(4*96/25.4))});
       return canvas.toDataURL('image/png');
     }finally{
       frame.remove();
