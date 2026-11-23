@@ -59,33 +59,21 @@
     const now=Date.now();
     if(now-lastPrintAt<4000) return true;
     lastPrintAt=now;
-    const targetName='GoldleafCitizenPrintBridge';
-    let bridge=document.getElementById('goldleafCitizenPrintBridge');
-    if(!bridge){
-      bridge=document.createElement('iframe');
-      bridge.id='goldleafCitizenPrintBridge';
-      bridge.name=targetName;
-      bridge.setAttribute('aria-hidden','true');
-      bridge.style.cssText='position:fixed;width:1px;height:1px;left:-10000px;top:-10000px;border:0;visibility:hidden;';
-      document.body.appendChild(bridge);
-    }
     try{
       notify('Sending receipt to Citizen printer…');
       const imageDataUrl=await renderReceipt(model,mode,template);
-      const form=document.createElement('form');
-      form.method='POST';
-      form.action=HELPER+'/print-form';
-      form.target=targetName;
-      form.style.display='none';
-      const fields={printer:'CITIZEN CT-D150',imageDataUrl,widthMm:'64',cut:'true'};
-      Object.entries(fields).forEach(([name,value])=>{
-        const input=document.createElement('input');
-        input.type='hidden';input.name=name;input.value=value;form.appendChild(input);
+      const res=await fetch(HELPER+'/print',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        cache:'no-store',
+        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:64,cut:true})
       });
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(()=>form.remove(),1000);
-      notify('Receipt sent to Citizen printer');
+      const body=await res.text();
+      if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
+      let result={};
+      try{result=JSON.parse(body||'{}');}catch(_){}
+      if(result.ok===false) throw new Error(result.error||'Citizen print failed');
+      notify('Printed successfully');
       return true;
     }catch(err){
       lastPrintAt=0;
