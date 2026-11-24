@@ -1469,7 +1469,7 @@ async function pdfRenderSharedEstimate(){
     const {data:payload,error}=await client.rpc('get_goldleaf_shared_estimate',{p_token:match[1]});
     if(error||!payload||payload.v!==2||!payload.m||!PDF_ESTIMATE_LAYOUTS[payload.template])throw new Error('Invalid or expired shared estimate');
     const c=Object.assign(pdfConfig(payload.mode==='wholesale'?'wholesale':'retail'),payload.c||{});
-    document.body.innerHTML='<main class="pdf-shared-wrap"><div class="pdf-shared-actions"><b>'+esc(c.shopName||'Goldleaf Estimate')+'</b><span></span><button type="button" onclick="window.print()">Print / Save PDF</button></div><section class="pdf-shared-paper">'+pdfDocument(payload.m,c,payload.template)+'</section></main>';
+    document.body.innerHTML='<main class="pdf-shared-wrap"><div class="pdf-shared-actions"><b>'+esc(c.shopName||'Goldleaf Estimate')+'</b></div><section class="pdf-shared-paper">'+pdfDocument(payload.m,c,payload.template)+'</section></main>';
     return true;
   }catch(error){
     document.body.innerHTML='<main class="pdf-shared-error"><h2>Estimate link is not valid</h2><p>Please ask the jewellery shop to send a new link.</p></main>';
@@ -1486,7 +1486,7 @@ pdfSharedStyle.textContent=`
 .pdf-shared-paper{width:min(80mm,100%);margin:0 auto}.pdf-shared-paper>.gl-pdf{box-shadow:0 3px 14px rgba(0,0,0,.12)}
 .pdf-shared-error{max-width:520px;margin:15vh auto;padding:24px;background:#fff;border-radius:12px;text-align:center}
 @media(max-width:520px){.pdf-shared-wrap{padding:8px}.pdf-shared-actions{font-size:12px}.pdf-shared-actions button{font-size:11px}.pdf-shared-paper{width:100%}}
-@media print{.pdf-shared-estimate-page{background:#fff}.pdf-shared-wrap{padding:0}.pdf-shared-actions{display:none!important}.pdf-shared-paper{width:80mm;margin:0}.pdf-shared-paper>.gl-pdf{box-shadow:none!important;margin:0!important}}
+@media print{.pdf-shared-estimate-page>*{display:none!important}}
 `;
 document.head.append(pdfSharedStyle);
 
