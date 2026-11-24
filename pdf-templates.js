@@ -617,7 +617,8 @@ function pdfGrid80Markup(model,c){
     if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
     return false;
   });
-  const wideGridMarkup=rowFields.length>6?'<div class="grid80-readable-items">'+items.map((it,index)=>{
+  const useReadableItems=rowFields.length>6||rowFields.includes('product');
+  const wideGridMarkup=useReadableItems?'<div class="grid80-readable-items">'+items.map((it,index)=>{
       const activeDetails=activeDetailsFor(it);
       const metricFields=rowFields.filter(key=>key!=='product');
       const productHtml=rowFields.includes('product')?'<div class="grid80-readable-product"><small>PRODUCT</small><b>'+cell(it,'product')+'</b></div>':'';
@@ -627,7 +628,7 @@ function pdfGrid80Markup(model,c){
         +(detailsHtml?'<div class="grid80-readable-details">'+detailsHtml+'</div>':'')
         +(showItemTotal?'<div class="grid80-readable-total"><span>ITEM TOTAL</span><b>'+pdfMoney(it.subtotal||0)+'</b></div>':'')+'</section>';
     }).join('')+'</div>':'';
-  const tableMarkup=rowFields.length&&rowFields.length<=6?'<table class="grid80-items grid80-cols-'+rowFields.length+'"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+  const tableMarkup=!useReadableItems&&rowFields.length&&rowFields.length<=6?'<table class="grid80-items grid80-cols-'+rowFields.length+'"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
     +items.map(it=>{
       const activeDetails=activeDetailsFor(it);
       const extraHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('  ');
