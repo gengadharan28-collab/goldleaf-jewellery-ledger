@@ -68,8 +68,12 @@ public static class GoldleafDriverPrinter {
       const int paperWidth=283; // 72 mm CT-D150 imageable width
       const int imageWidth=268; // 68 mm receipt raster, centred
       int imageHeight=Math.Max(1,(int)Math.Ceiling(image.Height*(imageWidth/(double)image.Width)));
-      int paperHeight=imageHeight+8; // about 2 mm total top/bottom clearance
-      doc.DefaultPageSettings.PaperSize=new PaperSize("Goldleaf Receipt",paperWidth,paperHeight);
+      PaperSize paper=null;
+      foreach(PaperSize candidate in doc.PrinterSettings.PaperSizes) {
+        if(candidate.PaperName=="80(72) x 279mm") { paper=candidate; break; }
+      }
+      if(paper==null) throw new InvalidOperationException("Citizen 80(72) x 279mm form is unavailable");
+      doc.DefaultPageSettings.PaperSize=paper;
       doc.DefaultPageSettings.Margins=new Margins(0,0,0,0);
       doc.OriginAtMargins=false;
       int left=(paperWidth-imageWidth)/2;
@@ -187,8 +191,8 @@ function Print-Receipt($Payload){
   try{
     # Run the print callback inside compiled code. A PowerShell event callback
     # can deadlock the hidden helper runspace even when the driver is healthy.
-    [GoldleafExactReceiptPrinter]::PrintPng($printer,$raw)
-    return @{ok=$true;printer=$printer;width='72mm';height='content';mode='Citizen exact-height XPS'}
+    [GoldleafDriverPrinter]::PrintPng($printer,$raw)
+    return @{ok=$true;printer=$printer;width='72mm';height='279mm driver form';mode='Citizen Windows driver'}
     <# Legacy ESC/POS fallback retained for older installations.
     $dotWidth=512
     $dotHeight=[Math]::Max(1,[int][Math]::Ceiling($image.Height*($dotWidth/[double]$image.Width)))
