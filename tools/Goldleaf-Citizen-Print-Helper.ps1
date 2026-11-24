@@ -66,7 +66,7 @@ public static class GoldleafDriverPrinter {
       if(!doc.PrinterSettings.IsValid) throw new InvalidOperationException("Printer not available: "+printer);
       doc.PrintController=new StandardPrintController();
       const int paperWidth=283; // 72 mm CT-D150 imageable width
-      const int imageWidth=268; // 68 mm receipt raster, centred
+      const int imageWidth=283; // use the complete 72 mm printable width
       int imageHeight=Math.Max(1,(int)Math.Ceiling(image.Height*(imageWidth/(double)image.Width)));
       PaperSize paper=null;
       foreach(PaperSize candidate in doc.PrinterSettings.PaperSizes) {
