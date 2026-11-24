@@ -1216,6 +1216,9 @@ const PDF_DOCUMENT_CSS=`
 .grid80-readable-field{min-width:0;padding:3px 2px;border-right:1px solid #000;border-bottom:1px solid #000;text-align:center;box-sizing:border-box;overflow:hidden}
 .grid80-readable-field:nth-child(4n){border-right:0}
 .grid80-readable-field[data-field="product"]{grid-column:span 2;text-align:left;padding-left:4px}
+.grid80-readable-field[data-field="wastage"],.grid80-readable-field[data-field="making"]{grid-column:span 2}
+.grid80-readable-field[data-field="wastage"]{border-right:1px solid #000}
+.grid80-readable-field[data-field="making"]{border-right:0}
 .grid80-readable-field small{display:block;font-size:6.8px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grid80-readable-field b{display:block;font-size:10px;line-height:1.25;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .grid80-readable-field[data-field="product"] b{font-size:11px;text-align:left}
