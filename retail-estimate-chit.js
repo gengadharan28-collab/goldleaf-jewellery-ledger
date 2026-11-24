@@ -1,7 +1,7 @@
 // Retail-only estimation, product master, tagging and chit workflows.
 const RC_SECTIONS=['Bill','Sales Return','Receipt','Advance Amount','Metal Weight Advance'];
 const RC_VERSION='2.11.5';
-let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
+let rcSection=RC_SECTIONS.includes(localStorage.getItem('goldleaf-retail-section'))&&localStorage.getItem('goldleaf-retail-section')!=='Sales Return'?localStorage.getItem('goldleaf-retail-section'):'Bill',rcChitTab='Group',rcProductEdit='',rcTagEdit='',rcEstimateEdit='';
 let rcOldGoldItems=[],rcOldGoldEditId='',rcOldGoldFormLocked=false,rcOldGoldSyncedQuoteId=null;
 
 const RC_DEFAULT_OLD_GOLD_TYPES=[
@@ -1443,7 +1443,7 @@ function rcQuoteForm(){
     // Mobile Horizontal Pills Row (matches mockup 1 Single-Row POS Strip)
     +'<div class="rc-pos-pills-bar">'
     +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+') ▾':'+ Old Gold ▾')+'</button>'
-    +'<button type="button" class="rc-pos-pill" onclick="rcOpen(\'Sales Return\')">＋ Sales Return</button>'
+    +'<button type="button" class="rc-pos-pill" onclick="rbOpenReturnPanel()">＋ Sales Return</button>'
     +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
     +'<button type="button" id="rcPill_gst" class="rc-pos-pill rc-gst-pill '+(quoteGstOn?'active':'')+'" onclick="rcToggleQuoteGST()" aria-pressed="'+quoteGstOn+'"><span>GST '+quoteGstRate+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span></button>'
     +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
@@ -1477,7 +1477,7 @@ function rcQuoteForm(){
     +'<span id="rcOldGoldChevron" class="rc-old-gold-chevron">'+(hasOldGold?'▲':'▼')+'</span>'
     +'</div>'
     +'</button>'
-    +'<div class="rc-pos-desktop-head"><button type="button" class="exchange-toggle" onclick="rcOpen(\'Sales Return\')">＋ Sales Return</button></div>'
+    +'<div class="rc-pos-desktop-head"><button type="button" class="exchange-toggle" onclick="rbOpenReturnPanel()">＋ Sales Return</button></div>'
     +'<div id="rcOldGoldDropdown" class="rc-old-gold-dropdown '+(hasOldGold?'':'hidden')+'">'
     +'<div class="rc-old-gold-dropdown-head">'
     +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Net Wt = Weight − Less · Rate = Pure Rate (Rate Book) × Touch(%) ÷ 100 · Amount = Net Wt × Rate</small></div>'
@@ -3488,7 +3488,7 @@ window.rcOpenStandalone=function(section){
 
 window.rcOpen=function(section){
   if(!session||!goldleafContext?.has_access){say('Please sign in first.');return;}
-  if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
+  if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section==='Sales Return'?'Bill':section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
 const rcOldDirty=window.rbDirty;window.rbDirty=function(){return rcOldDirty()||!!document.querySelector('.rc-screen form[data-entry-dirty="1"]')};const rcOldCanLeave=window.rbCanLeave;window.rbCanLeave=function(){return !document.querySelector('.rc-screen form[data-entry-dirty="1"]')?rcOldCanLeave():confirm('Leave this entry and discard the unsaved changes?')};
 document.addEventListener('input',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});document.addEventListener('change',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});
 const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Stock Verification':'Stock Verification','Lot Entry':'Lot Entry','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
