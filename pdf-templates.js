@@ -1243,7 +1243,8 @@ const PDF_DOCUMENT_CSS=`
 .grid80-summary-row span{min-width:0;max-width:58%;overflow-wrap:anywhere}
 .grid80-summary-row.grid80-highlight{font-size:13.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 3px;margin-top:3px;background:#f2f2f2}
 .grid80-exchange{font-size:9.5px;font-weight:700;color:#000;margin:3px 0;border-top:1px dashed #000;padding-top:2px}
-.grid80-exchange div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:3px 8px 3px 3px;overflow:hidden}
+.grid80-exchange div{display:grid;grid-template-columns:minmax(0,1fr) 27mm;align-items:center;gap:3px;padding:3px 5px 3px 3px;overflow:hidden}
+.grid80-exchange b{max-width:none!important;padding-right:1mm;font-size:10.5px!important;text-align:right!important;white-space:nowrap!important}
 .grid80-ticket footer{font-size:9px;font-weight:700;color:#000;text-align:center;margin-top:4px;padding-top:3px;border-top:1px solid #ccc;line-height:1.25}
 .grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:0;max-width:62%;margin-left:auto;text-align:right;white-space:nowrap;color:#000;font-size:1.08em;font-weight:900;overflow:visible}
 
