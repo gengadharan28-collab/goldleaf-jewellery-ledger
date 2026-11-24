@@ -1350,11 +1350,30 @@ window.updateHistoryView=function(){
     .replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.10.44 · Current</h3><ul><li>Added complete Sales Bill & Estimation format selection in Settings across A4 portrait/landscape, A5 compact, and 80mm/58mm thermal rolls.</li><li>Integrated column visibility toggles (Gross/Less, Net, Wastage, Making, HUID, Stones, Exchange, Bank & UPI QR).</li><li>Added live interactive template preview and instant estimation format switching.</li></ul></article>');
 };
 
+function pdfSharePayloadEncode(value){
+  const bytes=new TextEncoder().encode(JSON.stringify(value));let binary='';
+  for(const byte of bytes)binary+=String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function pdfSharePayloadDecode(value){
+  const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
+  const binary=atob(normalized+'='.repeat((4-normalized.length%4)%4));
+  const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function pdfSharedEstimateLink(model,mode,template,config){
+  const safeConfig={shopName:config.shopName,address:config.address,phone:config.phone,gstNumber:config.gstNumber,headerText:config.headerText,footerText:config.footerText,alignment:config.alignment,estimateBottomMargin:config.estimateBottomMargin,estimateGridFields:config.estimateGridFields,showExchange:config.showExchange,showTerms:config.showTerms,showExpiry:config.showExpiry};
+  const payload={v:1,m:model,mode,template,c:safeConfig};
+  return location.origin+location.pathname+'#estimate='+pdfSharePayloadEncode(payload);
+}
+
 window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone='',filename='Quotation.pdf'){
   const c=pdfConfig(mode);
   const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
   const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
-  const waUrl=phone?'https://wa.me/'+phone+'?text='+encodeURIComponent('Please find attached '+filename.replace(/\.pdf$/i,'')):'';
+  const shareLink=phone?pdfSharedEstimateLink(model,mode,template,c):'';
+  const waUrl=phone?'https://wa.me/'+phone+'?text='+encodeURIComponent('View your jewellery estimate: '+shareLink):'';
+  if(phone){window.open(waUrl,'_blank','noopener');say('WhatsApp opened with the viewable estimate link.');return;}
   const canNativeFileShare=!!(navigator.share&&navigator.canShare);
   // Pre-open WhatsApp tab only on desktop/browsers without native file share
   const waWin=(waUrl&&!canNativeFileShare)?window.open('about:blank','_blank','noopener'):null;
@@ -1426,7 +1445,38 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   }
 };
 
+function pdfRenderSharedEstimate(){
+  const match=location.hash.match(/^#estimate=(.+)$/);if(!match)return false;
+  try{
+    const payload=pdfSharePayloadDecode(match[1]);
+    if(!payload||payload.v!==1||!payload.m||!PDF_ESTIMATE_LAYOUTS[payload.template])throw new Error('Invalid shared estimate');
+    const c=Object.assign(pdfConfig(payload.mode==='wholesale'?'wholesale':'retail'),payload.c||{});
+    document.body.className='pdf-shared-estimate-page';
+    document.body.innerHTML='<main class="pdf-shared-wrap"><div class="pdf-shared-actions"><b>'+esc(c.shopName||'Goldleaf Estimate')+'</b><span></span><button type="button" onclick="window.print()">Print / Save PDF</button></div><section class="pdf-shared-paper">'+pdfDocument(payload.m,c,payload.template)+'</section></main>';
+    return true;
+  }catch(error){
+    document.body.innerHTML='<main class="pdf-shared-error"><h2>Estimate link is not valid</h2><p>Please ask the jewellery shop to send a new link.</p></main>';
+    return true;
+  }
+}
+
+const pdfSharedStyle=document.createElement('style');
+pdfSharedStyle.textContent=`
+.pdf-shared-estimate-page{margin:0;background:#e8ecea;color:#111;font-family:Arial,Helvetica,sans-serif}
+.pdf-shared-wrap{min-height:100vh;padding:14px;box-sizing:border-box}
+.pdf-shared-actions{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;max-width:80mm;margin:0 auto 10px;padding:8px 10px;background:#fff;border:1px solid #d4ddd8;border-radius:8px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.pdf-shared-actions span{flex:1}.pdf-shared-actions button{padding:7px 10px;border:0;border-radius:6px;background:#173d2c;color:#fff;font-weight:800}
+.pdf-shared-paper{width:min(80mm,100%);margin:0 auto}.pdf-shared-paper>.gl-pdf{box-shadow:0 3px 14px rgba(0,0,0,.12)}
+.pdf-shared-error{max-width:520px;margin:15vh auto;padding:24px;background:#fff;border-radius:12px;text-align:center}
+@media(max-width:520px){.pdf-shared-wrap{padding:8px}.pdf-shared-actions{font-size:12px}.pdf-shared-actions button{font-size:11px}.pdf-shared-paper{width:100%}}
+@media print{.pdf-shared-estimate-page{background:#fff}.pdf-shared-wrap{padding:0}.pdf-shared-actions{display:none!important}.pdf-shared-paper{width:80mm;margin:0}.pdf-shared-paper>.gl-pdf{box-shadow:none!important;margin:0!important}}
+`;
+document.head.append(pdfSharedStyle);
+
 window.goldleafV2Ready=true;
 window.dispatchEvent(new Event('goldleaf-v2-ready'));
-if(session)window.pullCloud();
-render();
+if(!pdfRenderSharedEstimate()){
+  if(session)window.pullCloud();
+  render();
+}
+
