@@ -611,14 +611,23 @@ function pdfGrid80Markup(model,c){
   const phone=String(model.entityDetails||'').match(/(?:\+91[\s-]?)?\d{10}/)?.[0]||'';
   const summary=(model.totals||[]).map(([label,value,highlight])=>'<div class="grid80-summary-row '+(highlight?'grid80-highlight':'')+'"><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>').join('');
   const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange">'+model.exchange.map(it=>'<div>'+esc(it.product||'Old gold')+' · '+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%'+(n(it.rate)>0?' · '+pdfMoney(it.rate)+'/g':'')+' <b>'+pdfMoney(it.amount)+'</b></div>').join('')+'</div>':'';
-  const itemsMarkup=rowFields.length?'<table class="grid80-items grid80-cols-'+rowFields.length+'"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+  const activeDetailsFor=it=>detailFields.filter(k=>{
+    if(k==='stone')return n(it.stoneWeight)>0;
+    if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
+    if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
+    return false;
+  });
+  const wideGridMarkup=rowFields.length>6?'<div class="grid80-readable-items">'+items.map((it,index)=>{
+      const activeDetails=activeDetailsFor(it);
+      const fieldsHtml=rowFields.map(key=>'<div class="grid80-readable-field" data-field="'+key+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></div>').join('');
+      const detailsHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('');
+      return '<section class="grid80-readable-item"><div class="grid80-readable-no">ITEM '+(index+1)+'</div><div class="grid80-readable-grid">'+fieldsHtml+'</div>'
+        +(detailsHtml?'<div class="grid80-readable-details">'+detailsHtml+'</div>':'')
+        +(showItemTotal?'<div class="grid80-readable-total"><span>ITEM TOTAL</span><b>'+pdfMoney(it.subtotal||0)+'</b></div>':'')+'</section>';
+    }).join('')+'</div>':'';
+  const tableMarkup=rowFields.length&&rowFields.length<=6?'<table class="grid80-items grid80-cols-'+rowFields.length+'"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
     +items.map(it=>{
-      const activeDetails=detailFields.filter(k=>{
-        if(k==='stone')return n(it.stoneWeight)>0;
-        if(k==='stoneCharge')return n(it.stoneAmount||it.stoneCharge)>0;
-        if(k==='hallmark')return (it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0);
-        return false;
-      });
+      const activeDetails=activeDetailsFor(it);
       const extraHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('  ');
       const hasSubRow=showItemTotal||activeDetails.length>0;
       const mainRow='<tr class="grid80-item-main '+(!hasSubRow?'grid80-item-end':'')+'">'+rowFields.map(key=>'<td data-col="'+key+'">'+cell(it,key)+'</td>').join('')+'</tr>';
@@ -628,6 +637,7 @@ function pdfGrid80Markup(model,c){
         +'</div></td></tr>':'';
       return mainRow+subRow;
     }).join('')+'</tbody></table>':'';
+  const itemsMarkup=wideGridMarkup||tableMarkup;
   return '<div class="grid80-ticket">'
     +'<div class="grid80-top"><small>NOT A TAX INVOICE</small><strong>ESTIMATE</strong></div>'
     +'<div class="grid80-rates">Gold '+(goldRate?pdfMoney(goldRate)+'/g':'—')+' · Silver '+(silverRate?pdfMoney(silverRate)+'/g':'—')+'</div>'
@@ -1199,6 +1209,21 @@ const PDF_DOCUMENT_CSS=`
 .grid80-item-end td{border-bottom:2px solid #000}
 .grid80-item-total-row td{border-top:1px dashed #777!important;border-bottom:2px solid #000!important;padding:3px 4px!important;background:#fafafa}
 .grid80-item-total-box{display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box}
+.grid80-readable-items{width:100%;margin:3px 0}
+.grid80-readable-item{border:1.5px solid #000;margin:0 0 5px;break-inside:avoid;page-break-inside:avoid;background:#fff}
+.grid80-readable-no{font-size:7.5px;font-weight:900;letter-spacing:.5px;padding:2px 4px;background:#e7e7e7;border-bottom:1px solid #000;color:#000}
+.grid80-readable-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+.grid80-readable-field{min-width:0;padding:3px 2px;border-right:1px solid #000;border-bottom:1px solid #000;text-align:center;box-sizing:border-box;overflow:hidden}
+.grid80-readable-field:nth-child(4n){border-right:0}
+.grid80-readable-field[data-field="product"]{grid-column:span 2;text-align:left;padding-left:4px}
+.grid80-readable-field small{display:block;font-size:6.8px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid80-readable-field b{display:block;font-size:10px;line-height:1.25;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.grid80-readable-field[data-field="product"] b{font-size:11px;text-align:left}
+.grid80-readable-field[data-field="wastage"] b small{font-size:7px;display:block;margin-top:1px}
+.grid80-readable-details{display:flex;flex-wrap:wrap;gap:4px 8px;padding:3px 4px;font-size:8px;border-bottom:1px solid #000;color:#000}
+.grid80-readable-total{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:4px 5px;background:#f5f5f5;color:#000}
+.grid80-readable-total span{font-size:9px;font-weight:900;letter-spacing:.3px}
+.grid80-readable-total b{font-size:14px;font-weight:900;white-space:nowrap;text-align:right}
 .grid80-extra-details{font-size:9px;font-weight:700;color:#222;display:flex;gap:6px;align-items:center}
 .grid80-extra-details span{white-space:nowrap}
 .grid80-tot-right{margin-left:auto;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
