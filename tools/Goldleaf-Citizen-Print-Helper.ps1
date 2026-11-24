@@ -6,6 +6,7 @@ Add-Type -TypeDefinition @"
 using System;
 using System.IO;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Drawing.Printing;
 using System.Runtime.InteropServices;
 public static class GoldleafRawPrinter {
@@ -57,10 +58,37 @@ public static class GoldleafRawPrinter {
   }
 }
 public static class GoldleafDriverPrinter {
+  static Bitmap ToSharpMonochrome(Image source) {
+    Bitmap bitmap=new Bitmap(source.Width,source.Height,PixelFormat.Format24bppRgb);
+    using(Graphics graphics=Graphics.FromImage(bitmap)) {
+      graphics.Clear(Color.White);
+      graphics.InterpolationMode=System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+      graphics.PixelOffsetMode=System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+      graphics.DrawImage(source,0,0,source.Width,source.Height);
+    }
+    Rectangle rect=new Rectangle(0,0,bitmap.Width,bitmap.Height);
+    BitmapData data=bitmap.LockBits(rect,ImageLockMode.ReadWrite,PixelFormat.Format24bppRgb);
+    try {
+      int length=Math.Abs(data.Stride)*bitmap.Height;
+      byte[] pixels=new byte[length];
+      Marshal.Copy(data.Scan0,pixels,0,length);
+      for(int y=0;y<bitmap.Height;y++) {
+        int row=y*Math.Abs(data.Stride);
+        for(int x=0;x<bitmap.Width;x++) {
+          int i=row+x*3;
+          int luma=(pixels[i]*114+pixels[i+1]*587+pixels[i+2]*299)/1000;
+          byte value=(byte)(luma<210?0:255);
+          pixels[i]=pixels[i+1]=pixels[i+2]=value;
+        }
+      }
+      Marshal.Copy(pixels,0,data.Scan0,length);
+    } finally { bitmap.UnlockBits(data); }
+    return bitmap;
+  }
   public static void PrintPng(string printer, byte[] png) {
     using(var ms=new MemoryStream(png))
     using(var source=Image.FromStream(ms))
-    using(var image=new Bitmap(source))
+    using(var image=ToSharpMonochrome(source))
     using(var doc=new PrintDocument()) {
       doc.PrinterSettings.PrinterName=printer;
       if(!doc.PrinterSettings.IsValid) throw new InvalidOperationException("Printer not available: "+printer);
