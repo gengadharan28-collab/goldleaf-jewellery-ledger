@@ -619,9 +619,11 @@ function pdfGrid80Markup(model,c){
   });
   const wideGridMarkup=rowFields.length>6?'<div class="grid80-readable-items">'+items.map((it,index)=>{
       const activeDetails=activeDetailsFor(it);
-      const fieldsHtml=rowFields.map(key=>'<div class="grid80-readable-field" data-field="'+key+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></div>').join('');
+      const metricFields=rowFields.filter(key=>key!=='product');
+      const productHtml=rowFields.includes('product')?'<div class="grid80-readable-product"><small>PRODUCT</small><b>'+cell(it,'product')+'</b></div>':'';
+      const fieldsHtml=metricFields.map(key=>'<div class="grid80-readable-field" data-field="'+key+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></div>').join('');
       const detailsHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('');
-      return '<section class="grid80-readable-item"><div class="grid80-readable-no">ITEM '+(index+1)+'</div><div class="grid80-readable-grid">'+fieldsHtml+'</div>'
+      return '<section class="grid80-readable-item"><div class="grid80-readable-no">ITEM '+(index+1)+'</div>'+productHtml+'<div class="grid80-readable-grid">'+fieldsHtml+'</div>'
         +(detailsHtml?'<div class="grid80-readable-details">'+detailsHtml+'</div>':'')
         +(showItemTotal?'<div class="grid80-readable-total"><span>ITEM TOTAL</span><b>'+pdfMoney(it.subtotal||0)+'</b></div>':'')+'</section>';
     }).join('')+'</div>':'';
@@ -1183,7 +1185,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:1.5px solid #000;padding:.8mm 1mm;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:11.5px;line-height:1.3;margin:0 auto;color:#000;font-weight:700;background:#fff;overflow:hidden}
+.pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:1.5px solid #000;padding:.8mm 1mm;font-family:Arial,"Helvetica Neue",sans-serif;font-size:12.5px;line-height:1.32;margin:0 auto;color:#000;font-weight:700;background:#fff;overflow:hidden}
 .grid80-ticket{width:100%;max-width:100%;box-sizing:border-box;color:#000;overflow:hidden}
 .grid80-top{min-height:22px;display:flex;align-items:baseline;justify-content:space-between;gap:6px;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:3px}
 .grid80-top small{font-size:9.5px;font-weight:800;color:#000;white-space:nowrap;letter-spacing:0.3px}
@@ -1213,6 +1215,9 @@ const PDF_DOCUMENT_CSS=`
 .grid80-readable-items{width:100%;margin:3px 0}
 .grid80-readable-item{border:1.5px solid #000;margin:0 0 5px;break-inside:avoid;page-break-inside:avoid;background:#fff}
 .grid80-readable-no{font-size:7.5px;font-weight:900;letter-spacing:.5px;padding:2px 4px;background:#e7e7e7;border-bottom:1px solid #000;color:#000}
+.grid80-readable-product{display:flex;align-items:baseline;gap:7px;width:100%;box-sizing:border-box;padding:4px 5px;border-bottom:1px solid #000;text-align:left;background:#fff;color:#000}
+.grid80-readable-product small{font-size:7.8px;font-weight:900;letter-spacing:.25px;white-space:nowrap}
+.grid80-readable-product b{min-width:0;font-size:13.5px;line-height:1.2;font-weight:900;overflow-wrap:anywhere}
 .grid80-readable-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
 .grid80-readable-field{min-width:0;padding:3px 2px;border-right:1px solid #000;border-bottom:1px solid #000;text-align:center;box-sizing:border-box;overflow:hidden}
 .grid80-readable-field:nth-child(4n){border-right:0}
@@ -1220,14 +1225,14 @@ const PDF_DOCUMENT_CSS=`
 .grid80-readable-field[data-field="wastage"],.grid80-readable-field[data-field="making"]{grid-column:span 2}
 .grid80-readable-field[data-field="wastage"]{border-right:1px solid #000}
 .grid80-readable-field[data-field="making"]{border-right:0}
-.grid80-readable-field small{display:block;font-size:6.8px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.grid80-readable-field b{display:block;font-size:10px;line-height:1.25;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.grid80-readable-field small{display:block;font-size:7.4px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid80-readable-field b{display:block;font-size:11.2px;line-height:1.25;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .grid80-readable-field[data-field="product"] b{font-size:11px;text-align:left}
 .grid80-readable-field[data-field="wastage"] b small{font-size:7px;display:block;margin-top:1px}
 .grid80-readable-details{display:flex;flex-wrap:wrap;gap:4px 8px;padding:3px 4px;font-size:8px;border-bottom:1px solid #000;color:#000}
 .grid80-readable-total{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:4px 5px;background:#f5f5f5;color:#000}
 .grid80-readable-total span{font-size:9px;font-weight:900;letter-spacing:.3px}
-.grid80-readable-total b{font-size:14px;font-weight:900;white-space:nowrap;text-align:right}
+.grid80-readable-total b{font-size:15px;font-weight:900;white-space:nowrap;text-align:right}
 .grid80-extra-details{font-size:9px;font-weight:700;color:#222;display:flex;gap:6px;align-items:center}
 .grid80-extra-details span{white-space:nowrap}
 .grid80-tot-right{margin-left:auto;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
