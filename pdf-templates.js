@@ -1361,19 +1361,34 @@ function pdfSharePayloadDecode(value){
   const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
 }
-function pdfSharedEstimateLink(model,mode,template,config){
+function pdfSharedEstimatePayload(model,mode,template,config){
   const safeConfig={shopName:config.shopName,address:config.address,phone:config.phone,gstNumber:config.gstNumber,headerText:config.headerText,footerText:config.footerText,alignment:config.alignment,estimateBottomMargin:config.estimateBottomMargin,estimateGridFields:config.estimateGridFields,showExchange:config.showExchange,showTerms:config.showTerms,showExpiry:config.showExpiry};
-  const payload={v:1,m:model,mode,template,c:safeConfig};
-  return location.origin+location.pathname+'#estimate='+pdfSharePayloadEncode(payload);
+  return {v:2,m:model,mode,template,c:safeConfig};
+}
+async function pdfCreateSecureEstimateLink(model,mode,template,config){
+  if(!client||!session||!goldleafContext?.shop_id)throw new Error('Sign in to create a secure estimate link.');
+  const payload=pdfSharedEstimatePayload(model,mode,template,config);
+  const {data,error}=await client.from('goldleaf_shared_estimates').insert({shop_id:goldleafContext.shop_id,payload}).select('token').single();
+  if(error||!data?.token)throw new Error(error?.message||'Secure link could not be created.');
+  return location.origin+location.pathname+'#estimate='+data.token;
 }
 
 window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone='',filename='Quotation.pdf'){
   const c=pdfConfig(mode);
   const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
   const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
-  const shareLink=phone?pdfSharedEstimateLink(model,mode,template,c):'';
-  const waUrl=phone?'https://wa.me/'+phone+'?text='+encodeURIComponent('View your jewellery estimate: '+shareLink):'';
-  if(phone){window.open(waUrl,'_blank','noopener');say('WhatsApp opened with the viewable estimate link.');return;}
+  if(phone){
+    const waWin=window.open('about:blank','_blank');if(waWin)waWin.opener=null;
+    try{
+      say('Creating secure estimate link…');
+      const shareLink=await pdfCreateSecureEstimateLink(model,mode,template,c);
+      const waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent('View your secure jewellery estimate: '+shareLink);
+      if(waWin)waWin.location.href=waUrl;else window.open(waUrl,'_blank','noopener');
+      say('WhatsApp opened with the secure estimate link.');
+    }catch(error){if(waWin)waWin.close();say(error?.message||'Secure estimate link could not be created.');}
+    return;
+  }
+  const waUrl='';
   const canNativeFileShare=!!(navigator.share&&navigator.canShare);
   // Pre-open WhatsApp tab only on desktop/browsers without native file share
   const waWin=(waUrl&&!canNativeFileShare)?window.open('about:blank','_blank','noopener'):null;
@@ -1445,13 +1460,15 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   }
 };
 
-function pdfRenderSharedEstimate(){
-  const match=location.hash.match(/^#estimate=(.+)$/);if(!match)return false;
+async function pdfRenderSharedEstimate(){
+  const match=location.hash.match(/^#estimate=([0-9a-f-]{36})$/i);if(!match)return false;
+  document.body.className='pdf-shared-estimate-page';
+  document.body.innerHTML='<main class="pdf-shared-error"><h2>Opening secure estimate…</h2><p>Please wait.</p></main>';
   try{
-    const payload=pdfSharePayloadDecode(match[1]);
-    if(!payload||payload.v!==1||!payload.m||!PDF_ESTIMATE_LAYOUTS[payload.template])throw new Error('Invalid shared estimate');
+    if(!client)throw new Error('Cloud connection unavailable');
+    const {data:payload,error}=await client.rpc('get_goldleaf_shared_estimate',{p_token:match[1]});
+    if(error||!payload||payload.v!==2||!payload.m||!PDF_ESTIMATE_LAYOUTS[payload.template])throw new Error('Invalid or expired shared estimate');
     const c=Object.assign(pdfConfig(payload.mode==='wholesale'?'wholesale':'retail'),payload.c||{});
-    document.body.className='pdf-shared-estimate-page';
     document.body.innerHTML='<main class="pdf-shared-wrap"><div class="pdf-shared-actions"><b>'+esc(c.shopName||'Goldleaf Estimate')+'</b><span></span><button type="button" onclick="window.print()">Print / Save PDF</button></div><section class="pdf-shared-paper">'+pdfDocument(payload.m,c,payload.template)+'</section></main>';
     return true;
   }catch(error){
@@ -1475,7 +1492,9 @@ document.head.append(pdfSharedStyle);
 
 window.goldleafV2Ready=true;
 window.dispatchEvent(new Event('goldleaf-v2-ready'));
-if(!pdfRenderSharedEstimate()){
+if(/^#estimate=/.test(location.hash)){
+  pdfRenderSharedEstimate();
+}else{
   if(session)window.pullCloud();
   render();
 }
