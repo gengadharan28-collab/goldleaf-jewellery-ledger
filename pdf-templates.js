@@ -1216,18 +1216,16 @@ const PDF_DOCUMENT_CSS=`
 .grid80-readable-items{width:100%;margin:3px 0}
 .grid80-readable-item{border:1.5px solid #000;margin:0 0 5px;break-inside:avoid;page-break-inside:avoid;background:#fff}
 .grid80-readable-no{font-size:7.5px;font-weight:900;letter-spacing:.5px;padding:2px 4px;background:#e7e7e7;border-bottom:1px solid #000;color:#000}
-.grid80-readable-product{display:flex;align-items:baseline;gap:7px;width:100%;box-sizing:border-box;padding:4px 5px;border-bottom:1px solid #000;text-align:left;background:#fff;color:#000}
-.grid80-readable-product small{font-size:7.8px;font-weight:900;letter-spacing:.25px;white-space:nowrap}
-.grid80-readable-product b{min-width:0;font-size:13.5px;line-height:1.2;font-weight:900;overflow-wrap:anywhere}
-.grid80-readable-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+.grid80-readable-product{display:flex;align-items:baseline;gap:5px;width:100%;box-sizing:border-box;padding:4px 5px;border-bottom:1px solid #000;text-align:left;background:#fff;color:#000}
+.grid80-readable-product small,.grid80-readable-product b{min-width:0;font-size:14px;line-height:1.2;font-weight:900;letter-spacing:0;overflow-wrap:anywhere}
+.grid80-readable-product small{white-space:nowrap}
+.grid80-readable-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%}
 .grid80-readable-field{min-width:0;padding:3px 2px;border-right:1px solid #000;border-bottom:1px solid #000;text-align:center;box-sizing:border-box;overflow:hidden}
-.grid80-readable-field:nth-child(4n){border-right:0}
+.grid80-readable-field:nth-child(5n){border-right:0}
 .grid80-readable-field[data-field="product"]{grid-column:1/-1;text-align:left;padding:4px 5px}
-.grid80-readable-field[data-field="wastage"],.grid80-readable-field[data-field="making"]{grid-column:span 2}
-.grid80-readable-field[data-field="wastage"]{border-right:1px solid #000}
-.grid80-readable-field[data-field="making"]{border-right:0}
-.grid80-readable-field small{display:block;font-size:7.4px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.grid80-readable-field b{display:block;font-size:13.2px;line-height:1.22;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.grid80-readable-field[data-field="wastage"],.grid80-readable-field[data-field="making"]{grid-column:auto}
+.grid80-readable-field small{display:block;font-size:7.1px;line-height:1.1;font-weight:900;text-transform:uppercase;color:#111;white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-.15px}
+.grid80-readable-field b{display:block;font-size:11.8px;line-height:1.22;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:clip;margin-top:1px}
 .grid80-readable-field[data-field="product"] b{font-size:14px;text-align:left}
 .grid80-readable-field[data-field="wastage"] b small{font-size:7px;display:block;margin-top:1px}
 .grid80-readable-details{display:flex;flex-wrap:wrap;gap:4px 8px;padding:3px 4px;font-size:8px;border-bottom:1px solid #000;color:#000}
@@ -1245,7 +1243,7 @@ const PDF_DOCUMENT_CSS=`
 .grid80-summary-row span{min-width:0;max-width:58%;overflow-wrap:anywhere}
 .grid80-summary-row.grid80-highlight{font-size:13.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 3px;margin-top:3px;background:#f2f2f2}
 .grid80-exchange{font-size:9.5px;font-weight:700;color:#000;margin:3px 0;border-top:1px dashed #000;padding-top:2px}
-.grid80-exchange div{display:flex;justify-content:space-between;gap:3px;padding:1px 0}
+.grid80-exchange div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:3px 8px 3px 3px;overflow:hidden}
 .grid80-ticket footer{font-size:9px;font-weight:700;color:#000;text-align:center;margin-top:4px;padding-top:3px;border-top:1px solid #ccc;line-height:1.25}
 .grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:0;max-width:62%;margin-left:auto;text-align:right;white-space:nowrap;color:#000;font-size:1.08em;font-weight:900;overflow:visible}
 
