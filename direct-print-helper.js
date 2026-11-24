@@ -32,14 +32,18 @@
     const cfg=pdfConfig(mode);
     const frame=document.createElement('iframe');
     frame.setAttribute('aria-hidden','true');
-    frame.style.cssText='position:fixed;left:-10000px;top:0;width:64mm;height:10px;border:0;visibility:hidden;pointer-events:none;';
+    // Render a slightly wider white canvas than the receipt.  The CT-D150 raw
+    // raster path has a small non-printable edge; this safety gutter prevents
+    // the right-most column and amounts from being clipped on paper.
+    frame.style.cssText='position:fixed;left:-10000px;top:0;width:68mm;height:10px;border:0;visibility:hidden;pointer-events:none;';
     document.body.appendChild(frame);
     const doc=frame.contentDocument;
     doc.open();
     doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'
-      +'html{margin:0!important;padding:0!important;width:64mm!important;background:#fff!important;}body{margin:0!important;padding:2mm 0!important;width:64mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;}'
+      +'html{margin:0!important;padding:0!important;width:68mm!important;background:#fff!important;}body{margin:0!important;padding:2mm 0!important;width:68mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +PDF_DOCUMENT_CSS
-      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:62mm!important;max-width:62mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;}'
+      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:60mm!important;max-width:60mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
+      +'.grid80-items{width:100%!important;max-width:100%!important;table-layout:fixed!important}.grid80-item-total-cell,.grid80-item-total-box,.grid80-product-total,.grid80-summary-row{max-width:100%!important;box-sizing:border-box!important;overflow:hidden!important}.grid80-tot-right{min-width:0!important;max-width:100%!important}.grid80-tot-val{font-size:12.5px!important;max-width:34mm!important;overflow:hidden!important;text-overflow:clip!important}.grid80-product-total b,.grid80-summary-row b{max-width:32mm!important;overflow:hidden!important;text-align:right!important}'
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
     doc.close();
     try{
@@ -48,7 +52,7 @@
       const receipt=doc.querySelector('.pdf-thermal-estimate-grid-80,.pdf-thermal-ticket,.gl-pdf-thermal,.gl-pdf')||doc.body;
       const receiptHeight=Math.max(receipt.getBoundingClientRect().height,receipt.scrollHeight);
       frame.style.height=Math.ceil(receiptHeight+(4*96/25.4)+2)+'px';
-      const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(64*96/25.4),height:Math.ceil(receiptHeight+(4*96/25.4))});
+      const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(68*96/25.4),height:Math.ceil(receiptHeight+(4*96/25.4))});
       return canvas.toDataURL('image/png');
     }finally{
       frame.remove();
