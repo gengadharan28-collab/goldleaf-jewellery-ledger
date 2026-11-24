@@ -621,10 +621,10 @@ function pdfGrid80Markup(model,c){
   const wideGridMarkup=useReadableItems?'<div class="grid80-readable-items">'+items.map((it,index)=>{
       const activeDetails=activeDetailsFor(it);
       const metricFields=rowFields.filter(key=>key!=='product');
-      const productHtml=rowFields.includes('product')?'<div class="grid80-readable-product"><small>PRODUCT</small><b>'+cell(it,'product')+'</b></div>':'';
+      const productHtml=rowFields.includes('product')?'<div class="grid80-readable-product"><span>ITEM '+(index+1)+'</span><small>PRODUCT</small><b>'+cell(it,'product')+'</b></div>':'';
       const fieldsHtml=metricFields.map(key=>'<div class="grid80-readable-field" data-field="'+key+'"><small>'+productFields[key]+'</small><b>'+cell(it,key)+'</b></div>').join('');
       const detailsHtml=activeDetails.map(key=>'<span><small>'+productFields[key]+':</small> <b>'+cell(it,key)+'</b></span>').join('');
-      return '<section class="grid80-readable-item"><div class="grid80-readable-no">ITEM '+(index+1)+'</div>'+productHtml+'<div class="grid80-readable-grid">'+fieldsHtml+'</div>'
+      return '<section class="grid80-readable-item">'+(productHtml||'<div class="grid80-readable-no">ITEM '+(index+1)+'</div>')+'<div class="grid80-readable-grid">'+fieldsHtml+'</div>'
         +(detailsHtml?'<div class="grid80-readable-details">'+detailsHtml+'</div>':'')
         +(showItemTotal?'<div class="grid80-readable-total"><span>ITEM TOTAL</span><b>'+pdfMoney(it.subtotal||0)+'</b></div>':'')+'</section>';
     }).join('')+'</div>':'';
@@ -1216,9 +1216,10 @@ const PDF_DOCUMENT_CSS=`
 .grid80-readable-items{width:100%;margin:3px 0}
 .grid80-readable-item{border:1.5px solid #000;margin:0 0 5px;break-inside:avoid;page-break-inside:avoid;background:#fff}
 .grid80-readable-no{font-size:7.5px;font-weight:900;letter-spacing:.5px;padding:2px 4px;background:#e7e7e7;border-bottom:1px solid #000;color:#000}
-.grid80-readable-product{display:flex;align-items:baseline;gap:5px;width:100%;box-sizing:border-box;padding:4px 5px;border-bottom:1px solid #000;text-align:left;background:#fff;color:#000}
-.grid80-readable-product small,.grid80-readable-product b{min-width:0;font-size:14px;line-height:1.2;font-weight:900;letter-spacing:0;overflow-wrap:anywhere}
-.grid80-readable-product small{white-space:nowrap}
+.grid80-readable-product{display:flex;align-items:baseline;gap:5px;width:100%;box-sizing:border-box;padding:4px 5px;border-bottom:1px solid #000;text-align:left;background:#fff;color:#000;white-space:nowrap;overflow:hidden}
+.grid80-readable-product span,.grid80-readable-product small,.grid80-readable-product b{min-width:0;font-size:12px;line-height:1.2;font-weight:900;letter-spacing:0}
+.grid80-readable-product span,.grid80-readable-product small{white-space:nowrap}
+.grid80-readable-product b{overflow:hidden;text-overflow:ellipsis}
 .grid80-readable-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%}
 .grid80-readable-field{min-width:0;padding:3px 2px;border-right:1px solid #000;border-bottom:1px solid #000;text-align:center;box-sizing:border-box;overflow:hidden}
 .grid80-readable-field:nth-child(5n){border-right:0}
@@ -1237,16 +1238,16 @@ const PDF_DOCUMENT_CSS=`
 .grid80-tot-right{margin-left:auto;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
 .grid80-tot-label{font-size:9.5px;font-weight:800;color:#222;text-transform:uppercase;letter-spacing:0.3px}
 .grid80-tot-val{font-size:13.5px;font-weight:900;color:#000;white-space:nowrap}
-.grid80-product-total{display:flex;justify-content:space-between;align-items:baseline;gap:6px;width:100%;box-sizing:border-box;padding:4px 8px 4px 3px;font-size:13.5px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:3px 0 4px;color:#000;overflow:hidden}
+.grid80-product-total{display:grid;grid-template-columns:minmax(0,1fr) 29mm;align-items:baseline;gap:4px;width:100%;box-sizing:border-box;padding:4px 5px 4px 3px;font-size:11.5px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin:3px 0 4px;color:#000;overflow:hidden}
 .grid80-ticket h3{background:#eaeaea;font-size:10px;font-weight:900;color:#000;text-transform:uppercase;margin:4px 0 2px;padding:2px 4px;border-bottom:1px solid #000}
-.grid80-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:5px;width:100%;box-sizing:border-box;padding:3px 8px 3px 3px;border-bottom:1px dashed #ccc;font-size:12.5px;font-weight:700;color:#000;line-height:1.3;overflow:hidden}
-.grid80-summary-row span{min-width:0;max-width:58%;overflow-wrap:anywhere}
-.grid80-summary-row.grid80-highlight{font-size:13.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 3px;margin-top:3px;background:#f2f2f2}
+.grid80-summary-row{display:grid;grid-template-columns:minmax(0,1fr) 29mm;align-items:baseline;gap:4px;width:100%;box-sizing:border-box;padding:3px 5px 3px 3px;border-bottom:1px dashed #ccc;font-size:11.5px;font-weight:700;color:#000;line-height:1.25;overflow:hidden}
+.grid80-summary-row span{min-width:0;overflow-wrap:anywhere}
+.grid80-summary-row.grid80-highlight{font-size:11.5px;font-weight:900;color:#000;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:4px 5px 4px 3px;margin-top:3px;background:#f2f2f2}
 .grid80-exchange{font-size:9.5px;font-weight:700;color:#000;margin:3px 0;border-top:1px dashed #000;padding-top:2px}
-.grid80-exchange div{display:grid;grid-template-columns:minmax(0,1fr) 27mm;align-items:center;gap:3px;padding:3px 5px 3px 3px;overflow:hidden}
-.grid80-exchange b{max-width:none!important;padding-right:1mm;font-size:10.5px!important;text-align:right!important;white-space:nowrap!important}
+.grid80-exchange div{display:grid;grid-template-columns:minmax(0,1fr) 29mm;align-items:center;gap:4px;padding:3px 5px 3px 3px;overflow:hidden}
+.grid80-exchange b{max-width:none!important;font-size:11.5px!important;text-align:right!important;white-space:nowrap!important}
 .grid80-ticket footer{font-size:9px;font-weight:700;color:#000;text-align:center;margin-top:4px;padding-top:3px;border-top:1px solid #ccc;line-height:1.25}
-.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:0;max-width:62%;margin-left:auto;text-align:right;white-space:nowrap;color:#000;font-size:1.08em;font-weight:900;overflow:visible}
+.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{min-width:0;max-width:none;margin-left:0;text-align:right;white-space:nowrap;color:#000;font-size:11.5px;font-weight:900;overflow:visible}
 
 .pdf-sample{font-size:10px;text-align:center;color:#9b382c;border:1px dashed #ba7b72;padding:6px;margin-bottom:10px;background:#fff7f6}
 .pdf-ledger th,.pdf-ledger td{font-size:8px}
