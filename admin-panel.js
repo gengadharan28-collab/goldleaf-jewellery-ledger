@@ -344,11 +344,20 @@ window.pullCloud=async function(){
     const context=await client.rpc('goldleaf_my_context');if(context.error)throw context.error;
     const previous=goldleafContext;goldleafContext=context.data;
     if(!goldleafContext?.shop_id&&!goldleafContext?.is_super_admin)throw new Error('This login does not have a shop. Contact Super Admin.');
-    if(goldleafContext.is_super_admin){const responses=await Promise.all([client.rpc('goldleaf_admin_list_shops'),client.rpc('goldleaf_admin_list_onboarding'),client.rpc('goldleaf_list_plans')]);for(const response of responses)if(response.error)throw response.error;[goldleafAdminShops,platformInvites,platformPlans]=responses.map(r=>r.data||[]);}
-    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;
+    const needsLedger=goldleafContext.has_access&&(goldleafContext.retail_enabled||goldleafContext.wholesale_enabled);
+    const adminRequests=goldleafContext.is_super_admin
+      ? Promise.all([client.rpc('goldleaf_admin_list_shops'),client.rpc('goldleaf_admin_list_onboarding'),client.rpc('goldleaf_list_plans')])
+      : Promise.resolve(null);
+    const [shared,response,adminResponses]=await Promise.all([
+      client.rpc('goldleaf_get_shared_rates'),
+      needsLedger?client.rpc('goldleaf_read_ledger'):Promise.resolve(null),
+      adminRequests
+    ]);
+    if(adminResponses){for(const result of adminResponses)if(result.error)throw result.error;[goldleafAdminShops,platformInvites,platformPlans]=adminResponses.map(result=>result.data||[]);}
+    if(shared.error)throw shared.error;
     if(shared.data&&Number(shared.data.gold24)>0)try{localStorage.setItem('goldleaf-cached-public-rates',JSON.stringify(shared.data));}catch{}
     if(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled){db.rates=shared.data||{};platformError='';setCloudStatus((goldleafContext.has_access?'Awaiting workspace · ':'Subscription expired · ')+(goldleafContext.shop_name||session.user.email));render();return;}
-    const response=await client.rpc('goldleaf_read_ledger');if(response.error)throw response.error;
+    if(response.error)throw response.error;
     const remote=response.data||{},shop=goldleafContext.shop_id;
     const resetApplied=platformAdoptCloudReset(remote.payload);
     if(platformLedgerShop!==shop){
