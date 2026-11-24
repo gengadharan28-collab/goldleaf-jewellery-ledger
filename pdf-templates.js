@@ -611,7 +611,7 @@ function pdfGrid80Markup(model,c){
   const phone=String(model.entityDetails||'').match(/(?:\+91[\s-]?)?\d{10}/)?.[0]||'';
   const summary=(model.totals||[]).map(([label,value,highlight])=>'<div class="grid80-summary-row '+(highlight?'grid80-highlight':'')+'"><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>').join('');
   const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange">'+model.exchange.map(it=>'<div>'+esc(it.product||'Old gold')+' · '+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%'+(n(it.rate)>0?' · '+pdfMoney(it.rate)+'/g':'')+' <b>'+pdfMoney(it.amount)+'</b></div>').join('')+'</div>':'';
-  const itemsMarkup=rowFields.length?'<table class="grid80-items"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
+  const itemsMarkup=rowFields.length?'<table class="grid80-items grid80-cols-'+rowFields.length+'"><colgroup>'+rowFields.map(key=>'<col style="width:'+((rowWidths[key]||10)/widthTotal*100).toFixed(2)+'%">').join('')+'</colgroup><thead><tr>'+rowFields.map(key=>'<th data-th="'+key+'">'+productFields[key]+'</th>').join('')+'</tr></thead><tbody>'
     +items.map(it=>{
       const activeDetails=detailFields.filter(k=>{
         if(k==='stone')return n(it.stoneWeight)>0;
@@ -1182,7 +1182,7 @@ const PDF_DOCUMENT_CSS=`
 .grid80-meta{border-block:1.5px solid #000;padding:3px 0;margin-bottom:4px;font-size:9.5px;font-weight:800;color:#000;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 .grid80-items{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:3px}
 .grid80-items th{border:1px solid #000;padding:3px 1px;font-size:7.8px;font-weight:900;background:#eaeaea;text-transform:uppercase;color:#000;white-space:nowrap!important;overflow:hidden;line-height:1.15;letter-spacing:-0.2px}
-.grid80-items td{border:1px solid #000;padding:3px 2px;font-size:11.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25}
+.grid80-items td{border:1px solid #000;padding:3px 2px;font-size:11.5px;font-weight:700;color:#000;vertical-align:middle;line-height:1.25;overflow:hidden;text-overflow:ellipsis}
 .grid80-items th:first-child,.grid80-items th[data-th="product"]{text-align:left;padding-left:3px}
 .grid80-items th:not(:first-child){text-align:right;padding-right:3px}
 .grid80-items th[data-th="purity"],.grid80-items th[data-th="pieces"]{text-align:center;padding:3px 1px}
@@ -1192,6 +1192,10 @@ const PDF_DOCUMENT_CSS=`
 .grid80-items td[data-col="wastage"]{text-align:right;padding-right:3px;white-space:nowrap;line-height:1.15;font-size:11.5px}
 .grid80-items td[data-col="wastage"] small{display:block;font-size:8px;font-weight:700;color:#000}
 .grid80-items td[data-col="purity"],.grid80-items td[data-col="pieces"]{text-align:center;white-space:nowrap}
+.grid80-items.grid80-cols-7 th,.grid80-items.grid80-cols-8 th,.grid80-items.grid80-cols-9 th{font-size:5.8px;padding:2px 0;letter-spacing:-.35px}
+.grid80-items.grid80-cols-7 td,.grid80-items.grid80-cols-8 td,.grid80-items.grid80-cols-9 td{font-size:7.2px!important;padding:2.5px .5px!important;letter-spacing:-.15px;line-height:1.15}
+.grid80-items.grid80-cols-7 td[data-col="product"],.grid80-items.grid80-cols-8 td[data-col="product"],.grid80-items.grid80-cols-9 td[data-col="product"]{font-size:7.5px!important;padding-left:1px!important}
+.grid80-items.grid80-cols-7 td[data-col="wastage"] small,.grid80-items.grid80-cols-8 td[data-col="wastage"] small,.grid80-items.grid80-cols-9 td[data-col="wastage"] small{font-size:5.5px!important}
 .grid80-item-end td{border-bottom:2px solid #000}
 .grid80-item-total-row td{border-top:1px dashed #777!important;border-bottom:2px solid #000!important;padding:3px 4px!important;background:#fafafa}
 .grid80-item-total-box{display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box}

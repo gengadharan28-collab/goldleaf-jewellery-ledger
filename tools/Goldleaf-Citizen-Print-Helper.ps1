@@ -35,8 +35,19 @@ public static class GoldleafRawPrinter {
       try {
         if(!StartPagePrinter(h)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         try {
-          int written;
-          if(!WritePrinter(h,data,data.Length,out written) || written!=data.Length) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+          // USB receipt drivers can block indefinitely when a large raster is
+          // handed to WritePrinter in one call.  Feed the spooler in modest
+          // chunks so the CT-D150 can consume the job continuously.
+          const int chunkSize = 16384;
+          int offset = 0;
+          while(offset < data.Length) {
+            int count = Math.Min(chunkSize, data.Length - offset);
+            byte[] chunk = new byte[count];
+            Buffer.BlockCopy(data, offset, chunk, 0, count);
+            int written;
+            if(!WritePrinter(h,chunk,count,out written) || written<=0) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            offset += written;
+          }
         } finally { EndPagePrinter(h); }
       } finally { EndDocPrinter(h); }
     } finally { ClosePrinter(h); }
@@ -50,11 +61,41 @@ function Send-Response {
   $headBytes=[Text.Encoding]::ASCII.GetBytes($head);$Stream.Write($headBytes,0,$headBytes.Length);if($bytes.Length){$Stream.Write($bytes,0,$bytes.Length)};$Stream.Flush()
 }
 function Find-HeaderEnd([byte[]]$Data,[int]$Count){for($i=0;$i -le $Count-4;$i++){if($Data[$i]-eq 13-and$Data[$i+1]-eq 10-and$Data[$i+2]-eq 13-and$Data[$i+3]-eq 10){return $i}};return -1}
+function Print-WithCitizenDriver($Printer,$Image){
+  $doc=New-Object Drawing.Printing.PrintDocument
+  try{
+    $doc.PrinterSettings.PrinterName=$Printer
+    if(-not $doc.PrinterSettings.IsValid){throw "Printer not available: $Printer"}
+    $doc.PrintController=New-Object Drawing.Printing.StandardPrintController
+    # PaperSize uses 1/100 inch. Keep the 68 mm raster centred on 80 mm
+    # media and make the page only as tall as its actual receipt content.
+    $paperWidth=315
+    $imageWidth=268
+    $imageHeight=[Math]::Max(1,[int][Math]::Ceiling($Image.Height*($imageWidth/[double]$Image.Width)))
+    $paperHeight=$imageHeight+8
+    $doc.DefaultPageSettings.PaperSize=New-Object Drawing.Printing.PaperSize('Goldleaf 80mm Receipt',$paperWidth,$paperHeight)
+    $doc.DefaultPageSettings.Margins=New-Object Drawing.Printing.Margins(0,0,0,0)
+    $doc.OriginAtMargins=$false
+    $left=[int][Math]::Floor(($paperWidth-$imageWidth)/2)
+    $handler=[Drawing.Printing.PrintPageEventHandler]{param($sender,$e)
+      $e.Graphics.DrawImage($Image,$left,0,$imageWidth,$imageHeight)
+      $e.HasMorePages=$false
+    }.GetNewClosure()
+    $doc.add_PrintPage($handler)
+    try{$doc.Print()}finally{$doc.remove_PrintPage($handler)}
+    return @{ok=$true;printer=$Printer;width=$paperWidth;height=$paperHeight;mode='Citizen Windows driver'}
+  }finally{$doc.Dispose()}
+}
 function Print-Receipt($Payload){
   $printer=[string]$Payload.printer;if([string]::IsNullOrWhiteSpace($printer)){$printer='CITIZEN CT-D150'}
   $encoded=[string]$Payload.imageDataUrl;if($encoded -notmatch '^data:image/png;base64,'){throw 'Invalid receipt image'}
   $raw=[Convert]::FromBase64String(($encoded-replace'^data:image/png;base64,',''));$ms=New-Object IO.MemoryStream(,$raw);$image=[Drawing.Image]::FromStream($ms)
   try{
+    # Prefer the installed Citizen driver. Unlike the browser's fixed 279 mm
+    # page, this supplies the exact content height and returns without the RAW
+    # USB spooler deadlock seen on some CT-D150 installations.
+    return Print-WithCitizenDriver $printer $image
+    <# Legacy ESC/POS fallback retained below for older installations.
     $dotWidth=512
     $dotHeight=[Math]::Max(1,[int][Math]::Ceiling($image.Height*($dotWidth/[double]$image.Width)))
     $bmp=New-Object Drawing.Bitmap($dotWidth,$dotHeight,[Drawing.Imaging.PixelFormat]::Format24bppRgb)
@@ -88,6 +129,7 @@ function Print-Receipt($Payload){
       [GoldleafRawPrinter]::Send($printer,$bytes.ToArray())
     }finally{$bmp.Dispose()}
     return @{ok=$true;printer=$printer;widthDots=$dotWidth;heightDots=$dotHeight;mode='ESC-POS raw'}
+    #>
   }finally{$image.Dispose();$ms.Dispose()}
 }
 
