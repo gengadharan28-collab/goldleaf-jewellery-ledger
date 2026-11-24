@@ -4,6 +4,9 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -TypeDefinition @"
 using System;
+using System.IO;
+using System.Drawing;
+using System.Drawing.Printing;
 using System.Runtime.InteropServices;
 public static class GoldleafRawPrinter {
   [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
@@ -53,7 +56,91 @@ public static class GoldleafRawPrinter {
     } finally { ClosePrinter(h); }
   }
 }
-"@
+public static class GoldleafDriverPrinter {
+  public static void PrintPng(string printer, byte[] png) {
+    using(var ms=new MemoryStream(png))
+    using(var source=Image.FromStream(ms))
+    using(var image=new Bitmap(source))
+    using(var doc=new PrintDocument()) {
+      doc.PrinterSettings.PrinterName=printer;
+      if(!doc.PrinterSettings.IsValid) throw new InvalidOperationException("Printer not available: "+printer);
+      doc.PrintController=new StandardPrintController();
+      const int paperWidth=283; // 72 mm CT-D150 imageable width
+      const int imageWidth=268; // 68 mm receipt raster, centred
+      int imageHeight=Math.Max(1,(int)Math.Ceiling(image.Height*(imageWidth/(double)image.Width)));
+      int paperHeight=imageHeight+8; // about 2 mm total top/bottom clearance
+      doc.DefaultPageSettings.PaperSize=new PaperSize("Goldleaf Receipt",paperWidth,paperHeight);
+      doc.DefaultPageSettings.Margins=new Margins(0,0,0,0);
+      doc.OriginAtMargins=false;
+      int left=(paperWidth-imageWidth)/2;
+      doc.PrintPage+=(sender,e)=>{
+        e.Graphics.DrawImage(image,left,0,imageWidth,imageHeight);
+        e.HasMorePages=false;
+      };
+      doc.Print();
+    }
+  }
+}
+"@ -ReferencedAssemblies 'System.Drawing.dll','System.Windows.Forms.dll'
+Add-Type -AssemblyName WindowsBase,PresentationCore,PresentationFramework,ReachFramework,System.Printing,System.Xaml
+$xpsRefs=@(
+  [System.Windows.Point].Assembly.Location,
+  [System.Windows.Media.Imaging.BitmapImage].Assembly.Location,
+  [System.Windows.Controls.Image].Assembly.Location,
+  [System.Windows.Xps.XpsDocumentWriter].Assembly.Location,
+  [System.Printing.PrintQueue].Assembly.Location,
+  [System.Printing.PrintTicket].Assembly.Location,
+  [System.Xaml.XamlReader].Assembly.Location
+)
+Add-Type -TypeDefinition @"
+using System;
+using System.IO;
+using System.Printing;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Markup;
+using System.Windows.Media.Imaging;
+using System.Windows.Xps;
+public static class GoldleafExactReceiptPrinter {
+  public static void PrintPng(string printer, byte[] png) {
+    const double dipPerMm=96.0/25.4;
+    const double paperWidth=72.0*dipPerMm;
+    const double imageWidth=68.0*dipPerMm;
+    BitmapImage bitmap=new BitmapImage();
+    using(var stream=new MemoryStream(png)) {
+      bitmap.BeginInit();
+      bitmap.CacheOption=BitmapCacheOption.OnLoad;
+      bitmap.StreamSource=stream;
+      bitmap.EndInit();
+      bitmap.Freeze();
+    }
+    double imageHeight=Math.Max(1,bitmap.PixelHeight*(imageWidth/bitmap.PixelWidth));
+    double paperHeight=imageHeight+(2.0*dipPerMm);
+    FixedPage page=new FixedPage { Width=paperWidth, Height=paperHeight };
+    Image image=new Image { Source=bitmap, Width=imageWidth, Height=imageHeight, Stretch=System.Windows.Media.Stretch.Fill };
+    FixedPage.SetLeft(image,(paperWidth-imageWidth)/2.0);
+    FixedPage.SetTop(image,0);
+    page.Children.Add(image);
+    page.Measure(new Size(paperWidth,paperHeight));
+    page.Arrange(new Rect(new Point(),new Size(paperWidth,paperHeight)));
+    page.UpdateLayout();
+    PageContent content=new PageContent();
+    ((IAddChild)content).AddChild(page);
+    FixedDocument document=new FixedDocument();
+    document.DocumentPaginator.PageSize=new Size(paperWidth,paperHeight);
+    document.Pages.Add(content);
+    using(LocalPrintServer server=new LocalPrintServer())
+    using(PrintQueue queue=server.GetPrintQueue(printer)) {
+      PrintTicket ticket=queue.DefaultPrintTicket.Clone();
+      ticket.PageMediaSize=new PageMediaSize(paperWidth,paperHeight);
+      ticket.PageOrientation=PageOrientation.Portrait;
+      XpsDocumentWriter writer=PrintQueue.CreateXpsDocumentWriter(queue);
+      writer.Write(document.DocumentPaginator,ticket);
+    }
+  }
+}
+"@ -ReferencedAssemblies $xpsRefs
 function Send-Response {
   param($Stream,[int]$Status=200,[string]$Body='{"ok":true}',[string]$Type='application/json')
   $reason=if($Status -eq 200){'OK'}else{'Error'};$bytes=[Text.Encoding]::UTF8.GetBytes($Body);$crlf=[string][char]13+[char]10
@@ -69,11 +156,18 @@ function Print-WithCitizenDriver($Printer,$Image){
     $doc.PrintController=New-Object Drawing.Printing.StandardPrintController
     # PaperSize uses 1/100 inch. Keep the 68 mm raster centred on 80 mm
     # media and make the page only as tall as its actual receipt content.
-    $paperWidth=315
+    # The CT-D150 exposes 72.07 mm as its maximum imageable/custom width,
+    # even though the physical roll is 80 mm.  283 hundredths inch is 72 mm.
+    $paperWidth=283
     $imageWidth=268
     $imageHeight=[Math]::Max(1,[int][Math]::Ceiling($Image.Height*($imageWidth/[double]$Image.Width)))
-    $paperHeight=$imageHeight+8
-    $doc.DefaultPageSettings.PaperSize=New-Object Drawing.Printing.PaperSize('Goldleaf 80mm Receipt',$paperWidth,$paperHeight)
+    # This driver blocks on ad-hoc GDI paper forms despite advertising custom
+    # media. Use its own shortest 72 mm roll form, which is also what the
+    # successful Windows test page uses.
+    $paper=$doc.PrinterSettings.PaperSizes | Where-Object {$_.PaperName -eq '80(72) x 279mm'} | Select-Object -First 1
+    if(-not $paper){throw 'Citizen 80(72) x 279mm paper form is unavailable'}
+    $paperHeight=$paper.Height
+    $doc.DefaultPageSettings.PaperSize=$paper
     $doc.DefaultPageSettings.Margins=New-Object Drawing.Printing.Margins(0,0,0,0)
     $doc.OriginAtMargins=$false
     $left=[int][Math]::Floor(($paperWidth-$imageWidth)/2)
@@ -91,11 +185,11 @@ function Print-Receipt($Payload){
   $encoded=[string]$Payload.imageDataUrl;if($encoded -notmatch '^data:image/png;base64,'){throw 'Invalid receipt image'}
   $raw=[Convert]::FromBase64String(($encoded-replace'^data:image/png;base64,',''));$ms=New-Object IO.MemoryStream(,$raw);$image=[Drawing.Image]::FromStream($ms)
   try{
-    # Prefer the installed Citizen driver. Unlike the browser's fixed 279 mm
-    # page, this supplies the exact content height and returns without the RAW
-    # USB spooler deadlock seen on some CT-D150 installations.
-    return Print-WithCitizenDriver $printer $image
-    <# Legacy ESC/POS fallback retained below for older installations.
+    # Run the print callback inside compiled code. A PowerShell event callback
+    # can deadlock the hidden helper runspace even when the driver is healthy.
+    [GoldleafExactReceiptPrinter]::PrintPng($printer,$raw)
+    return @{ok=$true;printer=$printer;width='72mm';height='content';mode='Citizen exact-height XPS'}
+    <# Legacy ESC/POS fallback retained for older installations.
     $dotWidth=512
     $dotHeight=[Math]::Max(1,[int][Math]::Ceiling($image.Height*($dotWidth/[double]$image.Width)))
     $bmp=New-Object Drawing.Bitmap($dotWidth,$dotHeight,[Drawing.Imaging.PixelFormat]::Format24bppRgb)
