@@ -1443,6 +1443,7 @@ function rcQuoteForm(){
     // Mobile Horizontal Pills Row (matches mockup 1 Single-Row POS Strip)
     +'<div class="rc-pos-pills-bar">'
     +'<button type="button" id="rcPill_oldgold" class="rc-pos-pill '+(hasOldGold?'has-value':'')+'" onclick="rcTogglePosDrawer(\'oldgold\')">'+(oldGoldCredit>0?'🪙 Old Gold ('+rateMoney(oldGoldCredit)+') ▾':'+ Old Gold ▾')+'</button>'
+    +'<button type="button" class="rc-pos-pill" onclick="rcOpen(\'Sales Return\')">＋ Sales Return</button>'
     +'<button type="button" id="rcPill_chit" class="rc-pos-pill '+(q?.chitMappingId?'has-value':'')+'" onclick="rcTogglePosDrawer(\'chit\')">'+(q?.chitMappingId?'✓ Chit':'+ Chit')+'</button>'
     +'<button type="button" id="rcPill_gst" class="rc-pos-pill rc-gst-pill '+(quoteGstOn?'active':'')+'" onclick="rcToggleQuoteGST()" aria-pressed="'+quoteGstOn+'"><span>GST '+quoteGstRate+'%</span><span class="rc-gst-toggle-track" aria-hidden="true"><i></i></span></button>'
     +'<button type="button" id="rcPill_advance" class="rc-pos-pill active" onclick="rcFocusAdvance()">💰 Advance</button>'
@@ -1476,6 +1477,7 @@ function rcQuoteForm(){
     +'<span id="rcOldGoldChevron" class="rc-old-gold-chevron">'+(hasOldGold?'▲':'▼')+'</span>'
     +'</div>'
     +'</button>'
+    +'<div class="rc-pos-desktop-head"><button type="button" class="exchange-toggle" onclick="rcOpen(\'Sales Return\')">＋ Sales Return</button></div>'
     +'<div id="rcOldGoldDropdown" class="rc-old-gold-dropdown '+(hasOldGold?'':'hidden')+'">'
     +'<div class="rc-old-gold-dropdown-head">'
     +'<div><span style="font-size:12px;font-weight:800;color:#92400e">Old Gold Exchange Details</span><small style="display:block;color:#b45309;font-size:11px">Net Wt = Weight − Less · Rate = Pure Rate (Rate Book) × Touch(%) ÷ 100 · Amount = Net Wt × Rate</small></div>'
