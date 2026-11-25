@@ -41,6 +41,7 @@
     save(); pushCloud(); return row;
   };
   const delDoc = (type, id) => {
+    if(type==='crm-voucher'&&rbCustomerSales().some(sale=>sale.giftVoucherId===id))return say('This voucher is linked to a saved sales bill.');
     if(window.rcDeleteDoc) return window.rcDeleteDoc(type, id);
     db.retailDocuments = (db.retailDocuments||[]).filter(x=>x.id!==id);
     save(); pushCloud();
@@ -815,7 +816,7 @@
       }
     }
     else if(rcoState.crmTab === 'Gift Voucher'){
-      const list = docs('crm-voucher');
+      const list = docs('crm-voucher').map(row=>({...row,isRedeemed:row.isRedeemed||rbCustomerSales().some(sale=>sale.giftVoucherId===row.id)}));
       if(rcoState.crmShowForm){
         body = '<section class="rco-section-card"><h3>Create Gift Vouchers <button type="button" onclick="rcoCloseCrmForm()">← Back</button></h3><form onsubmit="rcoSaveVoucher(event)"><div class="rco-grid">'
           + '<label class="rco-field"><span>Name *</span><input name="name" required placeholder="e.g. Diwali Gift"></label>'
@@ -844,7 +845,7 @@
       + '<section class="panel">' + body + '</section>';
   }
   window.rcoDelCrm = (t, id) => { if(confirm('Delete record?')){ delDoc(t, id); render(); } };
-  window.rcoToggleVoucher = (id) => { const v = docs('crm-voucher').find(x=>x.id===id); if(v){ v.isRedeemed=!v.isRedeemed; saveDoc('crm-voucher', v); render(); } };
+  window.rcoToggleVoucher = (id) => { if(rbCustomerSales().some(sale=>sale.giftVoucherId===id))return say('This voucher is linked to a saved sales bill.'); const v = docs('crm-voucher').find(x=>x.id===id); if(v){ v.isRedeemed=!v.isRedeemed; saveDoc('crm-voucher', v); render(); } };
 
   // ======================== 3. RETAIL CUSTOMER REGISTRATION & 360 VIEW ========================
   window.rcoAddFamilyRow = () => {
