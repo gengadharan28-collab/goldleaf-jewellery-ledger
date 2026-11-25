@@ -651,13 +651,22 @@ window.rbOpenReturnPanel=function(button){
   section.id='glSalesReturnPanel';
   section.className='panel rb-screen';
   section.setAttribute('aria-label','Sales Return');
-  section.style.cssText='margin:8px 0;width:100%;min-width:0';
+  section.style.cssText='margin:6px 0;width:min(100%,540px);min-width:0;padding:8px;box-sizing:border-box';
   section.returnTrigger=button;
   section.close=()=>{
     button.setAttribute('aria-expanded','false');
     section.remove();
   };
-  section.innerHTML=rbRecordView(true);
+  section.innerHTML=`<style>
+    #glSalesReturnPanel .rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
+    #glSalesReturnPanel .rb-field{min-width:0;margin:0;gap:2px}
+    #glSalesReturnPanel .rb-field>span{font-size:11px;line-height:1.25}
+    #glSalesReturnPanel input,#glSalesReturnPanel select{width:100%;min-width:0;min-height:34px;height:34px;padding:4px 6px;font-size:13px;box-sizing:border-box}
+    #glSalesReturnPanel .rb-wide{grid-column:1/-1}
+    #glSalesReturnPanel .right{margin-top:6px}
+    #glSalesReturnPanel .right button{min-height:34px;padding:4px 10px;font-size:13px}
+    @media(max-width:340px){#glSalesReturnPanel .rb-record-grid{grid-template-columns:minmax(0,1fr)}}
+  </style>`+rbRecordView(true);
   const returnForm=section.querySelector('form');
   returnForm.addEventListener('submit',event=>event.stopPropagation());
   for(const type of ['input','change'])section.addEventListener(type,event=>event.stopPropagation());
