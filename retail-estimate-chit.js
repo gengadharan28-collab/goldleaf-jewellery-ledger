@@ -1289,7 +1289,7 @@ function rcQuoteForm(){
         quoteSubtotal = rbRound(initBill.rows.reduce((sum,row)=>sum+n(row.rawSubtotal ?? row.subtotal),0)),
         quoteTaxable = initBill.taxableValue,
         quoteGst = initBill.gstAmount,
-        quotePurchaseValue = initBill.saleBeforeRound,
+        quotePurchaseValue = initBill.saleWithGST,
         quoteFinalVal = initBill.amount;
 
   let collections = [];
@@ -1732,13 +1732,15 @@ function rcEstimateRead(form){
     chitTotalBenefit: billCalc.chitTotalBenefit,
     items: items,
     discount: discount,
+    discountOnNet: true,
+    discountBase: billCalc.discountBase,
     discountMode: 'amount',
     gstEnabled: gstOn,
     gstRate: gstRate,
     subtotal: billCalc.subtotal,
     taxableValue: billCalc.taxableValue,
     gstAmount: billCalc.gstAmount,
-    purchaseValue: billCalc.saleBeforeRound,
+    purchaseValue: billCalc.saleWithGST,
     exchangeItems: ogData.items,
     exchangeType: ogData.items[0]?.type || String(f.exchangeType?.value || 'Old Gold'),
     exchangeProduct: ogData.combinedProduct,
@@ -1776,8 +1778,8 @@ window.rcSaveEstimate = function(e){
   })){
     return say('Complete the customer and each item, including product, positive net weight, and rate.');
   }
-  if(d.discount > d.items.reduce((s,x)=>s+x.subtotal,0)){
-    return say('Discount cannot exceed the item total.');
+  if(d.discount < 0 || d.discount > d.discountBase + .001){
+    return say('Discount cannot exceed net payable before discount.');
   }
   if(f.elements.id.value && !confirm('Save changes to this quotation?')) return;
   const i = db.retailDocuments.findIndex(x=>x.id===d.id);
@@ -1805,6 +1807,7 @@ function rcQuoteModel(q){
         ogLabel = ogItems.length > 0 ? ogItems.map(x => x.product || 'Old Gold').join(', ') : (q.exchangeProduct || 'Gold'),
         bill = rbBillCalc(items, {
           discountValue: n(q.discount),
+          discountOnNet: q.discountOnNet === true,
           discountMode: 'amount',
           gstEnabled: !!q.gstEnabled,
           gstRate: q.gstEnabled ? n(q.gstRate||3) : 0,
@@ -1823,7 +1826,7 @@ function rcQuoteModel(q){
     ['Items total', rateMoney(bill.subtotal)],
     ...(bill.discount > 0 ? [['Discount', '− ' + rateMoney(bill.discount)]] : []),
     ...(bill.gstEnabled ? [['GST ' + (bill.gstRate) + '%', rateMoney(bill.gstAmount)]] : []),
-    ['Purchase value', rateMoney(bill.saleBeforeRound)],
+    ['Purchase value', rateMoney(bill.saleWithGST)],
     ...(bill.exchangeAmount > 0 ? [['Old gold exchange (' + ogLabel + ')', '− ' + rateMoney(bill.exchangeAmount)]] : []),
     ...(bill.chitAmount > 0 ? [['Chit deduction' + (bill.chitNumber ? ' (' + bill.chitNumber + ')' : ''), '− ' + rateMoney(bill.chitAmount)]] : []),
     ['NET ESTIMATE PAYABLE', rateMoney(bill.amount), true],
@@ -2790,7 +2793,7 @@ function rcRecalc(){
   const elGST = document.getElementById('rcGST');
   if(elGST) elGST.textContent = rateMoney(bill.gstAmount);
   const elPurchValSummary = document.getElementById('rcPurchaseVal');
-  if(elPurchValSummary) elPurchValSummary.textContent = rateMoney(bill.saleBeforeRound);
+  if(elPurchValSummary) elPurchValSummary.textContent = rateMoney(bill.saleWithGST);
   const elGold = document.getElementById('rcOldGold');
   if(elGold) elGold.textContent = bill.exchangeAmount > 0 ? '− ' + rateMoney(bill.exchangeAmount) : rateMoney(0);
   const elChitWrap = document.getElementById('rcChitCreditWrap');
@@ -2820,7 +2823,7 @@ function rcRecalc(){
 
   // Old Gold Banner in Payment Received Card
   const elPurchVal = document.getElementById('rcPosPurchVal');
-  if(elPurchVal) elPurchVal.textContent = rateMoney(bill.saleBeforeRound);
+  if(elPurchVal) elPurchVal.textContent = rateMoney(bill.saleWithGST);
   const elOGVal = document.getElementById('rcPosOGVal');
   if(elOGVal) elOGVal.textContent = rateMoney(bill.exchangeAmount);
   const elOGValMain = document.getElementById('rcPosOldGoldVal');
