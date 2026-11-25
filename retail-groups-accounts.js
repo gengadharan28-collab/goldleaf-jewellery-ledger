@@ -532,6 +532,59 @@
     return lines;
   }
 
+
+  function rgaMetalLines(metal,asOf){
+    const ledgers=retailLedgers(),byId=new Map(ledgers.map(ledger=>[ledger.id,ledger]));
+    const totals=new Map();
+    function add(ledger,debit,credit){
+      const row=totals.get(ledger.id)||{name:ledger.name,group:ledger.parentGroup,debit:0,credit:0};
+      row.debit+=Math.round(n(debit)*1000);
+      row.credit+=Math.round(n(credit)*1000);
+      totals.set(ledger.id,row);
+    }
+    for(const ledger of ledgers){
+      if(!ledger.pureWeight||String(ledger.ornamentsType).toLowerCase()!==metal.toLowerCase())continue;
+      if(ledger.openingEffectiveDate&&ledger.openingEffectiveDate>asOf)continue;
+      const weight=Math.abs(n(ledger.pureWeight));
+      const credit=(ledger.pureSide==='CR')!==(n(ledger.pureWeight)<0);
+      add(ledger,credit?0:weight,credit?weight:0);
+    }
+    for(const voucher of docs(postingKind)){
+      if(voucher.measure!==metal+' weight'||voucher.date>asOf)continue;
+      for(const line of voucher.lines||[]){
+        const ledger=byId.get(line.ledgerId);
+        if(ledger)add(ledger,line.debit,line.credit);
+      }
+    }
+    return [...totals.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  }
+
+  const metalHeads=['Ledger','Parent group','Debit g','Credit g','Balance g'];
+  function rgaMetalReport(){
+    const metal=rgaState.metalReportType||'Gold';
+    const asOf=rgaState.metalReportAsOf||rbNow().slice(0,10);
+    const lines=rgaMetalLines(metal,asOf);
+    const grams=value=>fmt(value/1000);
+    const rows=lines.map(line=>[line.name,line.group,grams(line.debit),grams(line.credit),grams(line.debit-line.credit)]);
+    const debit=lines.reduce((sum,line)=>sum+line.debit,0),credit=lines.reduce((sum,line)=>sum+line.credit,0);
+    return {metal,asOf,rows,total:['TOTAL','',grams(debit),grams(credit),grams(debit-credit)]};
+  }
+  function rgaMetalReportView(){
+    const report=rgaMetalReport();
+    return '<div class="rco-toolbar">'
+      +postingField('Metal','<select onchange="rgaState.metalReportType=this.value;render()">'+opts(['Gold','Silver'],report.metal)+'</select>')
+      +postingField('As of','<input type="date" value="'+esc(report.asOf)+'" onchange="rgaState.metalReportAsOf=this.value;render()">')
+      +'<button type="button" onclick="rgaPrintMetalReport()">Print PDF</button></div>'
+      +(report.rows.length?table(metalHeads,[...report.rows.map(row=>row.map(esc)),report.total]):'<p class="muted">No opening weight or journal entries for this metal and date.</p>');
+  }
+  window.rgaPrintMetalReport=()=>{
+    const report=rgaMetalReport();
+    pdfPrintModel({kind:'ledger',retail:true,title:report.metal+' Metal Ledger',entityLabel:'Shop',
+      entityName:db.shopName||goldleafContext?.shop_name||'Goldleaf Jewellery',reference:'Metal Ledger',date:report.asOf,
+      heads:metalHeads,rows:report.rows,totals:[['Debit',report.total[2]+' g'],['Credit',report.total[3]+' g'],['Balance',report.total[4]+' g']]
+    },'retail','classic');
+  };
+
   function rgaReportsView(){
     const lines = rgaComputeAccountLines();
     const groupRollup = {};
@@ -589,6 +642,9 @@
         + '<section class="rco-section-card"><h3>Income (Cr)</h3>'+table(['Group','Amount ₹'], [...incGroups.map(g=>[esc(g.name), rateMoney(g.credit-g.debit)]), ['<b>TOTAL INCOME</b>','<b>'+rateMoney(totInc)+'</b>']])+'</section>'
         + '</div>';
     }
+    else if(rgaState.repTab === 'Metal Ledger'){
+      body=rgaMetalReportView();
+    }
     else if(rgaState.repTab === 'By Ledger Group'){
       const filtered = groups.filter(g=>(!rgaState.repPayGroup || g.name===rgaState.repPayGroup));
       let rowsHtml = '';
@@ -635,7 +691,7 @@
       }
     }
 
-    return '<div class="rco-tabs">' + ['Trial Balance','Balance Sheet','Profit & Loss','By Ledger Group','By Product Group'].map(t=>'<button type="button" class="'+(rgaState.repTab===t?'active':'')+'" onclick="rgaState.repTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>' + body;
+    return '<div class="rco-tabs">' + ['Trial Balance','Balance Sheet','Profit & Loss','By Ledger Group','By Product Group','Metal Ledger'].map(t=>'<button type="button" class="'+(rgaState.repTab===t?'active':'')+'" onclick="rgaState.repTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>' + body;
   }
 
   window.rgaPrintReport = (title) => {
