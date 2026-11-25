@@ -13,7 +13,12 @@
     layout: 'Classic',
     gstr3bView: 'Horizontal',
     bookMode: 'Detailed View',
-    daybookTab: 'Transactions',
+    daybookTab: 'V1',
+    daybookVch: 'All',
+    overallStockMode: 'Tag vs Non-Tag',
+    gstrMissingHsn: false,
+    topChart: false,
+    orderFilter: 'All',
     topDim: 'Product Group',
     payLedgerView: 'Summary',
     supPayView: 'Summary',
@@ -96,7 +101,11 @@
     'Ledger': 'Ledger Report',
     'Customer Inactive': 'Customer Inactive Report',
     'Summary Report': 'Sale Bill Summary Matrix',
-    'Top Sales Report (Centralized)': 'Top Sales (Centralized)'
+    'Top Sales Report (Centralized)': 'Top Sales (Centralized)',
+    'DayBook Report (V1)': 'DayBook Report',
+    'DayBook Report V2 (Close/Open)': 'DayBook Report',
+    'DayBook Report V3 (By Voucher)': 'DayBook Report',
+    'DayBook Report V4 (By Ledger)': 'DayBook Report'
   };
 
   window.rarOpen = (name, optDim) => {
@@ -104,8 +113,14 @@
     window.tradeReportActive = false;
     const canonical = RAR_NAME_ALIASES[name] || name;
     rarState.active = canonical;
-    if(optDim) rarState.topDim = optDim;
-    if(canonical==='DayBook Report') rarState.daybookTab='Transactions';
+    if(optDim){
+      if(['V1','V2','V3','V4','Abstract'].includes(optDim)) rarState.daybookTab = optDim;
+      else rarState.topDim = optDim;
+    }
+    if(name==='DayBook Report' || name==='DayBook Report (V1)') rarState.daybookTab='V1';
+    if(name==='DayBook Report V2 (Close/Open)') rarState.daybookTab='V2';
+    if(name==='DayBook Report V3 (By Voucher)') rarState.daybookTab='V3';
+    if(name==='DayBook Report V4 (By Ledger)') rarState.daybookTab='V4';
     if(canonical==='DayBook Abstract') rarState.daybookTab='Abstract';
     render();
   };
@@ -291,12 +306,17 @@
       const b2b = sales.filter(s=>!!getCust(s.partyId).gst);
       const b2cLarge = sales.filter(s=>!getCust(s.partyId).gst && n(s.amount)>250000);
       const b2cSmall = sales.filter(s=>!getCust(s.partyId).gst && n(s.amount)<=250000);
+      const missingHsnRows = [];
+      sales.forEach(s => saleItemsOf(s).forEach(it => {
+        if(!it.hsn) missingHsnRows.push([esc(dayOf(s.when||s.createdAt)), '<b>'+esc(s.documentNo||s.id.slice(0,8))+'</b>', esc(getCust(s.partyId).name||'Customer'), esc(it.product||'Jewellery'), fmt(it.netWeight||it.weight)+' g', rateMoney(it.subtotal||s.amount), '<span class="rco-badge rco-badge-wait">Default 7113 Applied</span>']);
+      }));
       const sumBucket = (arr) => ({
         cnt: arr.length,
         taxable: arr.reduce((a,s)=>a+Math.max(0,n(s.amount)-n(s.gstAmount)),0),
         cgst: arr.reduce((a,s)=>a+n(s.gstAmount)/2,0),
         sgst: arr.reduce((a,s)=>a+n(s.gstAmount)/2,0),
         igst: arr.reduce((a,s)=>a+(s.gstMode==='igst'?n(s.gstAmount):0),0),
+        cess: arr.reduce((a,s)=>a+n(s.cessAmount||0),0),
         tot: arr.reduce((a,s)=>a+n(s.amount),0)
       });
       const retTax = returns.reduce((a,r)=>a+(n(r.amount)-n(r.amount)/1.03),0);
@@ -305,14 +325,18 @@
         ['4A, 4B, 4C, 6B, 6C - B2B Invoices', sumBucket(b2b)],
         ['5A, 5B - B2C (Large) Invoices (> ₹2.5L)', sumBucket(b2cLarge)],
         ['7 - B2C (Small) Invoices (≤ ₹2.5L)', sumBucket(b2cSmall)],
-        ['9B - Credit / Debit Notes (Sales Returns)', { cnt: returns.length, taxable: Math.max(0,retTot-retTax), cgst: retTax/2, sgst: retTax/2, igst:0, tot: retTot }]
+        ['9B - Credit / Debit Notes (Sales Returns)', { cnt: returns.length, taxable: Math.max(0,retTot-retTax), cgst: retTax/2, sgst: retTax/2, igst:0, cess:0, tot: retTot }]
       ];
       const allB = sumBucket(sales);
-      subToolbar = '<button type="button" class="primary" onclick="rarDownloadGstr1Json()">⬇ Download GSTR1 JSON</button> <button type="button" onclick="rarOpen(\'GSTR1 JSON Report\')">View JSON</button>';
-      content = rarTable(['Section','Vouchers','Taxable Value ₹','CGST ₹','SGST ₹','IGST ₹','Total Invoice ₹'], [
-        ...rows.map(([lbl,b])=>['<b>'+esc(lbl)+'</b>', b.cnt, rateMoney(b.taxable), rateMoney(b.cgst), rateMoney(b.sgst), rateMoney(b.igst), '<b>'+rateMoney(b.tot)+'</b>']),
-        ['<b>Net Outward Liability (Sales − Returns)</b>', sales.length+returns.length, rateMoney(allB.taxable-Math.max(0,retTot-retTax)), rateMoney(allB.cgst-retTax/2), rateMoney(allB.sgst-retTax/2), rateMoney(allB.igst), '<b>'+rateMoney(allB.tot-retTot)+'</b>']
-      ]);
+      subToolbar = '<button type="button" class="'+(rarState.gstrMissingHsn?'primary':'')+'" onclick="rarState.gstrMissingHsn=!rarState.gstrMissingHsn;render()">Missing HSN ('+missingHsnRows.length+')</button> <button type="button" class="primary" onclick="rarDownloadGstr1Json()">⬇ Download GSTR1 JSON</button> <button type="button" onclick="rarOpen(\'GSTR1 JSON Report\')">View JSON</button>';
+      if(rarState.gstrMissingHsn){
+        content = missingHsnRows.length ? rarTable(['Date','Bill No','Customer','Item / Product','Net Wt g','Amount ₹','HSN Audit Status'], missingHsnRows) : rarTable(['HSN Audit Status','Checked Invoices','Result'], [['<b>All Sales Invoices</b>', sales.length, '<span class="rco-badge rco-badge-open">100% HSN Populated</span>']]);
+      } else {
+        content = rarTable(['Section','Vouchers','Taxable Value ₹','CGST ₹','SGST ₹','IGST ₹','Cess ₹','Total Tax ₹','Total Invoice ₹'], [
+          ...rows.map(([lbl,b])=>['<b>'+esc(lbl)+'</b>', b.cnt, rateMoney(b.taxable), rateMoney(b.cgst), rateMoney(b.sgst), rateMoney(b.igst), rateMoney(b.cess||0), rateMoney(b.cgst+b.sgst+b.igst), '<b>'+rateMoney(b.tot)+'</b>']),
+          ['<b>Net Outward Liability (Sales − Returns)</b>', sales.length+returns.length, rateMoney(allB.taxable-Math.max(0,retTot-retTax)), rateMoney(allB.cgst-retTax/2), rateMoney(allB.sgst-retTax/2), rateMoney(allB.igst), rateMoney(0), rateMoney(allB.cgst+allB.sgst+allB.igst-retTax), '<b>'+rateMoney(allB.tot-retTot)+'</b>']
+        ]);
+      }
     }
     else if(name === 'GSTR1 All Invoice Report' || name === 'GSTR1 B2B & B2C Invoices' || name === 'GSTR1 B2B Invoices' || name === 'GSTR1 B2C Large Invoices'){
       const onlyB2B = name === 'GSTR1 B2B Invoices';
@@ -529,45 +553,193 @@
     // 2. ACCOUNTS, BOOKS, PAYMENTS, OUTSTANDING, ADVANCE, EXPENSE, FINANCIALS
     // =========================================================================
     else if(name === 'DayBook Report' || name === 'DayBook Abstract'){
-      const ledgers=new Map(ledgersList.map(row=>[row.id,row.name]));
-      const entries=[];
-      const add=(date,no,type,ledger,notes,dr,cr,wd=0,wc=0)=>{
-        const day=dayOf(date);
-        if(day&&inRange(day))entries.push({day,no,type,ledger,notes,dr:n(dr),cr:n(cr),wd:n(wd),wc:n(wc)});
+      const ledgersMap = new Map(ledgersList.map(row=>[row.id,row]));
+      const allLoans = typeof window.glAllJewelLoans === 'function' ? window.glAllJewelLoans() : docs('retail-jewel-loan-draft');
+      const allInts = typeof window.glJewelLoanInterests === 'function' ? window.glJewelLoanInterests() : docs('retail-jewel-loan-interest');
+      const allReds = typeof window.glJewelLoanRedemptions === 'function' ? window.glJewelLoanRedemptions() : docs('retail-jewel-loan-redemption');
+      const entries = [];
+      const add = (date, no, type, ledger, group, notes, dr, cr, wd=0, wc=0, mod='') => {
+        const day = dayOf(date);
+        if(!day || !inRange(day)) return;
+        const lName = ledger || 'Walk-in / Showroom';
+        const gName = group || 'General';
+        if(rarState.parentGroup && gName !== rarState.parentGroup) return;
+        if(rarState.ledgerId && lName !== rarState.ledgerId) return;
+        if(rarState.daybookVch && rarState.daybookVch !== 'All' && type !== rarState.daybookVch) return;
+        entries.push({ day, no: String(no||'—').slice(0,18), type, ledger: lName, group: gName, notes: notes||type, dr: n(dr), cr: n(cr), wd: n(wd), wc: n(wc), mod: mod||type });
       };
-      for(const row of sales)add(row.when||row.createdAt,row.documentNo||row.id,'Sales Bill',getCust(row.partyId).name,row.product||'Jewellery Sale',row.amount,0,row.weight);
-      for(const row of returns)add(row.when||row.date||row.createdAt,row.documentNo||row.reference||row.id,'Sales Return',getCust(row.partyId).name,row.product||'Sales Return',0,row.amount,0,row.returnWeight||row.weight);
-      for(const row of pays)add(row.when||row.date||row.createdAt,row.documentNo||row.reference||row.id,'Receipt ('+(row.retailKind||'cash')+')',getCust(row.partyId).name,row.method||row.kind||'Receipt',0,row.amount,0,row.pureGrams);
-      for(const row of purch)add(row.when||row.date||row.createdAt,row.documentNo||row.billNo||row.id,'Purchase',getSup(row.supplierId).name,row.remarks||'Purchase',0,row.totalAmount??row.netAmount??row.amount,0,row.netWeight||row.totalNetWt);
-      for(const row of oldPurch)add(row.when||row.date||row.createdAt,row.documentNo||row.id,'Old Jewel Purchase',getSup(row.supplierId).name||'Customer Seller',row.remarks||'Old Gold',0,row.totalAmount??row.amount,0,row.netWeight);
-      for(const row of supPays)add(row.when||row.date||row.createdAt,row.documentNo||row.id,'Supplier Payment',getSup(row.supplierId).name,row.notes||'Payment',row.amountCredit,0,row.goldCredit+row.silverCredit,0);
-      for(const row of postings){
-        for(const line of row.lines||[]){
-          const amount=row.measure==='Amount';
-          add(line.date||row.date,row.number,row.voucherType,ledgers.get(line.ledgerId),line.remarks||row.description,
-            amount?line.debit:0,amount?line.credit:0,amount?0:line.debit,amount?0:line.credit);
+      for(const row of sales){
+        const c = getCust(row.partyId), dt = row.when||row.createdAt, docNo = row.documentNo||row.id.slice(0,8);
+        add(dt, docNo, 'SALE BILL', c.name||'Customer', c.parentGroup||'Sundry Debtors', (row.collectedMethod||'CASH').toUpperCase()+' · '+(row.product||'Jewellery Sale'), row.amount, row.collectedAmount, row.weight, 0, 'Sales');
+        if(n(row.discount)>0) add(dt, docNo, 'DISCOUNT', 'Cash - Discount', 'Direct Expenses', 'Bill Discount · '+docNo, row.discount, 0, 0, 0, 'Sales');
+        if(n(row.exchangeAmount)>0) add(dt, docNo, 'OLD GOLD EXCHANGE', c.name||'Customer', 'Stock in hand', 'Metal - OLD GOLD · '+docNo, 0, row.exchangeAmount, 0, row.exchangePureGrams||0, 'Old Gold');
+      }
+      for(const row of returns){
+        const c = getCust(row.partyId);
+        add(row.when||row.date||row.createdAt, row.documentNo||row.reference||row.id, 'SALES RETURN', c.name||'Customer', c.parentGroup||'Sundry Debtors', row.product||'Sales Return', 0, row.amount, 0, row.returnWeight||row.weight, 'Returns');
+      }
+      for(const row of pays){
+        const c = getCust(row.partyId);
+        add(row.when||row.date||row.createdAt, row.documentNo||row.reference||row.id, (row.retailKind==='advance'?'ADVANCE RECEIPT':row.retailKind==='metal'?'METAL ADVANCE':'RECEIPT'), c.name||'Customer', c.parentGroup||'Sundry Debtors', String(row.method||row.kind||'CASH').toUpperCase(), row.amount, 0, 0, row.pureGrams, 'Receipts');
+      }
+      for(const row of purch){
+        const s = getSup(row.supplierId);
+        add(row.when||row.date||row.createdAt, row.documentNo||row.billNo||row.id, 'RETAIL PURCHASE', s.name||'Supplier', s.parentGroup||'Sundry Creditors', row.remarks||'Supplier Purchase', row.paidAmount||0, row.totalAmount??row.netAmount??row.amount, row.netWeight||row.totalNetWt, 0, 'Purchase');
+      }
+      for(const row of oldPurch){
+        const s = getSup(row.supplierId);
+        add(row.when||row.date||row.createdAt, row.documentNo||row.id, 'OLD JEWEL PURCHASE', s.name||row.sellerName||'Customer Seller', 'Stock in hand', 'Metal - OLD GOLD', 0, row.totalAmount??row.amount, row.netWeight, 0, 'Old Gold');
+      }
+      for(const row of supPays){
+        const s = getSup(row.supplierId);
+        add(row.when||row.date||row.createdAt, row.documentNo||row.id, 'SUPPLIER PAYMENT', s.name||'Supplier', s.parentGroup||'Sundry Creditors', String(row.method||'CASH').toUpperCase()+(row.notes?' · '+row.notes:''), 0, row.amountCredit, 0, n(row.goldCredit)+n(row.silverCredit), 'Payments');
+      }
+      const chitMap = new Map(docs('retail-chit-mapping').map(m=>[m.id, m]));
+      for(const ce of docs('retail-chit-entry').filter(e=>inRange(e.date||e.createdAt))){
+        const m = chitMap.get(ce.mappingId)||{}, c = getCust(m.customerId);
+        add(ce.date||ce.createdAt, ce.receiptNo||m.chitNumber||ce.id, 'CHIT ENTRY', c.name||m.joinName||'Chit Member', 'Current Liabilities', String(ce.paymentMode||'CASH').toUpperCase()+' · '+(m.chitNumber||'Chit'), ce.amount, 0, 0, ce.metalWeight||ce.weight, 'Chit');
+      }
+      for(const ord of orders){
+        const c = getCust(ord.customerId), cName = ord.customerName||c.name||'Order Customer';
+        if(Array.isArray(ord.receipts) && ord.receipts.length){
+          ord.receipts.forEach((rc, idx) => add(rc.date||ord.date||ord.createdAt, (ord.orderNo||'ORD')+'-R'+(idx+1), 'ORDER RECEIPT', cName, 'Current Liabilities', String(rc.mode||'CASH').toUpperCase()+' · '+(ord.orderNo||'Order'), rc.amount, 0, 0, 0, 'Orders'));
+        } else if(n(ord.advanceAmount)>0){
+          add(ord.date||ord.createdAt, ord.orderNo||ord.id, 'ORDER RECEIPT', cName, 'Current Liabilities', 'ADVANCE · '+(ord.orderNo||'Order'), ord.advanceAmount, 0, 0, ord.oldMetalNetWt||0, 'Orders');
         }
       }
-      const abstract=name==='DayBook Abstract'||rarState.daybookTab==='Abstract';
-      subToolbar=['Transactions','Abstract'].map(mode=>'<button type="button" class="'+(abstract===(mode==='Abstract')?'primary':'')
-        +'" onclick="rarState.active=\'DayBook Report\';rarState.daybookTab=\''+mode+'\';render()">'+mode+'</button>').join(' ');
-      const groups=new Map();
-      const sum=(target,row)=>{for(const key of ['dr','cr','wd','wc'])target[key]+=row[key]};
-      const values=row=>[rateMoney(row.dr),rateMoney(row.cr),fmt(row.wd)+' g',fmt(row.wc)+' g'];
-      const total={dr:0,cr:0,wd:0,wc:0};
-      entries.sort((a,b)=>b.day.localeCompare(a.day));
-      for(const row of entries){
-        sum(total,row);
-        const key=JSON.stringify([row.day,row.type]);
-        if(!groups.has(key))groups.set(key,{day:row.day,type:row.type,cnt:0,dr:0,cr:0,wd:0,wc:0});
-        groups.get(key).cnt++;
-        sum(groups.get(key),row);
+      for(const rep of docs('retail-repair').filter(r=>inRange(r.date||r.createdAt))){
+        if(n(rep.advanceAmount||rep.charges)>0) add(rep.date||rep.createdAt, rep.repairNo||rep.id, 'REPAIR', rep.customerName||'Customer', 'Direct Incomes', rep.itemName||'Jewellery Repair', rep.advanceAmount||rep.charges, 0, rep.grossWt||0, 0, 'Repair');
       }
-      const heads=abstract?['Date','Voucher type','Vouchers']:['Date','Voucher no.','Voucher type','Ledger','Narration'];
-      const rows=abstract?[...groups.values()].map(row=>[esc(row.day),'<b>'+esc(row.type)+'</b>',row.cnt,...values(row)])
-        :entries.map(row=>[row.day,row.no,row.type,row.ledger,row.notes].map(value=>esc(value||'—')).concat(values(row)));
-      if(rows.length)rows.push(['<b>Total</b>',...heads.slice(1).map(()=>''),...values(total)]);
-      content=rows.length?rarTable([...heads,'Amount Dr ₹','Amount Cr ₹','Weight Dr','Weight Cr'],rows):'<p class="empty">No daybook transactions.</p>';
+      for(const jl of allLoans.filter(l=>inRange(l.date||l.createdAt))){
+        const c = getCust(jl.customerId);
+        add(jl.date||jl.createdAt, jl.reference||jl.id, 'JEWEL LOAN', c.name||'Borrower', 'Loans & Advances(Assets)', 'LOAN DISBURSAL · '+(jl.item||'Jewel'), 0, jl.principal, jl.gross||0, 0, 'Jewel Loan');
+      }
+      for(const jli of allInts.filter(i=>inRange(i.date||i.createdAt))){
+        const c = getCust(jli.customerId);
+        add(jli.date||jli.createdAt, jli.receiptNo||jli.loanRef, 'LOAN INTEREST', c.name||'Borrower', 'Direct Incomes', String(jli.paymentMode||'CASH').toUpperCase()+' · '+jli.loanRef, jli.netAmount||jli.interestAmount, 0, 0, 0, 'Jewel Loan');
+      }
+      for(const jlr of allReds.filter(r=>inRange(r.date||r.createdAt))){
+        const c = getCust(jlr.customerId);
+        add(jlr.date||jlr.createdAt, jlr.releaseNo||jlr.loanRef, 'LOAN REDEMPTION', c.name||'Borrower', 'Loans & Advances(Assets)', String(jlr.paymentMode||'CASH').toUpperCase()+' · '+jlr.loanRef, jlr.netAmount, 0, 0, jlr.netWt||0, 'Jewel Loan');
+      }
+      for(const row of postings){
+        for(const line of row.lines||[]){
+          const led = ledgersMap.get(line.ledgerId);
+          const isAmt = row.measure==='Amount';
+          add(line.date||row.date, row.number, String(row.voucherType||'VOUCHER').toUpperCase(), led?.name||'Account Ledger', led?.parentGroup||'Accounts', line.remarks||row.paymentMode||row.description, isAmt?line.debit:0, isAmt?line.credit:0, isAmt?0:line.debit, isAmt?0:line.credit, 'Accounts');
+        }
+      }
+
+      const curTab = name==='DayBook Abstract' ? 'Abstract' : (['V1','V2','V3','V4','Abstract'].includes(rarState.daybookTab) ? rarState.daybookTab : 'V1');
+      const vchTypes = ['All','SALE BILL','SALES RETURN','RECEIPT','ADVANCE RECEIPT','RETAIL PURCHASE','OLD JEWEL PURCHASE','OLD GOLD EXCHANGE','SUPPLIER PAYMENT','CHIT ENTRY','ORDER RECEIPT','JEWEL LOAN','LOAN INTEREST','LOAN REDEMPTION','EXPENSES','BILL ENTRY','JOURNAL','CONTRA'];
+      const allGroups = [...new Set(['Sundry Debtors','Sundry Creditors','Cash in hand','Bank Accounts','Current Liabilities','Direct Expenses','Indirect Expenses','Direct Incomes','Stock in hand',...ledgersList.map(l=>l.parentGroup).filter(Boolean)])].sort();
+      const allLedgerNames = [...new Set([...custs.map(c=>c.name),...sups.map(s=>s.name),...ledgersList.map(l=>l.name)].filter(Boolean))].sort();
+
+      subToolbar = ['V1','V2','V3','V4','Abstract'].map(t=>'<button type="button" class="'+(curTab===t?'primary':'')+'" onclick="rarState.active=\'DayBook Report\';rarState.daybookTab=\''+t+'\';render()">'+t+'</button>').join(' ')
+        + ' <select onchange="rarState.parentGroup=this.value;render()"><option value="">Parent Group</option>'+opts(allGroups, rarState.parentGroup)+'</select>'
+        + ' <select onchange="rarState.daybookVch=this.value;render()">'+opts(vchTypes, rarState.daybookVch)+'</select>'
+        + ' <select onchange="rarState.ledgerId=this.value;render()"><option value="">All Ledgers</option>'+opts(allLedgerNames, rarState.ledgerId)+'</select>';
+
+      const openCashBank = ledgersList.filter(l=>l.parentGroup==='Cash in hand'||l.parentGroup==='Bank Accounts').reduce((a,l)=>a+(l.openingSide==='CR'?-1:1)*n(l.openingAmount),0)
+        + docs('retail-shop-opening').filter(r=>r.category==='Cash in hand'||r.category==='Bank').reduce((a,r)=>a+n(r.amount),0);
+
+      if(curTab === 'Abstract'){
+        const sIn = sales.reduce((a,s)=>a+n(s.collectedAmount),0);
+        const rIn = pays.reduce((a,p)=>a+n(p.amount),0);
+        const chIn = docs('retail-chit-entry').filter(e=>inRange(e.date||e.createdAt)).reduce((a,e)=>a+n(e.amount),0);
+        const ordIn = orders.reduce((a,o)=>a+(Array.isArray(o.receipts)&&o.receipts.length?o.receipts.filter(r=>inRange(r.date||o.date)).reduce((x,r)=>x+n(r.amount),0):(inRange(o.date||o.createdAt)?n(o.advanceAmount):0)),0);
+        const jlIn = allInts.filter(i=>inRange(i.date||i.createdAt)).reduce((a,i)=>a+n(i.netAmount||i.interestAmount),0) + allReds.filter(r=>inRange(r.date||r.createdAt)).reduce((a,r)=>a+n(r.netAmount),0);
+        const purOut = purch.reduce((a,p)=>a+n(p.paidAmount),0) + supPays.reduce((a,p)=>a+n(p.amountCredit),0);
+        const ogOut = oldPurch.reduce((a,p)=>a+n(p.paidAmount||p.totalAmount||p.amount),0);
+        const retOut = returns.reduce((a,r)=>a+n(r.amount),0);
+        const jlOut = allLoans.filter(l=>inRange(l.date||l.createdAt)).reduce((a,l)=>a+n(l.principal),0);
+        const expOut = postings.filter(p=>p.measure==='Amount'&&/expense/i.test(String(p.voucherType||''))&&inRange(p.date)).reduce((a,p)=>a+n(p.amount),0);
+        const totRec = openCashBank + sIn + rIn + chIn + ordIn + jlIn;
+        const totIss = purOut + ogOut + retOut + jlOut + expOut;
+        const absRows = [
+          ['<b>OPENING BALANCE (CASH & BANK)</b>', '—', rateMoney(0), rateMoney(openCashBank), '<b>'+rateMoney(openCashBank)+'</b>'],
+          ['<b>RETAIL SALES COLLECTIONS</b>', sales.length, rateMoney(0), rateMoney(sIn), rateMoney(sIn)],
+          ['<b>CUSTOMER RECEIPTS & ADVANCES</b>', pays.length, rateMoney(0), rateMoney(rIn), rateMoney(rIn)],
+          ['<b>CHIT SCHEME COLLECTIONS</b>', docs('retail-chit-entry').filter(e=>inRange(e.date||e.createdAt)).length, rateMoney(0), rateMoney(chIn), rateMoney(chIn)],
+          ['<b>ORDER & REPAIR ADVANCES</b>', orders.length, rateMoney(0), rateMoney(ordIn), rateMoney(ordIn)],
+          ['<b>JEWEL LOAN INTEREST & REDEMPTIONS</b>', allInts.length+allReds.length, rateMoney(0), rateMoney(jlIn), rateMoney(jlIn)],
+          ['<b>RETAIL SUPPLIER PAYMENTS & PURCHASES</b>', purch.length+supPays.length, rateMoney(purOut), rateMoney(0), '− '+rateMoney(purOut)],
+          ['<b>OLD JEWEL PURCHASES</b>', oldPurch.length, rateMoney(ogOut), rateMoney(0), '− '+rateMoney(ogOut)],
+          ['<b>SALES RETURNS / REFUNDS</b>', returns.length, rateMoney(retOut), rateMoney(0), '− '+rateMoney(retOut)],
+          ['<b>JEWEL LOAN PRINCIPAL DISBURSED</b>', allLoans.length, rateMoney(jlOut), rateMoney(0), '− '+rateMoney(jlOut)],
+          ['<b>SHOWROOM EXPENSES</b>', postings.filter(p=>/expense/i.test(String(p.voucherType||''))).length, rateMoney(expOut), rateMoney(0), '− '+rateMoney(expOut)],
+          ['<b>CLOSING DAYBOOK BALANCE</b>', entries.length, '<b>'+rateMoney(totIss)+'</b>', '<b>'+rateMoney(totRec)+'</b>', '<b>'+rateMoney(totRec - totIss)+'</b>']
+        ];
+        content = rarTable(['DESCRIPTION','VOUCHERS','ISSUE ₹','RECEIPT ₹','AMOUNT ₹'], absRows);
+      }
+      else if(curTab === 'V2'){
+        entries.sort((a,b)=>a.day.localeCompare(b.day));
+        const byDay = new Map();
+        entries.forEach(e => { if(!byDay.has(e.day)) byDay.set(e.day, []); byDay.get(e.day).push(e); });
+        const v2Rows = [];
+        let runBal = openCashBank, grandDr = 0, grandCr = 0;
+        v2Rows.push(['<b>Opening Balance</b>', 'OP · Cash & Bank Brought Forward', '<b>'+rateMoney(Math.max(0, runBal))+'</b>', '<b>'+rateMoney(Math.max(0, -runBal))+'</b>']);
+        for(const [d, list] of byDay.entries()){
+          const dFmt = d.split('-').reverse().join('/');
+          v2Rows.push(['<b>📅 '+esc(dFmt)+'</b>', '<b>'+list.length+' Daybook Entries</b>', '', '']);
+          let dayDr = 0, dayCr = 0;
+          list.forEach(e => {
+            dayDr += e.dr; dayCr += e.cr; grandDr += e.dr; grandCr += e.cr;
+            v2Rows.push([esc(e.ledger)+' <small class="muted">['+esc(e.no)+']</small>', esc(e.notes), e.dr?rateMoney(e.dr):'0.00', e.cr?rateMoney(e.cr):'0.00']);
+          });
+          runBal = rbRound(runBal + dayDr - dayCr);
+          v2Rows.push(['<b>Daily Total ('+esc(dFmt)+')</b>', 'Day Subtotal', '<b>'+rateMoney(dayDr)+'</b>', '<b>'+rateMoney(dayCr)+'</b>']);
+          v2Rows.push(['<b>Close / Open Balance</b>', 'Carried Forward Balance', '<b>'+(runBal>=0?rateMoney(runBal):'0.00')+'</b>', '<b>'+(runBal<0?rateMoney(Math.abs(runBal)):'0.00')+'</b>']);
+        }
+        v2Rows.push(['<b>Grand Total</b>', entries.length+' Total Entries', '<b>'+rateMoney(grandDr)+'</b>', '<b>'+rateMoney(grandCr)+'</b>']);
+        content = rarTable(['Particulars','Narration','Debit Amount','Credit Amount'], v2Rows);
+      }
+      else if(curTab === 'V3'){
+        entries.sort((a,b)=>a.day.localeCompare(b.day));
+        const byDay = new Map();
+        entries.forEach(e => { if(!byDay.has(e.day)) byDay.set(e.day, []); byDay.get(e.day).push(e); });
+        const v3Rows = [];
+        let runBal = openCashBank, grandDr = 0, grandCr = 0;
+        for(const [d, list] of byDay.entries()){
+          const dFmt = d.split('-').reverse().join('/');
+          const typeMap = new Map();
+          let dayDr = 0, dayCr = 0;
+          list.forEach(e => {
+            dayDr += e.dr; dayCr += e.cr; grandDr += e.dr; grandCr += e.cr;
+            const g = typeMap.get(e.type) || { type: e.type, cnt: 0, dr: 0, cr: 0 };
+            g.cnt++; g.dr += e.dr; g.cr += e.cr;
+            typeMap.set(e.type, g);
+          });
+          v3Rows.push(['<b>📅 '+esc(dFmt)+'</b>', '<b>Daily Summary ('+list.length+' Vouchers)</b>', '<b>'+rateMoney(dayDr)+'</b>', '<b>'+rateMoney(dayCr)+'</b>']);
+          for(const g of typeMap.values()){
+            v3Rows.push(['↳ <b>'+esc(g.type)+'</b>', g.cnt+' Vouchers', rateMoney(g.dr), rateMoney(g.cr)]);
+          }
+          runBal = rbRound(runBal + dayDr - dayCr);
+        }
+        v3Rows.push(['<b>Closing Balance</b>', 'Net Period Position', '<b>'+rateMoney(grandDr)+'</b>', '<b>'+rateMoney(grandCr)+'</b>']);
+        content = v3Rows.length ? rarTable(['Particulars','Narration','Debit Amount','Credit Amount'], v3Rows) : '<p class="empty">No daybook voucher entries.</p>';
+      }
+      else if(curTab === 'V4'){
+        const lAgg = new Map();
+        entries.forEach(e => {
+          const g = lAgg.get(e.ledger) || { ledger: e.ledger, group: e.group, cnt: 0, dr: 0, cr: 0 };
+          g.cnt++; g.dr += e.dr; g.cr += e.cr;
+          lAgg.set(e.ledger, g);
+        });
+        const list = [...lAgg.values()].sort((a,b)=>(b.dr+b.cr)-(a.dr+a.cr));
+        const totDr = list.reduce((a,x)=>a+x.dr,0), totCr = list.reduce((a,x)=>a+x.cr,0);
+        const v4Rows = list.map((g, i) => [i+1, '<b>'+esc(g.ledger)+'</b>', esc(g.group), g.cnt, rateMoney(g.dr), rateMoney(g.cr), '<b>'+rateMoney(Math.abs(g.dr-g.cr))+' '+(g.dr>=g.cr?'DR':'CR')+'</b>']);
+        if(v4Rows.length) v4Rows.push(['<b>Total</b>', '<b>'+list.length+' Ledgers</b>', '', entries.length, '<b>'+rateMoney(totDr)+'</b>', '<b>'+rateMoney(totCr)+'</b>', '<b>'+rateMoney(Math.abs(totDr-totCr))+'</b>']);
+        content = v4Rows.length ? rarTable(['No','Ledger','Parent Group','Vouchers','Debit','Credit','Net Balance'], v4Rows) : '<p class="empty">No ledger-wise daybook totals in range.</p>';
+      }
+      else {
+        entries.sort((a,b)=>b.day.localeCompare(a.day));
+        const total = { dr:0, cr:0, wd:0, wc:0 };
+        entries.forEach(r => { total.dr+=r.dr; total.cr+=r.cr; total.wd+=r.wd; total.wc+=r.wc; });
+        const v1Rows = entries.map(r => [esc(r.day), '<b>'+esc(r.no)+'</b>', esc(r.type), '<b>'+esc(r.ledger)+'</b>', esc(r.notes), rateMoney(r.dr), rateMoney(r.cr), fmt(r.wd)+' g', fmt(r.wc)+' g', '<span class="pill">'+esc(r.mod)+'</span>']);
+        if(v1Rows.length) v1Rows.push(['<b>Total ('+v1Rows.length+')</b>','','','','','<b>'+rateMoney(total.dr)+'</b>','<b>'+rateMoney(total.cr)+'</b>','<b>'+fmt(total.wd)+' g</b>','<b>'+fmt(total.wc)+' g</b>','']);
+        content = v1Rows.length ? rarTable(['Date','Vch No.','Vch Type','Ledger Name','Narration','Amount (D)','Amount (C)','Weight (D)','Weight (C)','Module'], v1Rows) : '<p class="empty">No daybook transactions.</p>';
+      }
     }
     else if(name === 'Cashbook & Bankbook' || name === 'Cashbook Report' || name === 'Bankbook Report'){
       const book=name==='Bankbook Report'?'Bank':'Cash';
@@ -1163,7 +1335,7 @@
     else if(name === 'Top Customer' || name === 'Top Sales (Centralized)'){
       const dims = ['Product Group','Product','Product Size','Product Weight Range','Model','Employee','Supplier','Customer','City','Area'];
       const curDim = name === 'Top Customer' && rarState.topDim === 'Product Group' ? 'Customer' : rarState.topDim;
-      subToolbar = '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><b>Report By:</b> '+dims.map(d=>'<button type="button" class="'+(curDim===d?'primary':'')+'" style="padding:4px 8px;font-size:11.5px" onclick="rarState.topDim=\''+d+'\';render()">'+esc(d)+'</button>').join('')+'</div>';
+      subToolbar = '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><b>Report By:</b> '+dims.map(d=>'<button type="button" class="'+(curDim===d?'primary':'')+'" style="padding:4px 8px;font-size:11.5px" onclick="rarState.topDim=\''+d+'\';render()">'+esc(d)+'</button>').join('')+' <button type="button" class="'+(rarState.topChart?'primary':'')+'" style="padding:4px 8px;font-size:11.5px" onclick="rarState.topChart=!rarState.topChart;render()">📊 Share Breakdown</button></div>';
       const tagMap = new Map(tags.map(t=>[String(t.tagCode||'').toLowerCase(), t]));
       const slabOf = wt => wt<2?'0–2g':wt<5?'2–5g':wt<10?'5–10g':wt<20?'10–20g':wt<50?'20–50g':'50g+';
       const grp = {};
@@ -1197,10 +1369,22 @@
         if(key && grp[key]){ grp[key].rWt += n(r.returnWeight||r.weight); grp[key].rAmt += n(r.amount); }
       });
       const list = Object.values(grp).sort((a,b)=>(b.sAmt-b.rAmt)-(a.sAmt-a.rAmt));
-      const rows = list.map((r,i)=>[i+1, '<b>'+esc(r.key)+'</b>', r.bills, r.qty, fmt(r.sWt)+' g', fmt(r.rWt)+' g', '<b>'+fmt(r.sWt-r.rWt)+' g</b>', rateMoney(r.sAmt), rateMoney(r.rAmt), '<b>'+rateMoney(r.sAmt-r.rAmt)+'</b>']);
+      const grandNetAmt = Math.max(1, list.reduce((a,x)=>a+Math.max(0, x.sAmt-x.rAmt),0));
+      const rows = list.map((r,i)=>{
+        const netA = r.sAmt - r.rAmt;
+        const pct = Math.max(0, netA / grandNetAmt * 100);
+        const bar = '<div style="display:flex;align-items:center;gap:6px"><div style="width:70px;height:8px;background:#ece8de;border-radius:4px;overflow:hidden"><div style="width:'+pct.toFixed(0)+'%;height:100%;background:#b89559"></div></div><small>'+pct.toFixed(1)+'%</small></div>';
+        return rarState.topChart
+          ? [i+1, '<b>'+esc(r.key)+'</b>', r.bills, r.qty, '<b>'+fmt(r.sWt-r.rWt)+' g</b>', '<b>'+rateMoney(netA)+'</b>', bar]
+          : [i+1, '<b>'+esc(r.key)+'</b>', r.bills, r.qty, fmt(r.sWt)+' g', fmt(r.rWt)+' g', '<b>'+fmt(r.sWt-r.rWt)+' g</b>', rateMoney(r.sAmt), rateMoney(r.rAmt), '<b>'+rateMoney(netA)+'</b>'];
+      });
       const sumK = k => list.reduce((a,x)=>a+x[k],0);
-      if(rows.length) rows.push(['<b>Total</b>','<b>'+list.length+' Ranked</b>',sumK('bills'),sumK('qty'),fmt(sumK('sWt'))+' g',fmt(sumK('rWt'))+' g','<b>'+fmt(sumK('sWt')-sumK('rWt'))+' g</b>',rateMoney(sumK('sAmt')),rateMoney(sumK('rAmt')),'<b>'+rateMoney(sumK('sAmt')-sumK('rAmt'))+'</b>']);
-      content = rows.length ? rarTable(['S.No', curDim, 'Bills', 'Net Qty', 'Sales Wt g', 'Return Wt g', 'Net Wt g', 'Sales Amt ₹', 'Return Amt ₹', 'Net Amt ₹'], rows) : '<p class="empty">No sales data in range.</p>';
+      if(rows.length){
+        rows.push(rarState.topChart
+          ? ['<b>Total</b>','<b>'+list.length+' Ranked</b>',sumK('bills'),sumK('qty'),'<b>'+fmt(sumK('sWt')-sumK('rWt'))+' g</b>','<b>'+rateMoney(sumK('sAmt')-sumK('rAmt'))+'</b>','<b>100%</b>']
+          : ['<b>Total</b>','<b>'+list.length+' Ranked</b>',sumK('bills'),sumK('qty'),fmt(sumK('sWt'))+' g',fmt(sumK('rWt'))+' g','<b>'+fmt(sumK('sWt')-sumK('rWt'))+' g</b>',rateMoney(sumK('sAmt')),rateMoney(sumK('rAmt')),'<b>'+rateMoney(sumK('sAmt')-sumK('rAmt'))+'</b>']);
+      }
+      content = rows.length ? rarTable(rarState.topChart ? ['S.No', curDim, 'Bills', 'Net Qty', 'Net Wt g', 'Net Amt ₹', 'Share %'] : ['S.No', curDim, 'Bills', 'Net Qty', 'Sales Wt g', 'Return Wt g', 'Net Wt g', 'Sales Amt ₹', 'Return Amt ₹', 'Net Amt ₹'], rows) : '<p class="empty">No sales data in range.</p>';
     }
     else if(name === 'Ledger Report'){
       const allLedgerNames = [...new Set([...custs.map(c=>c.name),...sups.map(s=>s.name),...ledgersList.map(l=>l.name)].filter(Boolean))].sort();
@@ -1541,7 +1725,8 @@
     // 4. STOCK, OVERALL STOCK, STOCK TRANSACTIONS & REORDER REPORTS
     // =========================================================================
     else if(name === 'Stock' || name === 'Stock V1' || name === 'Stock V1 & Overall Stock'){
-      subToolbar = ['Product Group','Product','Metal'].map(m=>'<button type="button" class="'+(rarState.stockGroup===m?'primary':'')+'" onclick="rarState.stockGroup=\''+m+'\';render()">By '+m+'</button>').join(' ');
+      subToolbar = ['Product Group','Product','Metal'].map(m=>'<button type="button" class="'+(rarState.stockGroup===m?'primary':'')+'" onclick="rarState.stockGroup=\''+m+'\';render()">By '+m+'</button>').join(' ')
+        + ' ' + ['All','Gold','Silver','Diamond'].map(m=>'<button type="button" class="'+(rarState.metal===m?'primary':'')+'" onclick="rarState.metal=\''+m+'\';render()">'+m+'</button>').join(' ');
       const map = new Map();
       const slot = (k, metal='Gold') => { if(!map.has(k)) map.set(k,{k,metal,opPcs:0,opGross:0,opNet:0,inPcs:0,inGross:0,inNet:0,outPcs:0,outGross:0,outNet:0}); return map.get(k); };
       const keyFor = (pName, grp, metal) => rarState.stockGroup==='Product' ? (pName||'Jewellery') : rarState.stockGroup==='Metal' ? (metal||'Gold') : (grp||'General');
@@ -1569,7 +1754,14 @@
           g.outPcs += n(it.pieces)||1; g.outGross += n(it.grossWeight||it.weight); g.outNet += n(it.netWeight||it.weight);
         });
       });
-      const list = [...map.values()].sort((a,b)=>String(a.k).localeCompare(String(b.k)));
+      const allStockList = [...map.values()];
+      const list = allStockList.filter(g=>rarState.metal==='All'||g.metal===rarState.metal).sort((a,b)=>String(a.k).localeCompare(String(b.k)));
+      const metalSummaryBar = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
+        + ['All','Gold','Silver','Diamond'].map(m=>{
+            const sub = m==='All' ? allStockList : allStockList.filter(g=>g.metal===m);
+            const wt = sub.reduce((a,g)=>a+Math.max(0,g.opNet+g.inNet-g.outNet),0);
+            return '<span class="pill"><b>'+m+':</b> '+fmt(wt)+' g</span>';
+          }).join('') + '</div>';
       const rows = list.map(g=>{
         const clPcs = Math.max(0, g.opPcs + g.inPcs - g.outPcs);
         const clGross = Math.max(0, g.opGross + g.inGross - g.outGross);
@@ -1578,26 +1770,45 @@
       });
       const sumK = k => list.reduce((a,x)=>a+x[k],0);
       if(rows.length) rows.push(['<b>Total</b>','',sumK('opPcs'),fmt(sumK('opNet'))+' g',sumK('inPcs'),fmt(sumK('inNet'))+' g',sumK('outPcs'),fmt(sumK('outNet'))+' g',Math.max(0,sumK('opPcs')+sumK('inPcs')-sumK('outPcs')),fmt(Math.max(0,sumK('opGross')+sumK('inGross')-sumK('outGross')))+' g','<b>'+fmt(Math.max(0,sumK('opNet')+sumK('inNet')-sumK('outNet')))+' g</b>']);
-      content = rows.length ? rarTable([rarState.stockGroup,'Metal','Opening Pcs','Opening Net g','Received / Tagged Pcs','Received Net g','Sold / Issued Pcs','Issued Net g','Closing Pcs','Closing Gross g','Closing Net g'], rows) : '<p class="empty">No stock groups found.</p>';
+      content = metalSummaryBar + (rows.length ? rarTable([rarState.stockGroup,'Metal','Opening Pcs','Opening Net g','Received / Tagged Pcs','Received Net g','Sold / Issued Pcs','Issued Net g','Closing Pcs','Closing Gross g','Closing Net g'], rows) : '<p class="empty">No stock groups found.</p>');
     }
     else if(name === 'Overall Stock'){
       const g22 = n(db.rates?.gold22)||n(db.rates?.gold24)*0.916||6800, g24 = n(db.rates?.gold24)||7400, silRate = n(db.rates?.silver)||95;
       const availTags = tags.filter(t=>!['sold','issued','returned','removed'].includes(String(t.status||'').toLowerCase()));
-      const goldTags = availTags.filter(t=>prodMetalOf(t.product,t.metalType)!=='Silver');
-      const silTags = availTags.filter(t=>prodMetalOf(t.product,t.metalType)==='Silver');
-      const goldProdOp = products.filter(p=>(p.metalType||'Gold')!=='Silver').reduce((a,p)=>a+n(p.openingNet),0);
-      const silProdOp = products.filter(p=>p.metalType==='Silver').reduce((a,p)=>a+n(p.openingNet),0);
-      const looseOp = docs('retail-shop-opening').filter(r=>['Loose gold','Loose silver','Old gold','Old silver'].includes(r.category));
-      const ogPurchWt = oldPurch.reduce((a,p)=>a+n(p.netWeight),0) + sales.reduce((a,s)=>a+n(s.exchangePureGrams),0);
-      const rows = [
-        ['<b>1. Tagged Gold Ornaments</b>','Gold',goldTags.length,fmt(goldTags.reduce((a,t)=>a+n(t.grossWeight),0))+' g',fmt(goldTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)),0))+' g',rateMoney(g22),'<b>'+rateMoney(goldTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight))*g22,0))+'</b>'],
-        ['<b>2. Tagged Silver Ornaments</b>','Silver',silTags.length,fmt(silTags.reduce((a,t)=>a+n(t.grossWeight),0))+' g',fmt(silTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)),0))+' g',rateMoney(silRate),'<b>'+rateMoney(silTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight))*silRate,0))+'</b>'],
-        ['<b>3. Non-Tag Product Opening (Gold)</b>','Gold',products.filter(p=>(p.metalType||'Gold')!=='Silver').reduce((a,p)=>a+n(p.openingPieces),0),fmt(goldProdOp)+' g',fmt(goldProdOp)+' g',rateMoney(g22),'<b>'+rateMoney(goldProdOp*g22)+'</b>'],
-        ['<b>4. Non-Tag Product Opening (Silver)</b>','Silver',products.filter(p=>p.metalType==='Silver').reduce((a,p)=>a+n(p.openingPieces),0),fmt(silProdOp)+' g',fmt(silProdOp)+' g',rateMoney(silRate),'<b>'+rateMoney(silProdOp*silRate)+'</b>'],
-        ['<b>5. Loose Metal & Old Jewel Opening</b>','Mixed',looseOp.length,fmt(looseOp.reduce((a,r)=>a+n(r.weight),0))+' g',fmt(looseOp.reduce((a,r)=>a+n(r.weight),0))+' g','Opening Val','<b>'+rateMoney(looseOp.reduce((a,r)=>a+n(r.amount),0))+'</b>'],
-        ['<b>6. Old Gold Purchases & Exchanges</b>','Gold',oldPurch.length,fmt(ogPurchWt)+' g',fmt(ogPurchWt)+' g',rateMoney(g24),'<b>'+rateMoney(oldPurch.reduce((a,p)=>a+n(p.totalAmount||p.amount),0)+sales.reduce((a,s)=>a+n(s.exchangeAmount),0))+'</b>']
-      ];
-      content = rarTable(['Stock Category','Metal','Tags / Pcs','Gross Weight g','Net Weight g','Valuation Rate','Est. Stock Value ₹'], rows);
+      subToolbar = ['Tag vs Non-Tag','Valuation Summary'].map(m=>'<button type="button" class="'+(rarState.overallStockMode===m?'primary':'')+'" onclick="rarState.overallStockMode=\''+m+'\';render()">'+m+'</button>').join(' ')
+        + ' ' + ['All','Gold','Silver','Diamond'].map(m=>'<button type="button" class="'+(rarState.metal===m?'primary':'')+'" onclick="rarState.metal=\''+m+'\';render()">'+m+'</button>').join(' ');
+      if(rarState.overallStockMode === 'Tag vs Non-Tag'){
+        const grpMap = new Map();
+        const slot = (grp, metal) => { const k = (grp||'General')+'|'+(metal||'Gold'); if(!grpMap.has(k)) grpMap.set(k,{grp:grp||'General',metal:metal||'Gold',tQty:0,tWt:0,ntQty:0,ntWt:0}); return grpMap.get(k); };
+        products.forEach(p => { const s = slot(p.group, p.metalType||'Gold'); s.ntQty += n(p.openingPieces); s.ntWt += n(p.openingNet); });
+        availTags.forEach(t => { const s = slot(t.group, prodMetalOf(t.product,t.metalType)); s.tQty += n(t.pieces||1); s.tWt += n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)); });
+        const list = [...grpMap.values()].filter(g=>rarState.metal==='All'||g.metal===rarState.metal).sort((a,b)=>a.grp.localeCompare(b.grp));
+        const rows = list.map(g => {
+          const diffQty = g.tQty - g.ntQty, diffWt = rbGrams(g.tWt - g.ntWt);
+          const rate = g.metal==='Silver' ? silRate : g22;
+          const totWt = g.tWt + g.ntWt;
+          return ['<b>'+esc(g.grp)+'</b>', esc(g.metal), g.tQty, fmt(g.tWt)+' g', g.ntQty, fmt(g.ntWt)+' g', fmt(totWt)+' g', diffQty, fmt(diffWt)+' g', '<b>'+rateMoney(totWt*rate)+'</b>'];
+        });
+        const sumK = k => list.reduce((a,x)=>a+x[k],0);
+        if(rows.length) rows.push(['<b>Total ('+list.length+' Groups)</b>','',sumK('tQty'),'<b>'+fmt(sumK('tWt'))+' g</b>',sumK('ntQty'),'<b>'+fmt(sumK('ntWt'))+' g</b>','<b>'+fmt(sumK('tWt')+sumK('ntWt'))+' g</b>',sumK('tQty')-sumK('ntQty'),fmt(sumK('tWt')-sumK('ntWt'))+' g','']);
+        content = rows.length ? rarTable(['Product Group','Metal','Tagging Qty','Tagging Net Wt g','Non-Tagging Qty','Non-Tagging Wt g','Combined Wt g','Difference Qty','Difference Wt g','Est. Stock Value ₹'], rows) : '<p class="empty">No stock groups found.</p>';
+      } else {
+        const goldTags = availTags.filter(t=>prodMetalOf(t.product,t.metalType)!=='Silver');
+        const silTags = availTags.filter(t=>prodMetalOf(t.product,t.metalType)==='Silver');
+        const goldProdOp = products.filter(p=>(p.metalType||'Gold')!=='Silver').reduce((a,p)=>a+n(p.openingNet),0);
+        const silProdOp = products.filter(p=>p.metalType==='Silver').reduce((a,p)=>a+n(p.openingNet),0);
+        const looseOp = docs('retail-shop-opening').filter(r=>['Loose gold','Loose silver','Old gold','Old silver'].includes(r.category));
+        const ogPurchWt = oldPurch.reduce((a,p)=>a+n(p.netWeight),0) + sales.reduce((a,s)=>a+n(s.exchangePureGrams),0);
+        const rows = [
+          ['<b>1. Tagged Gold Ornaments</b>','Gold',goldTags.length,fmt(goldTags.reduce((a,t)=>a+n(t.grossWeight),0))+' g',fmt(goldTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)),0))+' g',rateMoney(g22),'<b>'+rateMoney(goldTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight))*g22,0))+'</b>'],
+          ['<b>2. Tagged Silver Ornaments</b>','Silver',silTags.length,fmt(silTags.reduce((a,t)=>a+n(t.grossWeight),0))+' g',fmt(silTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)),0))+' g',rateMoney(silRate),'<b>'+rateMoney(silTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight))*silRate,0))+'</b>'],
+          ['<b>3. Non-Tag Product Opening (Gold)</b>','Gold',products.filter(p=>(p.metalType||'Gold')!=='Silver').reduce((a,p)=>a+n(p.openingPieces),0),fmt(goldProdOp)+' g',fmt(goldProdOp)+' g',rateMoney(g22),'<b>'+rateMoney(goldProdOp*g22)+'</b>'],
+          ['<b>4. Non-Tag Product Opening (Silver)</b>','Silver',products.filter(p=>p.metalType==='Silver').reduce((a,p)=>a+n(p.openingPieces),0),fmt(silProdOp)+' g',fmt(silProdOp)+' g',rateMoney(silRate),'<b>'+rateMoney(silProdOp*silRate)+'</b>'],
+          ['<b>5. Loose Metal & Old Jewel Opening</b>','Mixed',looseOp.length,fmt(looseOp.reduce((a,r)=>a+n(r.weight),0))+' g',fmt(looseOp.reduce((a,r)=>a+n(r.weight),0))+' g','Opening Val','<b>'+rateMoney(looseOp.reduce((a,r)=>a+n(r.amount),0))+'</b>'],
+          ['<b>6. Old Gold Purchases & Exchanges</b>','Gold',oldPurch.length,fmt(ogPurchWt)+' g',fmt(ogPurchWt)+' g',rateMoney(g24),'<b>'+rateMoney(oldPurch.reduce((a,p)=>a+n(p.totalAmount||p.amount),0)+sales.reduce((a,s)=>a+n(s.exchangeAmount),0))+'</b>']
+        ];
+        content = rarTable(['Stock Category','Metal','Tags / Pcs','Gross Weight g','Net Weight g','Valuation Rate','Est. Stock Value ₹'], rows);
+      }
     }
     else if(name === 'Stock Transactions'){
       subToolbar = '<select onchange="rarState.txType=this.value;render()">'+opts(['All','Inward Only','Outward Only','Tagging','Lot Entry','Purchase','Old Gold','Sale Bill','Sales Return','Purchase Return','Conversion'], rarState.txType)+'</select> '
@@ -1938,6 +2149,305 @@
       ];
       content = rarTable(['Date','Time','Gold 24K (99.9%) ₹/g','Gold 22K (91.6%) ₹/g','Gold 18K (75%) ₹/g','Silver ₹/g','Updated By'], rows);
     }
+    // =========================================================================
+    // 8. EXTENDED JEWEL LOAN REPORTS (REDEMPTION, INTEREST, REPLEDGE, AUCTION)
+    // =========================================================================
+    else if(name === 'Jewel Loan Redemption Report' || name === 'Jewel Loan Interest Register' || name === 'RePledge & Financier Report' || name === 'Auction Notice & Sale Report'){
+      const allLoans = typeof window.glAllJewelLoans === 'function' ? window.glAllJewelLoans() : docs('retail-jewel-loan-draft');
+      const allInts = typeof window.glJewelLoanInterests === 'function' ? window.glJewelLoanInterests() : docs('retail-jewel-loan-interest');
+      const allReds = typeof window.glJewelLoanRedemptions === 'function' ? window.glJewelLoanRedemptions() : docs('retail-jewel-loan-redemption');
+      if(name === 'Jewel Loan Redemption Report'){
+        const list = allReds.filter(r=>inRange(r.date||r.createdAt));
+        let totPrin=0, totInt=0, totNet=0;
+        const rows = list.map(r=>{
+          const c = getCust(r.customerId);
+          totPrin+=n(r.principal); totInt+=n(r.interestAmount); totNet+=n(r.netAmount);
+          return [esc(dayOf(r.date||r.createdAt)),'<b>'+esc(r.releaseNo||r.id?.slice(0,8))+'</b>','<b>'+esc(r.loanRef)+'</b>',esc(c.name||r.customerName||'Borrower'),esc(r.releaseType||'Customer Redemption'),fmt(r.netWt||0)+' g',rateMoney(r.principal),rateMoney(r.interestAmount),rateMoney(r.penaltyCharges||0),rateMoney(r.waiverDiscount||0),'<b>'+rateMoney(r.netAmount)+'</b>',esc(r.paymentMode||'Cash')];
+        });
+        rows.push(['<b>Total ('+list.length+' Releases)</b>','','','','','',rateMoney(totPrin),rateMoney(totInt),'','','<b>'+rateMoney(totNet)+'</b>','']);
+        content = rarTable(['Date','Release No','Loan Ref','Customer','Release Type','Net Wt g','Principal ₹','Interest ₹','Penalty ₹','Waiver ₹','Total Collected ₹','Mode'], rows);
+      } else if(name === 'Jewel Loan Interest Register'){
+        const list = allInts.filter(i=>inRange(i.date||i.createdAt));
+        let totInt=0, totNet=0;
+        const rows = list.map(i=>{
+          const c = getCust(i.customerId);
+          totInt+=n(i.interestAmount); totNet+=n(i.netAmount||i.interestAmount);
+          return [esc(dayOf(i.date||i.createdAt)),'<b>'+esc(i.receiptNo||i.id?.slice(0,8))+'</b>','<b>'+esc(i.loanRef)+'</b>',esc(c.name||i.customerName||'Borrower'),rateMoney(i.principal),rateMoney(i.interestAmount),rateMoney(i.otherCharges||0),rateMoney(i.discount||0),'<b>'+rateMoney(i.netAmount||i.interestAmount)+'</b>',esc(i.paymentMode||'Cash')];
+        });
+        rows.push(['<b>Total ('+list.length+' Receipts)</b>','','','','',rateMoney(totInt),'','','<b>'+rateMoney(totNet)+'</b>','']);
+        content = rarTable(['Date','Receipt No','Loan Ref','Customer','Principal ₹','Interest ₹','Charges ₹','Discount ₹','Net Collected ₹','Payment Mode'], rows);
+      } else if(name === 'RePledge & Financier Report'){
+        const reps = docs('retail-jewel-loan-repledge').filter(r=>inRange(r.date||r.createdAt));
+        let totWt=0, totAmt=0;
+        const rows = reps.map(r=>{
+          totWt+=n(r.netWt||r.grossWt); totAmt+=n(r.bankLoanAmount||r.amount);
+          return [esc(dayOf(r.date||r.createdAt)),'<b>'+esc(r.repledgeNo||r.reference||r.id?.slice(0,8))+'</b>','<b>'+esc(r.bankName||r.financierName||'Bank Financier')+'</b>',esc(r.loanRef||'—'),fmt(r.netWt||r.grossWt)+' g',n(r.interestRate||9)+'%',esc(r.maturityDate||'—'),'<b>'+rateMoney(r.bankLoanAmount||r.amount)+'</b>','<span class="rco-badge rco-badge-open">'+esc(r.status||'Active')+'</span>'];
+        });
+        rows.push(['<b>Total ('+reps.length+' RePledges)</b>','','','',fmt(totWt)+' g','','','<b>'+rateMoney(totAmt)+'</b>','']);
+        content = rarTable(['Date','RePledge No','Bank / Financier','Linked Loan Ref','Net Wt g','Bank Rate %','Maturity Date','Bank Loan ₹','Status'], rows);
+      } else {
+        const notices = docs('retail-jewel-loan-notice').filter(x=>inRange(x.date||x.createdAt));
+        const auctions = docs('retail-jewel-loan-auction').filter(x=>inRange(x.date||x.createdAt));
+        const rows = [
+          ...notices.map(x=>[esc(dayOf(x.date||x.createdAt)),'<b>'+esc(x.noticeNo||x.id?.slice(0,8))+'</b>','<b>'+esc(x.loanRef)+'</b>',esc(x.customerName||getCust(x.customerId).name||'Borrower'),'Prior Notice ('+esc(x.noticeStage||'1st Notice')+')',fmt(x.netWt||0)+' g',rateMoney(x.totalDue||x.principal),rateMoney(0),'<span class="rco-badge rco-badge-wait">'+esc(x.status||'Issued')+'</span>']),
+          ...auctions.map(x=>[esc(dayOf(x.date||x.createdAt)),'<b>'+esc(x.lotNo||x.id?.slice(0,8))+'</b>','<b>'+esc(x.loanRef)+'</b>',esc(x.bidderName||'Auction Bidder'),'Auction Lot',fmt(x.netWt||0)+' g',rateMoney(x.reservePrice||0),'<b>'+rateMoney(x.winningBid||0)+'</b>','<span class="rco-badge rco-badge-open">'+esc(x.status||'Listed')+'</span>'])
+        ];
+        rows.push(['<b>Total ('+rows.length+' Records)</b>','','','','Active Loans: '+allLoans.length,'','','','']);
+        content = rarTable(['Date','Notice / Lot No','Loan Ref','Customer / Bidder','Stage','Net Wt g','Due / Reserve ₹','Winning Bid ₹','Status'], rows);
+      }
+    }
+    // =========================================================================
+    // 9. ORDER, REPAIR & ESTIMATION REPORTS
+    // =========================================================================
+    else if(name === 'Order Tracking Report' || name === 'Order Karigar / Supplier Report' || name === 'Order Advance & Receipt Register' || name === 'Jewellery Repair & Service Report' || name === 'Estimation / Quotation Register' || name === 'Estimation Conversion Analysis'){
+      const ordList = orders.filter(o=>inRange(o.date||o.createdAt));
+      if(name === 'Order Tracking Report'){
+        subToolbar = ['All','Open','In Progress','Ready','Closed'].map(st=>'<button type="button" class="'+(rarState.orderFilter===st?'primary':'')+'" onclick="rarState.orderFilter=\''+st+'\';render()">'+st+'</button>').join(' ');
+        const fOrds = ordList.filter(o=>rarState.orderFilter==='All'||String(o.status||'Open')===rarState.orderFilter);
+        let totWt=0, totAmt=0, totPaid=0, totBal=0;
+        const rows = fOrds.map(o=>{
+          const c = getCust(o.customerId), wt = n(o.totalNetWt||o.items?.reduce((a,x)=>a+n(x.netWt||x.grossWt),0));
+          const amt = n(o.netAmount||o.totalAmount), paid = n(o.paidAmount||o.advanceAmount), og = n(o.oldMetalAmount);
+          const bal = Math.max(0, amt - og - paid);
+          totWt+=wt; totAmt+=amt; totPaid+=paid; totBal+=bal;
+          return [esc(dayOf(o.date||o.createdAt)),'<b>'+esc(o.orderNo||o.id?.slice(0,8))+'</b>',esc(o.deliveryDate||o.dueDate||'—'),'<b>'+esc(o.customerName||c.name||'Customer')+'</b>',esc(o.mobile||c.phone||'—'),(o.items||[]).map(x=>x.product).filter(Boolean).join(', ')||esc(o.product||'Custom Order'),fmt(wt)+' g',rateMoney(amt),rateMoney(og),rateMoney(paid),'<b>'+rateMoney(bal)+'</b>','<span class="rco-badge rco-badge-open">'+esc(o.status||'Open')+'</span>'];
+        });
+        rows.push(['<b>Total ('+fOrds.length+' Orders)</b>','','','','','',fmt(totWt)+' g',rateMoney(totAmt),'',rateMoney(totPaid),'<b>'+rateMoney(totBal)+'</b>','']);
+        content = rarTable(['Order Date','Order No','Due Date','Customer','Mobile','Order Items','Net Wt g','Order Value ₹','Old Metal ₹','Advance / Paid ₹','Balance Due ₹','Status'], rows);
+      } else if(name === 'Order Karigar / Supplier Report'){
+        const kMap = new Map();
+        ordList.forEach(o => {
+          const k = o.supplierName || getSup(o.supplierId).name || o.karigar || 'In-House Workshop';
+          const g = kMap.get(k) || { k, ords:0, open:0, closed:0, wt:0, amt:0 };
+          g.ords++;
+          if(o.status==='Closed') g.closed++; else g.open++;
+          g.wt += n(o.totalNetWt||o.items?.reduce((a,x)=>a+n(x.netWt||x.grossWt),0));
+          g.amt += n(o.netAmount||o.totalAmount);
+          kMap.set(k, g);
+        });
+        const list = [...kMap.values()].sort((a,b)=>b.open-a.open);
+        const rows = list.map(g=>['<b>'+esc(g.k)+'</b>',g.ords,g.open,g.closed,fmt(g.wt)+' g','<b>'+rateMoney(g.amt)+'</b>']);
+        rows.push(['<b>Total ('+list.length+' Karigars)</b>',ordList.length,list.reduce((a,x)=>a+x.open,0),list.reduce((a,x)=>a+x.closed,0),fmt(list.reduce((a,x)=>a+x.wt,0))+' g','<b>'+rateMoney(list.reduce((a,x)=>a+x.amt,0))+'</b>']);
+        content = rarTable(['Karigar / Supplier','Total Orders','Pending / Open','Completed','Total Order Wt g','Order Value ₹'], rows);
+      } else if(name === 'Order Advance & Receipt Register'){
+        const rows = [];
+        let totRec = 0;
+        ordList.forEach(o => {
+          const c = getCust(o.customerId), cName = o.customerName||c.name||'Customer';
+          if(Array.isArray(o.receipts) && o.receipts.length){
+            o.receipts.forEach((rc, i) => {
+              totRec += n(rc.amount);
+              rows.push([esc(dayOf(rc.date||o.date||o.createdAt)),'<b>'+esc((o.orderNo||'ORD')+'-R'+(i+1))+'</b>','<b>'+esc(o.orderNo)+'</b>',esc(cName),esc(o.mobile||c.phone||'—'),esc(rc.mode||'Cash'),'<b>'+rateMoney(rc.amount)+'</b>',esc(rc.ref||rc.notes||'Order Receipt')]);
+            });
+          } else if(n(o.advanceAmount)>0){
+            totRec += n(o.advanceAmount);
+            rows.push([esc(dayOf(o.date||o.createdAt)),'<b>'+esc((o.orderNo||'ORD')+'-ADV')+'</b>','<b>'+esc(o.orderNo)+'</b>',esc(cName),esc(o.mobile||c.phone||'—'),'Cash / Advance','<b>'+rateMoney(o.advanceAmount)+'</b>','Booking Advance']);
+          }
+        });
+        rows.push(['<b>Total ('+rows.length+' Receipts)</b>','','','','','','<b>'+rateMoney(totRec)+'</b>','']);
+        content = rarTable(['Receipt Date','Receipt Ref','Order No','Customer','Mobile','Payment Mode','Amount Collected ₹','Remarks'], rows);
+      } else if(name === 'Jewellery Repair & Service Report'){
+        const reps = docs('retail-repair').filter(r=>inRange(r.date||r.createdAt));
+        let totWt=0, totChg=0, totAdv=0;
+        const rows = reps.map(r=>{
+          totWt+=n(r.grossWt); totChg+=n(r.charges||r.estimatedCost); totAdv+=n(r.advanceAmount);
+          return [esc(dayOf(r.date||r.createdAt)),'<b>'+esc(r.repairNo||r.id?.slice(0,8))+'</b>',esc(r.deliveryDate||'—'),'<b>'+esc(r.customerName||'Customer')+'</b>',esc(r.mobile||'—'),esc(r.itemName||'Ornament'),esc(r.issue||r.workDescription||'Repair'),fmt(r.grossWt)+' g',rateMoney(r.charges||r.estimatedCost),rateMoney(r.advanceAmount),'<b>'+rateMoney(Math.max(0,n(r.charges||r.estimatedCost)-n(r.advanceAmount)))+'</b>','<span class="rco-badge rco-badge-open">'+esc(r.status||'Received')+'</span>'];
+        });
+        rows.push(['<b>Total ('+reps.length+' Repairs)</b>','','','','','','',fmt(totWt)+' g',rateMoney(totChg),rateMoney(totAdv),'<b>'+rateMoney(Math.max(0,totChg-totAdv))+'</b>','']);
+        content = rarTable(['Date','Repair No','Delivery Date','Customer','Mobile','Ornament','Work / Defect','Gross Wt g','Est. Charges ₹','Advance ₹','Balance ₹','Status'], rows);
+      } else if(name === 'Estimation / Quotation Register'){
+        const ests = docs('estimate').filter(e=>inRange(e.when||e.date||e.createdAt));
+        let totWt=0, totOg=0, totAmt=0;
+        const rows = ests.map(e=>{
+          const c = getCust(e.partyId||e.customerId), wt = n(e.weight||e.totalNetWt||(e.invoiceItems||e.items||[]).reduce((a,x)=>a+n(x.netWeight||x.weight),0));
+          const og = n(e.exchangeAmount), amt = n(e.amount||e.totalAmount||e.netAmount);
+          totWt+=wt; totOg+=og; totAmt+=amt;
+          const conv = e.convertedSaleId || e.status==='Converted';
+          return [esc(dayOf(e.when||e.date||e.createdAt)),'<b>'+esc(e.documentNo||e.estimateNo||e.id?.slice(0,8))+'</b>','<b>'+esc(e.customerName||c.name||'Walk-in Customer')+'</b>',esc(e.mobile||c.phone||'—'),(e.invoiceItems||e.items||[]).length||1,fmt(wt)+' g',rateMoney(og),'<b>'+rateMoney(amt)+'</b>',conv?'<span class="rco-badge rco-badge-open">Converted</span>':'<span class="rco-badge rco-badge-wait">Open Quote</span>'];
+        });
+        rows.push(['<b>Total ('+ests.length+' Quotations)</b>','','','','',fmt(totWt)+' g',rateMoney(totOg),'<b>'+rateMoney(totAmt)+'</b>','']);
+        content = rarTable(['Date','Estimate No','Customer','Mobile','Items','Net Wt g','Old Gold Credit ₹','Quotation Value ₹','Status'], rows);
+      } else {
+        const ests = docs('estimate').filter(e=>inRange(e.when||e.date||e.createdAt));
+        const conv = ests.filter(e=>e.convertedSaleId||e.status==='Converted');
+        const pend = ests.filter(e=>!(e.convertedSaleId||e.status==='Converted'));
+        const rows = [
+          ['<b>Total Quotations Generated</b>', ests.length, fmt(ests.reduce((a,e)=>a+n(e.weight||e.totalNetWt),0))+' g', rateMoney(ests.reduce((a,e)=>a+n(e.amount||e.totalAmount),0)), '100%'],
+          ['<b>Converted to Sales Bills</b>', conv.length, fmt(conv.reduce((a,e)=>a+n(e.weight||e.totalNetWt),0))+' g', rateMoney(conv.reduce((a,e)=>a+n(e.amount||e.totalAmount),0)), ests.length?(conv.length/ests.length*100).toFixed(1)+'%':'0%'],
+          ['<b>Pending / Open Quotations</b>', pend.length, fmt(pend.reduce((a,e)=>a+n(e.weight||e.totalNetWt),0))+' g', rateMoney(pend.reduce((a,e)=>a+n(e.amount||e.totalAmount),0)), ests.length?(pend.length/ests.length*100).toFixed(1)+'%':'0%'],
+          ['<b>Direct Counter Sales Bills</b>', sales.length, fmt(sales.reduce((a,s)=>a+n(s.weight),0))+' g', '<b>'+rateMoney(sales.reduce((a,s)=>a+n(s.amount),0))+'</b>', 'Realized Sales']
+        ];
+        content = rarTable(['Quotation Funnel Stage','Count','Net Weight g','Value ₹','Conversion Share'], rows);
+      }
+    }
+    // =========================================================================
+    // 10. OLD METAL, MELTING & WORKSHOP VOUCHER REPORTS
+    // =========================================================================
+    else if(name === 'Old Metal Purchase & Exchange Register' || name === 'Melting & Kacha-Pure Conversion Report' || name === 'Karigar Issue Voucher Report' || name === 'Karigar Receipt Voucher Report' || name === 'Metal Voucher & Bullion Ledger Report' || name === 'Purchase Return (Debit Note) Report'){
+      if(name === 'Old Metal Purchase & Exchange Register'){
+        const rows = [];
+        let totGross=0, totPure=0, totAmt=0;
+        oldPurch.forEach(p => purchItemsOf(p).forEach(it => {
+          const s = getSup(p.supplierId), gr = n(it.grossWeight||p.grossWeight), pure = n(it.pureWeight||it.payablePure||p.goldPure||it.netWeight), amt = n(it.subtotal||p.totalAmount||p.amount);
+          totGross+=gr; totPure+=pure; totAmt+=amt;
+          rows.push([esc(dayOf(p.when||p.date||p.createdAt)),'<b>'+esc(p.documentNo||p.id?.slice(0,8))+'</b>','Old Metal Purchase',esc(s.name||p.sellerName||'Seller'),esc(it.product||'Old Ornament'),esc(it.metal||'Gold'),fmt(gr)+' g',n(it.purity||91.6)+'%',fmt(pure)+' g','<b>'+rateMoney(amt)+'</b>']);
+        }));
+        sales.filter(s=>n(s.exchangeAmount)>0).forEach(s => {
+          const c = getCust(s.partyId), gr = n(s.exchangeGrossWeight||s.exchangePureGrams), pure = n(s.exchangePureGrams), amt = n(s.exchangeAmount);
+          totGross+=gr; totPure+=pure; totAmt+=amt;
+          rows.push([esc(dayOf(s.when||s.createdAt)),'<b>'+esc(s.documentNo||s.id?.slice(0,8))+'</b>','Sale Bill Exchange',esc(c.name||'Customer'),'Old Gold Exchange','Gold',fmt(gr)+' g','Tested',fmt(pure)+' g','<b>'+rateMoney(amt)+'</b>']);
+        });
+        rows.push(['<b>Total ('+rows.length+' Entries)</b>','','','','','',fmt(totGross)+' g','','<b>'+fmt(totPure)+' g</b>','<b>'+rateMoney(totAmt)+'</b>']);
+        content = rarTable(['Date','Ref / Bill No','Source Type','Customer / Seller','Item','Metal','Gross Wt g','Touch %','Pure Wt g','Exchange / Purchase ₹'], rows);
+      } else if(name === 'Melting & Kacha-Pure Conversion Report'){
+        const convs = [...docs('conversion'), ...docs('retail-stock-journal')].filter(c=>inRange(c.when||c.date||c.createdAt));
+        let totIn=0, totOut=0;
+        const rows = convs.map(c=>{
+          const inW = n(c.weight||c.grossWeight||c.inwardWt), outW = n(c.outputWeight||c.pureWeight||c.outwardWt);
+          totIn+=inW; totOut+=outW;
+          return [esc(dayOf(c.when||c.date||c.createdAt)),'<b>'+esc(c.documentNo||c.voucherNo||c.id?.slice(0,8))+'</b>',esc(getSup(c.supplierId).name||c.refinery||'Melting Unit'),esc(c.metal||'Gold'),fmt(inW)+' g',n(c.purity||91.6)+'%',fmt(outW)+' g',fmt(inW-outW)+' g',rateMoney(c.charges||c.paidAmount||0)];
+        });
+        rows.push(['<b>Total ('+convs.length+' Batches)</b>','','','',fmt(totIn)+' g','','<b>'+fmt(totOut)+' g</b>',fmt(totIn-totOut)+' g','']);
+        content = rarTable(['Date','Voucher No','Refinery / Karigar','Metal','Input Gross g','Touch %','Output Pure g','Melting Loss g','Melting Charges ₹'], rows);
+      } else if(name === 'Karigar Issue Voucher Report'){
+        const iss = docs('retail-issue-voucher').filter(v=>inRange(v.date||v.createdAt));
+        let totGr=0, totPure=0;
+        const rows = iss.map(v=>{
+          totGr+=n(v.grossWt||v.weight); totPure+=n(v.pureWt||v.netWt||v.grossWt);
+          return [esc(dayOf(v.date||v.createdAt)),'<b>'+esc(v.voucherNo||v.id?.slice(0,8))+'</b>','<b>'+esc(v.partyName||getSup(v.supplierId).name||'Karigar')+'</b>',esc(v.metal||'Gold'),esc(v.item||v.particulars||'Bullion / Issue'),fmt(v.grossWt||v.weight)+' g',n(v.purity||99.9)+'%',fmt(v.pureWt||v.netWt||v.grossWt)+' g',esc(v.remarks||'Workshop Issue')];
+        });
+        supPays.filter(p=>n(p.goldCredit)+n(p.silverCredit)>0).forEach(p=>{
+          const wt = n(p.goldCredit)+n(p.silverCredit); totGr+=wt; totPure+=wt;
+          rows.push([esc(dayOf(p.when||p.date||p.createdAt)),'<b>'+esc(p.documentNo||p.id?.slice(0,8))+'</b>','<b>'+esc(getSup(p.supplierId).name||'Supplier')+'</b>',n(p.silverCredit)>0?'Silver':'Gold','Metal Settlement',fmt(wt)+' g','99.9%',fmt(wt)+' g',esc(p.notes||'Metal Paid')]);
+        });
+        rows.push(['<b>Total ('+rows.length+' Issues)</b>','','','','',fmt(totGr)+' g','','<b>'+fmt(totPure)+' g</b>','']);
+        content = rarTable(['Date','Issue No','Karigar / Supplier','Metal','Particulars','Gross Wt g','Purity %','Pure Wt g','Remarks'], rows);
+      } else if(name === 'Karigar Receipt Voucher Report'){
+        const recs = docs('retail-receipt-voucher').filter(v=>inRange(v.date||v.createdAt));
+        let totGr=0, totNet=0;
+        const rows = recs.map(v=>{
+          totGr+=n(v.grossWt||v.weight); totNet+=n(v.netWt||v.grossWt||v.weight);
+          return [esc(dayOf(v.date||v.createdAt)),'<b>'+esc(v.voucherNo||v.id?.slice(0,8))+'</b>','<b>'+esc(v.partyName||getSup(v.supplierId).name||'Karigar')+'</b>',esc(v.metal||'Gold'),esc(v.item||v.particulars||'Finished Ornaments'),fmt(v.grossWt||v.weight)+' g',fmt(v.netWt||v.grossWt||v.weight)+' g',rateMoney(v.makingCharges||0),esc(v.remarks||'Karigar Receipt')];
+        });
+        lots.filter(l=>inRange(l.date||l.createdAt)).forEach(l=>{
+          totGr+=n(l.grossWeight); totNet+=n(l.netWeight||l.grossWeight);
+          rows.push([esc(dayOf(l.date||l.createdAt)),'<b>'+esc(l.lotNo||l.id?.slice(0,8))+'</b>','<b>'+esc(l.supplier||'Lot Supplier')+'</b>',esc(l.metalType||'Gold'),esc(l.product||'Ornament Lot'),fmt(l.grossWeight)+' g',fmt(l.netWeight||l.grossWeight)+' g',rateMoney(0),'Lot Inward']);
+        });
+        rows.push(['<b>Total ('+rows.length+' Receipts)</b>','','','','',fmt(totGr)+' g','<b>'+fmt(totNet)+' g</b>','','']);
+        content = rarTable(['Date','Receipt / Lot No','Karigar / Supplier','Metal','Ornament / Lot','Gross Wt g','Net Wt g','Making ₹','Remarks'], rows);
+      } else if(name === 'Metal Voucher & Bullion Ledger Report'){
+        const mvs = docs('retail-metal-voucher').filter(v=>inRange(v.date||v.createdAt));
+        const rows = mvs.map(v=>[esc(dayOf(v.date||v.createdAt)),'<b>'+esc(v.voucherNo||v.id?.slice(0,8))+'</b>',esc(v.voucherType||'Metal Voucher'),esc(v.partyName||'Bullion Counter'),esc(v.metal||'Gold'),fmt(v.inwardPure||v.grossWt||0)+' g',fmt(v.outwardPure||0)+' g',rateMoney(v.amount||0)]);
+        pays.filter(p=>p.retailKind==='metal').forEach(p=>rows.push([esc(dayOf(p.when||p.createdAt)),'<b>'+esc(p.documentNo||p.id?.slice(0,8))+'</b>','Customer Metal Advance',esc(getCust(p.partyId).name||'Customer'),'Gold',fmt(p.pureGrams)+' g','0.000 g',rateMoney(p.amount)]));
+        oldPurch.forEach(p=>rows.push([esc(dayOf(p.when||p.createdAt)),'<b>'+esc(p.documentNo||p.id?.slice(0,8))+'</b>','Old Metal Bullion Inward',esc(getSup(p.supplierId).name||'Seller'),'Gold',fmt(p.netWeight)+' g','0.000 g',rateMoney(p.totalAmount||p.amount)]));
+        rows.push(['<b>Total ('+rows.length+' Bullion Entries)</b>','','','','','','','']);
+        content = rarTable(['Date','Voucher No','Entry Type','Party / Account','Metal','Inward Pure g','Outward Pure g','Value ₹'], rows);
+      } else {
+        let totWt=0, totAmt=0;
+        const rows = purchRet.map(r=>{
+          const s = getSup(r.supplierId), wt = n(r.returnWeight||r.weight), amt = n(r.creditAmount||r.amount);
+          totWt+=wt; totAmt+=amt;
+          return [esc(dayOf(r.when||r.date||r.createdAt)),'<b>'+esc(r.documentNo||r.id?.slice(0,8))+'</b>',esc(r.sourceNo||r.sourceId||'—'),'<b>'+esc(s.name||'Supplier')+'</b>',esc(r.product||'Jewellery'),esc(r.metal||'Gold'),fmt(wt)+' g','<b>'+rateMoney(amt)+'</b>',esc(r.reason||r.remarks||'Debit Note')];
+        });
+        rows.push(['<b>Total ('+purchRet.length+' Debit Notes)</b>','','','','','','<b>'+fmt(totWt)+' g</b>','<b>'+rateMoney(totAmt)+'</b>','']);
+        content = rarTable(['Date','Debit Note No','Orig. Purchase Bill','Supplier','Product','Metal','Return Wt g','Debit Credit ₹','Reason'], rows);
+      }
+    }
+    // =========================================================================
+    // 11. TAGGING, LOT & STOCK AUDIT REPORTS
+    // =========================================================================
+    else if(name === 'Sold Tag Register' || name === 'Removed / Non-Active Tag Audit' || name === 'Lot Entry Register' || name === 'Vendor Wise Tag & Lot Report' || name === 'Stock Verification Audit Report'){
+      if(name === 'Sold Tag Register'){
+        const soldTags = tags.filter(t=>['sold','billed'].includes(String(t.status||'').toLowerCase()));
+        let totGr=0, totNet=0;
+        const rows = soldTags.map(t=>{
+          const gr = n(t.grossWeight), net = n(t.netWeight??gr-n(t.lessWeight));
+          totGr+=gr; totNet+=net;
+          const linkedSale = sales.find(s=>saleItemsOf(s).some(it=>it.tagCode===t.tagCode));
+          return ['<b>'+esc(t.tagCode)+'</b>',esc(t.huid||'—'),esc(t.group||'—'),esc(t.product||'—'),esc(prodMetalOf(t.product,t.metalType)),fmt(gr)+' g',fmt(net)+' g',esc(linkedSale?(linkedSale.documentNo||linkedSale.id.slice(0,8)):(t.billNo||'Sold')),esc(linkedSale?dayOf(linkedSale.when):dayOf(t.updatedAt||t.tagDate)),esc(linkedSale?(getCust(linkedSale.partyId).name||'Customer'):'Billed')];
+        });
+        rows.push(['<b>Total ('+soldTags.length+' Sold Tags)</b>','','','','',fmt(totGr)+' g','<b>'+fmt(totNet)+' g</b>','','','']);
+        content = rarTable(['Tag Code','HUID','Group','Product','Metal','Gross Wt g','Net Wt g','Bill No','Sold Date','Customer'], rows);
+      } else if(name === 'Removed / Non-Active Tag Audit'){
+        const nonActive = tags.filter(t=>['sold','issued','returned','removed'].includes(String(t.status||'').toLowerCase()));
+        const rows = nonActive.map(t=>['<b>'+esc(t.tagCode)+'</b>',esc(dayOf(t.updatedAt||t.tagDate)),esc(t.group||'—'),esc(t.product||'—'),fmt(t.grossWeight)+' g',fmt(t.netWeight??n(t.grossWeight)-n(t.lessWeight))+' g','<span class="rco-badge rco-badge-wait">'+esc(t.status)+'</span>',esc(t.remarks||'Tag Status Audit')]);
+        rows.push(['<b>Total ('+nonActive.length+' Non-Active Tags)</b>','','','','','','','']);
+        content = rarTable(['Tag Code','Updated Date','Group','Product','Gross Wt g','Net Wt g','Status','Audit Remarks'], rows);
+      } else if(name === 'Lot Entry Register'){
+        const fLots = lots.filter(l=>inRange(l.date||l.createdAt));
+        let totPcs=0, totGr=0, totTagPcs=0;
+        const rows = fLots.map(l=>{
+          const lNo = l.lotNo||l.id?.slice(0,8);
+          const lTags = tags.filter(t=>t.lotEntry===lNo||t.lotId===l.id);
+          const pcs = n(l.pieces||(l.items||[]).reduce((a,x)=>a+n(x.pieces),0)||1);
+          const gr = n(l.grossWeight||(l.items||[]).reduce((a,x)=>a+n(x.grossWeight),0));
+          const tPcs = lTags.reduce((a,t)=>a+n(t.pieces||1),0);
+          totPcs+=pcs; totGr+=gr; totTagPcs+=tPcs;
+          return [esc(dayOf(l.date||l.createdAt)),'<b>'+esc(lNo)+'</b>',esc(l.supplier||getSup(l.supplierId).name||'Supplier'),esc(l.metalType||'Gold'),pcs,fmt(gr)+' g',tPcs,Math.max(0,pcs-tPcs)];
+        });
+        rows.push(['<b>Total ('+fLots.length+' Lots)</b>','','','',totPcs,'<b>'+fmt(totGr)+' g</b>',totTagPcs,Math.max(0,totPcs-totTagPcs)]);
+        content = rarTable(['Lot Date','Lot No','Supplier','Metal','Lot Pcs','Lot Gross g','Tagged Pcs','Untagged Pending Pcs'], rows);
+      } else if(name === 'Vendor Wise Tag & Lot Report'){
+        const vMap = new Map();
+        const slot = k => { const key=k||'In-House / General'; if(!vMap.has(key)) vMap.set(key,{k:key,totTags:0,availTags:0,soldTags:0,availWt:0,soldWt:0}); return vMap.get(key); };
+        tags.forEach(t=>{
+          const g = slot(t.supplier||sups[0]?.name||'In-House / General');
+          const wt = n(t.netWeight??n(t.grossWeight)-n(t.lessWeight));
+          g.totTags++;
+          if(['sold','issued','returned','removed'].includes(String(t.status||'').toLowerCase())){ g.soldTags++; g.soldWt+=wt; }
+          else { g.availTags++; g.availWt+=wt; }
+        });
+        const list = [...vMap.values()].sort((a,b)=>b.totTags-a.totTags);
+        const rows = list.map(g=>['<b>'+esc(g.k)+'</b>',g.totTags,g.availTags,fmt(g.availWt)+' g',g.soldTags,fmt(g.soldWt)+' g']);
+        rows.push(['<b>Total ('+list.length+' Vendors)</b>',tags.length,list.reduce((a,x)=>a+x.availTags,0),'<b>'+fmt(list.reduce((a,x)=>a+x.availWt,0))+' g</b>',list.reduce((a,x)=>a+x.soldTags,0),fmt(list.reduce((a,x)=>a+x.soldWt,0))+' g']);
+        content = rarTable(['Vendor / Supplier','Total Tags Created','Available Tags','Available Net g','Sold / Issued Tags','Sold Net g'], rows);
+      } else {
+        const availTags = tags.filter(t=>!['sold','issued','returned','removed'].includes(String(t.status||'').toLowerCase()));
+        const gMap = new Map();
+        availTags.forEach(t=>{
+          const k = t.group||'General';
+          const g = gMap.get(k)||{k,sys:0,sysWt:0,ver:0,verWt:0};
+          const wt = n(t.netWeight??n(t.grossWeight)-n(t.lessWeight));
+          g.sys++; g.sysWt+=wt;
+          if(t.lastVerifiedAt||n(t.scanCount)>0){ g.ver++; g.verWt+=wt; }
+          gMap.set(k, g);
+        });
+        const list = [...gMap.values()];
+        const rows = list.map(g=>['<b>'+esc(g.k)+'</b>',g.sys,fmt(g.sysWt)+' g',g.ver,fmt(g.verWt)+' g','<b>'+(g.sys-g.ver)+'</b>',fmt(g.sysWt-g.verWt)+' g',g.sys===g.ver?'<span class="rco-badge rco-badge-open">Tallied</span>':'<span class="rco-badge rco-badge-wait">Scan Pending</span>']);
+        rows.push(['<b>Total ('+availTags.length+' Available Tags)</b>',availTags.length,fmt(list.reduce((a,x)=>a+x.sysWt,0))+' g',list.reduce((a,x)=>a+x.ver,0),fmt(list.reduce((a,x)=>a+x.verWt,0))+' g','<b>'+list.reduce((a,x)=>a+(x.sys-x.ver),0)+'</b>','','']);
+        content = rarTable(['Product Group','System Tags','System Net g','Verified / Scanned Tags','Verified Net g','Missing / Unscanned','Unscanned Wt g','Audit Status'], rows);
+      }
+    }
+    // =========================================================================
+    // 12. CRM, VISITOR, CALL LOG & REMINDER REPORTS
+    // =========================================================================
+    else if(name === 'Visitor Register & Follow-up Report' || name === 'CRM Lead Pipeline Report' || name === 'Call Log & Tele-Calling Report' || name === 'Customer Feedback Report' || name === 'Birthday & Anniversary Reminder Report'){
+      if(name === 'Visitor Register & Follow-up Report'){
+        const list = visitors.filter(v=>inRange(v.date||v.createdAt));
+        const rows = list.map(v=>[esc(dayOf(v.date||v.createdAt)),'<b>'+esc(v.name||'Walk-in Visitor')+'</b>',esc(v.mobile||'—'),esc(v.city||v.area||'—'),esc(v.product||v.lookingFor||'Jewellery'),rateMoney(v.budget||0),esc(v.empRef||v.attendedBy||'Staff'),esc(v.referredBy||'Direct'),'<span class="rco-badge rco-badge-open">'+esc(v.status||'Visited')+'</span>']);
+        rows.push(['<b>Total ('+list.length+' Visitors)</b>','','','','',rateMoney(list.reduce((a,v)=>a+n(v.budget),0)),'','','']);
+        content = rarTable(['Visit Date','Visitor Name','Mobile','City / Area','Requirement','Est. Budget ₹','Attended By','Source','Status'], rows);
+      } else if(name === 'CRM Lead Pipeline Report'){
+        const list = leads.filter(l=>inRange(l.date||l.createdAt));
+        const rows = list.map(l=>[esc(dayOf(l.date||l.createdAt)),'<b>'+esc(l.leadNo||l.id?.slice(0,8))+'</b>','<b>'+esc(l.name||l.customerName||'Lead')+'</b>',esc(l.mobile||'—'),esc(l.source||'Walk-in'),esc(l.product||l.interest||'Jewellery'),rateMoney(l.expectedAmount||l.budget||0),esc(l.followUpDate||'—'),'<span class="rco-badge rco-badge-open">'+esc(l.status||'Open')+'</span>']);
+        rows.push(['<b>Total ('+list.length+' Leads)</b>','','','','','',rateMoney(list.reduce((a,l)=>a+n(l.expectedAmount||l.budget),0)),'','']);
+        content = rarTable(['Date','Lead No','Prospect Name','Mobile','Source','Product Interest','Expected Value ₹','Next Follow-up','Stage'], rows);
+      } else if(name === 'Call Log & Tele-Calling Report'){
+        const calls = docs('crm-call-log').filter(c=>inRange(c.date||c.createdAt));
+        const rows = calls.map(c=>[esc(dayOf(c.date||c.createdAt)),'<b>'+esc(c.customerName||c.name||'Customer')+'</b>',esc(c.mobile||'—'),esc(c.callType||'Outgoing'),esc(c.outcome||c.status||'Connected'),esc(c.nextFollowUp||'—'),esc(c.staff||c.handledBy||'CRM Desk'),esc(c.notes||c.remarks||'—')]);
+        rows.push(['<b>Total ('+calls.length+' Calls Logged)</b>','','','','','','','']);
+        content = rarTable(['Date','Customer / Lead','Mobile','Call Type','Outcome','Next Follow-up','Staff','Remarks'], rows);
+      } else if(name === 'Customer Feedback Report'){
+        const fbs = docs('crm-feedback').filter(f=>inRange(f.date||f.createdAt));
+        const rows = fbs.map(f=>[esc(dayOf(f.date||f.createdAt)),'<b>'+esc(f.customerName||f.name||'Customer')+'</b>',esc(f.mobile||'—'),'⭐ '+n(f.rating||5)+'/5',esc(f.category||'Showroom Experience'),esc(f.comments||f.feedback||'Good service'),'<span class="rco-badge rco-badge-open">'+esc(f.status||'Reviewed')+'</span>']);
+        rows.push(['<b>Total ('+fbs.length+' Feedbacks)</b>','','','','','','']);
+        content = rarTable(['Date','Customer','Mobile','Rating','Category','Feedback Comments','Status'], rows);
+      } else {
+        const rows = custs.map(c=>['<b>'+esc(c.name)+'</b>',esc(c.phone||c.mobile||'—'),esc(c.city||c.area||'—'),esc(c.dob||c.birthDate||'Not Set'),esc(c.anniversary||c.weddingDate||'Not Set'),(db.sales||[]).filter(s=>s.partyId===c.id).length]);
+        rows.push(['<b>Total ('+custs.length+' Customers Checked)</b>','','','','','']);
+        content = rarTable(['Customer Name','Mobile','City / Area','Date of Birth','Wedding Anniversary','Total Bills'], rows);
+      }
+    }
 
     const hiddenSet = new Set(rarState.hiddenCols[name] || []);
     const colSelector = lastReportColumns.length ? '<details id="rarColOptions" style="position:relative;display:inline-block"><summary class="gl-dt-btn" style="padding:5px 10px;font-size:12px;cursor:pointer">Display Columns ('+(lastReportColumns.length-hiddenSet.size)+'/'+lastReportColumns.length+')</summary><div style="position:absolute;right:0;z-index:40;min-width:220px;max-height:280px;overflow:auto;padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--white,#fff);box-shadow:0 8px 24px rgba(0,0,0,.14);display:grid;gap:6px">'
@@ -1967,7 +2477,10 @@
 
     const sections = [
       ['1. DayBook Reports', [
-        ['DayBook Report', "rarOpen('DayBook Report')"],
+        ['DayBook Report (V1)', "rarOpen('DayBook Report','V1')"],
+        ['DayBook Report V2 (Close/Open)', "rarOpen('DayBook Report','V2')"],
+        ['DayBook Report V3 (By Voucher)', "rarOpen('DayBook Report','V3')"],
+        ['DayBook Report V4 (By Ledger)', "rarOpen('DayBook Report','V4')"],
         ['DayBook Abstract', "rarOpen('DayBook Abstract')"],
         ['Bill Entry Report', "rarOpen('Bill Entry Report')"]
       ]],
@@ -2107,12 +2620,16 @@
         ['Gift Issued Report', "rarOpen('Gift Issued Report')"],
         ['Gift Stock Report', "rarOpen('Gift Stock Report')"]
       ]],
-      ['27. Jewel Loan Report', [
+      ['27. Jewel Loan & Auction Reports', [
         ['Interest Due Report', "rarOpen('Interest Due Report')"],
         ['Jewel Loan Stock Report', "rarOpen('Jewel Loan Stock Report')"],
         ['Jewel Loan Date Wise Report', "rarOpen('Jewel Loan Date Wise Report')"],
         ['Jewel Loan Area Wise Report', "rarOpen('Jewel Loan Area Wise Report')"],
-        ['Jewel Loan Hand Stock Report', "rarOpen('Jewel Loan Hand Stock Report')"]
+        ['Jewel Loan Hand Stock Report', "rarOpen('Jewel Loan Hand Stock Report')"],
+        ['Jewel Loan Redemption Report', "rarOpen('Jewel Loan Redemption Report')"],
+        ['Jewel Loan Interest Register', "rarOpen('Jewel Loan Interest Register')"],
+        ['RePledge & Financier Report', "rarOpen('RePledge & Financier Report')"],
+        ['Auction Notice & Sale Report', "rarOpen('Auction Notice & Sale Report')"]
       ]],
       ['28. Executive Dashboards & Rate History', [
         ['Business Dashboard', "rarOpen('Business Dashboard')"],
@@ -2121,18 +2638,49 @@
         ['Jewel Loan Dashboard', "rarOpen('Jewel Loan Dashboard')"],
         ['Rate History', "rarOpen('Rate History')"],
         ['Rate History By Date', "rarOpen('Rate History By Date')"]
+      ]],
+      ['29. Order, Repair & Estimation Reports', [
+        ['Order Tracking Report', "rarOpen('Order Tracking Report')"],
+        ['Order Karigar / Supplier Report', "rarOpen('Order Karigar / Supplier Report')"],
+        ['Order Advance & Receipt Register', "rarOpen('Order Advance & Receipt Register')"],
+        ['Jewellery Repair & Service Report', "rarOpen('Jewellery Repair & Service Report')"],
+        ['Estimation / Quotation Register', "rarOpen('Estimation / Quotation Register')"],
+        ['Estimation Conversion Analysis', "rarOpen('Estimation Conversion Analysis')"]
+      ]],
+      ['30. Old Metal, Melting & Workshop Reports', [
+        ['Old Metal Purchase & Exchange Register', "rarOpen('Old Metal Purchase & Exchange Register')"],
+        ['Melting & Kacha-Pure Conversion Report', "rarOpen('Melting & Kacha-Pure Conversion Report')"],
+        ['Karigar Issue Voucher Report', "rarOpen('Karigar Issue Voucher Report')"],
+        ['Karigar Receipt Voucher Report', "rarOpen('Karigar Receipt Voucher Report')"],
+        ['Metal Voucher & Bullion Ledger Report', "rarOpen('Metal Voucher & Bullion Ledger Report')"],
+        ['Purchase Return (Debit Note) Report', "rarOpen('Purchase Return (Debit Note) Report')"]
+      ]],
+      ['31. Tagging, Lot & Stock Audit Reports', [
+        ['Sold Tag Register', "rarOpen('Sold Tag Register')"],
+        ['Removed / Non-Active Tag Audit', "rarOpen('Removed / Non-Active Tag Audit')"],
+        ['Lot Entry Register', "rarOpen('Lot Entry Register')"],
+        ['Vendor Wise Tag & Lot Report', "rarOpen('Vendor Wise Tag & Lot Report')"],
+        ['Stock Verification Audit Report', "rarOpen('Stock Verification Audit Report')"]
+      ]],
+      ['32. CRM, Visitor, Call Log & Reminder Reports', [
+        ['Visitor Register & Follow-up Report', "rarOpen('Visitor Register & Follow-up Report')"],
+        ['CRM Lead Pipeline Report', "rarOpen('CRM Lead Pipeline Report')"],
+        ['Call Log & Tele-Calling Report', "rarOpen('Call Log & Tele-Calling Report')"],
+        ['Customer Feedback Report', "rarOpen('Customer Feedback Report')"],
+        ['Birthday & Anniversary Reminder Report', "rarOpen('Birthday & Anniversary Reminder Report')"]
       ]]
     ];
 
+    const totalReportsCount = sections.reduce((acc, [, items]) => acc + items.length, 0);
     const q = (rarState.dirSearch||'').trim().toLowerCase();
     const filteredSections = sections.map(([secTitle, items]) => [
       secTitle,
       !q ? items : items.filter(([lbl]) => lbl.toLowerCase().includes(q) || secTitle.toLowerCase().includes(q))
     ]).filter(([, items]) => items.length > 0);
 
-    return header('Reports Directory (28 Categories · 100 Reports)', '')
-      + '<div class="rco-toolbar" style="margin-bottom:12px"><div class="rco-toolbar-left"><input type="search" class="rco-search" placeholder="Search all 100 reports by name or category..." value="'+esc(rarState.dirSearch||'')+'" oninput="rarState.dirSearch=this.value;render()" style="min-width:300px"></div>'
-      + '<div class="rco-toolbar-right"><button type="button" onclick="rarOpen(\'Business Dashboard\')">📈 Business Dashboard</button> <button type="button" onclick="rarOpen(\'Rate History\')">🪙 Rate History</button> <button type="button" onclick="rgaState.mainTab=\'Accounts & Reports\';go(\'Parent Group\')">📒 Accounts Hub</button></div></div>'
+    return header('Reports Directory ('+sections.length+' Categories · '+totalReportsCount+' Reports)', '')
+      + '<div class="rco-toolbar" style="margin-bottom:12px"><div class="rco-toolbar-left"><input type="search" class="rco-search" placeholder="Search all '+totalReportsCount+' reports by name or category..." value="'+esc(rarState.dirSearch||'')+'" oninput="rarState.dirSearch=this.value;render()" style="min-width:300px"></div>'
+      + '<div class="rco-toolbar-right"><button type="button" onclick="rarOpen(\'DayBook Report\',\'V2\')">📒 DayBook V2</button> <button type="button" onclick="rarOpen(\'Business Dashboard\')">📈 Business Dashboard</button> <button type="button" onclick="rarOpen(\'Rate History\')">🪙 Rate History</button> <button type="button" onclick="rgaState.mainTab=\'Accounts & Reports\';go(\'Parent Group\')">🏦 Accounts Hub</button></div></div>'
       + filteredSections.map(([secTitle, items])=>
         '<section class="rco-section-card"><h3>'+esc(secTitle)+' <small class="muted">('+items.length+')</small></h3><div style="display:flex;flex-wrap:wrap;gap:8px">'
         + items.map(([lbl, act])=>'<button type="button" class="gl-dt-btn" style="padding:8px 14px;font-size:12.5px" onclick="'+act+'">📊 '+esc(lbl)+'</button>').join('')

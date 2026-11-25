@@ -834,14 +834,86 @@
 
   window.rgaDel = (t, id) => { delDoc(t, id); render(); };
 
+  const RGA_MASTER_TABS = ['Ornament Purity','Tax Groups','Other Charges','Expense Types','Branches & Counters','Employees & Teams','Lock Dates'];
+  window.rgaSaveMasterItem = (e) => {
+    e.preventDefault(); const f = e.target;
+    const cat = rgaState.masterCat || 'Ornament Purity';
+    const name = f.name.value.trim(); if(!name) return say('Name is required.');
+    saveDoc('retail-master-item', {
+      id: rgaState.masterEditId || undefined,
+      masterCat: cat,
+      name,
+      code: f.code?.value?.trim() || '',
+      metalType: f.metalType?.value || 'Gold',
+      valueNum: f.valueNum ? n(f.valueNum.value) : 0,
+      extraText: f.extraText?.value?.trim() || '',
+      status: f.status?.value || 'Active'
+    });
+    rgaState.masterEditId = '';
+    e.target.reset();
+    say(cat + ' saved.'); render();
+  };
+  function rgaMastersView(){
+    const cat = rgaState.masterCat || 'Ornament Purity';
+    const items = docs('retail-master-item').filter(x => x.masterCat === cat);
+    const ed = rgaState.masterEditId ? items.find(x => x.id === rgaState.masterEditId) : null;
+    const tabsHtml = '<div class="rco-tabs" style="margin-bottom:12px">' + RGA_MASTER_TABS.map(t => '<button type="button" class="'+(cat===t?'active':'')+'" onclick="rgaState.masterCat=\''+t+'\';rgaState.masterEditId=\'\';render()">'+esc(t)+'</button>').join('') + '</div>';
+    let fieldsHtml = '';
+    if(cat === 'Ornament Purity'){
+      fieldsHtml = '<label class="rco-field"><span>Purity Name *</span><input name="name" required placeholder="e.g. 22K 916 Hallmark" value="'+esc(ed?.name||'')+'"></label>'
+        + '<label class="rco-field"><span>Metal</span><select name="metalType">'+opts(['Gold','Silver','Platinum','Diamond'], ed?.metalType||'Gold')+'</select></label>'
+        + '<label class="rco-field"><span>Touch / Fineness %</span><input name="valueNum" type="number" step=".01" placeholder="91.60" value="'+esc(ed?.valueNum||91.6)+'"></label>'
+        + '<label class="rco-field"><span>Display Code</span><input name="code" placeholder="916 / 750 / 925" value="'+esc(ed?.code||'')+'"></label>';
+    } else if(cat === 'Tax Groups'){
+      fieldsHtml = '<label class="rco-field"><span>Tax Group Name *</span><input name="name" required placeholder="e.g. GST 3% Jewellery" value="'+esc(ed?.name||'')+'"></label>'
+        + '<label class="rco-field"><span>Total Tax %</span><input name="valueNum" type="number" step=".01" value="'+esc(ed?.valueNum??3)+'"></label>'
+        + '<label class="rco-field"><span>Default HSN / SAC</span><input name="code" placeholder="7113 / 7114 / 9988" value="'+esc(ed?.code||'7113')+'"></label>'
+        + '<label class="rco-field"><span>Split Note (CGST+SGST)</span><input name="extraText" placeholder="1.5% CGST + 1.5% SGST" value="'+esc(ed?.extraText||'1.5% + 1.5%')+'"></label>';
+    } else if(cat === 'Other Charges' || cat === 'Expense Types'){
+      fieldsHtml = '<label class="rco-field"><span>'+esc(cat.slice(0,-1))+' Name *</span><input name="name" required placeholder="e.g. Hallmark / Cert / EB Bill" value="'+esc(ed?.name||'')+'"></label>'
+        + '<label class="rco-field"><span>Default Amount ₹</span><input name="valueNum" type="number" step=".01" value="'+esc(ed?.valueNum||0)+'"></label>'
+        + '<label class="rco-field"><span>Ledger Group</span><input name="extraText" placeholder="Direct / Indirect Expenses" value="'+esc(ed?.extraText||'Indirect Expenses')+'"></label>'
+        + '<label class="rco-field"><span>Code</span><input name="code" placeholder="Optional code" value="'+esc(ed?.code||'')+'"></label>';
+    } else if(cat === 'Branches & Counters'){
+      fieldsHtml = '<label class="rco-field"><span>Branch / Counter Name *</span><input name="name" required placeholder="e.g. Ground Floor Gold Counter" value="'+esc(ed?.name||'')+'"></label>'
+        + '<label class="rco-field"><span>Counter Code</span><input name="code" placeholder="CTR-01" value="'+esc(ed?.code||'')+'"></label>'
+        + '<label class="rco-field"><span>City / Location</span><input name="extraText" placeholder="Main Showroom" value="'+esc(ed?.extraText||'')+'"></label>'
+        + '<label class="rco-field"><span>Metal Focus</span><select name="metalType">'+opts(['All','Gold','Silver','Diamond','Cash Desk'], ed?.metalType||'All')+'</select></label>';
+    } else if(cat === 'Employees & Teams'){
+      fieldsHtml = '<label class="rco-field"><span>Employee / Staff Name *</span><input name="name" required placeholder="e.g. Ravi Kumar" value="'+esc(ed?.name||'')+'"></label>'
+        + '<label class="rco-field"><span>Staff Code</span><input name="code" placeholder="EMP-01" value="'+esc(ed?.code||'')+'"></label>'
+        + '<label class="rco-field"><span>Role / Counter</span><input name="extraText" placeholder="Sales Executive · Counter 1" value="'+esc(ed?.extraText||'')+'"></label>'
+        + '<label class="rco-field"><span>Monthly Target (g)</span><input name="valueNum" type="number" step=".1" value="'+esc(ed?.valueNum||0)+'"></label>';
+    } else {
+      fieldsHtml = '<label class="rco-field"><span>Module / Voucher Scope *</span><input name="name" required placeholder="e.g. All Accounting & Sales" value="'+esc(ed?.name||'All Vouchers')+'"></label>'
+        + '<label class="rco-field"><span>Lock Up To Date *</span><input name="code" type="date" required value="'+esc(ed?.code||'')+'"></label>'
+        + '<label class="rco-field wide"><span>Reason / Audit Note</span><input name="extraText" placeholder="GST Filed / Monthly Audit Closed" value="'+esc(ed?.extraText||'')+'"></label>';
+    }
+    const rows = items.map(it => [
+      '<b>'+esc(it.name)+'</b>',
+      esc(it.code||'—'),
+      esc(it.metalType||'—'),
+      it.valueNum ? esc(it.valueNum) : '—',
+      esc(it.extraText||'—'),
+      '<span class="rco-badge rco-badge-open">'+esc(it.status||'Active')+'</span>',
+      '<button type="button" onclick="rgaState.masterEditId=\''+esc(it.id)+'\';render()">Edit</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete master record?\'))rgaDel(\'retail-master-item\',\''+esc(it.id)+'\')">×</button>'
+    ]);
+    return tabsHtml
+      + '<form onsubmit="rgaSaveMasterItem(event)" class="rco-section-card" style="margin-bottom:14px"><h3>'+(ed?'Edit ':'Add ')+esc(cat)+'</h3><div class="rco-grid">'+fieldsHtml
+      + '<label class="rco-field"><span>Status</span><select name="status">'+opts(['Active','Inactive'], ed?.status||'Active')+'</select></label></div>'
+      + '<div class="right" style="margin-top:10px">'+(ed?'<button type="button" onclick="rgaState.masterEditId=\'\';render()">Cancel</button> ':'')+'<button type="submit" class="primary">'+(ed?'Update':'＋ Save')+'</button></div></form>'
+      + (rows.length ? table(['Name','Code / Date','Metal','Rate / Value','Details / Group','Status','Actions'], rows) : '<p class="empty">No custom '+esc(cat)+' entries yet. Add your first record above.</p>');
+  }
+
   window.rgaParentGroupPage = () => {
-    const tabs = ['Accounting Groups','Product Groups','Ledgers','Opening Balance',...postingTabs,'Accounts & Reports'];
+    const tabs = ['Accounting Groups','Product Groups','Ledgers','Opening Balance',...postingTabs,'Shop Masters','Accounts & Reports'];
     let inner = '';
     if(rgaState.mainTab === 'Accounting Groups') inner = rgaAccountingGroupsView();
     else if(rgaState.mainTab === 'Product Groups') inner = rgaProductGroupsView();
     else if(rgaState.mainTab === 'Ledgers') inner = rgaLedgersView();
     else if(rgaState.mainTab==='Opening Balance')inner=openingBalancesView();
     else if(postingTabs.includes(rgaState.mainTab))inner=postingView(rgaState.mainTab);
+    else if(rgaState.mainTab==='Shop Masters')inner=rgaMastersView();
     else inner = rgaReportsView();
     return header('Parent Groups, Ledgers & Financial Reports', '')
       + '<div class="rco-tabs">' + tabs.map(t=>'<button type="button" class="'+(rgaState.mainTab===t?'active':'')+'" onclick="rgaState.postingEditId=\'\';rgaState.mainTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>'
