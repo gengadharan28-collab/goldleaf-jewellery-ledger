@@ -684,7 +684,19 @@ window.rbOpenReturnPanel=function(button){
     label.querySelector('span').classList.add('rc-og-label-text');
     label.querySelector('select').classList.add('rc-og-input');
   }
+  if(quoteStyle)section.insertAdjacentHTML('beforeend',`<style>
+    #glSalesReturnPanel.rc-sales-return-dropdown{padding:5px!important;margin:3px 0!important;max-width:480px!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rc-old-gold-dropdown-head{margin:0 0 3px!important;padding:0!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-record-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:3px 5px!important;margin:0!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-field{gap:1px!important;padding:0!important;margin:0!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rc-og-input{height:30px!important;min-height:30px!important;margin:0!important;padding:2px 5px!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-wide{grid-column:auto!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .right{display:flex!important;gap:5px!important;margin:4px 0 0!important}
+    #glSalesReturnPanel.rc-sales-return-dropdown .right button{height:30px!important;min-height:30px!important;margin:0!important}
+    #glSalesReturnPanel label[hidden]{display:none!important}
+  </style>`);
   const picker=section.querySelector('[data-return-edit]');
+  if(quoteStyle)picker.closest('label').hidden=true;
   for(const row of rbRecords('return').sort(whenCmp)){
     const label=[row.documentNo||row.id.slice(0,8),accountName(row.partyId,'customer'),row.product].filter(Boolean).join(' · ');
     picker.add(new Option(label,row.id));
@@ -698,7 +710,22 @@ window.rbOpenReturnPanel=function(button){
       fields.querySelectorAll('.rb-field>span').forEach(label=>label.classList.add('rc-og-label-text'));
       fields.querySelectorAll('input:not([type=hidden]),select').forEach(control=>control.classList.add('rc-og-input'));
     }
-    fields.querySelector('form').addEventListener('submit',event=>event.stopPropagation());
+    const form=fields.querySelector('form');
+    form.addEventListener('submit',event=>event.stopPropagation());
+    if(quoteStyle){
+      const actions=form.querySelector('.right');
+      const saveButton=actions.querySelector('button');
+      saveButton.textContent='Save';
+      const editButton=document.createElement('button');
+      editButton.type='button';
+      editButton.textContent='Edit';
+      editButton.addEventListener('click',()=>{
+        if(picker.options.length===1){say('No saved sales returns to edit.');return;}
+        picker.closest('label').hidden=false;
+        picker.focus();
+      });
+      actions.prepend(editButton);
+    }
   };
   picker.addEventListener('change',showForm);
   showForm();
