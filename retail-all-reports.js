@@ -90,14 +90,47 @@
     return [p];
   };
 
+  const RAR_NAME_ALIASES = {
+    'Expense': 'Expense Report',
+    'Team': 'Team Analysis Report',
+    'Ledger': 'Ledger Report',
+    'Customer Inactive': 'Customer Inactive Report',
+    'Summary Report': 'Sale Bill Summary Matrix',
+    'Top Sales Report (Centralized)': 'Top Sales (Centralized)'
+  };
+
   window.rarOpen = (name, optDim) => {
     window.tagReportActive = false;
     window.tradeReportActive = false;
-    rarState.active = name;
+    const canonical = RAR_NAME_ALIASES[name] || name;
+    rarState.active = canonical;
     if(optDim) rarState.topDim = optDim;
-    if(name==='DayBook Report') rarState.daybookTab='Transactions';
-    if(name==='DayBook Abstract') rarState.daybookTab='Abstract';
+    if(canonical==='DayBook Report') rarState.daybookTab='Transactions';
+    if(canonical==='DayBook Abstract') rarState.daybookTab='Abstract';
     render();
+  };
+  window.rarOpenChitReport = (tabName) => {
+    window.tagReportActive = false;
+    window.tradeReportActive = false;
+    rarState.active = '';
+    if(typeof chitReportName !== 'undefined') chitReportName = tabName;
+    window.chitReportName = tabName;
+    if(typeof chitReportDetailId !== 'undefined') chitReportDetailId = '';
+    if(typeof go === 'function') go('Chit Reports'); else render();
+  };
+  window.rarOpenTagReport = (tabName) => {
+    rarState.active = '';
+    const map = {
+      'Tag Stocks': 'Tag Stocks',
+      'Tag Stock V1': 'Tag Stock V1',
+      'Tag Purchase Report': 'Tag Purchase',
+      'Tag Age Wise Report': 'Tag Age Wise',
+      'Overall Available Tag': 'Overall Available Tag',
+      'Overall Available Tag By Product': 'Available By Product'
+    };
+    const target = map[tabName] || tabName;
+    if(typeof tagReportOpen === 'function') tagReportOpen(target);
+    else { window.tagReportActive = true; render(); }
   };
   window.rarBack = () => { rarState.active = ''; render(); };
   window.rarResetFilters = () => {
@@ -1821,22 +1854,89 @@
         const ratePm = n(rarState.loanRatePm)||1.5;
         subToolbar += ' <label>Monthly Rate % <input type="number" step=".05" style="width:70px" value="'+ratePm+'" onchange="rarState.loanRatePm=n(this.value);render()"></label>';
         const asOfStr = rarState.to || rbNow().slice(0,10);
-        let totPrin=0, totAcc=0, totPaid=0, totDue=0, totRed=0;
+        let totPrin=0, totWt=0, totAcc=0, totPaid=0, totDue=0, totRed=0;
         const rows = loans.filter(l=>!redMap.has(l.reference)).map(l => {
           const c = getCust(l.customerId), d = dayOf(l.date||l.createdAt)||asOfStr;
           const days = Math.max(1, Math.floor((Date.parse(asOfStr) - Date.parse(d)) / 86400000));
           const months = (days / 30).toFixed(2);
-          const prin = n(l.principal);
+          const prin = n(l.principal), wt = Math.max(0,n(l.gross)-n(l.less));
           const accrued = rbRound(prin * (ratePm / 100) * (days / 30));
+          const lInts = allInts.filter(i=>i.loanRef===l.reference).map(i=>dayOf(i.date)).sort();
           const paid = intByRef(l.reference);
           const due = Math.max(0, rbRound(accrued - paid));
           const redAmt = rbRound(prin + due + n(l.charges));
-          totPrin+=prin; totAcc+=accrued; totPaid+=paid; totDue+=due; totRed+=redAmt;
-          return ['<b>'+esc(l.reference)+'</b>',esc(d),'<b>'+esc(c.name||'Customer')+'</b>',esc(c.phone||c.mobile||'—'),esc(l.scheme||'Standard'),fmt(Math.max(0,n(l.gross)-n(l.less)))+' g',rateMoney(prin),days+' d ('+months+' m)',ratePm+'%',rateMoney(accrued),rateMoney(paid),'<b>'+rateMoney(due)+'</b>','<b>'+rateMoney(redAmt)+'</b>'];
+          totPrin+=prin; totWt+=wt; totAcc+=accrued; totPaid+=paid; totDue+=due; totRed+=redAmt;
+          return ['<b>'+esc(l.reference)+'</b>','<b>'+esc(c.name||'Customer')+'</b>',esc(c.phone||c.mobile||'—'),esc(c.address||'—'),esc(c.city||'—'),rateMoney(prin),fmt(wt)+' g',days+' d ('+months+' m)','<b>'+rateMoney(due)+'</b>',esc(l.scheme||'Standard'),esc(lInts[0]||'—'),esc(lInts.at(-1)||'—'),'Simple '+ratePm+'%/m','Days/30',rateMoney(paid),'<b>'+rateMoney(redAmt)+'</b>'];
         });
-        if(rows.length) rows.push(['<b>Total ('+rows.length+')</b>','','','','','',rateMoney(totPrin),'','',rateMoney(totAcc),rateMoney(totPaid),'<b>'+rateMoney(totDue)+'</b>','<b>'+rateMoney(totRed)+'</b>']);
-        content = rows.length ? rarTable(['Loan Ref No','Loan Date','Customer','Mobile','Scheme','Net Wt g','Principal ₹','Elapsed Period','Rate %/m','Accrued Interest ₹','Interest Paid ₹','Interest Due ₹','Total Redemption ₹'], rows) : '<p class="empty">No active jewel loans with interest due.</p>';
+        if(rows.length) rows.push(['<b>Total ('+rows.length+')</b>','','','','','<b>'+rateMoney(totPrin)+'</b>','<b>'+fmt(totWt)+' g</b>','','<b>'+rateMoney(totDue)+'</b>','','','','','',rateMoney(totPaid),'<b>'+rateMoney(totRed)+'</b>']);
+        content = rows.length ? rarTable(['Loan No','Ledger Name','Mobile','Address','City','Total Loan Amt','Total Wt','Due Days','Due Amt','Scheme Name','Min Int Paid Date','Max Int Paid Date','Int Type','Cal By','Interest Paid ₹','Total Redemption ₹'], rows) : '<p class="empty">No active jewel loans with interest due.</p>';
       }
+    }
+    // =========================================================================
+    // 7. EXECUTIVE DASHBOARDS & RATE HISTORY REPORTS
+    // =========================================================================
+    else if(name === 'Business Dashboard' || name === 'Branches Dashboard' || name === 'Jewel Loan Dashboard' || name === 'Sales Dashboard'){
+      const allLoans = typeof window.glAllJewelLoans === 'function' ? window.glAllJewelLoans() : docs('retail-jewel-loan-draft');
+      const allInts = typeof window.glJewelLoanInterests === 'function' ? window.glJewelLoanInterests() : docs('retail-jewel-loan-interest');
+      const allReds = typeof window.glJewelLoanRedemptions === 'function' ? window.glJewelLoanRedemptions() : docs('retail-jewel-loan-redemption');
+      subToolbar = ['Business Dashboard','Sales Dashboard','Branches Dashboard','Jewel Loan Dashboard'].map(d=>'<button type="button" class="'+(name===d?'primary':'')+'" onclick="rarOpen(\''+d+'\')">'+esc(d)+'</button>').join(' ');
+      if(name === 'Jewel Loan Dashboard'){
+        const actLoans = allLoans.filter(l=>!allReds.some(r=>r.loanRef===l.reference));
+        const rows = [
+          ['<b>Total Loan Drafts / Pledges</b>', allLoans.length, fmt(allLoans.reduce((a,l)=>a+Math.max(0,n(l.gross)-n(l.less)),0))+' g', rateMoney(allLoans.reduce((a,l)=>a+n(l.principal),0))],
+          ['<b>Active Hand Stock Loans</b>', actLoans.length, fmt(actLoans.reduce((a,l)=>a+Math.max(0,n(l.gross)-n(l.less)),0))+' g', rateMoney(actLoans.reduce((a,l)=>a+n(l.principal),0))],
+          ['<b>Interest Payments Collected</b>', allInts.length, '—', rateMoney(allInts.reduce((a,i)=>a+n(i.netAmount||i.interestAmount),0))],
+          ['<b>Redemptions / Releases Completed</b>', allReds.length, '—', rateMoney(allReds.reduce((a,r)=>a+n(r.netAmount),0))],
+          ['<b>Auction Notices Issued</b>', docs('retail-jewel-loan-notice').length, '—', rateMoney(docs('retail-jewel-loan-notice').reduce((a,x)=>a+n(x.totalDue),0))],
+          ['<b>Auction Catalogue Lots</b>', docs('retail-jewel-loan-auction').length, fmt(docs('retail-jewel-loan-auction').reduce((a,x)=>a+n(x.netWt),0))+' g', rateMoney(docs('retail-jewel-loan-auction').reduce((a,x)=>a+n(x.winningBid||x.reservePrice),0))]
+        ];
+        content = rarTable(['Jewel Loan Metric','Count','Net Weight g','Amount ₹'], rows);
+      } else if(name === 'Branches Dashboard'){
+        const bMap = new Map();
+        sales.forEach(s => {
+          const k = s.counter || s.placeOfSupply || 'Main Showroom';
+          const g = bMap.get(k) || { k, bills:0, wt:0, amt:0, col:0 };
+          g.bills++; g.wt+=n(s.weight); g.amt+=n(s.amount); g.col+=n(s.collectedAmount);
+          bMap.set(k, g);
+        });
+        if(!bMap.size) bMap.set('Main Showroom',{k:'Main Showroom',bills:0,wt:0,amt:0,col:0});
+        content = rarTable(['Branch / Counter','Sales Bills','Sold Weight g','Sales Revenue ₹','Collected ₹','Pending Balance ₹'], [...bMap.values()].map(g=>['<b>'+esc(g.k)+'</b>',g.bills,fmt(g.wt)+' g','<b>'+rateMoney(g.amt)+'</b>',rateMoney(g.col),rateMoney(Math.max(0,g.amt-g.col))]));
+      } else {
+        const availTags = tags.filter(t=>!['sold','issued','returned','removed'].includes(String(t.status||'').toLowerCase()));
+        const rows = [
+          ['<b>Retail Sales Bills</b>', sales.length, fmt(sales.reduce((a,s)=>a+n(s.weight),0))+' g', '<b>'+rateMoney(sales.reduce((a,s)=>a+n(s.amount),0))+'</b>'],
+          ['<b>Sales Returns (Credit Notes)</b>', returns.length, fmt(returns.reduce((a,r)=>a+n(r.returnWeight||r.weight),0))+' g', rateMoney(returns.reduce((a,r)=>a+n(r.amount),0))],
+          ['<b>Retail Purchases</b>', purch.length, fmt(purch.reduce((a,p)=>a+n(p.netWeight||p.grossWeight),0))+' g', rateMoney(purch.reduce((a,p)=>a+n(p.totalAmount||p.amount),0))],
+          ['<b>Old Jewel Purchases & Exchanges</b>', oldPurch.length, fmt(oldPurch.reduce((a,p)=>a+n(p.netWeight),0)+sales.reduce((a,s)=>a+n(s.exchangePureGrams),0))+' g', rateMoney(oldPurch.reduce((a,p)=>a+n(p.totalAmount||p.amount),0)+sales.reduce((a,s)=>a+n(s.exchangeAmount),0))],
+          ['<b>Available Tagged Inventory</b>', availTags.length, fmt(availTags.reduce((a,t)=>a+n(t.netWeight??n(t.grossWeight)-n(t.lessWeight)),0))+' g', rateMoney(availTags.reduce((a,t)=>a+n(t.totalAmount),0))],
+          ['<b>Customer Orders & Repairs</b>', orders.length+docs('retail-repair').length, fmt(orders.reduce((a,o)=>a+n(o.totalNetWt),0))+' g', rateMoney(orders.reduce((a,o)=>a+n(o.netAmount),0))],
+          ['<b>Active Chit Passbooks</b>', docs('retail-chit-mapping').length, fmt(docs('retail-chit-entry').reduce((a,e)=>a+n(e.metalWeight),0))+' g', rateMoney(docs('retail-chit-entry').reduce((a,e)=>a+n(e.amount),0))],
+          ['<b>Jewel Loan Pledges</b>', allLoans.length, fmt(allLoans.reduce((a,l)=>a+Math.max(0,n(l.gross)-n(l.less)),0))+' g', rateMoney(allLoans.reduce((a,l)=>a+n(l.principal),0))]
+        ];
+        content = rarTable(['Module / KPI','Records / Vouchers','Net Weight g','Total Value ₹'], rows);
+      }
+    }
+    else if(name === 'Rate History' || name === 'Rate History By Date'){
+      window.rarSaveRateHistory = () => {
+        const now = new Date().toISOString();
+        const entry = {
+          id: crypto.randomUUID(), kind: 'retail-rate-history', type: 'retail-rate-history',
+          date: now.slice(0,10), time: now.slice(11,16),
+          gold24: n(db.rates?.gold24), gold22: n(db.rates?.gold22), gold18: n(db.rates?.gold18)||rbRound(n(db.rates?.gold24)*0.75),
+          silver: n(db.rates?.silver), updatedBy: session?.user?.email||'Admin', createdAt: now
+        };
+        if(!Array.isArray(db.retailDocuments)) db.retailDocuments=[];
+        db.retailDocuments.unshift(entry);
+        save(); if(typeof pushCloud==='function') pushCloud();
+        say('Current board rates snapshot logged to Rate History.'); render();
+      };
+      subToolbar = '<button type="button" class="primary" onclick="rarSaveRateHistory()">＋ Log Today\'s Live Rate Snapshot</button> <button type="button" onclick="go(\'Rate Book\')">Open Rate Book</button>';
+      const history = docs('retail-rate-history').filter(r=>inRange(r.date||r.createdAt));
+      const rows = [
+        ['<b>'+esc(rbNow().slice(0,10))+' (Current Live)</b>', esc(rbNow().slice(11,16)), '<b>'+rateMoney(db.rates?.gold24||0)+'/g</b>', '<b>'+rateMoney(db.rates?.gold22||0)+'/g</b>', rateMoney(db.rates?.gold18||rbRound(n(db.rates?.gold24)*0.75))+'/g', '<b>'+rateMoney(db.rates?.silver||0)+'/g</b>', esc(session?.user?.email||'Live Rate Book')],
+        ...history.map(r=>[esc(r.date), esc(r.time||'—'), rateMoney(r.gold24)+'/g', rateMoney(r.gold22)+'/g', rateMoney(r.gold18)+'/g', rateMoney(r.silver)+'/g', esc(r.updatedBy||'Admin')])
+      ];
+      content = rarTable(['Date','Time','Gold 24K (99.9%) ₹/g','Gold 22K (91.6%) ₹/g','Gold 18K (75%) ₹/g','Silver ₹/g','Updated By'], rows);
     }
 
     const hiddenSet = new Set(rarState.hiddenCols[name] || []);
@@ -1866,111 +1966,175 @@
     if(rarState.active) return rarRenderReport(rarState.active);
 
     const sections = [
-      ['Accounts, Books & Financial Statements', [
-        ['DayBook Transactions', "rarOpen('DayBook Report')"],
+      ['1. DayBook Reports', [
+        ['DayBook Report', "rarOpen('DayBook Report')"],
         ['DayBook Abstract', "rarOpen('DayBook Abstract')"],
+        ['Bill Entry Report', "rarOpen('Bill Entry Report')"]
+      ]],
+      ['2. Financial Statements', [
+        ['Trial Balance Report', "rarOpen('Trial Balance Report')"],
+        ['Balance Sheet Report', "rarOpen('Balance Sheet Report')"],
+        ['Profit Loss Report', "rarOpen('Profit Loss Report')"]
+      ]],
+      ['3. Advance Reports', [
+        ['Advance Amount Report', "rarOpen('Advance Amount Report')"],
+        ['Advance Amount Report V1', "rarOpen('Advance Amount Report V1')"]
+      ]],
+      ['4. Books & Outstanding', [
         ['Cashbook Report', "rarOpen('Cashbook Report')"],
         ['Bankbook Report', "rarOpen('Bankbook Report')"],
-        ['Bill Entry Report', "rarOpen('Bill Entry Report')"],
-        ['Payment Report By Ledger', "rarOpen('Payment Report By Ledger')"],
-        ['Payment Report By Ledger Group', "rarOpen('Payment Report By Ledger Group')"],
-        ['Supplier Payment Report', "rarOpen('Supplier Payment Report')"],
         ['Outstanding Report', "rarOpen('Outstanding Report')"],
-        ['Outstanding V1 Report', "rarOpen('Outstanding V1 Report')"],
-        ['Advance Amount Report', "rarOpen('Advance Amount Report')"],
-        ['Advance Amount Report V1', "rarOpen('Advance Amount Report V1')"],
-        ['Expense Report', "rarOpen('Expense Report')"],
-        ['Ledger Report', "rarOpen('Ledger Report')"],
-        ['Trial Balance Report', "rarOpen('Trial Balance Report')"],
-        ['Profit Loss Report', "rarOpen('Profit Loss Report')"],
-        ['Balance Sheet Report', "rarOpen('Balance Sheet Report')"],
-        ['Accounts Group & Metal Ledger', "rgaState.mainTab='Accounts & Reports';go('Parent Group')"]
+        ['Outstanding V1 Report', "rarOpen('Outstanding V1 Report')"]
       ]],
-      ['GST & Tax Reports (GSTR1, HSN & GSTR3B)', [
-        ['GSTR1 Report', "rarOpen('GSTR1 Report')"],
-        ['GSTR1 All Invoice Report', "rarOpen('GSTR1 All Invoice Report')"],
-        ['GSTR1 B2B Invoices', "rarOpen('GSTR1 B2B Invoices')"],
-        ['GSTR1 B2C Large Invoices', "rarOpen('GSTR1 B2C Large Invoices')"],
-        ['GSTR1 B2C Small Invoices', "rarOpen('GSTR1 B2C Small Invoices')"],
-        ['GSTR1 CR/DR Lists', "rarOpen('GSTR1 CR/DR Lists')"],
-        ['GSTR1 Document Summary', "rarOpen('GSTR1 Document Summary')"],
-        ['GSTR1 HSN/SAC Sales Summary', "rarOpen('GSTR1 HSN/SAC Sales Summary')"],
-        ['HSN/SAC Sales Detail Summary', "rarOpen('HSN/SAC Sales Detail Summary')"],
-        ['HSN/SAC Return Detail Summary', "rarOpen('HSN/SAC Return Detail Summary')"],
-        ['GSTR1 JSON Report', "rarOpen('GSTR1 JSON Report')"],
-        ['GSTR3B Report', "rarOpen('GSTR3B Report')"]
+      ['5. Stock Overview', [
+        ['Stock', "rarOpen('Stock')"],
+        ['Stock Transactions', "rarOpen('Stock Transactions')"],
+        ['Stock V1', "rarOpen('Stock V1')"],
+        ['Overall Stock', "rarOpen('Overall Stock')"]
       ]],
-      ['Sales, Purchase & Analytics Reports', [
-        ['Sales Abstract Report', "rarOpen('Sales Abstract Report')"],
-        ['Sales Register Report', "rarOpen('Sales Register Report')"],
-        ['Sales Return Abstract Report', "rarOpen('Sales Return Abstract Report')"],
-        ['SaleBill DayBook Report', "rarOpen('SaleBill DayBook Report')"],
-        ['Partial Sales Report', "rarOpen('Partial Sales Report')"],
-        ['Sales Purchase', "rarOpen('Sales Purchase')"],
+      ['6. Tag Stock Overview', [
+        ['Tag Stocks', "rarOpenTagReport('Tag Stocks')"],
+        ['Tag Stock V1', "rarOpenTagReport('Tag Stock V1')"]
+      ]],
+      ['7. Tag Stock Analysis', [
+        ['Tag Purchase Report', "rarOpenTagReport('Tag Purchase Report')"],
+        ['Tag Age Wise Report', "rarOpenTagReport('Tag Age Wise Report')"]
+      ]],
+      ['8. Tag Stock Summary', [
+        ['Overall Available Tag', "rarOpenTagReport('Overall Available Tag')"],
+        ['Overall Available Tag By Product', "rarOpenTagReport('Overall Available Tag By Product')"]
+      ]],
+      ['9. Chit Overview', [
+        ['Chit Report', "rarOpenChitReport('Chit Report')"],
+        ['Chit Type', "rarOpenChitReport('Chit Type')"],
+        ['Chit History', "rarOpenChitReport('Chit History')"],
+        ['Chit Referral', "rarOpenChitReport('Chit Referral')"],
+        ['Chit Entry Wise', "rarOpenChitReport('Chit Entry Wise')"],
+        ['Renewal Missing', "rarOpenChitReport('Renewal Missing')"]
+      ]],
+      ['10. Chit Status & Summary', [
+        ['Chit Closing', "rarOpenChitReport('Chit Closing')"],
+        ['Chit Pending', "rarOpenChitReport('Chit Pending')"],
+        ['Monthly Summary', "rarOpenChitReport('Monthly Summary')"],
+        ['Chit Collection By Chit Type', "rarOpenChitReport('Chit Collection By Chit Type')"]
+      ]],
+      ['11. Chit Analysis', [
+        ['By Employee', "rarOpenChitReport('By Employee')"]
+      ]],
+      ['12. Ledger Reports', [
+        ['Ledger', "rarOpen('Ledger Report')"],
+        ['Influence By Report', "rarOpen('Influence By Report')"]
+      ]],
+      ['13. Customer Reports', [
         ['Top Customer', "rarOpen('Top Customer')"],
-        ['Customer Inactive Report', "rarOpen('Customer Inactive Report')"],
+        ['Customer Inactive', "rarOpen('Customer Inactive Report')"]
+      ]],
+      ['14. Purchase Reports', [
         ['Top Purchase', "rarOpen('Top Purchase')"],
         ['Top Purchase By Product', "rarOpen('Top Purchase By Product')"],
         ['Retail Purchase Report', "rarOpen('Retail Purchase Report')"],
-        ['Purchase Abstract Report', "rarOpen('Purchase Abstract Report')"],
-        ['Top Sales (Centralized)', "rarOpen('Top Sales (Centralized)')"],
-        ['Top Sales By Product', "rarOpen('Top Sales (Centralized)','Product')"],
-        ['Top Sales By Product Group', "rarOpen('Top Sales (Centralized)','Product Group')"],
+        ['Purchase Abstract Report', "rarOpen('Purchase Abstract Report')"]
+      ]],
+      ['15. Expense Reports', [
+        ['Expense', "rarOpen('Expense Report')"]
+      ]],
+      ['16. Analysis Reports', [
+        ['Team', "rarOpen('Team Analysis Report')"],
+        ['Sales Purchase', "rarOpen('Sales Purchase')"]
+      ]],
+      ['17. Sales Overview', [
+        ['Summary Report', "rarOpen('Sale Bill Summary Matrix')"],
+        ['SaleBill DayBook Report', "rarOpen('SaleBill DayBook Report')"],
+        ['Partial Sales Report', "rarOpen('Partial Sales Report')"]
+      ]],
+      ['18. Top Sales Reports', [
+        ['Top Sales Report (Centralized)', "rarOpen('Top Sales (Centralized)')"],
         ['Top Sales By Product Size', "rarOpen('Top Sales (Centralized)','Product Size')"],
-        ['Top Sales By Weight Range', "rarOpen('Top Sales (Centralized)','Product Weight Range')"],
+        ['Top Sales By Product', "rarOpen('Top Sales (Centralized)','Product')"],
+        ['Top Sales By Product Weight Range', "rarOpen('Top Sales (Centralized)','Product Weight Range')"],
         ['Top Sales By Model', "rarOpen('Top Sales (Centralized)','Model')"],
         ['Top Sales By Employee', "rarOpen('Top Sales (Centralized)','Employee')"],
         ['Top Sales By Supplier', "rarOpen('Top Sales (Centralized)','Supplier')"],
         ['Top Sales By Customer', "rarOpen('Top Sales (Centralized)','Customer')"],
+        ['Top Sales By Product Group', "rarOpen('Top Sales (Centralized)','Product Group')"],
         ['Top Sales By City', "rarOpen('Top Sales (Centralized)','City')"],
-        ['Top Sales By Area', "rarOpen('Top Sales (Centralized)','Area')"],
-        ['Sale Bill Summary Matrix', "rarOpen('Sale Bill Summary Matrix')"],
+        ['Top Sales By Area', "rarOpen('Top Sales (Centralized)','Area')"]
+      ]],
+      ['19. Sales Analysis', [
         ['Sales Item Wastage & MC Analysis', "rarOpen('Sales Item Wastage & MC Analysis')"],
+        ['SaleBill Diamond Report', "rarOpen('SaleBill Diamond Report')"],
+        ['Visitors Sales Comparison Report', "rarOpen('Visitors Sales Comparison Report')"],
         ['Sale Bill Wise Profit Pure Report', "rarOpen('Sale Bill Wise Profit Pure Report')"],
         ['Sales Pure Target Report', "rarOpen('Sales Pure Target Report')"],
         ['Tray Wise Sales Report', "rarOpen('Tray Wise Sales Report')"],
-        ['SaleBill Diamond Report', "rarOpen('SaleBill Diamond Report')"],
-        ['Visitors Sales Comparison Report', "rarOpen('Visitors Sales Comparison Report')"],
-        ['Branch Wise Sales Summary Report', "rarOpen('Branch Wise Sales Summary Report')"],
-        ['Influence By Report', "rarOpen('Influence By Report')"],
-        ['Team Analysis Report', "rarOpen('Team Analysis Report')"],
-        ['Sales & Purchase Tabs (Built-in)', "tradeReportOpen('Sales')"],
-        ['Purchase Register Tabs (Built-in)', "tradeReportOpen('Purchase')"]
+        ['Branch Wise Sales Summary Report', "rarOpen('Branch Wise Sales Summary Report')"]
       ]],
-      ['Stock, Tagging & Reorder Reports', [
-        ['Stock', "rarOpen('Stock')"],
-        ['Stock V1', "rarOpen('Stock V1')"],
-        ['Overall Stock', "rarOpen('Overall Stock')"],
-        ['Stock Transactions', "rarOpen('Stock Transactions')"],
-        ['Reorder Report By Default', "rarOpen('Reorder Report By Default')"],
-        ['Reorder Report By Size', "rarOpen('Reorder Report By Size')"],
+      ['20. Sales Register', [
+        ['Sales Abstract Report', "rarOpen('Sales Abstract Report')"],
+        ['Sales Return Abstract Report', "rarOpen('Sales Return Abstract Report')"],
+        ['Sales Register Report', "rarOpen('Sales Register Report')"]
+      ]],
+      ['21. Payment Reports', [
+        ['Payment Report By Ledger', "rarOpen('Payment Report By Ledger')"],
+        ['Supplier Payment Report', "rarOpen('Supplier Payment Report')"],
+        ['Payment Report By Ledger Group', "rarOpen('Payment Report By Ledger Group')"]
+      ]],
+      ['22. GSTR1 Reports', [
+        ['GSTR1 Report', "rarOpen('GSTR1 Report')"],
+        ['GSTR1 Document Summary', "rarOpen('GSTR1 Document Summary')"],
+        ['GSTR1 B2B Invoices', "rarOpen('GSTR1 B2B Invoices')"],
+        ['GSTR1 B2C Large Invoices', "rarOpen('GSTR1 B2C Large Invoices')"],
+        ['GSTR1 B2C Small Invoices', "rarOpen('GSTR1 B2C Small Invoices')"],
+        ['GSTR1 JSON Report', "rarOpen('GSTR1 JSON Report')"],
+        ['GSTR1 All Invoice Report', "rarOpen('GSTR1 All Invoice Report')"],
+        ['GSTR1 CR/DR Lists', "rarOpen('GSTR1 CR/DR Lists')"]
+      ]],
+      ['23. HSN/SAC Reports', [
+        ['GSTR1 HSN/SAC Sales Summary', "rarOpen('GSTR1 HSN/SAC Sales Summary')"],
+        ['HSN/SAC Sales Detail Summary', "rarOpen('HSN/SAC Sales Detail Summary')"],
+        ['HSN/SAC Return Detail Summary', "rarOpen('HSN/SAC Return Detail Summary')"]
+      ]],
+      ['24. GSTR3B Reports', [
+        ['GSTR3B Report', "rarOpen('GSTR3B Report')"]
+      ]],
+      ['25. Reorder Reports', [
         ['Reorder Report By Weight', "rarOpen('Reorder Report By Weight')"],
-        ['Tag Stocks (Built-in)', "tagReportOpen('Tag Stocks')"],
-        ['Tag Stock V1 (Built-in)', "tagReportOpen('Tag Stock V1')"],
-        ['Tag Agewise Report (Built-in)', "tagReportOpen('Tag Age Wise')"],
-        ['Overall Available Tag (Built-in)', "tagReportOpen('Overall Available Tag')"]
+        ['Reorder Report By Size', "rarOpen('Reorder Report By Size')"],
+        ['Reorder Report By Default', "rarOpen('Reorder Report By Default')"]
       ]],
-      ['Gift Item & Gift Voucher Reports', [
-        ['Gift Stock Report', "rarOpen('Gift Stock Report')"],
-        ['Gift Issued Report', "rarOpen('Gift Issued Report')"],
+      ['26. Gift Voucher Report', [
         ['Gift Voucher Redeem Report', "rarOpen('Gift Voucher Redeem Report')"],
-        ['Gift Voucher & Order Summary', "rarOpen('Gift Voucher & Order Summary')"]
+        ['Gift Issued Report', "rarOpen('Gift Issued Report')"],
+        ['Gift Stock Report', "rarOpen('Gift Stock Report')"]
       ]],
-      ['Jewel Loan & Auction Reports', [
+      ['27. Jewel Loan Report', [
+        ['Interest Due Report', "rarOpen('Interest Due Report')"],
+        ['Jewel Loan Stock Report', "rarOpen('Jewel Loan Stock Report')"],
         ['Jewel Loan Date Wise Report', "rarOpen('Jewel Loan Date Wise Report')"],
         ['Jewel Loan Area Wise Report', "rarOpen('Jewel Loan Area Wise Report')"],
-        ['Jewel Loan Hand Stock Report', "rarOpen('Jewel Loan Hand Stock Report')"],
-        ['Jewel Loan Stock Report', "rarOpen('Jewel Loan Stock Report')"],
-        ['Interest Due Report', "rarOpen('Interest Due Report')"]
+        ['Jewel Loan Hand Stock Report', "rarOpen('Jewel Loan Hand Stock Report')"]
       ]],
-      ['Chit & Savings Reports', [
-        ['All 11 Chit Reports (Built-in)', "go('Chit Reports')"]
+      ['28. Executive Dashboards & Rate History', [
+        ['Business Dashboard', "rarOpen('Business Dashboard')"],
+        ['Sales Dashboard', "rarOpen('Sales Dashboard')"],
+        ['Branches Dashboard', "rarOpen('Branches Dashboard')"],
+        ['Jewel Loan Dashboard', "rarOpen('Jewel Loan Dashboard')"],
+        ['Rate History', "rarOpen('Rate History')"],
+        ['Rate History By Date', "rarOpen('Rate History By Date')"]
       ]]
     ];
 
-    return header('Retail Reports Directory', '')
-      + sections.map(([secTitle, items])=>
-        '<section class="rco-section-card"><h3>'+esc(secTitle)+'</h3><div style="display:flex;flex-wrap:wrap;gap:8px">'
+    const q = (rarState.dirSearch||'').trim().toLowerCase();
+    const filteredSections = sections.map(([secTitle, items]) => [
+      secTitle,
+      !q ? items : items.filter(([lbl]) => lbl.toLowerCase().includes(q) || secTitle.toLowerCase().includes(q))
+    ]).filter(([, items]) => items.length > 0);
+
+    return header('Reports Directory (28 Categories · 100 Reports)', '')
+      + '<div class="rco-toolbar" style="margin-bottom:12px"><div class="rco-toolbar-left"><input type="search" class="rco-search" placeholder="Search all 100 reports by name or category..." value="'+esc(rarState.dirSearch||'')+'" oninput="rarState.dirSearch=this.value;render()" style="min-width:300px"></div>'
+      + '<div class="rco-toolbar-right"><button type="button" onclick="rarOpen(\'Business Dashboard\')">📈 Business Dashboard</button> <button type="button" onclick="rarOpen(\'Rate History\')">🪙 Rate History</button> <button type="button" onclick="rgaState.mainTab=\'Accounts & Reports\';go(\'Parent Group\')">📒 Accounts Hub</button></div></div>'
+      + filteredSections.map(([secTitle, items])=>
+        '<section class="rco-section-card"><h3>'+esc(secTitle)+' <small class="muted">('+items.length+')</small></h3><div style="display:flex;flex-wrap:wrap;gap:8px">'
         + items.map(([lbl, act])=>'<button type="button" class="gl-dt-btn" style="padding:8px 14px;font-size:12.5px" onclick="'+act+'">📊 '+esc(lbl)+'</button>').join('')
         + '</div></section>'
       ).join('');

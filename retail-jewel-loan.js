@@ -1,4 +1,4 @@
-/* Retail Jewel Loan & Auction: Protected cloud loan drafts, Interest Pay, Redemption / Release, and Loan Report integration. */
+/* Retail Jewel Loan & Auction: Complete 10-tab workflow (Loan Drafts, Interest Pay, Redemption/Release, Topup/Part-Pay, Pledge Replacement/Repledge, RePledge Redemption, Auction Prior Notice, Auction Sale Catalogue, Schemes & Charges, and Loan Reports). */
 (function(){
   const title='Jewel Loan & Auction';
   let shop='',allowed=false,checkedAt=0,checking=false,drafts=[],saving=false,subTab='Drafts',editTxId='';
@@ -56,7 +56,11 @@
     const local=docs('retail-jewel-loan-draft');
     const seen=new Set(cloud.map(r=>String(r.reference||r.id)));
     for(const r of local)if(!seen.has(String(r.reference||r.id)))cloud.push(r);
-    return cloud;
+    const topups=docs('retail-jewel-loan-topup');
+    return cloud.map(l=>{
+      const adj=topups.filter(t=>t.loanRef===l.reference).reduce((a,t)=>a+(t.txType==='Part Principal Payment'?-n(t.amount):n(t.amount)),0);
+      return adj?Object.assign({},l,{basePrincipal:n(l.principal),principal:Math.max(0,rbRound(n(l.principal)+adj))}):l;
+    });
   };
   window.glJewelLoanInterests=()=>docs('retail-jewel-loan-interest');
   window.glJewelLoanRedemptions=()=>docs('retail-jewel-loan-redemption');
@@ -167,31 +171,136 @@
     editTxId='';say('Loan redemption / release saved.');render();
   };
 
+  window.glSaveLoanTopup=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f)),loan=window.glAllJewelLoans().find(l=>l.reference===v.loanRef)||{};
+    if(!v.loanRef||n(v.amount)<=0)return say('Select a loan reference and enter a valid amount.');
+    saveLocalDoc('retail-jewel-loan-topup',{
+      EntryNo:String(v.entryNo||'').trim()||('TOP-'+Date.now().toString(36).toUpperCase().slice(-6)),
+      date:v.date||today(),loanRef:v.loanRef,customerId:loan.customerId||'',
+      txType:v.txType||'Loan Topup (Additional Disbursal)',
+      prevPrincipal:n(loan.principal),amount:n(v.amount),
+      paymentMode:v.paymentMode||'Cash',remarks:String(v.remarks||'').trim()
+    });
+    say('Loan topup / part-payment saved.');render();
+  };
+
+  window.glSaveLoanRepledge=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f)),loan=window.glAllJewelLoans().find(l=>l.reference===v.loanRef)||{};
+    if(!v.loanRef||!v.financier)return say('Select a loan reference and enter financier / replacement details.');
+    saveLocalDoc('retail-jewel-loan-repledge',{
+      repledgeNo:String(v.repledgeNo||'').trim()||('RPL-'+Date.now().toString(36).toUpperCase().slice(-6)),
+      date:v.date||today(),loanRef:v.loanRef,customerId:loan.customerId||'',
+      financier:String(v.financier||'').trim(),
+      item:String(v.item||loan.item||'Jewel').trim(),
+      grossWt:n(v.grossWt||loan.gross),netWt:n(v.netWt||(n(loan.gross)-n(loan.less))),
+      repledgeAmount:n(v.repledgeAmount||loan.principal),
+      ratePm:n(v.ratePm||1.0),dueDate:v.dueDate||'',remarks:String(v.remarks||'').trim()
+    });
+    say('Pledge replacement / repledge saved.');render();
+  };
+
+  window.glSaveLoanRepledgeRed=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f));
+    if(!v.repledgeNo||n(v.principalPaid)<=0)return say('Select a repledge number and enter principal paid.');
+    const net=rbRound(n(v.principalPaid)+n(v.interestPaid)+n(v.otherCharges));
+    saveLocalDoc('retail-jewel-loan-repledge-redemption',{
+      entryNo:String(v.entryNo||'').trim()||('RPR-'+Date.now().toString(36).toUpperCase().slice(-6)),
+      date:v.date||today(),repledgeNo:v.repledgeNo,loanRef:v.loanRef||'',
+      financier:String(v.financier||'').trim(),
+      principalPaid:n(v.principalPaid),interestPaid:n(v.interestPaid),otherCharges:n(v.otherCharges),
+      netSettled:net,paymentMode:v.paymentMode||'Bank transfer',remarks:String(v.remarks||'').trim()
+    });
+    say('RePledge redemption saved.');render();
+  };
+
+  window.glSaveLoanNotice=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f)),loan=window.glAllJewelLoans().find(l=>l.reference===v.loanRef)||{};
+    if(!v.loanRef)return say('Select a loan reference.');
+    const totalDue=rbRound(n(v.principal||loan.principal)+n(v.interestDue)+n(v.noticeCharges));
+    saveLocalDoc('retail-jewel-loan-notice',{
+      noticeNo:String(v.noticeNo||'').trim()||('APN-'+Date.now().toString(36).toUpperCase().slice(-6)),
+      date:v.date||today(),loanRef:v.loanRef,customerId:loan.customerId||'',
+      principal:n(v.principal||loan.principal),interestDue:n(v.interestDue),noticeCharges:n(v.noticeCharges),
+      totalDue,finalDueDate:v.finalDueDate||today(),deliveryMode:v.deliveryMode||'Registered Post',
+      status:v.status||'Notice Sent',remarks:String(v.remarks||'').trim()
+    });
+    say('Auction prior notice recorded.');render();
+  };
+
+  window.glSaveLoanAuction=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f)),loan=window.glAllJewelLoans().find(l=>l.reference===v.loanRef)||{};
+    if(!v.loanRef||n(v.reservePrice)<=0)return say('Select a loan reference and enter reserve price.');
+    const netWt=n(v.netWt||(n(loan.gross)-n(loan.less)));
+    saveLocalDoc('retail-jewel-loan-auction',{
+      lotNo:String(v.lotNo||'').trim()||('LOT-'+Date.now().toString(36).toUpperCase().slice(-6)),
+      date:v.date||today(),loanRef:v.loanRef,customerId:loan.customerId||'',
+      item:String(v.item||loan.item||'Jewel').trim(),metal:v.metal||loan.metal||'Gold',
+      grossWt:n(v.grossWt||loan.gross),netWt,
+      reservePrice:n(v.reservePrice),winningBid:n(v.winningBid),
+      bidderName:String(v.bidderName||'').trim(),bidderMobile:String(v.bidderMobile||'').trim(),
+      status:v.status||'Catalogue Listed',remarks:String(v.remarks||'').trim()
+    });
+    say('Auction sale catalogue entry saved.');render();
+  };
+
+  window.glSaveLoanScheme=function(event){
+    event.preventDefault();
+    const f=event.currentTarget;if(!f.reportValidity())return;
+    const v=Object.fromEntries(new FormData(f));
+    if(!String(v.name||'').trim())return say('Enter a scheme name.');
+    saveLocalDoc('retail-jewel-loan-scheme',{
+      name:String(v.name).trim(),metal:v.metal||'Gold',
+      ratePm:n(v.ratePm||1.5),penalRatePm:n(v.penalRatePm||0.5),
+      tenureMonths:n(v.tenureMonths||12),maxRatePerGram:n(v.maxRatePerGram||5200),
+      docChargeFlat:n(v.docChargeFlat||100),docChargePct:n(v.docChargePct||0.5),
+      status:v.status||'Active'
+    });
+    say('Jewel loan scheme & document charges saved.');render();
+  };
+
   window.glLoanFillRef=function(sel){
     const f=sel.form,loan=window.glAllJewelLoans().find(l=>l.reference===sel.value);
     if(!f||!loan)return;
     if(f.elements.principal)f.elements.principal.value=n(loan.principal);
     if(f.elements.customerId)f.elements.customerId.value=loan.customerId||'';
+    if(f.elements.item)f.elements.item.value=loan.item||'';
+    if(f.elements.grossWt)f.elements.grossWt.value=n(loan.gross);
+    if(f.elements.netWt)f.elements.netWt.value=Math.max(0,n(loan.gross)-n(loan.less));
+    if(f.elements.reservePrice&&!n(f.elements.reservePrice.value))f.elements.reservePrice.value=n(loan.principal);
     const days=Math.max(1,Math.floor((Date.now()-Date.parse(loan.date||today()))/86400000));
     const rate=n(f.elements.ratePerMonth?.value)||1.5;
     const estInt=rbRound(n(loan.principal)*(rate/100)*(days/30));
     if(f.elements.interestAmount&&!n(f.elements.interestAmount.value))f.elements.interestAmount.value=estInt;
+    if(f.elements.interestDue&&!n(f.elements.interestDue.value))f.elements.interestDue.value=estInt;
   };
 
   function subTabsBar(){
-    const tabs=['Drafts','Interest Pay','Redemption / Release','Loan Reports'];
-    return '<div class="rco-tabs" style="margin-bottom:12px">'+tabs.map(t=>'<button type="button" class="'+(subTab===t?'active':'')+'" onclick="glSetLoanSubTab(\''+t+'\')">'+esc(t)+'</button>').join('')+'</div>';
+    const tabs=['Drafts','Interest Pay','Redemption / Release','Jewel Loan Topup','Pledge Replacement','RePledge Redemption','Auction Prior Notice','Auction Sale Catalogue','Schemes & Charges','Loan Reports'];
+    return '<div class="rco-tabs" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:4px">'+tabs.map(t=>'<button type="button" class="'+(subTab===t?'active':'')+'" onclick="glSetLoanSubTab(\''+t+'\')">'+esc(t)+'</button>').join('')+'</div>';
+  }
+
+  function loanSelectOptions(selected=''){
+    return '<option value="">Select loan reference</option>'+window.glAllJewelLoans().map(l=>'<option value="'+esc(l.reference)+'" '+(selected===l.reference?'selected':'')+'>'+esc(l.reference)+' · '+esc(account(l.customerId,'customer')?.name||'Customer')+' ('+rateMoney(l.principal)+')</option>').join('');
   }
 
   function interestPayView(){
-    const loans=window.glAllJewelLoans(),list=window.glJewelLoanInterests();
+    const list=window.glJewelLoanInterests();
     const cur=editTxId?list.find(x=>x.id===editTxId):null;
-    const loanOpts='<option value="">Select loan reference</option>'+loans.map(l=>'<option value="'+esc(l.reference)+'" '+(cur?.loanRef===l.reference?'selected':'')+'>'+esc(l.reference)+' · '+esc(account(l.customerId,'customer')?.name||'Customer')+' ('+rateMoney(l.principal)+')</option>').join('');
     return '<section class="panel"><h2>'+(cur?'Edit Interest Payment':'Interest Pay :: Create')+'</h2>'
       +'<form onsubmit="glSaveLoanInterest(event)"><div class="rb-record-grid">'
       +field('Receipt No.','receiptNo','text','placeholder="Auto" value="'+esc(cur?.receiptNo||'')+'"')
       +field('Date','date','date','required value="'+esc(cur?.date||today())+'"')
-      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanOpts+'</select></label>'
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions(cur?.loanRef)+'</select></label>'
       +'<label class="rb-field"><span>Customer</span><select name="customerId">'+rbCustomerOptions(cur?.customerId)+'</select></label>'
       +field('Principal · ₹','principal','number','step=".01" value="'+(cur?.principal||0)+'"')
       +field('Interest Rate % / month','ratePerMonth','number','step=".01" value="'+(cur?.ratePerMonth||1.5)+'"')
@@ -209,14 +318,13 @@
   }
 
   function redemptionView(){
-    const loans=window.glAllJewelLoans(),list=window.glJewelLoanRedemptions();
+    const list=window.glJewelLoanRedemptions();
     const cur=editTxId?list.find(x=>x.id===editTxId):null;
-    const loanOpts='<option value="">Select loan reference</option>'+loans.map(l=>'<option value="'+esc(l.reference)+'" '+(cur?.loanRef===l.reference?'selected':'')+'>'+esc(l.reference)+' · '+esc(account(l.customerId,'customer')?.name||'Customer')+' ('+rateMoney(l.principal)+')</option>').join('');
     return '<section class="panel"><h2>'+(cur?'Edit Release':'Redemption / Release :: Create')+'</h2>'
       +'<form onsubmit="glSaveLoanRedemption(event)"><div class="rb-record-grid">'
       +field('Release No.','releaseNo','text','placeholder="Auto" value="'+esc(cur?.releaseNo||'')+'"')
       +field('Date','date','date','required value="'+esc(cur?.date||today())+'"')
-      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanOpts+'</select></label>'
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions(cur?.loanRef)+'</select></label>'
       +'<label class="rb-field"><span>Customer</span><select name="customerId">'+rbCustomerOptions(cur?.customerId)+'</select></label>'
       +'<label class="rb-field"><span>Release Type</span><select name="releaseType">'+rbOptions(['Customer Redemption','Part Release','Auction Release'],cur?.releaseType||'Customer Redemption')+'</select></label>'
       +field('Principal · ₹ *','principal','number','required min=".01" step=".01" value="'+(cur?.principal||'')+'"')
@@ -235,28 +343,163 @@
       ])):'<p class="muted">No redemptions or releases recorded yet.</p>')+'</section>';
   }
 
+  function topupView(){
+    const list=docs('retail-jewel-loan-topup');
+    return '<section class="panel"><h2>Jewel Loan Topup & Part-Payment :: Create</h2>'
+      +'<form onsubmit="glSaveLoanTopup(event)"><div class="rb-record-grid">'
+      +field('Entry No.','entryNo','text','placeholder="Auto"')
+      +field('Date','date','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions()+'</select></label>'
+      +'<label class="rb-field"><span>Transaction Type</span><select name="txType">'+rbOptions(['Loan Topup (Additional Disbursal)','Part Principal Payment'],'Loan Topup (Additional Disbursal)')+'</select></label>'
+      +field('Current Principal · ₹','principal','number','readonly step=".01"')
+      +field('Topup / Part Amount · ₹ *','amount','number','required min=".01" step=".01"')
+      +'<label class="rb-field"><span>Payment Mode</span><select name="paymentMode">'+rbOptions(['Cash','UPI','Bank transfer','Card','Cheque'],'Cash')+'</select></label>'
+      +field('Remarks','remarks','text')
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save Topup / Part-Payment</button></div></form></section>'
+      +'<section class="panel"><h2>Loan Topup & Part-Payment History · '+list.length+'</h2>'
+      +(list.length?table(['Date','Entry No.','Loan No.','Customer','Type','Prev. Principal ₹','Topup / Part ₹','Mode','Remarks'],list.map(r=>[
+        esc(r.date),esc(r.EntryNo||'—'),'<b>'+esc(r.loanRef)+'</b>',esc(account(r.customerId,'customer')?.name||'—'),esc(r.txType),rateMoney(r.prevPrincipal),'<b>'+rateMoney(r.amount)+'</b>',esc(r.paymentMode),esc(r.remarks||'—')
+      ])):'<p class="muted">No loan topups or part-payments recorded yet.</p>')+'</section>';
+  }
+
+  function repledgeView(){
+    const list=docs('retail-jewel-loan-repledge');
+    return '<section class="panel"><h2>Pledge Replacement / Financier RePledge :: Create</h2>'
+      +'<form onsubmit="glSaveLoanRepledge(event)"><div class="rb-record-grid">'
+      +field('RePledge No.','repledgeNo','text','placeholder="Auto"')
+      +field('Date','date','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions()+'</select></label>'
+      +field('Financier / Bank Name *','financier','text','required placeholder="e.g. Bank / Financier / Replacement"')
+      +field('Pledge / Replacement Item','item','text','required')
+      +field('Gross Wt · g','grossWt','number','step=".001" required')
+      +field('Net Wt · g','netWt','number','step=".001" required')
+      +field('RePledge Principal · ₹ *','repledgeAmount','number','step=".01" required')
+      +field('Interest Rate % / month','ratePm','number','step=".01" value="1.0"')
+      +field('Due Date','dueDate','date')
+      +field('Remarks','remarks','text')
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save Pledge Replacement / RePledge</button></div></form></section>'
+      +'<section class="panel"><h2>Pledge Replacement & RePledge List · '+list.length+'</h2>'
+      +(list.length?table(['Date','RePledge No.','Loan No.','Financier / Bank','Item','Gross g','Net g','RePledge Amt ₹','Rate %/m','Due Date'],list.map(r=>[
+        esc(r.date),'<b>'+esc(r.repledgeNo)+'</b>',esc(r.loanRef),'<b>'+esc(r.financier)+'</b>',esc(r.item),fmt(r.grossWt)+' g',fmt(r.netWt)+' g','<b>'+rateMoney(r.repledgeAmount)+'</b>',n(r.ratePm)+'%',esc(r.dueDate||'—')
+      ])):'<p class="muted">No pledge replacements or repledges recorded yet.</p>')+'</section>';
+  }
+
+  function repledgeRedView(){
+    const reps=docs('retail-jewel-loan-repledge'),list=docs('retail-jewel-loan-repledge-redemption');
+    const repOpts='<option value="">Select RePledge No.</option>'+reps.map(r=>'<option value="'+esc(r.repledgeNo)+'">'+esc(r.repledgeNo)+' · '+esc(r.financier)+' ('+rateMoney(r.repledgeAmount)+')</option>').join('');
+    return '<section class="panel"><h2>RePledge Redemption :: Create</h2>'
+      +'<form onsubmit="glSaveLoanRepledgeRed(event)"><div class="rb-record-grid">'
+      +field('Redemption Entry No.','entryNo','text','placeholder="Auto"')
+      +field('Date','date','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>RePledge No. *</span><select name="repledgeNo" required>'+repOpts+'</select></label>'
+      +field('Linked Loan No.','loanRef','text')
+      +field('Financier / Bank','financier','text')
+      +field('Principal Paid · ₹ *','principalPaid','number','required min=".01" step=".01"')
+      +field('Interest Paid · ₹','interestPaid','number','min="0" step=".01" value="0"')
+      +field('Other Charges · ₹','otherCharges','number','min="0" step=".01" value="0"')
+      +'<label class="rb-field"><span>Payment Mode</span><select name="paymentMode">'+rbOptions(['Bank transfer','Cash','UPI','Cheque'],'Bank transfer')+'</select></label>'
+      +field('Remarks','remarks','text')
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save RePledge Redemption</button></div></form></section>'
+      +'<section class="panel"><h2>RePledge Redemption List · '+list.length+'</h2>'
+      +(list.length?table(['Date','Entry No.','RePledge No.','Financier','Principal Paid ₹','Interest Paid ₹','Charges ₹','Net Settled ₹','Mode'],list.map(r=>[
+        esc(r.date),'<b>'+esc(r.entryNo)+'</b>',esc(r.repledgeNo),esc(r.financier||'—'),rateMoney(r.principalPaid),rateMoney(r.interestPaid),rateMoney(r.otherCharges),'<b>'+rateMoney(r.netSettled)+'</b>',esc(r.paymentMode)
+      ])):'<p class="muted">No repledge redemptions recorded yet.</p>')+'</section>';
+  }
+
+  function auctionNoticeView(){
+    const list=docs('retail-jewel-loan-notice');
+    return '<section class="panel"><h2>Auction Prior Notice :: Create</h2>'
+      +'<form onsubmit="glSaveLoanNotice(event)"><div class="rb-record-grid">'
+      +field('Notice No.','noticeNo','text','placeholder="Auto"')
+      +field('Notice Date','date','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions()+'</select></label>'
+      +field('Principal · ₹','principal','number','step=".01" required')
+      +field('Interest Due · ₹','interestDue','number','step=".01" required')
+      +field('Notice Charges · ₹','noticeCharges','number','step=".01" value="150"')
+      +field('Final Due Date *','finalDueDate','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>Delivery Mode</span><select name="deliveryMode">'+rbOptions(['Registered Post','SMS & WhatsApp','Courier','Public Notice Board'],'Registered Post')+'</select></label>'
+      +'<label class="rb-field"><span>Notice Status</span><select name="status">'+rbOptions(['Notice Sent','Acknowledged','Customer Responded','Moved to Auction'],'Notice Sent')+'</select></label>'
+      +field('Remarks','remarks','text')
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save Auction Notice</button></div></form></section>'
+      +'<section class="panel"><h2>Auction Prior Notices · '+list.length+'</h2>'
+      +(list.length?table(['Notice Date','Notice No.','Loan No.','Customer','Principal ₹','Interest Due ₹','Notice Chg ₹','Total Demand ₹','Final Due Date','Mode','Status'],list.map(r=>[
+        esc(r.date),'<b>'+esc(r.noticeNo)+'</b>','<b>'+esc(r.loanRef)+'</b>',esc(account(r.customerId,'customer')?.name||'—'),rateMoney(r.principal),rateMoney(r.interestDue),rateMoney(r.noticeCharges),'<b>'+rateMoney(r.totalDue)+'</b>',esc(r.finalDueDate),esc(r.deliveryMode),esc(r.status)
+      ])):'<p class="muted">No auction prior notices issued yet.</p>')+'</section>';
+  }
+
+  function auctionCatalogueView(){
+    const list=docs('retail-jewel-loan-auction');
+    return '<section class="panel"><h2>Auction Sale Catalogue :: Create Lot</h2>'
+      +'<form onsubmit="glSaveLoanAuction(event)"><div class="rb-record-grid">'
+      +field('Catalogue Lot No.','lotNo','text','placeholder="Auto"')
+      +field('Auction Date','date','date','required value="'+today()+'"')
+      +'<label class="rb-field"><span>Loan No. *</span><select name="loanRef" required onchange="glLoanFillRef(this)">'+loanSelectOptions()+'</select></label>'
+      +field('Jewel / Ornament','item','text','required')
+      +'<label class="rb-field"><span>Metal</span><select name="metal"><option>Gold</option><option>Silver</option></select></label>'
+      +field('Gross Wt · g','grossWt','number','step=".001" required')
+      +field('Net Wt · g','netWt','number','step=".001" required')
+      +field('Reserve Price · ₹ *','reservePrice','number','step=".01" required')
+      +field('Winning Bid · ₹','winningBid','number','step=".01" value="0"')
+      +field('Bidder Name','bidderName','text')
+      +field('Bidder Mobile','bidderMobile','tel')
+      +'<label class="rb-field"><span>Lot Status</span><select name="status">'+rbOptions(['Catalogue Listed','Sold in Auction','Settled by Customer','Withdrawn'],'Catalogue Listed')+'</select></label>'
+      +field('Remarks','remarks','text')
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save Auction Catalogue Lot</button></div></form></section>'
+      +'<section class="panel"><h2>Auction Sale Catalogue Lots · '+list.length+'</h2>'
+      +(list.length?table(['Auction Date','Lot No.','Loan No.','Item','Metal','Gross g','Net g','Reserve Price ₹','Winning Bid ₹','Bidder','Status'],list.map(r=>[
+        esc(r.date),'<b>'+esc(r.lotNo)+'</b>',esc(r.loanRef),esc(r.item),esc(r.metal),fmt(r.grossWt)+' g',fmt(r.netWt)+' g',rateMoney(r.reservePrice),'<b>'+rateMoney(r.winningBid)+'</b>',esc(r.bidderName||'—'),esc(r.status)
+      ])):'<p class="muted">No auction catalogue lots listed yet.</p>')+'</section>';
+  }
+
+  function schemesView(){
+    const list=docs('retail-jewel-loan-scheme');
+    return '<section class="panel"><h2>Jewel Loan Schemes & Document Charges</h2>'
+      +'<form onsubmit="glSaveLoanScheme(event)"><div class="rb-record-grid">'
+      +field('Scheme Name *','name','text','required placeholder="e.g. Gold 1.5% Monthly"')
+      +'<label class="rb-field"><span>Metal</span><select name="metal"><option>Gold</option><option>Silver</option></select></label>'
+      +field('Interest Rate % / month','ratePm','number','step=".01" value="1.5" required')
+      +field('Penal Interest % / month','penalRatePm','number','step=".01" value="0.5"')
+      +field('Tenure (Months)','tenureMonths','number','step="1" value="12"')
+      +field('Max Loan Rate / gram · ₹','maxRatePerGram','number','step="1" value="5200"')
+      +field('Document Charge (Flat ₹)','docChargeFlat','number','step=".01" value="100"')
+      +field('Document Charge (%)','docChargePct','number','step=".01" value="0.5"')
+      +'<label class="rb-field"><span>Status</span><select name="status"><option>Active</option><option>Disabled</option></select></label>'
+      +'</div><div style="margin-top:10px"><button class="primary" type="submit">Save Loan Scheme</button></div></form></section>'
+      +'<section class="panel"><h2>Configured Loan Schemes · '+list.length+'</h2>'
+      +(list.length?table(['Scheme Name','Metal','Interest %/m','Penal %/m','Tenure','Max Rate/g ₹','Doc Charge ₹','Doc Charge %','Status'],list.map(r=>[
+        '<b>'+esc(r.name)+'</b>',esc(r.metal),n(r.ratePm)+'%',n(r.penalRatePm)+'%',n(r.tenureMonths)+' m',rateMoney(r.maxRatePerGram),rateMoney(r.docChargeFlat),n(r.docChargePct)+'%',esc(r.status)
+      ])):'<p class="muted">No custom schemes saved yet.</p>')+'</section>';
+  }
+
   function loanReportsQuickView(){
-    const reps=['Jewel Loan Date Wise Report','Jewel Loan Area Wise Report','Jewel Loan Hand Stock Report','Jewel Loan Stock Report','Interest Due Report'];
+    const reps=['Interest Due Report','Jewel Loan Stock Report','Jewel Loan Date Wise Report','Jewel Loan Area Wise Report','Jewel Loan Hand Stock Report','Jewel Loan Dashboard'];
     return '<section class="panel"><h2>Jewel Loan & Auction Reports</h2><p class="muted">Open any Jewel Loan report in the Retail Reports Hub:</p><div style="display:flex;flex-wrap:wrap;gap:8px">'
       +reps.map(r=>'<button type="button" class="gl-dt-btn" style="padding:10px 16px" onclick="go(\'Reports\');if(window.rarOpen)rarOpen(\''+r+'\')">📊 '+esc(r)+'</button>').join('')
       +'</div></section>';
   }
 
   function intake(){
-    const top=header('Protected loan drafts, interest collection, redemption release & loan reports.')+subTabsBar();
+    const top=header('Complete Jewel Loan & Auction Workflow: Drafts, Interest Pay, Release, Topup, RePledge, Auction & Reports.')+subTabsBar();
     if(subTab==='Interest Pay')return top+interestPayView();
     if(subTab==='Redemption / Release')return top+redemptionView();
+    if(subTab==='Jewel Loan Topup')return top+topupView();
+    if(subTab==='Pledge Replacement')return top+repledgeView();
+    if(subTab==='RePledge Redemption')return top+repledgeRedView();
+    if(subTab==='Auction Prior Notice')return top+auctionNoticeView();
+    if(subTab==='Auction Sale Catalogue')return top+auctionCatalogueView();
+    if(subTab==='Schemes & Charges')return top+schemesView();
     if(subTab==='Loan Reports')return top+loanReportsQuickView();
     if(selectedDraft)return top+'<section class="panel"><div class="rb-section-head"><h2>Loan draft details</h2>'
       +'<button type="button" onclick="glLoanCreate(false)">← Draft list</button></div><dl class="rb-record-grid">'
       +Object.values(loanColumns).map(([label,value])=>'<div><dt>'+label+'</dt><dd>'+esc(value(selectedDraft)??'—')+'</dd></div>').join('')
       +'</dl></section>';
+    const schemeNames=[...new Set([...docs('retail-jewel-loan-scheme').map(s=>s.name),...window.glAllJewelLoans().map(row=>row.scheme)].filter(Boolean))].sort();
     if(creating)return top+'<button type="button" onclick="glLoanCreate(false)">← Draft list</button>'
       +'<section class="panel"><h2>New jewel loan draft</h2><form id="glJewelLoanDraft" onsubmit="glSaveJewelLoanDraft(event)"><div class="rb-record-grid">'
       +field('Loan reference','reference','text','required maxlength="60"')
       +field('Date','date','date','required value="'+today()+'"')
       +'<label class="rb-field"><span>Customer ledger</span><select name="customerId" required>'+rbCustomerOptions()+'</select></label>'
-      +field('Scheme name','scheme','text','required maxlength="80"')
+      +field('Scheme name','scheme','text','required maxlength="80" list="glLoanSchemeList"')+('<datalist id="glLoanSchemeList">'+schemeNames.map(s=>'<option value="'+esc(s)+'">').join('')+'</datalist>')
       +field('Attended by','staff','text','maxlength="80"')
       +field('Nominee relationship','nomineeType','text','maxlength="80"')
       +field('Nominee name','nomineeName','text','maxlength="100"')
@@ -271,7 +514,6 @@
       +'</div><button class="primary" type="submit">Save draft</button></form></section>';
     const keys=Object.keys(loanColumns).filter(key=>shown.has(key));
     const rows=filteredLoanDrafts();
-    const schemes=[...new Set(window.glAllJewelLoans().map(row=>row.scheme).filter(Boolean))].sort();
     const total=rows.reduce((sum,row)=>sum+n(row.principal),0);
     return top+'<section class="panel"><div class="rb-section-head"><h2>Jewel loan drafts</h2>'
       +'<button type="button" class="primary" onclick="glLoanCreate(true)">＋ Create</button></div>'
@@ -280,7 +522,7 @@
       +field('From','from','date','value="'+esc(filters.from)+'"')
       +field('To','to','date','value="'+esc(filters.to)+'"')
       +'<label class="rb-field"><span>Metal</span><select name="metal"><option value="">All metals</option>'+rbOptions(['Gold','Silver'],filters.metal)+'</select></label>'
-      +'<label class="rb-field"><span>Scheme</span><select name="scheme"><option value="">All schemes</option>'+rbOptions(schemes,filters.scheme)+'</select></label>'
+      +'<label class="rb-field"><span>Scheme</span><select name="scheme"><option value="">All schemes</option>'+rbOptions(schemeNames,filters.scheme)+'</select></label>'
       +'<div><button type="submit">Apply filters</button> <button type="button" onclick="glLoanReset()">Reset</button></div></form>'
       +'<details id="glLoanColumnOptions"><summary>Display Columns</summary><div class="rb-record-grid">'
       +Object.entries(loanColumns).map(([key,[label]])=>'<label><input type="checkbox" value="'+key+'" '+(shown.has(key)?'checked':'')+' onchange="glLoanColumns(this)"> '+label+'</label>').join('')

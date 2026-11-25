@@ -44,11 +44,133 @@ window.rvExport=function(scope){const rows=rvRows().filter(x=>x.scope===scope),l
 if(typeof page!=='undefined'&&page==='Stock Verification'&&typeof render==='function')render();
 
 let rvTagTab='tagging',rvSoldSearch='',rvSoldDate='';
+const RV_STOCK_TABS=[
+  ['tagging','Tagging'],
+  ['sold','Sold Tags'],
+  ['issue-voucher','Issue Voucher'],
+  ['receipt-voucher','Receipt Voucher'],
+  ['metal-voucher','Metal Voucher'],
+  ['stock-journal','Stock Journal'],
+  ['reorder-entry','Reorder Entry'],
+  ['gift-items','Gift Items']
+];
+function rvSaveExtraDoc(kind,row,msg){
+  if(!Array.isArray(db.retailDocuments))db.retailDocuments=[];
+  const now=new Date().toISOString();
+  const saved=Object.assign({id:row.id||crypto.randomUUID(),kind,type:kind,accountType:'customer',createdAt:row.createdAt||now},row,{updatedAt:now});
+  const i=db.retailDocuments.findIndex(x=>x.id===saved.id);
+  if(i<0)db.retailDocuments.unshift(saved);else db.retailDocuments[i]=saved;
+  const p=save();rvRefreshTagging();if(typeof rcSaveStatus==='function')rcSaveStatus(p,msg);else say(msg+' saved.');
+}
+window.rvSaveStockVoucher=function(e,kind,prefix,label){
+  e.preventDefault();const f=e.target;if(!f.reportValidity())return;
+  const v=Object.fromEntries(new FormData(f));
+  rvSaveExtraDoc(kind,{
+    voucherNo:String(v.voucherNo||'').trim()||(prefix+'-'+Date.now().toString(36).toUpperCase().slice(-5)),
+    date:v.date||rvToday(),party:String(v.party||'').trim()||'Goldsmith / Counter',
+    direction:v.direction||label,metal:v.metal||'Gold',product:String(v.product||'').trim()||'Ornament',
+    pieces:rvNum(v.pieces||1),grossWt:rvNum(v.grossWt),netWt:rvNum(v.netWt||v.grossWt),
+    purity:rvNum(v.purity||91.6),pureWt:rvF(rvNum(v.netWt||v.grossWt)*rvNum(v.purity||91.6)/100),
+    targetProduct:String(v.targetProduct||'').trim(),targetWt:rvNum(v.targetWt),
+    charges:rvNum(v.charges),remarks:String(v.remarks||'').trim()
+  },label);
+};
+window.rvSaveReorderRule=function(e){
+  e.preventDefault();const f=e.target;if(!f.reportValidity())return;
+  const v=Object.fromEntries(new FormData(f));
+  rvSaveExtraDoc('retail-reorder-rule',{
+    mode:v.mode||'By Default',productGroup:v.productGroup||'General',product:String(v.product||'').trim(),
+    size:String(v.size||'').trim()||'Standard',weightRange:String(v.weightRange||'').trim()||'All Weights',
+    reorderQty:rvNum(v.reorderQty||2),reorderWt:rvNum(v.reorderWt||10),remarks:String(v.remarks||'').trim()
+  },'Reorder rule');
+};
+window.rvSaveGiftItemEntry=function(e){
+  e.preventDefault();const f=e.target;if(!f.reportValidity())return;
+  const v=Object.fromEntries(new FormData(f));
+  rvSaveExtraDoc('retail-gift-entry',{
+    entryType:v.entryType||'Gift Item Master',code:String(v.code||'').trim()||('GFT-'+Date.now().toString(36).toUpperCase().slice(-5)),
+    date:v.date||rvToday(),name:String(v.name||'').trim(),supplier:String(v.supplier||'').trim(),
+    qty:rvNum(v.qty||1),weight:rvNum(v.weight),rate:rvNum(v.rate),amount:rvNum(v.amount||rvNum(v.qty||1)*rvNum(v.rate)),
+    remarks:String(v.remarks||'').trim()
+  },'Gift item entry');
+};
+function rvVoucherView(kind,title,prefix){
+  const list=rcDocs(kind),prods=rvProducts('');
+  const isJournal=kind==='retail-stock-journal',isMetal=kind==='retail-metal-voucher';
+  return '<section class="panel"><div class="rc-section-title"><div><h2>'+esc(title)+' :: Create</h2><p class="muted">Track retail smith, counter, bullion and jobwork stock movements.</p></div><span>'+list.length+' entries</span></div>'
+    +'<form class="rc-grid" onsubmit="rvSaveStockVoucher(event,\''+kind+'\',\''+prefix+'\',\''+title+'\')">'
+    +'<label>Voucher No.<input name="voucherNo" placeholder="Auto"></label>'
+    +'<label>Date *<input type="date" name="date" required value="'+rvToday()+'"></label>'
+    +(isMetal?'<label>Direction<select name="direction"><option>Metal Issue</option><option>Metal Receipt</option></select></label>':'')
+    +'<label>'+(kind.includes('issue')?'Issue To':kind.includes('receipt')?'Received From':'Smith / Counter / Party')+' *<input name="party" required placeholder="Karigar, smith or counter"></label>'
+    +'<label>Metal<select name="metal"><option>Gold</option><option>Silver</option><option>Diamond</option><option>Platinum</option></select></label>'
+    +'<label>'+(isJournal?'Source Product':'Product / Bullion')+' *<input name="product" required list="rvProdDl" placeholder="Select or type"></label><datalist id="rvProdDl">'+prods.map(p=>'<option value="'+esc(p)+'">').join('')+'</datalist>'
+    +'<label>Pieces / Qty<input type="number" name="pieces" min="1" step="1" value="1"></label>'
+    +'<label>Gross Weight (g) *<input type="number" name="grossWt" min=".001" step=".001" required></label>'
+    +'<label>Net Weight (g) *<input type="number" name="netWt" min=".001" step=".001" required></label>'
+    +'<label>Touch / Purity %<input type="number" name="purity" min="1" max="100" step=".01" value="91.6"></label>'
+    +(isJournal?'<label>Target Product / Output<input name="targetProduct" list="rvProdDl" placeholder="Converted product"></label><label>Target Output Wt (g)<input type="number" name="targetWt" step=".001"></label>':'')
+    +'<label>Charges / Value ₹<input type="number" name="charges" min="0" step=".01" value="0"></label>'
+    +'<label class="rc-wide">Narration / Remarks<input name="remarks"></label>'
+    +'<div class="rc-actions rc-wide"><button class="primary" type="submit">Save '+esc(title)+'</button></div></form></section>'
+    +'<section class="panel"><h2>'+esc(title)+' History · '+list.length+'</h2>'
+    +(list.length?table(['Date','Voucher No','Party / Counter','Metal','Product','Qty','Gross g','Net g','Purity %','Pure g',isJournal?'Target Output':'Charges ₹','Remarks'],list.map(r=>[
+      esc(r.date),'<b>'+esc(r.voucherNo)+'</b>',esc(r.party),esc(r.metal),esc(r.product),r.pieces,rvF(r.grossWt)+' g','<b>'+rvF(r.netWt)+' g</b>',r.purity+'%',rvF(r.pureWt)+' g',isJournal?esc((r.targetProduct||'—')+' ('+rvF(r.targetWt)+' g)'):rateMoney(r.charges),esc(r.remarks||'—')
+    ])):'<p class="rv-no-tags">No '+esc(title.toLowerCase())+' records yet.</p>')+'</section>';
+}
+function rvReorderEntryView(){
+  const list=rcDocs('retail-reorder-rule'),groups=rvProductGroups(),prods=rvProducts('');
+  return '<section class="panel"><div class="rc-section-title"><div><h2>Reorder Entry (By Default / Size / Weight Range)</h2><p class="muted">Configure minimum stock pieces and weight thresholds for automated Reorder Reports.</p></div><span>'+list.length+' rules</span></div>'
+    +'<form class="rc-grid" onsubmit="rvSaveReorderRule(event)">'
+    +'<label>Entry Mode<select name="mode"><option>Entry By Default</option><option>Entry By Size</option><option>Entry By Weight</option><option>Weight Range Mapping</option></select></label>'
+    +'<label>Product Group<select name="productGroup">'+rvOptions(groups,'','All Groups')+'</select></label>'
+    +'<label>Product Name *<input name="product" required list="rvProdDl" placeholder="Product name"></label>'
+    +'<label>Product Size<input name="size" placeholder="e.g. 16 In, 18 In, 2.4"></label>'
+    +'<label>Weight Range Slab<input name="weightRange" placeholder="e.g. 2–5g, 5–10g, 10–20g"></label>'
+    +'<label>Reorder Min Qty (Pcs) *<input type="number" name="reorderQty" min="1" step="1" value="2" required></label>'
+    +'<label>Reorder Min Weight (g) *<input type="number" name="reorderWt" min=".001" step=".001" value="10" required></label>'
+    +'<label>Remarks<input name="remarks"></label>'
+    +'<div class="rc-actions rc-wide"><button class="primary" type="submit">Save Reorder Rule</button> <button type="button" onclick="go(\'Reports\');if(window.rarOpen)rarOpen(\'Reorder Report By Default\')">📊 View Reorder Reports</button></div></form></section>'
+    +'<section class="panel"><h2>Saved Reorder Rules · '+list.length+'</h2>'
+    +(list.length?table(['Mode','Product Group','Product','Size','Weight Range','Min Qty','Min Weight g','Remarks'],list.map(r=>[
+      '<b>'+esc(r.mode)+'</b>',esc(r.productGroup),esc(r.product),esc(r.size),esc(r.weightRange),r.reorderQty,'<b>'+rvF(r.reorderWt)+' g</b>',esc(r.remarks||'—')
+    ])):'<p class="rv-no-tags">No custom reorder rules saved yet.</p>')+'</section>';
+}
+function rvGiftItemsView(){
+  const list=rcDocs('retail-gift-entry');
+  return '<section class="panel"><div class="rc-section-title"><div><h2>Gift Items, Gift Purchase, Lot Entry & Tagging</h2><p class="muted">Manage complimentary gift articles, silver coins, gift lots and gift tags.</p></div><span>'+list.length+' records</span></div>'
+    +'<form class="rc-grid" onsubmit="rvSaveGiftItemEntry(event)">'
+    +'<label>Workflow Type<select name="entryType"><option>Gift Item Master</option><option>Gift Purchase Item</option><option>Gift Item Lot Entry</option><option>Gift Item Tagging</option></select></label>'
+    +'<label>Code / Tag / Lot No.<input name="code" placeholder="Auto"></label>'
+    +'<label>Date *<input type="date" name="date" required value="'+rvToday()+'"></label>'
+    +'<label>Gift Item Name *<input name="name" required placeholder="e.g. Silver Coin 5g, Silk Bag, Compliment Box"></label>'
+    +'<label>Supplier / Source<input name="supplier" placeholder="Supplier name"></label>'
+    +'<label>Quantity (Pcs) *<input type="number" name="qty" min="1" step="1" value="1" required></label>'
+    +'<label>Weight (g)<input type="number" name="weight" min="0" step=".001" value="0"></label>'
+    +'<label>Rate / Unit ₹<input type="number" name="rate" min="0" step=".01" value="0"></label>'
+    +'<label>Total Amount ₹<input type="number" name="amount" min="0" step=".01" value="0"></label>'
+    +'<label>Remarks<input name="remarks"></label>'
+    +'<div class="rc-actions rc-wide"><button class="primary" type="submit">Save Gift Entry</button> <button type="button" onclick="go(\'Reports\');if(window.rarOpen)rarOpen(\'Gift Stock Report\')">📊 Gift Stock Report</button></div></form></section>'
+    +'<section class="panel"><h2>Gift Item Entries · '+list.length+'</h2>'
+    +(list.length?table(['Date','Workflow Type','Code / Tag','Gift Item Name','Supplier','Qty','Weight g','Unit Rate ₹','Amount ₹','Remarks'],list.map(r=>[
+      esc(r.date),'<b>'+esc(r.entryType)+'</b>',esc(r.code),'<b>'+esc(r.name)+'</b>',esc(r.supplier||'—'),r.qty,rvF(r.weight)+' g',rateMoney(r.rate),'<b>'+rateMoney(r.amount)+'</b>',esc(r.remarks||'—')
+    ])):'<p class="rv-no-tags">No gift item entries recorded yet.</p>')+'</section>';
+}
 function rvSaleTagMap(){const map=new Map();(db.sales||[]).filter(s=>s.accountType==='customer').forEach(s=>(s.invoiceItems||[]).forEach(item=>{const code=String(item.tagCode||'').trim().toLowerCase();if(code)map.set(code,{sale:s,item})}));return map}
 function rvSoldRows(){const saleMap=rvSaleTagMap(),tags=rcDocs('retail-tagging'),known=new Set(),rows=[];tags.forEach(t=>{const key=String(t.tagCode||'').toLowerCase(),match=saleMap.get(key);if(t.status!=='Sold'&&!match)return;known.add(key);rows.push({tag:t,sale:match?.sale,item:match?.item})});for(const [key,match] of saleMap)if(!known.has(key))rows.push({tag:{tagCode:match.item.tagCode,product:match.item.product,group:match.item.productGroup,pieces:match.item.pieces,grossWeight:match.item.grossWeight,netWeight:match.item.netWeight,huid:match.item.huid,metalType:match.item.metalType},sale:match.sale,item:match.item});return rows}
 function rvSoldView(){const all=rvSoldRows(),rows=all.filter(x=>{const s=[x.tag.tagCode,x.tag.product,x.tag.group,x.sale?.documentNo].join(' ').toLowerCase();return (!rvSoldSearch||s.includes(rvSoldSearch.toLowerCase()))&&(!rvSoldDate||rvDateText(x.sale?.when||x.tag.soldAt)===rvSoldDate)}),total=rvStats(rows.map(x=>x.tag)),amount=rows.reduce((a,x)=>a+rvNum(x.item?.subtotal||x.item?.lineAmount||x.tag.totalAmount),0);return '<section class="panel"><div class="rc-section-title"><div><h2>Sold Tags</h2><p class="muted">Tags linked to saved retail sales bills and tags manually marked Sold.</p></div><span>'+rows.length+' sold tags</span></div><div class="rv-summary rv-sold-summary">'+rvCard('Sold tags',total)+'<div class="rv-stat"><small>Sales value</small><b>₹ '+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+'</b><span>Recorded bills</span></div></div><div class="rv-filters"><label>Search<input type="search" value="'+esc(rvSoldSearch)+'" onchange="rvSoldSearch=this.value;rvRefreshTagging()" placeholder="Tag, product or bill"></label><label>Sale date<input type="date" value="'+esc(rvSoldDate)+'" onchange="rvSoldDate=this.value;rvRefreshTagging()"></label><button type="button" onclick="rvSoldSearch=rvSoldDate=\'\';rvRefreshTagging()">Reset</button><button type="button" onclick="rvSoldExport()">CSV</button><button type="button" onclick="window.print()">Print / PDF</button></div>'+(rows.length?'<div class="rv-table-wrap"><table class="rv-table"><thead><tr><th>Tag</th><th>Product</th><th>Group</th><th>Metal</th><th>Qty</th><th>Gross g</th><th>Net g</th><th>HUID</th><th>Bill / date</th><th>Sale value ₹</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><b>'+esc(x.tag.tagCode||'—')+'</b></td><td>'+esc(x.tag.product||'—')+'</td><td>'+esc(x.tag.group||'—')+'</td><td>'+esc(x.tag.metalType||'—')+'</td><td>'+rvQty(x.tag)+'</td><td>'+rvF(rvWeight(x.tag))+'</td><td>'+rvF(x.tag.netWeight)+'</td><td>'+esc(x.tag.huid||'—')+'</td><td>'+esc(x.sale?.documentNo||x.tag.soldBillNo||'Manual')+'<small>'+esc(rvDateText(x.sale?.when||x.tag.soldAt))+'</small></td><td>'+rvNum(x.item?.subtotal||x.item?.lineAmount||x.tag.totalAmount).toLocaleString('en-IN',{maximumFractionDigits:2})+'</td></tr>').join('')+'</tbody><tfoot><tr><th>TOTAL · '+rows.length+'</th><th colspan="3"></th><th>'+total.qty+'</th><th>'+rvF(total.weight)+'</th><th>'+rvF(rows.reduce((a,x)=>a+rvNum(x.tag.netWeight),0))+'</th><th colspan="2"></th><th>₹ '+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+'</th></tr></tfoot></table></div>':'<p class="rv-no-tags">No sold tags found for these filters.</p>')+'</section>'}
-window.rvTaggingScreen=function(){return '<nav class="rv-tag-nav" aria-label="Tagging views"><button type="button" class="'+(rvTagTab==='tagging'?'active':'')+'" onclick="rvTagOpen(\'tagging\')">Tagging</button><button type="button" class="'+(rvTagTab==='sold'?'active':'')+'" onclick="rvTagOpen(\'sold\')">Sold Tags</button></nav>'+(rvTagTab==='sold'?rvSoldView():rcTaggingView())};
-window.rvRefreshTagging=function(){document.querySelector('.rc-content').innerHTML=rvTaggingScreen()};
-window.rvTagOpen=function(tab){if(!['tagging','sold'].includes(tab))return;rvTagTab=tab;rvRefreshTagging();window.scrollTo(0,0)};
+window.rvTaggingScreen=function(){
+  const nav='<nav class="rv-tag-nav" style="display:flex;flex-wrap:wrap;gap:6px" aria-label="Tagging views">'+RV_STOCK_TABS.map(([k,lbl])=>'<button type="button" class="'+(rvTagTab===k?'active':'')+'" onclick="rvTagOpen(\''+k+'\')">'+esc(lbl)+'</button>').join('')+'</nav>';
+  if(rvTagTab==='sold')return nav+rvSoldView();
+  if(rvTagTab==='issue-voucher')return nav+rvVoucherView('retail-issue-voucher','Issue Voucher','ISS');
+  if(rvTagTab==='receipt-voucher')return nav+rvVoucherView('retail-receipt-voucher','Receipt Voucher','RCV');
+  if(rvTagTab==='metal-voucher')return nav+rvVoucherView('retail-metal-voucher','Metal Voucher','MTL');
+  if(rvTagTab==='stock-journal')return nav+rvVoucherView('retail-stock-journal','Stock Journal (Jobwork)','JRN');
+  if(rvTagTab==='reorder-entry')return nav+rvReorderEntryView();
+  if(rvTagTab==='gift-items')return nav+rvGiftItemsView();
+  return nav+rcTaggingView();
+};
+window.rvRefreshTagging=function(){const el=document.querySelector('.rc-content')||document.getElementById('app');if(el)el.innerHTML=rvTaggingScreen()};
+window.rvTagOpen=function(tab){if(!RV_STOCK_TABS.some(x=>x[0]===tab))return;rvTagTab=tab;rvRefreshTagging();window.scrollTo?.(0,0)};
 window.rvSyncSoldTags=function(previous,sale){const before=new Set((previous?.invoiceItems||[]).map(x=>String(x.tagCode||'').toLowerCase()).filter(Boolean)),now=new Set((sale.invoiceItems||[]).map(x=>String(x.tagCode||'').toLowerCase()).filter(Boolean));for(const tag of rcDocs('retail-tagging')){const code=String(tag.tagCode||'').toLowerCase();if(now.has(code)){tag.status='Sold';tag.soldBySaleId=sale.id;tag.soldBillNo=sale.documentNo;tag.soldAt=sale.when;tag.updatedAt=new Date().toISOString()}else if(before.has(code)&&tag.soldBySaleId===sale.id){tag.status='In stock';tag.soldBySaleId='';tag.soldBillNo='';tag.soldAt='';tag.updatedAt=new Date().toISOString()}}};
 window.rvSoldExport=function(){const lines=[['Tag','Product','Group','Metal','Qty','Gross g','Net g','HUID','Bill','Sale date','Sale value']];for(const x of rvSoldRows())lines.push([x.tag.tagCode,x.tag.product,x.tag.group,x.tag.metalType,rvQty(x.tag),rvF(rvWeight(x.tag)),rvF(x.tag.netWeight),x.tag.huid,x.sale?.documentNo||x.tag.soldBillNo,rvDateText(x.sale?.when||x.tag.soldAt),rvNum(x.item?.subtotal||x.item?.lineAmount||x.tag.totalAmount)]);const csv=lines.map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\r\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='sold-tags.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};

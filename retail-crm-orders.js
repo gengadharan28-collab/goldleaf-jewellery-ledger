@@ -485,9 +485,9 @@
       tableHtml = filtered.length ? '<div class="table"><table><thead><tr><th></th><th>Order No</th><th>Customer</th><th>Order Date</th><th>Delivery Date</th><th>Advance Amt</th><th>Paid Amt</th><th>Gold Wt</th><th>Silver Wt</th><th>Gold Amt</th><th>Silver Amt</th><th>Estimated Amt</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+body+'</tbody></table></div>' : '<p class="empty">No orders yet. Click + Create to add your first retail order.</p>';
     }
 
-    return header('Order Tracking', '')
-      + '<div class="rco-tabs">' + ['All','By Due Date','Open','Cancel','Closed','Convert Into Sale Bill'].map(t=>'<button type="button" class="'+(rcoState.orderTab===t?'active':'')+'" onclick="rcoSetOrderTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
-      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search by Customer Name, Mobile, Order No..." value="'+esc(rcoState.orderFilter.q)+'" oninput="rcoState.orderFilter.q=this.value;render()"></div>'
+    return header('Order Tracking & Jewellery Repair', '')
+      + '<div class="rco-tabs">' + ['All','By Due Date','Open','Cancel','Closed','Convert Into Sale Bill','Repair & Service'].map(t=>'<button type="button" class="'+(rcoState.orderTab===t?'active':'')+'" onclick="rcoSetOrderTab(\''+t+'\')">'+esc(t)+'</button>').join('') + '</div>'
+      + (rcoState.orderTab==='Repair & Service' ? rcoRepairView() : '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search by Customer Name, Mobile, Order No..." value="'+esc(rcoState.orderFilter.q)+'" oninput="rcoState.orderFilter.q=this.value;render()"></div>'
       + '<div class="rco-toolbar-right"><button type="button" class="primary" onclick="rcoOpenOrderForm()">＋ Create Order</button><button type="button" onclick="rcoState.orderDetailMode=!rcoState.orderDetailMode;render()">'+(rcoState.orderDetailMode?'View Lists':'Detail Lists')+'</button><button type="button" onclick="rcoState.orderFilterOpen=!rcoState.orderFilterOpen;render()">🔍 Filter</button><button type="button" onclick="rcoState.orderFilter={q:\'\',dateBy:\'orderDate\',from:\'\',to:\'\',supplierId:\'\',ornament:\'All\',product:\'\',salesPerson:\'\'};render()">Reset</button></div></div>'
       + (rcoState.orderFilterOpen ? '<div class="rco-filter-box">'
         + '<label class="rco-field"><span>Date Filter By</span><select onchange="rcoState.orderFilter.dateBy=this.value;render()">'+opts(['orderDate','deliveryDate','createdAt'], rcoState.orderFilter.dateBy)+'</select></label>'
@@ -497,9 +497,68 @@
         + '<label class="rco-field"><span>Ornament Type</span><select onchange="rcoState.orderFilter.ornament=this.value;render()">'+opts(['All','Gold','Silver','Diamond','Alloy'], rcoState.orderFilter.ornament)+'</select></label>'
         + '<label class="rco-field"><span>Sales Person</span><input value="'+esc(rcoState.orderFilter.salesPerson)+'" oninput="rcoState.orderFilter.salesPerson=this.value;render()"></label>'
         + '</div>' : '')
-      + tableHtml + '</section>';
+      + tableHtml + '</section>');
   }
   window.rcoDelOrder = (id) => { delDoc('retail-order', id); render(); };
+
+  window.rcoSaveRepair = (e) => {
+    e.preventDefault(); const f = e.target, v = Object.fromEntries(new FormData(f));
+    const c = (db.customers||[]).find(x=>x.id===v.customerId) || {};
+    const addChg = n(v.addedMetalCharge), srvChg = n(v.serviceCharge), adv = n(v.advancePaid);
+    const total = rbRound(addChg + srvChg), bal = Math.max(0, rbRound(total - adv));
+    saveDoc('retail-repair', {
+      id: rcoState.repairEditId || undefined,
+      repairNo: String(v.repairNo||'').trim() || ('REP-' + Date.now().toString(36).toUpperCase().slice(-5)),
+      date: v.date || todayStr(),
+      deliveryDate: v.deliveryDate || todayStr(),
+      customerId: v.customerId || '',
+      customerName: c.name || String(v.customerName||'').trim() || 'Walk-in Customer',
+      mobile: c.phone || c.mobile || String(v.mobile||'').trim(),
+      serviceType: v.serviceType || 'Soldering & Polishing',
+      item: String(v.item||'').trim() || 'Jewellery Ornament',
+      metal: v.metal || 'Gold',
+      grossWt: n(v.grossWt),
+      addedWt: n(v.addedWt),
+      addedMetalCharge: addChg,
+      serviceCharge: srvChg,
+      totalCharge: total,
+      advancePaid: adv,
+      balance: bal,
+      karigar: String(v.karigar||'').trim(),
+      status: v.status || 'Received',
+      remarks: String(v.remarks||'').trim()
+    });
+    rcoState.repairEditId = ''; say('Jewellery repair entry saved.'); render();
+  };
+  function rcoRepairView(){
+    const list = docs('retail-repair');
+    const cur = rcoState.repairEditId ? list.find(x=>x.id===rcoState.repairEditId) : null;
+    const services = ['Soldering & Polishing','Stone Fixing / Tightening','Ring / Bangle Resizing','Rhodium / Gold Plating','Laser Welding','Engraving','Cleaning & Buffing','Custom Repair'];
+    return '<section class="panel"><h3>'+(cur?'Edit Repair Entry · '+esc(cur.repairNo):'Jewellery Repair & Service :: Create')+'</h3>'
+      + '<form onsubmit="rcoSaveRepair(event)"><div class="rco-grid">'
+      + '<label class="rco-field"><span>Repair No.</span><input name="repairNo" placeholder="Auto" value="'+esc(cur?.repairNo||'')+'"></label>'
+      + '<label class="rco-field"><span>Received Date *</span><input type="date" name="date" required value="'+esc(cur?.date||todayStr())+'"></label>'
+      + '<label class="rco-field"><span>Delivery Date *</span><input type="date" name="deliveryDate" required value="'+esc(cur?.deliveryDate||todayStr())+'"></label>'
+      + '<label class="rco-field"><span>Customer</span><select name="customerId">'+custOpts(cur?.customerId)+'</select></label>'
+      + '<label class="rco-field"><span>Walk-in Name (if not in list)</span><input name="customerName" value="'+esc(cur?.customerName||'')+'"></label>'
+      + '<label class="rco-field"><span>Mobile No.</span><input name="mobile" type="tel" value="'+esc(cur?.mobile||'')+'"></label>'
+      + '<label class="rco-field"><span>Service Type *</span><select name="serviceType">'+opts(services, cur?.serviceType)+'</select></label>'
+      + '<label class="rco-field"><span>Ornament / Item *</span><input name="item" required placeholder="e.g. Gold Chain, Ring" value="'+esc(cur?.item||'')+'"></label>'
+      + '<label class="rco-field"><span>Metal</span><select name="metal">'+opts(['Gold','Silver','Diamond','Platinum'], cur?.metal||'Gold')+'</select></label>'
+      + '<label class="rco-field"><span>Customer Item Wt (g) *</span><input type="number" step=".001" name="grossWt" required value="'+(cur?.grossWt||0)+'"></label>'
+      + '<label class="rco-field"><span>Added Metal Wt (g)</span><input type="number" step=".001" name="addedWt" value="'+(cur?.addedWt||0)+'"></label>'
+      + '<label class="rco-field"><span>Added Metal Charge ₹</span><input type="number" step=".01" name="addedMetalCharge" value="'+(cur?.addedMetalCharge||0)+'"></label>'
+      + '<label class="rco-field"><span>Service / Labour Charge ₹ *</span><input type="number" step=".01" name="serviceCharge" required value="'+(cur?.serviceCharge||0)+'"></label>'
+      + '<label class="rco-field"><span>Advance Paid ₹</span><input type="number" step=".01" name="advancePaid" value="'+(cur?.advancePaid||0)+'"></label>'
+      + '<label class="rco-field"><span>Assigned Goldsmith / Karigar</span><input name="karigar" value="'+esc(cur?.karigar||'')+'"></label>'
+      + '<label class="rco-field"><span>Repair Status</span><select name="status">'+opts(['Received','In Workshop','Ready for Delivery','Delivered','Cancelled'], cur?.status||'Received')+'</select></label>'
+      + '<label class="rco-field wide"><span>Repair Remarks / Defect Notes</span><input name="remarks" value="'+esc(cur?.remarks||'')+'"></label>'
+      + '</div><div style="margin-top:10px"><button type="submit" class="primary">Save Repair Ticket</button> '+(cur?'<button type="button" onclick="rcoState.repairEditId=\'\';render()">Cancel</button>':'')+'</div></form></section>'
+      + '<section class="panel"><h3>Repair & Service Tickets · '+list.length+'</h3>'
+      + (list.length ? table(['Repair No','Date','Delivery','Customer','Mobile','Service Type','Item','Item Wt g','Added Wt g','Total Charge ₹','Advance ₹','Balance ₹','Karigar','Status','Action'], list.map(r=>[
+        '<b>'+esc(r.repairNo)+'</b>',esc(r.date),esc(r.deliveryDate),'<b>'+esc(r.customerName)+'</b>',esc(r.mobile||'—'),esc(r.serviceType),esc(r.item),fmt(r.grossWt)+' g',fmt(r.addedWt)+' g','<b>'+rateMoney(r.totalCharge)+'</b>',rateMoney(r.advancePaid),'<b>'+rateMoney(r.balance)+'</b>',esc(r.karigar||'—'),'<span class="rco-badge '+(r.status==='Delivered'?'rco-badge-open':r.status==='Cancelled'?'rco-badge-cancel':'rco-badge-wait')+'">'+esc(r.status)+'</span>','<button type="button" onclick="rcoState.repairEditId=\''+esc(r.id)+'\';render()">Edit</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete repair ticket?\')){rcoDelCrm(\'retail-repair\',\''+esc(r.id)+'\')}">×</button>'
+      ])) : '<p class="empty">No jewellery repair tickets yet.</p>') + '</section>';
+  }
 
   // ======================== 2. CRM MODULE (8 SUB-PAGES) ========================
   window.rcoSetCrmTab = (t) => { rcoState.crmTab = t; rcoState.crmEditId = ''; rcoState.crmShowForm = false; rcoState.crmSearch = ''; render(); };
