@@ -623,6 +623,60 @@
     },'retail','classic');
   };
 
+
+  const looseOpeningTypes=['Loose gold','Loose silver','Old gold','Old silver'];
+  function looseOpeningReport(asOf){
+    const totals=new Map();
+    const rows=docs('retail-shop-opening')
+      .filter(row=>looseOpeningTypes.includes(row.category)&&row.when<=asOf)
+      .sort((a,b)=>a.when.localeCompare(b.when));
+    for(const row of rows){
+      const total=totals.get(row.category)||{weight:0,pure:0,unknown:0,value:0};
+      const weight=Math.round(n(row.weight)*1000),purity=n(row.purity);
+      total.weight+=weight;
+      if(purity>0)total.pure+=Math.round(weight*purity/100);
+      else total.unknown+=weight;
+      total.value+=Math.round(n(row.amount)*100);
+      totals.set(row.category,total);
+    }
+    return {rows,totals};
+  }
+
+  const looseOpeningHeads=['Effective date','Category','Item','Weight g','Purity %','Pure g','Opening value ₹'];
+  function looseOpeningRows(rows){
+    return rows.map(row=>[row.when,row.category,row.description,fmt(n(row.weight)),n(row.purity)>0?String(n(row.purity)):'—',
+      n(row.purity)>0?fmt(n(row.weight)*n(row.purity)/100):'—',rateMoney(n(row.amount))]);
+  }
+  function looseOpeningTotals(totals){
+    return [...totals].flatMap(([type,total])=>[
+      [type+' opening weight',fmt(total.weight/1000)+' g'],
+      [type+' known pure weight',fmt(total.pure/1000)+' g'],
+      ...(total.unknown?[[type+' weight without purity',fmt(total.unknown/1000)+' g']]:[]),
+      [type+' opening value',rateMoney(total.value/100)]
+    ]);
+  }
+  window.rgaLooseOpeningView=function(){
+    if(workspaceMode!=='retail'||!session||!goldleafContext?.has_access)return '';
+    const asOf=rgaState.looseOpeningAsOf||rbNow().slice(0,10);
+    const report=looseOpeningReport(asOf);
+    return '<section class="rco-section-card"><div class="rco-toolbar"><h3>Loose metal & old jewel opening stock</h3>'
+      +'<label>As of <input type="date" value="'+esc(asOf)+'" onchange="rgaState.looseOpeningAsOf=this.value;render()"></label>'
+      +'<button type="button" onclick="rgaPrintLooseOpening()">Print PDF</button></div>'
+      +'<p class="muted">Opening weights only. Tagged stock and later metal movements are tracked separately.</p>'
+      +(report.rows.length?table(looseOpeningHeads,looseOpeningRows(report.rows).map(row=>row.map(esc)))
+        +table(['Category total','Value'],looseOpeningTotals(report.totals).map(row=>row.map(esc)))
+        :'<p class="muted">No loose metal or old jewel opening stock on this date.</p>')+'</section>';
+  };
+  window.rgaPrintLooseOpening=function(){
+    const asOf=rgaState.looseOpeningAsOf||rbNow().slice(0,10);
+    const report=looseOpeningReport(asOf);
+    if(!report.rows.length)return say('No opening stock to print.');
+    pdfPrintModel({kind:'ledger',retail:true,title:'Loose Metal & Old Jewel Opening Stock',entityLabel:'Shop',
+      entityName:db.shopName||goldleafContext?.shop_name||'Goldleaf Jewellery',reference:'Retail opening stock',date:asOf,
+      heads:looseOpeningHeads,rows:looseOpeningRows(report.rows),totals:looseOpeningTotals(report.totals)
+    },'retail','classic');
+  };
+
   function rgaReportsView(){
     const lines = rgaComputeAccountLines();
     const groupRollup = {};
@@ -729,6 +783,7 @@
       }
     }
 
+    if(rgaState.repTab==='By Product Group')body+=rgaLooseOpeningView();
     return '<div class="rco-tabs">' + ['Trial Balance','Balance Sheet','Profit & Loss','By Ledger Group','By Product Group','Metal Ledger'].map(t=>'<button type="button" class="'+(rgaState.repTab===t?'active':'')+'" onclick="rgaState.repTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>' + body;
   }
 
