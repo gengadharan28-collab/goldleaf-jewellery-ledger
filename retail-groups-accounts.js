@@ -343,6 +343,9 @@
   const postingTabs=['Journal Entry','Contra Entry','Expenses','Bill Entry'];
   const postingKind='retail-account-posting';
   const cashGroup='Cash in hand',bankGroup='Bank Accounts';
+  const billEntryTypes=['Debit','Credit','Advance'];
+  const billEntryStatuses=['Delivered','Undelivered','Old Gold'];
+  const billEntryDirection=value=>value==='Receipt'?'Credit':value==='Payment'?'Debit':value;
   const transferTypes=['Bank to Bank','Cash to Cash','Cash Deposit to Bank','Cash Withdrawal from Bank'];
   const retailLedgers=()=>docs('retail-ledger');
   const cashBank=rows=>rows.filter(l=>[cashGroup,bankGroup].includes(l.parentGroup));
@@ -407,22 +410,39 @@
         +postingLedger('Paid from','source',cash,entry.source)
         +postingField('Payment mode','<select name="paymentMode">'+opts(['Cash','Bank transfer','Cheque','UPI','Card'],entry.paymentMode||'Cash')+'</select>');
     }else{
-      const types=tab==='Contra Entry'?transferTypes:tab==='Bill Entry'?['Receipt','Payment']:['Expense'];
-      fields=postingField('Transaction type','<select name="direction">'+opts(types,entry.direction||types[0])+'</select>')
+      const types=tab==='Contra Entry'?transferTypes:tab==='Bill Entry'?billEntryTypes:['Expense'];
+      fields=postingField('Transaction type','<select name="direction">'+opts(types,billEntryDirection(entry.direction)||types[0])+'</select>')
         +postingLedger(tab==='Contra Entry'?'Withdraw from':tab==='Expenses'?'Paid from':'Cash / bank ledger','source',cash,entry.source)
         +postingLedger(tab==='Contra Entry'?'Deposit to':tab==='Expenses'?'Expense ledger':'Billing ledger','destination',tab==='Contra Entry'?cash:tab==='Expenses'?expenses:active,entry.destination)
         +postingInput('Amount · ₹','amount',entry.amount,'number','min=".01" step=".01" required');
       if(tab==='Expenses')fields+=postingInput('Expense type','detail',entry.detail,'text','required');
-      if(tab==='Bill Entry')fields+=postingInput('Due date','dueDate',entry.dueDate,'date')+postingInput('Attended by','attendedBy',entry.attendedBy);
+      if(tab==='Bill Entry')fields+=postingInput('Due date','dueDate',entry.dueDate,'date')
+        +postingInput('Attended by','attendedBy',entry.attendedBy)
+        +postingInput('Bill number','billNumber',entry.billNumber,'text','maxlength="60"')
+        +postingField('Bill status','<select name="billStatus">'+opts(billEntryStatuses,entry.billStatus,'Select status')+'</select>')
+        +postingInput('Weight · g','billWeight',entry.billWeight,'number','min="0" step=".001"');
       if(tab!=='Contra Entry')fields+=postingField('Payment mode','<select name="paymentMode">'+opts(['Cash','Bank transfer','Cheque','UPI','Card'],entry.paymentMode||'Cash')+'</select>');
     }
     return '<section class="rco-section-card"><h3>'+esc(tab)+'</h3><form onsubmit="rgaSavePosting(event)" data-entry-type="'+esc(tab)+'"><div class="rco-grid">'
       +number+postingInput('Date','date',entry.date||rbNow().slice(0,10),'date','required')+postingInput('Reference / description','description',entry.description)+fields
       +'</div><div class="rco-toolbar"><button class="primary">Save</button><button type="button" onclick="rgaEditPosting(\'\')">New / Clear</button></div></form></section>'
-      +(rows.length?table(['Date','Entry no.','Type','Amount / weight','Reference','Action'],rows.map(row=>[
+      +(rows.length?(tab==='Bill Entry'?billEntryHistory(rows):table(['Date','Entry no.','Type','Amount / weight','Reference','Action'],rows.map(row=>[
         esc(row.date),esc(row.number),esc(row.direction||row.measure),row.measure==='Amount'?rateMoney(row.total):fmt(row.total)+' g',esc(row.description),
-        '<button type="button" data-id="'+esc(row.id)+'" onclick="rgaEditPosting(this.dataset.id)">Edit</button>'
-      ])):'<p class="muted">No entries yet.</p>');
+        postingEditButton(row)
+      ]))):'<p class="muted">No entries yet.</p>');
+  }
+  function postingEditButton(row){
+    return '<button type="button" data-id="'+esc(row.id)+'" onclick="rgaEditPosting(this.dataset.id)">Edit</button>';
+  }
+  function billEntryHistory(rows){
+    const ledgers=new Map(retailLedgers().map(ledger=>[ledger.id,ledger.name]));
+    return table(['Bill no.','Date','Billing ledger','Type','Debit ₹','Credit ₹','Weight g','Attended by','Due date','Status','Action'],
+      rows.map(row=>{
+        const billing=(row.lines||[]).find(line=>line.ledgerId===row.destination)||{};
+        return [esc(row.billNumber||row.number),esc(row.date),esc(ledgers.get(row.destination)||'—'),esc(billEntryDirection(row.direction)),
+          rateMoney(n(billing.debit)),rateMoney(n(billing.credit)),row.billWeight?fmt(row.billWeight):'—',
+          esc(row.attendedBy||'—'),esc(row.dueDate||'—'),esc(row.billStatus||'—'),postingEditButton(row)];
+      }));
   }
   window.rgaEditPosting=id=>{if(rbCanLeave()){rgaState.postingEditId=id;render()}};
   window.rgaSavePosting=function(event){
@@ -466,8 +486,10 @@
         if(!sides||source.parentGroup!==sides[0]||destination.parentGroup!==sides[1])return say('Choose cash and bank ledgers that match the transfer type.');
       }
       if(voucherType==='Expenses'&&!window.rgaAllAccountingGroups().flat.some(g=>g.name===destination.parentGroup&&g.type==='EXPENSE'))return say('Select an expense ledger.');
-      const receipt=voucherType==='Bill Entry'&&v.direction==='Receipt';
-      lines=[{ledgerId:receipt?source.id:destination.id,debit:amount,credit:0},{ledgerId:receipt?destination.id:source.id,debit:0,credit:amount}];
+      const billDirection=billEntryDirection(v.direction);
+      if(voucherType==='Bill Entry'&&(!billEntryTypes.includes(billDirection)||n(v.billWeight)<0||v.billStatus&&!billEntryStatuses.includes(v.billStatus)))return say('Check transaction type, bill status and weight.');
+      const receipt=voucherType==='Bill Entry'&&['Credit','Advance'].includes(billDirection);
+      lines=[{ledgerId:receipt?source.id:destination.id,debit:amount,credit:0},{ledgerId:receipt?destination.id:source.id,debit:0,credit:amount,advance:voucherType==='Bill Entry'&&billDirection==='Advance'}];
     }
     const debit=lines.reduce((sum,row)=>sum+row.debit,0),credit=lines.reduce((sum,row)=>sum+row.credit,0);
     if(lines.length<2||debit<=0||debit!==credit||lines.some(row=>!byId(row.ledgerId)||row.debit<0||row.credit<0||!!row.debit===!!row.credit))return say('Each row needs one side. Total debits and credits must match.');
@@ -477,8 +499,9 @@
     const number=v.number.trim()||'AC-'+id.slice(0,8).toUpperCase();
     if(docs(postingKind).some(row=>row.id!==id&&row.number.toLowerCase()===number.toLowerCase()))return say('That entry number already exists.');
     const saved={id,kind:postingKind,accountType:'customer',voucherType,measure,total:debit/scale,date:v.date,number,
-      source:v.source,destination:v.destination,amount:n(v.amount),direction:v.direction,description:v.description.trim(),detail:v.detail,
+      source:v.source,destination:v.destination,amount:n(v.amount),direction:voucherType==='Bill Entry'?billEntryDirection(v.direction):v.direction,description:v.description.trim(),detail:v.detail,
       dueDate:v.dueDate,attendedBy:v.attendedBy,paymentMode:v.paymentMode,expenseItems,
+      billNumber:v.billNumber?.trim()||'',billStatus:v.billStatus||'',billWeight:n(v.billWeight),
       lines:lines.map(row=>({...row,debit:row.debit/scale,credit:row.credit/scale})),createdAt:old?.createdAt||now,updatedAt:now};
     if(old)db.retailDocuments[db.retailDocuments.indexOf(old)]=saved;
     else db.retailDocuments.push(saved);
