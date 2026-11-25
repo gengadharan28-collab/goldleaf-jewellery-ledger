@@ -269,6 +269,7 @@
       businessType: f.businessType.value, gstRegType: f.gstRegType.value, gst: f.gst.value.trim().toUpperCase(), pan: f.pan.value.trim().toUpperCase(),
       address: f.address.value.trim(), city: f.city.value.trim(), pinCode: f.pinCode.value.trim(), district: f.district.value.trim(), state: f.state.value,
       tcsTds: f.tcsTds.value, ornamentsType: f.ornamentsType.value,
+      openingEffectiveDate: f.openingEffectiveDate.value, openingIsAdvance: f.openingIsAdvance.checked,
       openingAmount: n(f.openingAmount.value), openingSide: f.openingSide.value,
       pureWeight: n(f.pureWeight.value), pureSide: f.pureSide.value,
       creditDays: f.creditDays.value, creditLimit: n(f.creditLimit.value), remarks: f.remarks.value.trim(),
@@ -297,6 +298,8 @@
         + '<label class="rco-field"><span>PAN Number</span><input name="pan" maxlength="10" value="'+esc(l?.pan||'')+'"></label>'
         + '<label class="rco-field"><span>TCS / TDS</span><select name="tcsTds">'+opts(['','TCS @ 0.01%'], l?.tcsTds||'')+'</select></label>'
         + '<label class="rco-field"><span>Ornaments Type</span><select name="ornamentsType">'+opts(['None','GOLD','SILVER','DIAMOND'], l?.ornamentsType||'None')+'</select></label>'
+        + '<label class="rco-field"><span>Opening effective date</span><input type="date" name="openingEffectiveDate" value="'+esc(l?.openingEffectiveDate||'')+'"></label>'
+        + '<label class="rco-field"><span>Opening balance is an advance</span><input type="checkbox" name="openingIsAdvance" '+(l?.openingIsAdvance?'checked':'')+'></label>'
         + '<label class="rco-field"><span>Opening Balance (₹)</span><input name="openingAmount" type="number" step=".01" value="'+(l?.openingAmount||0)+'"></label>'
         + '<label class="rco-field"><span>Balance Type</span><select name="openingSide">'+opts(['DR','CR'], l?.openingSide||'DR')+'</select></label>'
         + '<label class="rco-field"><span>Pure Weight (g)</span><input name="pureWeight" type="number" step=".001" value="'+(l?.pureWeight||0)+'"></label>'
@@ -321,7 +324,7 @@
       if(q && !(l.name.toLowerCase().includes(q) || (l.parentGroup||'').toLowerCase().includes(q) || (l.mobile||'').includes(q))) return false;
       return true;
     });
-    return '<div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Ledger or Parent Group..." value="'+esc(rgaState.ledSearch)+'" oninput="rgaState.ledSearch=this.value;render()">'
+    return (window.rcOpeningView?'<details class="rco-section-card" open><summary>Opening cash and bank</summary>'+rcOpeningView('accounts')+'</details>':'')+'<div class="rco-toolbar"><div class="rco-toolbar-left"><input class="rco-search" placeholder="Search Ledger or Parent Group..." value="'+esc(rgaState.ledSearch)+'" oninput="rgaState.ledSearch=this.value;render()">'
       + '<select onchange="rgaState.ledFilterGroup=this.value;render()">'+window.rgaAccountingGroupOptions(rgaState.ledFilterGroup)+'</select></div>'
       + '<div class="rco-toolbar-right"><button type="button" class="primary" onclick="rgaState.ledEditId=\'\';rgaState.ledShowForm=true;render()">＋ Create Ledger</button></div></div>'
       + '<div class="rco-check-row" style="margin-bottom:10px"><label><input type="checkbox" '+(rgaState.ledShowZero?'checked':'')+' onchange="rgaState.ledShowZero=this.checked;render()"> Inc. 0 Balance</label><label><input type="checkbox" '+(rgaState.ledShowDisabled?'checked':'')+' onchange="rgaState.ledShowDisabled=this.checked;render()"> Show Disabled</label></div>'
