@@ -30,12 +30,23 @@
   function sharpenThermalEstimate(canvas){
     const context=canvas.getContext('2d',{willReadFrequently:true});
     if(!context)return;
-    const image=context.getImageData(0,0,canvas.width,canvas.height);
+    const w=canvas.width,h=canvas.height;
+    const image=context.getImageData(0,0,w,h);
     const pixels=image.data;
-    for(let index=0;index<pixels.length;index+=4){
-      const luminance=(299*pixels[index]+587*pixels[index+1]+114*pixels[index+2])/1000;
-      const value=luminance<185?0:255;
-      pixels[index]=pixels[index+1]=pixels[index+2]=value;
+    const mask=new Uint8Array(w*h);
+    for(let i=0,p=0;i<pixels.length;i+=4,p++){
+      const luminance=(299*pixels[i]+587*pixels[i+1]+114*pixels[i+2])/1000;
+      mask[p]=luminance<238?1:0;
+    }
+    // 1-subpixel horizontal reinforcement at scale:3 so thin monospace strokes stay pitch-black after printer downscaling
+    for(let y=0;y<h;y++){
+      const row=y*w;
+      for(let x=0;x<w;x++){
+        const dark=mask[row+x]||(x>0&&mask[row+x-1]&&!(x+1<w&&mask[row+x+1]));
+        const val=dark?0:255;
+        const idx=(row+x)*4;
+        pixels[idx]=pixels[idx+1]=pixels[idx+2]=val;
+      }
     }
     context.putImageData(image,0,0);
   }
@@ -57,7 +68,7 @@
       +PDF_DOCUMENT_CSS
       +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:78mm!important;max-width:78mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +'.grid80-items{width:100%!important;max-width:100%!important;table-layout:fixed!important}.grid80-item-total-cell,.grid80-item-total-box,.grid80-product-total,.grid80-summary-row{max-width:100%!important;box-sizing:border-box!important;overflow:hidden!important}.grid80-tot-right{min-width:0!important;max-width:100%!important}.grid80-tot-val{font-size:16px!important;max-width:36mm!important;overflow:visible!important;text-overflow:clip!important;text-align:right!important}.grid80-readable-total,.grid80-product-total,.grid80-summary-row{padding-right:2mm!important}.grid80-product-total b,.grid80-summary-row b{max-width:36mm!important;overflow:visible!important;text-align:right!important}'
-      +(sharpEstimate?'.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;font-weight:400!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important}.gl-pdf th,.gl-pdf td,.gl-pdf hr,.gl-pdf [class*="grid80-"]{border-color:#000!important;background-color:#fff!important}.grid80-top small{font-size:12px!important}.grid80-top strong{font-size:18px!important}.grid80-rates,.grid80-meta{font-size:12.5px!important}.grid80-readable-product span,.grid80-readable-product small,.grid80-readable-product b{font-size:15px!important}.grid80-readable-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.grid80-readable-field:nth-child(5n){border-right:1px solid #000!important}.grid80-readable-field:nth-child(4n){border-right:0!important}.grid80-readable-field small{font-size:10.5px!important;font-weight:400!important}.grid80-readable-field b{font-size:15px!important;font-weight:400!important}.grid80-readable-field[data-field="wastage"] b small{font-size:11px!important;font-weight:400!important}.grid80-readable-details{font-size:12px!important}.grid80-readable-total span{font-size:12.5px!important}.grid80-readable-total b,.grid80-tot-val{font-size:18px!important;font-weight:400!important}.grid80-items th{font-size:11px!important;font-weight:400!important}.grid80-items td,.grid80-items td[data-col="product"],.grid80-items td[data-col="gross"],.grid80-items td[data-col="less"],.grid80-items td[data-col="net"],.grid80-items td[data-col="making"],.grid80-items td[data-col="wastage"]{font-size:14px!important;font-weight:400!important}.grid80-product-total,.grid80-summary-row{font-size:14px!important;font-weight:400!important}.grid80-product-total b,.grid80-summary-row b,.grid80-exchange b{font-size:15px!important;font-weight:400!important}.grid80-summary-row.grid80-highlight,.grid80-summary-row.grid80-highlight b{font-size:16.5px!important;font-weight:400!important}.grid80-exchange{font-size:12.5px!important;font-weight:400!important}.grid80-ticket h3{font-size:13px!important;font-weight:400!important}.grid80-ticket footer{font-size:11.5px!important;font-weight:400!important}':'')
+      +(sharpEstimate?'.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;font-weight:500!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important}.gl-pdf th,.gl-pdf td,.gl-pdf hr,.gl-pdf [class*="grid80-"]{border-color:#000!important;background-color:#fff!important}':'')
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
     doc.close();
     try{

@@ -42,6 +42,21 @@
     if(!clean.id) delete clean.id;
     const row = Object.assign({ id: crypto.randomUUID(), type, accountType: 'customer', createdAt: doc.createdAt || now, updatedAt: now }, clean, { type, updatedAt: now });
     if(typeof RC_SQL_KINDS !== 'undefined' && RC_SQL_KINDS.has(type)) row.kind = type; else delete row.kind;
+    if(Array.isArray(db.deletedRetailDocumentIds)){
+      db.deletedRetailDocumentIds = db.deletedRetailDocumentIds.filter(id => String(id) !== String(row.id));
+    }
+    if(type === 'retail-order' && row.orderNo){
+      // Remove any older duplicate clones with the same orderNo so the updated order with receipts always wins
+      db.retailDocuments = db.retailDocuments.filter(x => {
+        if(!x) return false;
+        if(x.id !== row.id && (x.kind === 'retail-order' || x.type === 'retail-order') && String(x.orderNo || '').trim().toLowerCase() === String(row.orderNo).trim().toLowerCase()){
+          if(!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
+          if(x.id && !db.deletedRetailDocumentIds.includes(String(x.id))) db.deletedRetailDocumentIds.push(String(x.id));
+          return false;
+        }
+        return true;
+      });
+    }
     const idx = db.retailDocuments.findIndex(x=>x&&x.id===row.id);
     if(idx<0) db.retailDocuments.unshift(row); else db.retailDocuments[idx] = row;
     if(typeof rcEnsure === 'function') rcEnsure();
@@ -143,7 +158,7 @@
       + (d.stoneAmt?'<td><input name="item_stoneAmt" type="number" min="0" step=".01" value="'+(it.stoneAmt||0)+'" style="width:70px" oninput="rcoRecalcOrder()"></td>':'')
       + '<td><select name="item_supplier">'+supOpts(it.supplierId,'-- Supplier --')+'</select></td>'
       + '<td><select name="item_status">'+opts(['Open','In Progress','Ready','Closed','Cancel'], it.status||'Open')+'</select></td>'
-      + '<td><input name="item_amt" type="number" step=".01" readonly value="'+(it.amount||0)+'" style="width:90px;font-weight:700;background:#f4f4f4"></td>'
+      + '<td><input name="item_amt" type="number" step=".01" value="'+(it.amount||0)+'" style="width:90px;font-weight:700" oninput="this.dataset.manual=\'1\';rcoRecalcOrder()"></td>'
       + '<td><input name="item_notes" value="'+esc(it.notes||'')+'" placeholder="Notes" style="width:100px"></td>'
       + '<td><button type="button" class="rb-delete-btn" onclick="this.closest(\'tr\').remove();rcoRecalcOrder()">×</button></td>'
       + '</tr>';
@@ -193,8 +208,18 @@
       const wst = n(tr.querySelector('[name="item_wst"]')?.value);
       const mc = n(tr.querySelector('[name="item_mc"]')?.value);
       const stAmt = n(tr.querySelector('[name="item_stoneAmt"]')?.value);
-      const amt = Math.round((net * (1 + wst/100) * rate + mc + stAmt) * 100) / 100;
-      const amtEl = tr.querySelector('[name="item_amt"]'); if(amtEl) amtEl.value = amt.toFixed(2);
+      const calcAmt = Math.round((net * (1 + wst/100) * rate + mc + stAmt) * 100) / 100;
+      const amtEl = tr.querySelector('[name="item_amt"]');
+      let amt = calcAmt;
+      if(amtEl){
+        if(net > 0 && rate > 0 && !amtEl.dataset.manual){
+          amtEl.value = calcAmt.toFixed(2);
+        } else if(amtEl.dataset.manual || (calcAmt === 0 && n(amtEl.value) > 0)){
+          amt = n(amtEl.value);
+        } else {
+          amtEl.value = calcAmt.toFixed(2);
+        }
+      }
       salesAmt += amt; totalQty += qty; totalGross += gross;
     });
     let oldAmt = 0;
@@ -256,11 +281,12 @@
     f.querySelectorAll('.rco-order-row').forEach(tr => {
       const pSel = tr.querySelector('[name="item_product"]')?.value || '';
       const pTxt = tr.querySelector('[name="item_product_text"]')?.value?.trim() || '';
-      const product = pTxt || pSel;
-      if(!product) return;
       const grossWt = n(tr.querySelector('[name="item_gross"]')?.value);
       const lessWt = n(tr.querySelector('[name="item_less"]')?.value);
       const stoneWt = n(tr.querySelector('[name="item_stoneWt"]')?.value);
+      const rowAmt = n(tr.querySelector('[name="item_amt"]')?.value);
+      const product = pTxt || pSel || ((grossWt > 0 || rowAmt > 0) ? 'Gold Ornament' : '');
+      if(!product) return;
       items.push({
         product,
         huid: tr.querySelector('[name="item_huid"]')?.value || '',
@@ -280,13 +306,22 @@
         notes: tr.querySelector('[name="item_notes"]')?.value || ''
       });
     });
-    if(!items.length) return say('Add at least one order item.');
-
     const receipts = [], oldJewels = [], chits = [];
     f.querySelectorAll('.rco-rcpt-row').forEach(tr => {
       const amt = n(tr.querySelector('[name="rcpt_amt"]')?.value);
-      if(amt > 0) receipts.push({ type: tr.querySelector('[name="rcpt_type"]').value, bankCash: tr.querySelector('[name="rcpt_bank"]').value, amount: amt, cardType: tr.querySelector('[name="rcpt_card"]').value, advance: tr.querySelector('[name="rcpt_adv"]').checked, ref: tr.querySelector('[name="rcpt_ref"]').value });
+      if(amt > 0) receipts.push({
+        type: tr.querySelector('[name="rcpt_type"]')?.value || 'Cash',
+        bankCash: tr.querySelector('[name="rcpt_bank"]')?.value || 'Cash',
+        amount: amt,
+        cardType: tr.querySelector('[name="rcpt_card"]')?.value || '',
+        advance: tr.querySelector('[name="rcpt_adv"]') ? tr.querySelector('[name="rcpt_adv"]').checked : true,
+        ref: tr.querySelector('[name="rcpt_ref"]')?.value || ''
+      });
     });
+    if(!items.length && receipts.length){
+      items.push({ product: 'Order Advance Booking', huid: '', tagCode: '', ornament: 'Gold', qty: 1, grossWt: 0, lessWt: 0, stoneWt: 0, netWt: 0, rate: n(f.goldRate?.value) || defaultGold22Rate(), skin: '22K', wst: 0, mc: 0, stoneAmt: 0, supplierId: '', status: 'Open', amount: receipts.reduce((s,x)=>s+x.amount, 0), notes: 'Advance Receipt' });
+    }
+    if(!items.length) return say('Add at least one order item or receipt amount.');
     f.querySelectorAll('.rco-old-row').forEach(tr => {
       const amt = n(tr.querySelector('[name="old_amt"]')?.value);
       if(amt > 0) oldJewels.push({ product: tr.querySelector('[name="old_type"]').value, weight: n(tr.querySelector('[name="old_wt"]').value), less: n(tr.querySelector('[name="old_less"]').value), touch: n(tr.querySelector('[name="old_touch"]').value), rate: n(tr.querySelector('[name="old_rate"]').value), amount: amt });
@@ -307,9 +342,9 @@
     const roundOff = n(f.roundOff.value), roundType = f.roundType.value;
     const netAmount = Math.max(0, totalAmt + (roundType==='Sub'?-roundOff:roundOff));
     const paidAmount = receipts.reduce((s,x)=>s+x.amount, 0);
-    const advanceAmount = receipts.filter(x=>x.advance).reduce((s,x)=>s+x.amount, 0);
+    const advanceAmount = receipts.filter(x=>x.advance!==false).reduce((s,x)=>s+x.amount, 0) || paidAmount;
 
-    const existing = rcoState.orderEditId ? docs('retail-order').find(x=>x.id===rcoState.orderEditId) : null;
+    const existing = rcoState.orderEditId ? docs('retail-order').find(x=>x.id===rcoState.orderEditId || x.orderNo===rcoState.orderEditId) : null;
     const history = Array.isArray(existing?.history) ? existing.history.slice() : [];
     history.unshift({ at: new Date().toISOString(), action: existing ? 'Updated Order' : 'Created Order', status: f.status.value, by: goldleafContext?.user_email || 'Staff' });
 
@@ -481,7 +516,7 @@
       const oldJ = o?.oldJewels?.length ? o.oldJewels : [];
       const chits = o?.chits?.length ? o.chits : [];
       return header(o ? 'Edit Order · '+o.orderNo : 'Create Order', '')
-        + '<form id="rcoOrderForm" onsubmit="rcoSaveOrder(event)">'
+        + '<form id="rcoOrderForm" onsubmit="rcoSaveOrder(event)" onkeydown="if(event.key===\'Enter\'&&event.target.tagName===\'INPUT\'&&event.target.type!==\'submit\'){event.preventDefault();rcoRecalcOrder();}">'
         + '<section class="rco-section-card"><h3><span>'+(o ? 'Edit Order · '+esc(o.orderNo) : 'Create Order')+'</span><span><button type="button" onclick="rcoOpenDisplayCustomizer()">⚙️ Display</button> <button type="button" onclick="rcoCloseOrderForm()">← Back</button></span></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Order Date *</span><input name="orderDate" type="date" required value="'+esc(o?.orderDate||todayStr())+'"></label>'
         + '<label class="rco-field"><span>Customer Name *</span><select name="customerId" onchange="if(this.value){const c=(db.customers||[]).find(x=>x.id===this.value);if(c&&this.form.customerMobile)this.form.customerMobile.value=c.phone||c.mobile||\'\';}">'+custOpts(o?.customerId)+'</select></label>'
@@ -1361,6 +1396,11 @@
     if(typeof erpFilterNavigation==='function') erpFilterNavigation(window.erpNavQuery||'');
   }
 
+  const rcoPrevFocusedEdit = window.v2HasFocusedEdit;
+  window.v2HasFocusedEdit = function(){
+    if(rcoState.orderShowForm || rcoState.crmShowForm || rcoState.custShowForm || rcoState.supShowForm) return true;
+    return typeof rcoPrevFocusedEdit === 'function' ? rcoPrevFocusedEdit() : false;
+  };
   const rcoPrevRender = window.render;
   window.render = function(){
     const res = rcoPrevRender.apply(this, arguments);

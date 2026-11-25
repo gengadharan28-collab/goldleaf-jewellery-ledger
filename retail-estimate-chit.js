@@ -354,8 +354,31 @@ function rcEnsure() {
   if (!Array.isArray(db.retailDocuments)) db.retailDocuments = [];
   if (!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
   const delSet = new Set(db.deletedRetailDocumentIds.map(String));
+  const docScore = (d) => {
+    const t = Date.parse(d.updatedAt || d.createdAt || '') || 0;
+    const rcptBonus = (Array.isArray(d.receipts) ? d.receipts.length : 0) * 1e12 + (Number(d.paidAmount) || 0) * 1e6;
+    const itemBonus = (Array.isArray(d.items) ? d.items.length : 0) * 1e9;
+    return t + rcptBonus + itemBonus;
+  };
+  // Pass 1: pick the best winner for each naturalKey (e.g. orderNo) so an older cloud clone with 0 receipt never beats a newer edited copy
+  const bestByNaturalKey = new Map();
+  for (const d of db.retailDocuments) {
+    if (!d || typeof d !== 'object') continue;
+    const k = d.kind || d.type || '';
+    const naturalVal = d.orderNo || d.repairNo || d.leadNo || (k === 'retail-ledger' || k === 'retail-ledger-group' ? d.name : '');
+    const naturalKey = (k && naturalVal) ? (k + '::' + String(naturalVal).trim().toLowerCase()) : '';
+    if (!d.id) {
+      d.id = naturalKey ? ('doc-' + naturalKey.replace(/[^a-z0-9_-]+/g, '-')) : crypto.randomUUID();
+    }
+    if (naturalKey) {
+      const prev = bestByNaturalKey.get(naturalKey);
+      if (!prev || docScore(d) >= docScore(prev)) {
+        bestByNaturalKey.set(naturalKey, d);
+      }
+    }
+  }
   const seenIds = new Set();
-  const seenNaturalKeys = new Map();
+  const keptNaturalKeys = new Set();
   const cleaned = [];
   for (const d of db.retailDocuments) {
     if (!d || typeof d !== 'object') continue;
@@ -367,22 +390,29 @@ function rcEnsure() {
     }
     const naturalVal = d.orderNo || d.repairNo || d.leadNo || (k === 'retail-ledger' || k === 'retail-ledger-group' ? d.name : '');
     const naturalKey = (k && naturalVal) ? (k + '::' + String(naturalVal).trim().toLowerCase()) : '';
-    if (!d.id) {
-      d.id = naturalKey ? ('doc-' + naturalKey.replace(/[^a-z0-9_-]+/g, '-')) : crypto.randomUUID();
-    }
-    if (delSet.has(String(d.id))) continue;
-    if (seenIds.has(d.id)) continue;
     if (naturalKey) {
-      if (seenNaturalKeys.has(naturalKey)) {
-        const dupId = String(d.id);
-        if (dupId && !delSet.has(dupId)) {
-          delSet.add(dupId);
-          db.deletedRetailDocumentIds.push(dupId);
+      if (keptNaturalKeys.has(naturalKey)) continue;
+      const winner = bestByNaturalKey.get(naturalKey) || d;
+      if (d !== winner) {
+        if (d.id && d.id !== winner.id && !delSet.has(String(d.id))) {
+          delSet.add(String(d.id));
+          db.deletedRetailDocumentIds.push(String(d.id));
         }
         continue;
       }
-      seenNaturalKeys.set(naturalKey, d);
+      if (delSet.has(String(winner.id)) && db.retailDocuments.filter(x => x && (x.orderNo || x.repairNo || x.leadNo) === naturalVal).length > 1) {
+        // Un-tombstone winner if it was previously marked as a duplicate
+        delSet.delete(String(winner.id));
+        db.deletedRetailDocumentIds = db.deletedRetailDocumentIds.filter(id => String(id) !== String(winner.id));
+      }
+      if (delSet.has(String(winner.id))) continue;
+      keptNaturalKeys.add(naturalKey);
+      seenIds.add(winner.id);
+      cleaned.push(winner);
+      continue;
     }
+    if (delSet.has(String(d.id))) continue;
+    if (seenIds.has(d.id)) continue;
     seenIds.add(d.id);
     cleaned.push(d);
   }
