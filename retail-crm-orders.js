@@ -608,21 +608,42 @@
     });
     rcoCloseCrmForm(); say('Feedback saved.');
   };
-  window.rcoSaveVoucher = (e) => {
-    e.preventDefault(); const f = e.target;
-    const fromNo = Math.max(1, n(f.fromNo.value)||1), toNo = Math.max(fromNo, n(f.toNo.value)||fromNo);
-    const prefix = f.prefix.value.trim(), suffix = f.suffix.value.trim(), randDigits = Math.max(0, Math.min(8, n(f.randDigits.value)||4));
-    const genRand = (len) => Array.from({length:len}, ()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
-    for(let i=fromNo; i<=Math.min(toNo, fromNo+50); i++){
-      const numStr = String(i).padStart(Math.max(1, n(f.prefixDigits.value)||3), '0');
-      const rStr = randDigits ? genRand(randDigits) : '';
-      const code = f.randPos.value==='Prefix' ? (prefix+rStr+numStr+suffix) : (prefix+numStr+rStr+suffix);
-      saveDoc('crm-voucher', {
-        name: f.name.value.trim(), ledgerName: f.ledgerName.value.trim(), code, validFrom: f.validFrom.value, validTo: f.validTo.value,
-        redeemType: f.redeemType.value, amount: n(f.amount.value), minPurchase: n(f.minPurchase.value), isRedeemed: false
-      });
+  window.rcoSaveVoucher = event => {
+    event.preventDefault();
+    const form=event.currentTarget;
+    if(!session||!goldleafContext?.has_access||workspaceMode!=='retail'||!form.reportValidity())return;
+    const f=form.elements;
+    const from=Number(f.fromNo.value),to=Number(f.toNo.value),width=Number(f.prefixDigits.value),randomDigits=Number(f.randDigits.value);
+    const name=f.name.value.trim(),ledgerName=f.ledgerName.value.trim(),prefix=f.prefix.value.trim(),suffix=f.suffix.value.trim();
+    const validFrom=f.validFrom.value,validTo=f.validTo.value,redeemType=f.redeemType.value;
+    const amount=n(f.amount.value),minPurchase=n(f.minPurchase.value);
+    if(!name||!ledgerName||!validFrom||!validTo||validTo<validFrom)return say('Enter a name, ledger, and a valid voucher date range.');
+    if(!['Amount','Percentage'].includes(redeemType)||amount<=0||(redeemType==='Percentage'&&amount>100)||minPurchase<0)return say('Enter a positive value and valid minimum purchase. Percentage must be at most 100.');
+    if(!Number.isSafeInteger(from)||!Number.isSafeInteger(to)||from<1||to<from||to-from>=51)return say('Choose a range of 1 to 51 voucher numbers per batch.');
+    if(!Number.isInteger(width)||width<1||width>16||!Number.isInteger(randomDigits)||randomDigits<0||randomDigits>8)return say('Use 1–16 number digits and 0–8 random digits.');
+    const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const randomText=()=>Array.from(crypto.getRandomValues(new Uint8Array(randomDigits)),value=>alphabet[value&31]).join('');
+    const used=new Set(docs('crm-voucher').map(row=>String(row.code||'').trim().toUpperCase()));
+    const now=new Date().toISOString(),batch=[];
+    for(let index=from;index<=to;index++){
+      const number=String(index).padStart(width,'0');
+      let code='';
+      for(let attempt=0;attempt<(randomDigits?12:1);attempt++){
+        const extra=randomText();
+        code=prefix+(f.randPos.value==='Prefix'?extra+number:number+extra)+suffix;
+        if(!used.has(code.toUpperCase()))break;
+      }
+      if(used.has(code.toUpperCase()))return say('Voucher code '+code+' already exists. Choose a different prefix or number range.');
+      used.add(code.toUpperCase());
+      batch.push({id:crypto.randomUUID(),kind:'crm-voucher',accountType:'customer',name,ledgerName,code,validFrom,validTo,
+        redeemType,amount,minPurchase,isRedeemed:false,createdAt:now,updatedAt:now});
     }
-    rcoCloseCrmForm(); say('Gift voucher(s) generated.');
+    db.retailDocuments.push(...batch);
+    let saving;
+    try{saving=save()}catch(error){saving=Promise.reject(error)}
+    rcoCloseCrmForm();
+    if(typeof rcSaveStatus==='function')rcSaveStatus(saving,batch.length+' gift voucher(s)');
+    else Promise.resolve(saving).then(()=>say(batch.length+' gift voucher(s) saved.')).catch(()=>say('Saved here. Cloud sync needs attention.'));
   };
 
   function rcoCrmView(){
