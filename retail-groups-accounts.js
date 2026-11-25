@@ -529,7 +529,7 @@
     rgaState.mainTab='Ledgers';rgaState.ledShowForm=true;rgaState.ledEditId=id;render();
   };
 
-  function rgaComputeAccountLines(){
+  function rgaComputeAccountLines(asOfDate){
     const { flat } = window.rgaAllAccountingGroups();
     const grpTypeMap = {};
     flat.forEach(g => grpTypeMap[g.name] = g.type);
@@ -540,7 +540,7 @@
       lines.push({ ledgerName, parentGroup, groupType: grpTypeMap[parentGroup]||'ASSET', debit: n(debit), credit: n(credit), grossWt: n(grossWt), pureWt: n(pureWt) });
     };
 
-    const asOf=rbNow().slice(0,10);
+    const asOf=asOfDate||rbNow().slice(0,10);
     // Custom ledgers
     docs('retail-ledger').filter(l=>!l.disabled&&(!l.openingEffectiveDate||l.openingEffectiveDate<=asOf)).forEach(l => {
       const amt = n(l.openingAmount);
@@ -587,11 +587,13 @@
     if(totalCollected>0) addLine('Retail Cash & Bank Receipts', 'Cash in hand', totalCollected, 0);
 
     // Retail Purchases -> Purchase Accounts
-    const totalPur = docs('retail-purchase').reduce((a,p)=>a+n(p.netAmount||p.amount),0);
+    const totalPur = docs('retail-purchase').filter(p=>String(p.when||p.date||p.createdAt||'').slice(0,10)<=asOf).reduce((a,p)=>a+n(p.netAmount||p.totalAmount||p.amount),0)
+      + docs('purchase').filter(p=>String(p.when||p.date||p.createdAt||'').slice(0,10)<=asOf).reduce((a,p)=>a+n(p.totalAmount||p.netAmount||p.amount),0);
     if(totalPur>0) addLine('Retail Jewellery Purchases', 'Purchase Accounts', totalPur, 0);
 
     return lines;
   }
+  window.rgaComputeAccountLines = rgaComputeAccountLines;
 
 
   function rgaMetalLines(metal,asOf){
