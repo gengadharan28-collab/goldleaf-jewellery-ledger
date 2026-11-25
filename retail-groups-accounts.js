@@ -66,6 +66,8 @@
   const delDoc = (t, id) => {
     if(t==='retail-ledger'&&docs('retail-account-posting').some(row=>row.lines?.some(line=>line.ledgerId===id)))return say('This ledger has account entries and cannot be deleted.');
     if(window.rcDeleteDoc) return window.rcDeleteDoc(t, id);
+    if(!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
+    if(id && !db.deletedRetailDocumentIds.includes(String(id))) db.deletedRetailDocumentIds.push(String(id));
     db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id);
     save();
   };

@@ -47,6 +47,8 @@
   };
   const delDoc = (t, id) => {
     if(window.rcDeleteDoc) return window.rcDeleteDoc(t, id);
+    if(!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
+    if(id && !db.deletedRetailDocumentIds.includes(String(id))) db.deletedRetailDocumentIds.push(String(id));
     db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id);
     save();
   };

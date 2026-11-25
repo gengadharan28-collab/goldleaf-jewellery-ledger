@@ -50,7 +50,15 @@
   const delDoc = (type, id) => {
     if(type==='crm-voucher'&&rbCustomerSales().some(sale=>sale.giftVoucherId===id))return say('This voucher is linked to a saved sales bill.');
     if(window.rcDeleteDoc) return window.rcDeleteDoc(type, id);
-    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id);
+    const target = (db.retailDocuments||[]).find(x=>x&&x.id===id);
+    const matchOrderNo = type==='retail-order' && target?.orderNo ? target.orderNo : '';
+    if(!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
+    (db.retailDocuments||[]).forEach(x => {
+      if(x && (x.id===id || (matchOrderNo && x.orderNo===matchOrderNo))){
+        if(x.id && !db.deletedRetailDocumentIds.includes(String(x.id))) db.deletedRetailDocumentIds.push(String(x.id));
+      }
+    });
+    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id&&!(matchOrderNo&&x.orderNo===matchOrderNo));
     save();
   };
   const opts = (arr, cur, emptyLabel) => (emptyLabel!==undefined?'<option value="">'+esc(emptyLabel)+'</option>':'') + arr.map(v=>'<option value="'+esc(v)+'" '+(String(cur||'')===String(v)?'selected':'')+'>'+esc(v)+'</option>').join('');

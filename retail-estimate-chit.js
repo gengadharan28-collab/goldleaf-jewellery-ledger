@@ -352,24 +352,56 @@ function rcAllowed(){return !!(session&&goldleafContext?.has_access&&goldleafCon
 const RC_SQL_KINDS = new Set(['purchase','purchase-return','payment','old-purchase','old-return','bill-entry','conversion','retail-estimate','retail-product-group','retail-product','retail-model','retail-tagging','retail-chit-group','retail-chit-type','retail-chit-mapping','retail-chit-entry','wholesale-lot','wholesale-packet-sale','wholesale-packet-return']);
 function rcEnsure() {
   if (!Array.isArray(db.retailDocuments)) db.retailDocuments = [];
+  if (!Array.isArray(db.deletedRetailDocumentIds)) db.deletedRetailDocumentIds = [];
+  const delSet = new Set(db.deletedRetailDocumentIds.map(String));
   const seenIds = new Set();
+  const seenNaturalKeys = new Map();
+  const cleaned = [];
   for (const d of db.retailDocuments) {
-    if (d && typeof d === 'object') {
-      if (!d.id || seenIds.has(d.id)) d.id = crypto.randomUUID();
-      seenIds.add(d.id);
-      const k = d.kind || d.type || '';
-      if (k) {
-        d.type = k;
-        if (RC_SQL_KINDS.has(k)) d.kind = k;
-        else delete d.kind;
-      }
+    if (!d || typeof d !== 'object') continue;
+    const k = d.kind || d.type || '';
+    if (k) {
+      d.type = k;
+      if (RC_SQL_KINDS.has(k)) d.kind = k;
+      else delete d.kind;
     }
+    const naturalVal = d.orderNo || d.repairNo || d.leadNo || (k === 'retail-ledger' || k === 'retail-ledger-group' ? d.name : '');
+    const naturalKey = (k && naturalVal) ? (k + '::' + String(naturalVal).trim().toLowerCase()) : '';
+    if (!d.id) {
+      d.id = naturalKey ? ('doc-' + naturalKey.replace(/[^a-z0-9_-]+/g, '-')) : crypto.randomUUID();
+    }
+    if (delSet.has(String(d.id))) continue;
+    if (seenIds.has(d.id)) continue;
+    if (naturalKey) {
+      if (seenNaturalKeys.has(naturalKey)) {
+        const dupId = String(d.id);
+        if (dupId && !delSet.has(dupId)) {
+          delSet.add(dupId);
+          db.deletedRetailDocumentIds.push(dupId);
+        }
+        continue;
+      }
+      seenNaturalKeys.set(naturalKey, d);
+    }
+    seenIds.add(d.id);
+    cleaned.push(d);
+  }
+  if (cleaned.length !== db.retailDocuments.length) {
+    db.retailDocuments = cleaned;
   }
   if (platformIsDemo()) rcSeedSampleChits();
 }
 window.rcEnsure = rcEnsure;
 const rcPrevSaveForEnsure = window.save;
 window.save = function() { rcEnsure(); return rcPrevSaveForEnsure.apply(this, arguments); };
+const rcPrevEnsureExtended = window.ensureExtendedData;
+if (typeof rcPrevEnsureExtended === 'function') {
+  window.ensureExtendedData = function() {
+    const r = rcPrevEnsureExtended.apply(this, arguments);
+    rcEnsure();
+    return r;
+  };
+}
 
 function rcSeedSampleChits(force = false){
   if (!platformIsDemo()) return;
