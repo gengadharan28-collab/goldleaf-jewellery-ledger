@@ -57,6 +57,7 @@
     save(); pushCloud(); return row;
   };
   const delDoc = (t, id) => {
+    if(t==='retail-ledger'&&docs('retail-account-posting').some(row=>row.lines?.some(line=>line.ledgerId===id)))return say('This ledger has account entries and cannot be deleted.');
     if(window.rcDeleteDoc) return window.rcDeleteDoc(t, id);
     db.retailDocuments = (db.retailDocuments||[]).filter(x=>x.id!==id);
     save(); pushCloud();
@@ -338,6 +339,136 @@
   }
 
   // ======================== 4. FINANCIAL & GROUP REPORTS ========================
+
+  const postingTabs=['Journal Entry','Contra Entry','Expenses','Bill Entry'];
+  const postingKind='retail-account-posting';
+  const cashGroup='Cash in hand',bankGroup='Bank Accounts';
+  const transferTypes=['Bank to Bank','Cash to Cash','Cash Deposit to Bank','Cash Withdrawal from Bank'];
+  const retailLedgers=()=>docs('retail-ledger');
+  const cashBank=rows=>rows.filter(l=>[cashGroup,bankGroup].includes(l.parentGroup));
+  function postingOptions(rows,value){
+    return '<option value="">Select ledger</option>'+rows.map(l=>'<option value="'+esc(l.id)+'" '+(l.id===value?'selected':'')+'>'+esc(l.name)+' · '+esc(l.parentGroup)+'</option>').join('');
+  }
+  function postingField(label,content){
+    return '<label class="rco-field"><span>'+label+'</span>'+content+'</label>';
+  }
+  function postingInput(label,name,value,type='text',attrs=''){
+    return postingField(label,'<input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+attrs+'>');
+  }
+  function postingLedger(label,name,rows,value){
+    return postingField(label,'<select name="'+name+'" required>'+postingOptions(rows,value)+'</select>');
+  }
+  function journalRow(row={}){
+    const active=retailLedgers().filter(l=>!l.disabled||l.id===row.ledgerId);
+    return '<div class="rco-grid" data-journal-row>'
+      +postingLedger('Ledger','ledgerId',active,row.ledgerId)
+      +postingInput('Debit','debit',row.debit,'number','min="0" step=".001"')
+      +postingInput('Credit','credit',row.credit,'number','min="0" step=".001"')
+      +postingInput('Remarks','lineRemarks',row.remarks)
+      +postingField('Is advance','<input type="checkbox" name="lineAdvance" '+(row.advance?'checked':'')+'>')
+      +'<button type="button" onclick="this.closest(\'[data-journal-row]\').remove()">Remove row</button></div>';
+  }
+  window.rgaAddJournalRow=button=>button.previousElementSibling.insertAdjacentHTML('beforeend',journalRow());
+
+  function postingView(tab){
+    const rows=docs(postingKind).filter(row=>row.voucherType===tab).sort((a,b)=>b.date.localeCompare(a.date));
+    const entry=rows.find(row=>row.id===rgaState.postingEditId)||{};
+    const active=retailLedgers().filter(l=>!l.disabled||entry.lines?.some(row=>row.ledgerId===l.id));
+    const cash=cashBank(active);
+    const expenses=active.filter(l=>window.rgaAllAccountingGroups().flat.some(group=>group.name===l.parentGroup&&group.type==='EXPENSE'));
+    const number=postingInput('Entry number','number',entry.number,'text','maxlength="50" placeholder="Automatic"');
+    let fields='';
+    if(tab==='Journal Entry'){
+      fields=postingField('Type','<select name="measure">'+opts(['Amount','Gold weight','Silver weight'],entry.measure||'Amount')+'</select>')
+        +'<div style="grid-column:1/-1" data-journal-lines>'+(entry.lines||[{},{}]).map(journalRow).join('')+'</div>'
+        +'<button type="button" onclick="rgaAddJournalRow(this)">＋ Add ledger row</button>';
+    }else{
+      const types=tab==='Contra Entry'?transferTypes:tab==='Bill Entry'?['Receipt','Payment']:['Expense'];
+      fields=postingField('Transaction type','<select name="direction">'+opts(types,entry.direction||types[0])+'</select>')
+        +postingLedger(tab==='Contra Entry'?'Withdraw from':tab==='Expenses'?'Paid from':'Cash / bank ledger','source',cash,entry.source)
+        +postingLedger(tab==='Contra Entry'?'Deposit to':tab==='Expenses'?'Expense ledger':'Billing ledger','destination',tab==='Contra Entry'?cash:tab==='Expenses'?expenses:active,entry.destination)
+        +postingInput('Amount · ₹','amount',entry.amount,'number','min=".01" step=".01" required');
+      if(tab==='Expenses')fields+=postingInput('Expense type','detail',entry.detail,'text','required');
+      if(tab==='Bill Entry')fields+=postingInput('Due date','dueDate',entry.dueDate,'date')+postingInput('Attended by','attendedBy',entry.attendedBy);
+      if(tab!=='Contra Entry')fields+=postingField('Payment mode','<select name="paymentMode">'+opts(['Cash','Bank transfer','Cheque','UPI','Card'],entry.paymentMode||'Cash')+'</select>');
+    }
+    return '<section class="rco-section-card"><h3>'+esc(tab)+'</h3><form onsubmit="rgaSavePosting(event)" data-entry-type="'+esc(tab)+'"><div class="rco-grid">'
+      +number+postingInput('Date','date',entry.date||rbNow().slice(0,10),'date','required')+postingInput('Reference / description','description',entry.description)+fields
+      +'</div><div class="rco-toolbar"><button class="primary">Save</button><button type="button" onclick="rgaEditPosting(\'\')">New / Clear</button></div></form></section>'
+      +(rows.length?table(['Date','Entry no.','Type','Amount / weight','Reference','Action'],rows.map(row=>[
+        esc(row.date),esc(row.number),esc(row.direction||row.measure),row.measure==='Amount'?rateMoney(row.total):fmt(row.total)+' g',esc(row.description),
+        '<button type="button" data-id="'+esc(row.id)+'" onclick="rgaEditPosting(this.dataset.id)">Edit</button>'
+      ])):'<p class="muted">No entries yet.</p>');
+  }
+  window.rgaEditPosting=id=>{if(rbCanLeave()){rgaState.postingEditId=id;render()}};
+  window.rgaSavePosting=function(event){
+    event.preventDefault();
+    if(!session||!goldleafContext?.has_access||workspaceMode!=='retail')return;
+    const form=event.currentTarget;
+    if(!form.reportValidity())return;
+    const voucherType=form.dataset.entryType;
+    if(!postingTabs.includes(voucherType))return;
+    const v=Object.fromEntries(new FormData(form)),measure=voucherType==='Journal Entry'?v.measure:'Amount';
+    if(!['Amount','Gold weight','Silver weight'].includes(measure))return;
+    const scale=measure==='Amount'?100:1000;
+    const unit=x=>Math.round(n(x)*scale);
+    const ledgers=retailLedgers(),byId=id=>ledgers.find(l=>l.id===id);
+    let lines=[];
+    if(voucherType==='Journal Entry'){
+      lines=[...form.querySelectorAll('[data-journal-row]')].map(row=>{
+        const field=name=>row.querySelector('[name="'+name+'"]');
+        return {ledgerId:field('ledgerId').value,debit:unit(field('debit').value),credit:unit(field('credit').value),remarks:field('lineRemarks').value.trim(),advance:field('lineAdvance').checked};
+      });
+    }else{
+      const source=byId(v.source),destination=byId(v.destination);
+      const amount=unit(v.amount);
+      if(!source||!destination||source.id===destination.id||amount<=0)return say('Select two different ledgers and enter a positive amount.');
+      if(!cashBank([source]).length)return say('Select a cash or bank ledger.');
+      if(voucherType==='Contra Entry'){
+        const sides=[[bankGroup,bankGroup],[cashGroup,cashGroup],[cashGroup,bankGroup],[bankGroup,cashGroup]][transferTypes.indexOf(v.direction)];
+        if(!sides||source.parentGroup!==sides[0]||destination.parentGroup!==sides[1])return say('Choose cash and bank ledgers that match the transfer type.');
+      }
+      if(voucherType==='Expenses'&&!window.rgaAllAccountingGroups().flat.some(g=>g.name===destination.parentGroup&&g.type==='EXPENSE'))return say('Select an expense ledger.');
+      const receipt=voucherType==='Bill Entry'&&v.direction==='Receipt';
+      lines=[{ledgerId:receipt?source.id:destination.id,debit:amount,credit:0},{ledgerId:receipt?destination.id:source.id,debit:0,credit:amount}];
+    }
+    const debit=lines.reduce((sum,row)=>sum+row.debit,0),credit=lines.reduce((sum,row)=>sum+row.credit,0);
+    if(lines.length<2||debit<=0||debit!==credit||lines.some(row=>!byId(row.ledgerId)||row.debit<0||row.credit<0||!!row.debit===!!row.credit))return say('Each row needs one side. Total debits and credits must match.');
+    const old=docs(postingKind).find(row=>row.id===rgaState.postingEditId&&row.voucherType===voucherType);
+    if(lines.some(row=>byId(row.ledgerId).disabled&&!old?.lines?.some(line=>line.ledgerId===row.ledgerId)))return say('Choose active ledgers.');
+    const now=new Date().toISOString(),id=old?.id||crypto.randomUUID();
+    const number=v.number.trim()||'AC-'+id.slice(0,8).toUpperCase();
+    if(docs(postingKind).some(row=>row.id!==id&&row.number.toLowerCase()===number.toLowerCase()))return say('That entry number already exists.');
+    const saved={id,kind:postingKind,accountType:'customer',voucherType,measure,total:debit/scale,date:v.date,number,
+      source:v.source,destination:v.destination,amount:n(v.amount),direction:v.direction,description:v.description.trim(),detail:v.detail,
+      dueDate:v.dueDate,attendedBy:v.attendedBy,paymentMode:v.paymentMode,
+      lines:lines.map(row=>({...row,debit:row.debit/scale,credit:row.credit/scale})),createdAt:old?.createdAt||now,updatedAt:now};
+    if(old)db.retailDocuments[db.retailDocuments.indexOf(old)]=saved;
+    else db.retailDocuments.push(saved);
+    rgaState.postingEditId='';
+    let saving;
+    try{saving=save()}catch(error){saving=Promise.reject(error)}
+    render();
+    if(typeof rcSaveStatus==='function')rcSaveStatus(saving,voucherType);
+    else Promise.resolve(saving).then(()=>say(voucherType+' saved.')).catch(()=>say('Saved on this device. Cloud sync needs attention.'));
+  };
+
+  function openingBalancesView(){
+    const rows=retailLedgers().map(row=>[
+      esc(row.name),esc(row.parentGroup),esc(row.ornamentsType||'—'),
+      rateMoney(n(row.openingAmount))+' '+esc(row.openingSide||'DR'),
+      fmt(n(row.pureWeight))+' g '+esc(row.pureSide||'DR'),
+      esc(row.openingEffectiveDate||'—'),row.openingIsAdvance?'Yes':'No',
+      '<button type="button" data-id="'+esc(row.id)+'" onclick="rgaEditOpeningLedger(this.dataset.id)">Edit</button>'
+    ]);
+    return (window.rcOpeningView?rcOpeningView('accounts'):'')
+      +(rows.length?table(['Ledger','Group','Metal','Opening amount','Opening weight','Effective date','Advance','Action'],rows):'<p class="muted">Create a ledger to enter its opening balance.</p>');
+  }
+  window.rgaEditOpeningLedger=id=>{
+    if(!rbCanLeave())return;
+    rgaState.mainTab='Ledgers';rgaState.ledShowForm=true;rgaState.ledEditId=id;render();
+  };
+
   function rgaComputeAccountLines(){
     const { flat } = window.rgaAllAccountingGroups();
     const grpTypeMap = {};
@@ -349,16 +480,29 @@
       lines.push({ ledgerName, parentGroup, groupType: grpTypeMap[parentGroup]||'ASSET', debit: n(debit), credit: n(credit), grossWt: n(grossWt), pureWt: n(pureWt) });
     };
 
+    const asOf=rbNow().slice(0,10);
     // Custom ledgers
-    docs('retail-ledger').filter(l=>!l.disabled).forEach(l => {
+    docs('retail-ledger').filter(l=>!l.disabled&&(!l.openingEffectiveDate||l.openingEffectiveDate<=asOf)).forEach(l => {
       const amt = n(l.openingAmount);
-      addLine(l.name, l.parentGroup, l.openingSide==='DR'?amt:0, l.openingSide==='CR'?amt:0, 0, n(l.pureWeight));
+      addLine(l.name, l.parentGroup, l.openingSide==='DR'?amt:0, l.openingSide==='CR'?amt:0, 0, (l.pureSide==='CR'?-1:1)*n(l.pureWeight));
     });
 
+    for(const row of docs('retail-shop-opening')){
+      if(row.when>asOf||!['Cash in hand','Bank'].includes(row.category))continue;
+      addLine(row.description,row.category==='Bank'?bankGroup:cashGroup,n(row.amount),0);
+    }
+    const postingLedgers=retailLedgers();
+    docs(postingKind).filter(row=>row.date<=asOf).forEach(row=>{
+      for(const entry of row.lines||[]){
+        const ledger=postingLedgers.find(item=>item.id===entry.ledgerId);
+        if(!ledger)continue;
+        if(row.measure==='Amount')addLine(ledger.name,ledger.parentGroup,entry.debit,entry.credit);
+      }
+    });
     // Retail Customers -> Sundry Debtors (or custom parentGroup)
     (db.customers||[]).forEach(c => {
       const open = n(c.opening);
-      const sales = (db.sales||[]).filter(s=>s.partyId===c.id && s.accountType==='customer').reduce((a,s)=>a+n(s.amount)-n(s.exchangeAmount),0);
+      const sales = (db.sales||[]).filter(s=>s.partyId===c.id && s.accountType==='customer').reduce((a,s)=>a+n(s.amount),0);
       const paid = (db.payments||[]).filter(p=>p.partyId===c.id && p.accountType==='customer').reduce((a,p)=>a+n(p.amount),0);
       const bal = open + sales - paid;
       addLine(c.name, c.parentGroup||'Sundry Debtors', bal>0?bal:0, bal<0?Math.abs(bal):0);
@@ -508,14 +652,16 @@
   window.rgaDel = (t, id) => { delDoc(t, id); render(); };
 
   window.rgaParentGroupPage = () => {
-    const tabs = ['Accounting Groups','Product Groups','Ledgers','Accounts & Reports'];
+    const tabs = ['Accounting Groups','Product Groups','Ledgers','Opening Balance',...postingTabs,'Accounts & Reports'];
     let inner = '';
     if(rgaState.mainTab === 'Accounting Groups') inner = rgaAccountingGroupsView();
     else if(rgaState.mainTab === 'Product Groups') inner = rgaProductGroupsView();
     else if(rgaState.mainTab === 'Ledgers') inner = rgaLedgersView();
+    else if(rgaState.mainTab==='Opening Balance')inner=openingBalancesView();
+    else if(postingTabs.includes(rgaState.mainTab))inner=postingView(rgaState.mainTab);
     else inner = rgaReportsView();
     return header('Parent Groups, Ledgers & Financial Reports', '')
-      + '<div class="rco-tabs">' + tabs.map(t=>'<button type="button" class="'+(rgaState.mainTab===t?'active':'')+'" onclick="rgaState.mainTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>'
+      + '<div class="rco-tabs">' + tabs.map(t=>'<button type="button" class="'+(rgaState.mainTab===t?'active':'')+'" onclick="rgaState.postingEditId=\'\';rgaState.mainTab=\''+t+'\';render()">'+esc(t)+'</button>').join('') + '</div>'
       + '<section class="panel">' + inner + '</section>';
   };
 
@@ -527,15 +673,15 @@
     if(!session || !goldleafContext?.has_access || workspaceMode !== 'retail') return;
     const anchor = nav.querySelector('[data-rco-sidebar="Suppliers"]') || nav.querySelector('[data-rc-sidebar="Products"]') || nav.firstElementChild;
     const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.rgaSidebar = 'Parent Group';
-    btn.setAttribute('aria-label', 'Parent Group'); btn.title = 'Parent Group';
+    btn.setAttribute('aria-label', 'Accounts'); btn.title = 'Accounts';
     btn.classList.toggle('active', page === 'Parent Group');
     if(page === 'Parent Group') btn.setAttribute('aria-current', 'page');
     btn.onclick = () => { if(typeof window.go==='function') window.go('Parent Group'); };
-    btn.innerHTML = '<span class="nav-icon">'+erpIcon('plans')+'</span><span class="erp-nav-label">Parent Group</span>';
+    btn.innerHTML = '<span class="nav-icon">'+erpIcon('plans')+'</span><span class="erp-nav-label">Accounts</span>';
     if(anchor) anchor.after(btn); else nav.append(btn);
     if(more){
       const mb = document.createElement('button'); mb.type = 'button'; mb.dataset.rgaNav = 'Parent Group';
-      mb.textContent = 'Parent Group'; mb.onclick = () => { more.classList.remove('open'); if(typeof window.go==='function') window.go('Parent Group'); };
+      mb.textContent = 'Accounts'; mb.onclick = () => { more.classList.remove('open'); if(typeof window.go==='function') window.go('Parent Group'); };
       more.append(mb);
     }
     if(typeof erpFilterNavigation==='function') erpFilterNavigation(window.erpNavQuery||'');
