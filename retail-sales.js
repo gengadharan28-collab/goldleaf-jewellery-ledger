@@ -305,8 +305,8 @@ window.saveSale=async function(event){if(!event.target?.dataset.retailBill)retur
 
 function rbInvoiceOptions(customer,id='',empty='Customer account · no bill link'){return '<option value="">'+empty+'</option>'+rbCustomerSales(customer).map(x=>'<option value="'+x.id+'" '+(x.id===id?'selected':'')+'>'+esc((x.documentNo||x.id.slice(0,8))+' · '+x.product)+' · '+rateMoney(rbInvoiceBalance(x))+'</option>').join('');}
 function rbReturnLimit(invoice,itemId,exclude=''){const item=rbInvoiceItems(invoice).find(x=>x.id===itemId);if(!item)return {weight:0,amount:0,pieces:0};const returns=rbRecords('return',invoice.partyId).filter(x=>x.invoiceId===invoice.id&&x.sourceItemId===itemId&&x.id!==exclude),subtotal=n(invoice.subtotal)||rbInvoiceItems(invoice).reduce((s,x)=>s+x.subtotal,0),lineValue=subtotal>0?(n(invoice.saleBeforeRound)||n(invoice.saleAmount)-n(invoice.roundOff))*item.subtotal/subtotal:0;return {weight:rbGrams(item.netWeight-returns.reduce((s,x)=>s+n(x.returnWeight),0)),amount:rbRound(lineValue-returns.reduce((s,x)=>s+n(x.amount),0)),pieces:item.pieces-returns.reduce((s,x)=>s+n(x.returnPieces),0),item,lineValue};}
-function rbRecordView(returnPanel=false){
-  const kind={'Sales Return':'return','Receipt':'receipt','Advance Amount':'advance','Metal Weight Advance':'metal'}[returnPanel?'Sales Return':rbSection],record=returnPanel?null:db.payments.find(x=>x.id===edit&&ownerType(x)==='customer'),ret=kind==='return',metal=kind==='metal',title=returnPanel?'Sales Return':rbSection,x=record||{},customer=x.partyId||'';
+function rbRecordView(returnPanel=false,returnId=''){
+  const kind={'Sales Return':'return','Receipt':'receipt','Advance Amount':'advance','Metal Weight Advance':'metal'}[returnPanel?'Sales Return':rbSection],record=returnPanel?rbRecords('return').find(row=>row.id===returnId):db.payments.find(x=>x.id===edit&&ownerType(x)==='customer'),ret=kind==='return',metal=kind==='metal',title=returnPanel?'Sales Return':rbSection,x=record||{},customer=x.partyId||'';
   const fields=rbInput('Entry number · optional','documentNo',x.documentNo||'')+rbInput('Date & time *','when',x.when||rbNow(),'datetime-local','required')+'<label class="rb-field"><span>Customer *</span><select name="partyId" required onchange="rbRecordCustomer(this.form)">'+rbCustomerOptions(customer)+'</select></label>'+(ret||kind==='receipt'?'<label class="rb-field"><span>'+(ret?'Original sales bill *':'Apply receipt to bill · optional')+'</span><select name="invoiceId" '+(ret?'required':'')+' onchange="rbReturnItems(this.form)">'+rbInvoiceOptions(customer,x.invoiceId,ret?'Select original bill':'Customer account · no bill link')+'</select></label>':'');
   let entry='';if(ret){const sale=rbCustomerSales().find(s=>s.id===x.invoiceId);entry='<label class="rb-field rb-wide"><span>Original jewellery item *</span><select name="sourceItemId" required onchange="rbReturnCalc(this.form,true)">'+(sale?rbInvoiceItems(sale).map(i=>'<option value="'+i.id+'" '+(i.id===x.sourceItemId?'selected':'')+'>'+esc(i.product)+' · '+fmt(i.netWeight)+' g</option>').join(''):'<option value="">Select a bill first</option>')+'</select></label>'+rbInput('Return net weight · g *','returnWeight',x.returnWeight||'','number','required min=".001" step=".001" oninput="rbReturnCalc(this.form,true)"')+rbInput('Pieces returned','returnPieces',x.returnPieces||0,'number','min="0" step="1"')+rbInput('Return credit · ₹ *','amount',x.amount||'','number','required min=".01" step=".01"')+'<p id="rbReturnLimit" class="hint rb-wide"></p>'+rbInput('Reason','reason',x.reason||'');}
   else if(metal)entry=rbInput('Product / description *','product',x.product||'','text','required')+rbInput('Gross weight · g *','weight',x.weight||'','number','required min=".001" step=".001" oninput="rbMetalCalc(this.form)"')+rbInput('Less / stone weight · g','lessWeight',x.lessWeight||0,'number','min="0" step=".001" oninput="rbMetalCalc(this.form)"')+rbInput('Testing purity · % *','purity',x.purity||'','number','required min="1" max="100" step="any" oninput="rbMetalCalc(this.form)"')+'<div class="rb-info rb-wide" id="rbMetalValue">Net weight — · Pure weight —</div><p class="hint rb-wide">The advance is stored as pure grams. Its rupee credit is calculated once, when applied to a sales bill.</p>';
@@ -666,9 +666,19 @@ window.rbOpenReturnPanel=function(button){
     #glSalesReturnPanel .right{margin-top:6px}
     #glSalesReturnPanel .right button{min-height:34px;padding:4px 10px;font-size:13px}
     @media(max-width:340px){#glSalesReturnPanel .rb-record-grid{grid-template-columns:minmax(0,1fr)}}
-  </style>`+rbRecordView(true);
-  const returnForm=section.querySelector('form');
-  returnForm.addEventListener('submit',event=>event.stopPropagation());
+  </style><label class="rb-field"><span>Edit saved sales return</span><select data-return-edit><option value="">New sales return</option></select></label><div data-return-fields></div>`;
+  const picker=section.querySelector('[data-return-edit]');
+  for(const row of rbRecords('return').sort(whenCmp)){
+    const label=[row.documentNo||row.id.slice(0,8),accountName(row.partyId,'customer'),row.product].filter(Boolean).join(' · ');
+    picker.add(new Option(label,row.id));
+  }
+  const fields=section.querySelector('[data-return-fields]');
+  const showForm=()=>{
+    fields.innerHTML=rbRecordView(true,picker.value);
+    fields.querySelector('form').addEventListener('submit',event=>event.stopPropagation());
+  };
+  picker.addEventListener('change',showForm);
+  showForm();
   for(const type of ['input','change'])section.addEventListener(type,event=>event.stopPropagation());
   const anchor=button.closest('.rb-adjustment-grid,.rc-pos-pills-bar,.rc-pos-desktop-head')||button;
   anchor.after(section);
