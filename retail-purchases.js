@@ -638,10 +638,17 @@ function rpValidate(d){
   }
   if(['purchase-return','old-return'].includes(d.kind)){
     const limit=rpReturnLimit(d.sourceId,d.sourceItemId,d.id),quantity=d.returnQuantity||d.returnWeight;
-    if(!limit||limit.source.supplierId!==d.supplierId||!['purchase','old-purchase','bill-entry'].includes(limit.source.kind))return 'Choose the selected supplier’s original purchase and item.';
+    const sourceKinds=d.kind==='old-return'?['old-purchase']:['purchase','bill-entry'];
+    if(!limit||limit.source.supplierId!==d.supplierId||!sourceKinds.includes(limit.source.kind))return 'Choose a matching original purchase and item for this supplier.';
     if(quantity<=0||quantity>limit.available+.0001||d.creditAmount<0||d.creditAmount>limit.availableAmount+.01||d.creditAmount>rbRound(limit.originalAmount*quantity/limit.originalQuantity)+.01||d.refundReceived<0)return 'Return quantity or credit exceeds the remaining original purchase.';
     if(d.kind==='old-return'){
-      const stock=rpStockSources().find(x=>x.id===d.sourceId),available=n(stock?.available)+n(old?.returnWeight);
+      const stock=rpStockSources().find(x=>x.id===d.sourceId),available=n(stock?.available)+(old?.sourceId===d.sourceId?n(old.returnWeight):0);
+      const exchangeApplied=rpOldApplied(d.sourceId);
+      if(exchangeApplied>0){
+        const credited=rpDocs('old-return').filter(row=>row.sourceId===d.sourceId&&row.id!==d.id).reduce((sum,row)=>sum+n(row.creditAmount),0);
+        const remaining=rbRound(Math.max(0,n(limit.source.amountDebit)-exchangeApplied-credited));
+        if(d.creditAmount>remaining+.001)return 'Part of the original purchase was already used as a sales exchange. Return credit cannot exceed the unapplied amount.';
+      }
       if(d.returnWeight>available+.0001)return 'Some of this old jewellery has already been converted. Return only unconverted weight.';
     }
     if(d.refundReceived>d.creditAmount+.01)return 'Refund received cannot exceed this return’s rupee credit.';
