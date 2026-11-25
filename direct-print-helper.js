@@ -34,7 +34,7 @@
     const pixels=image.data;
     for(let index=0;index<pixels.length;index+=4){
       const luminance=(299*pixels[index]+587*pixels[index+1]+114*pixels[index+2])/1000;
-      const value=luminance<220?0:255;
+      const value=luminance<232?0:255;
       pixels[index]=pixels[index+1]=pixels[index+2]=value;
     }
     context.putImageData(image,0,0);
@@ -57,7 +57,7 @@
       +PDF_DOCUMENT_CSS
       +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:78mm!important;max-width:78mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +'.grid80-items{width:100%!important;max-width:100%!important;table-layout:fixed!important}.grid80-item-total-cell,.grid80-item-total-box,.grid80-product-total,.grid80-summary-row{max-width:100%!important;box-sizing:border-box!important;overflow:hidden!important}.grid80-tot-right{min-width:0!important;max-width:100%!important}.grid80-tot-val{font-size:16px!important;max-width:36mm!important;overflow:visible!important;text-overflow:clip!important;text-align:right!important}.grid80-readable-total,.grid80-product-total,.grid80-summary-row{padding-right:2mm!important}.grid80-product-total b,.grid80-summary-row b{max-width:36mm!important;overflow:visible!important;text-align:right!important}'
-      +(sharpEstimate?'.gl-pdf,.gl-pdf *{color:#000!important}.gl-pdf th,.gl-pdf td,.gl-pdf hr,.gl-pdf [class*="grid80-"]{border-color:#1a1a1a!important}.gl-pdf th,.gl-pdf td,.gl-pdf [class*="grid80-"]{background-color:#fff!important}':'')
+      +(sharpEstimate?'.gl-pdf,.gl-pdf *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important;-webkit-text-stroke:.22px #000!important}.gl-pdf th,.gl-pdf td,.gl-pdf hr,.gl-pdf [class*="grid80-"]{border-color:#000!important}.gl-pdf th,.gl-pdf td,.gl-pdf [class*="grid80-"]{background-color:#fff!important}':'')
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
     doc.close();
     try{
