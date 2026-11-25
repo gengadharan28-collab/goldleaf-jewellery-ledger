@@ -649,24 +649,32 @@ window.rbOpenReturnPanel=function(button){
 
   const section=document.createElement('section');
   section.id='glSalesReturnPanel';
-  section.className='panel rb-screen';
+  const quoteStyle=button.hasAttribute('data-quote-return');
+  section.className=quoteStyle?'rc-old-gold-dropdown rc-sales-return-dropdown':'panel rb-screen';
   section.setAttribute('aria-label','Sales Return');
-  section.style.cssText='margin:6px 0;width:min(100%,540px);min-width:0;padding:8px;box-sizing:border-box';
+  if(!quoteStyle)section.style.cssText='margin:6px 0;width:min(100%,540px);min-width:0;padding:8px;box-sizing:border-box';
   section.returnTrigger=button;
   section.close=()=>{
     button.setAttribute('aria-expanded','false');
     section.remove();
   };
   section.innerHTML=`<style>
-    #glSalesReturnPanel .rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
-    #glSalesReturnPanel .rb-field{min-width:0;margin:0;gap:2px}
-    #glSalesReturnPanel .rb-field>span{font-size:11px;line-height:1.25}
-    #glSalesReturnPanel input,#glSalesReturnPanel select{width:100%;min-width:0;min-height:34px;height:34px;padding:4px 6px;font-size:13px;box-sizing:border-box}
+    #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
+    #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-field{min-width:0;margin:0;gap:2px}
+    #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-field>span{font-size:11px;line-height:1.25}
+    #glSalesReturnPanel:not(.rc-sales-return-dropdown) input,#glSalesReturnPanel:not(.rc-sales-return-dropdown) select{width:100%;min-width:0;min-height:34px;height:34px;padding:4px 6px;font-size:13px;box-sizing:border-box}
     #glSalesReturnPanel .rb-wide{grid-column:1/-1}
     #glSalesReturnPanel .right{margin-top:6px}
     #glSalesReturnPanel .right button{min-height:34px;padding:4px 10px;font-size:13px}
     @media(max-width:340px){#glSalesReturnPanel .rb-record-grid{grid-template-columns:minmax(0,1fr)}}
   </style><label class="rb-field"><span>Edit saved sales return</span><select data-return-edit><option value="">New sales return</option></select></label><div data-return-fields></div>`;
+  if(quoteStyle){
+    section.insertAdjacentHTML('afterbegin','<div class="rc-old-gold-dropdown-head"><strong>Sales Return Details</strong><span class="rc-old-gold-credit-pill">Account credit</span></div>');
+    const label=section.querySelector('label');
+    label.classList.add('rc-og-field');
+    label.querySelector('span').classList.add('rc-og-label-text');
+    label.querySelector('select').classList.add('rc-og-input');
+  }
   const picker=section.querySelector('[data-return-edit]');
   for(const row of rbRecords('return').sort(whenCmp)){
     const label=[row.documentNo||row.id.slice(0,8),accountName(row.partyId,'customer'),row.product].filter(Boolean).join(' · ');
@@ -675,6 +683,12 @@ window.rbOpenReturnPanel=function(button){
   const fields=section.querySelector('[data-return-fields]');
   const showForm=()=>{
     fields.innerHTML=rbRecordView(true,picker.value);
+    if(quoteStyle){
+      fields.querySelector('.rb-record-grid').classList.add('rc-grid','rc-old-gold-fields-grid');
+      fields.querySelectorAll('.rb-field').forEach(field=>field.classList.add('rc-og-field'));
+      fields.querySelectorAll('.rb-field>span').forEach(label=>label.classList.add('rc-og-label-text'));
+      fields.querySelectorAll('input:not([type=hidden]),select').forEach(control=>control.classList.add('rc-og-input'));
+    }
     fields.querySelector('form').addEventListener('submit',event=>event.stopPropagation());
   };
   picker.addEventListener('change',showForm);
