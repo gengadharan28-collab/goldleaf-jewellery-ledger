@@ -214,9 +214,7 @@ function setWorkspaceMode(mode){
     if(['Estimation / Quotation','Retail Estimation','Order Tracking','CRM','Suppliers','Parent Group','Cost Structure','Products','Retail Products','Tagging','Retail Tagging','Stock Verification','Lot Entry','Chit','Retail Chit'].includes(page))page='Dashboard';
     else if(page==='Customer Register')page='Register';
     else if(page==='Customer Sales Entry')page='Sales Entry';
-    else if(page==='Customer Payment')page='Payments';
-    else if(page==='Customer Ledger')page='Ledger';
-    else if(page==='Customer Summary')page='Summary';
+    else if(['Payments','Ledger','Summary','Customer Payment','Customer Ledger','Customer Summary'].includes(page))page='Dashboard';
   }else{
     if(page==='Party Register')page='Register';
     else if(page==='Party Sales Entry')page='Sales Entry';
@@ -1133,7 +1131,7 @@ window.saveSale=function(e){
 function appVersionFooter(){return '<footer class="app-version">Goldleaf v'+GOLDLEAF_VERSION+' · <button type="button" onclick="go(\'Update History\')">View update history</button></footer>'}
 function moduleAccountType(){return workspaceMode==='retail'?'customer':'party'}
 function moduleAccountLabel(){return workspaceMode==='retail'?'Customer':'Party'}
-function moduleNavItems(){const accountLabel=moduleAccountLabel();return workspaceMode==='retail'?['Dashboard',accountLabel+' Register',accountLabel+' Sales Entry','Customer Payment',accountLabel+' Ledger',accountLabel+' Summary','Reports','Rate Book','Update History','Settings']:['Dashboard','Party Register','Wholesale Lot','Party Sales Entry','Packet Verification','Party Payments','Party Ledger','Rate Book','Update History','Settings']}
+function moduleNavItems(){const accountLabel=moduleAccountLabel();return workspaceMode==='retail'?['Dashboard',accountLabel+' Register',accountLabel+' Sales Entry','Reports','Rate Book','Update History','Settings']:['Dashboard','Party Register','Wholesale Lot','Party Sales Entry','Packet Verification','Party Payments','Party Ledger','Rate Book','Update History','Settings']}
 function moduleRoute(label){if(label==='Reports'&&page==='Chit Reports')return page;if(['Dashboard','Reports','Rate Book','Update History','Settings','Wholesale Lot','Packet Verification'].includes(label))return label;return /Register$/.test(label)?'Register':/Sales Entry$/.test(label)?'Sales Entry':/Payments?$/.test(label)?'Payments':/Ledger$/.test(label)?'Ledger':/Summary$/.test(label)?'Summary':'Dashboard'}
 function navigateModule(label){return window.go(label)}
 function header(sub,buttons=''){
@@ -1143,6 +1141,11 @@ function header(sub,buttons=''){
 }
 const moduleBaseGo=window.go;
 window.go=function(target){
+  if(['Customer Payment','Customer Ledger','Customer Summary'].includes(target)||
+     (workspaceMode==='retail'&&['Payments','Ledger','Summary'].includes(target))){
+    target='Parent Group';
+    if(window.rgaState)window.rgaState.mainTab='Ledgers';
+  }
   if(target==='Chit Reports'){
     workspaceMode='retail';
     localStorage.setItem('goldleaf-workspace-mode','retail');
@@ -1178,7 +1181,7 @@ window.go=function(target){
   return moduleBaseGo(target);
 };
 function renderModuleNavigation(){
-  const nav=$('#nav');if(!nav)return;const items=moduleNavItems(),icons=['⌂','♙','＋','↙','▤','◷','▥','◈','◷','⚙'];
+  const nav=$('#nav');if(!nav)return;const items=moduleNavItems(),icons=workspaceMode==='retail'?['⌂','♙','＋','▥','◈','◷','⚙']:['⌂','♙','＋','↙','▤','◷','▥','◈','◷','⚙'];
   nav.innerHTML=items.map((label,index)=>'<button class="'+(moduleRoute(label)===page?'active':'')+'" onclick="navigateModule(\''+label+'\')" aria-label="'+label+'"><span class="nav-icon">'+icons[index]+'</span><span>'+label+'</span></button>').join('')+'<button class="more-button" onclick="toggleMore()" aria-expanded="false"><span class="nav-icon">•••</span><span>More</span></button><div id="moreMenu" class="more-menu">'+items.slice(4).map((label,index)=>'<button onclick="navigateModule(\''+label+'\')"><span class="nav-icon">'+icons[index+4]+'</span><span>'+label+'</span></button>').join('')+'</div>';
 }
 function registerView(){let content=moduleAccountType()==='customer'?customerView():partyView();return content.replace(/<button onclick="go\('Customer Register'\)">[^<]*<\/button>/,'')}
@@ -1189,7 +1192,7 @@ function dash(){
   const sales=db.sales.filter(x=>ownerType(x)===type).reduce((a,x)=>a+accountSaleValue(x),0),payments=db.payments.filter(x=>ownerType(x)===type).reduce((a,x)=>a+accountPaymentValue(x),0)+(customer?db.sales.reduce((a,x)=>a+saleCollectionValue(x),0):0),owing=records.reduce((a,x)=>a+bal(x.id,type),0),show=v=>money?'₹ '+n(v).toFixed(2):fmt(v)+' g';
   return header(customer?'Retail customer accounts, sales and rupee balances.':'Wholesale party accounts, sales and pure-gold balances.')
     +'<div class="cards">'+card(customer?'CUSTOMERS':'PARTIES',records.length)+card(customer?'CUSTOMER OWING':'WHOLESALE OWING',show(owing))+card(customer?'RETAIL SALES':'WHOLESALE SALES',show(sales))+card(customer?'CUSTOMER PAYMENTS':'PARTY PAYMENTS',show(payments))+'</div>'
-    +'<section class="panel quick-panel"><div><h2>Quick actions</h2><div class="muted">'+(customer?'Retail customer':'Wholesale party')+' tasks.</div></div><div class="quick-actions"><button onclick="navigateModule(\''+(customer?'Customer Register':'Party Register')+'\')">＋ Register '+(customer?'customer':'party')+'</button><button onclick="navigateModule(\''+(customer?'Customer Sales Entry':'Party Sales Entry')+'\')">＋ Sales entry</button><button onclick="navigateModule(\''+(customer?'Customer Payment':'Party Payments')+'\')">↙ Payment</button></div></section>'
+    +'<section class="panel quick-panel"><div><h2>Quick actions</h2><div class="muted">'+(customer?'Retail customer':'Wholesale party')+' tasks.</div></div><div class="quick-actions"><button onclick="navigateModule(\''+(customer?'Customer Register':'Party Register')+'\')">＋ Register '+(customer?'customer':'party')+'</button><button onclick="navigateModule(\''+(customer?'Customer Sales Entry':'Party Sales Entry')+'\')">＋ Sales entry</button>'+(customer?'<button onclick="go(\'Parent Group\')">Accounts</button>':'<button onclick="navigateModule(\'Party Payments\')">↙ Payment</button>')+'</div></section>'
     +'<section class="panel"><h2>Recent '+(customer?'retail':'wholesale')+' transactions</h2>'+transactionHistory()+'</section><section class="panel hint"><b>Balance guide</b><br>'+(customer?'Retail sales and payments are recorded in rupees.':'Wholesale sales and metal payments are calculated in pure grams.')+'</section>';
 }
 function transactionHistory(){const type=moduleAccountType(),items=[...db.sales.filter(x=>ownerType(x)===type).map(x=>({...x,type:'Sale',value:accountSaleValue(x),detail:x.product})),...db.sales.filter(x=>type==='customer'&&saleCollectionValue(x)>0).map(x=>({...x,type:'Payment',value:-saleCollectionValue(x),detail:'Bill collection · '+x.product})),...db.payments.filter(x=>ownerType(x)===type).map(x=>({...x,type:'Payment',value:-accountPaymentValue(x),detail:x.kind||'Cash'}))].sort(whenCmp).slice(0,10);return items.length?table(['Date',moduleAccountLabel(),'Type','Details',type==='customer'?'Value':'Pure grams'],items.map(x=>[whenShow(x),esc(accountName(x.partyId,type)),x.type,esc(x.detail),type==='customer'?'₹ '+Math.abs(x.value).toFixed(2):fmt(Math.abs(x.value))+' g'])):'<div class="empty">No transactions in this workspace yet.</div>'}
