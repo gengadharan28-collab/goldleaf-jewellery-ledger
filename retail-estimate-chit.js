@@ -3476,13 +3476,87 @@ window.rcConfirmSettleChit=function(e){
 };
 function rcBody(){rbSection=rcSection;return salesView().replace(/<header class="rb-header">[\s\S]*?<\/header>/,'').replace(/<label class="rb-mobile-section">[\s\S]*?<\/label>/,'').replace(/<nav class="rb-tabs"[\s\S]*?<\/nav>/,'')}
 function rcRetailScreen(){const labels=RC_SECTIONS.map(x=>'<option '+(x===rcSection?'selected':'')+'>'+x+'</option>').join('');return '<div class="rc-screen rb-screen"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(rcSection==='Bill'?'Sales entry':rcSection)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><label class="rc-mobile-select">Retail workspace<select aria-label="Retail workspace" onchange="rcOpen(this.value)">'+labels+'</select></label><nav class="rc-tabs" aria-label="Retail workspace sections">'+RC_SECTIONS.map(x=>'<button type="button" class="'+(x===rcSection?'active':'')+'" onclick="rcOpen(\''+x+'\')">'+esc(x)+'</button>').join('')+'</nav><main class="rc-content">'+rcBody()+'</main></div>'}
-function rcStandaloneScreen(section){return '<div class="rc-screen rb-screen rc-standalone"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(section)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><main class="rc-content">'+(section==='Estimation / Quotation'?rcQuoteForm():section==='Products'?rcProductsView():section==='Tagging'?(window.rvTaggingScreen?rvTaggingScreen():rcTaggingView()):section==='Stock Verification'?(window.rvView?rvView():''):section==='Lot Entry'?(window.rvLotView?rvLotView():''):rcChitView())+'</main></div>'}
+
+const RC_OPENING_TYPES=['Cash in hand','Bank','Loose gold','Loose silver','Old gold','Old silver','Finished jewellery','Other stock'];
+let rcOpeningEdit='';
+function rcOpeningView(){
+  const rows=rcDocs('retail-shop-opening').slice().sort((a,b)=>b.when.localeCompare(a.when));
+  const entry=rows.find(row=>row.id===rcOpeningEdit)||{};
+  const category=entry.category||RC_OPENING_TYPES[0];
+  const summary=RC_OPENING_TYPES.map(type=>{
+    const group=rows.filter(row=>row.category===type);
+    if(!group.length)return '';
+    if(type==='Cash in hand'||type==='Bank')return '<div><b>'+esc(type)+'</b> '+rateMoney(group.reduce((sum,row)=>sum+n(row.amount),0))+'</div>';
+    const qty=group.reduce((sum,row)=>sum+n(row.pieces),0);
+    const weight=group.reduce((sum,row)=>sum+n(row.weight),0);
+    return '<div><b>'+esc(type)+'</b> '+qty+' pcs · '+fmt(weight)+' g</div>';
+  }).join('');
+  const history=rows.map(row=>[
+    esc(row.when),esc(row.category),esc(row.description),row.pieces||'—',
+    row.weight?fmt(row.weight)+' g':'—',row.purity?row.purity+'%':'—',
+    row.amount?rateMoney(row.amount):'—',esc(row.notes||''),
+    '<button type="button" data-opening-id="'+esc(row.id)+'" onclick="rcEditOpening(this.dataset.openingId)">Edit</button>'
+  ]);
+  return '<section class="panel"><h2>'+ (entry.id?'Edit opening entry':'Add opening entry')+'</h2>'
+    +'<form id="rcShopOpeningForm" onsubmit="rcSaveOpening(event)">'
+    +'<div class="rb-record-grid">'+rbInput('Effective date','when',entry.when||rbNow().slice(0,10),'date','required')
+    +'<label class="rb-field"><span>Category</span><select name="category" onchange="rcOpeningFields(this.form)">'+rbOptions(RC_OPENING_TYPES,category)+'</select></label>'
+    +rbInput('Account or item name','description',entry.description||'','text','required maxlength="120"')
+    +rbInput('Opening amount or stock value · ₹','amount',entry.amount??'','number','min="0" step=".01"')
+    +rbInput('Pieces','pieces',entry.pieces??'','number','min="0" step="1"')
+    +rbInput('Weight · g','weight',entry.weight??'','number','min="0" step=".001"')
+    +rbInput('Purity · %','purity',entry.purity??'','number','min="0" max="100" step=".01"')
+    +rbInput('Notes','notes',entry.notes||'','text','maxlength="300"')
+    +'</div><div class="right"><button type="button" onclick="rcEditOpening(\'\')">Clear</button> <button class="primary">Save opening entry</button></div></form></section>'
+    +'<section class="panel"><h2>Opening balances and stock</h2><div class="rb-record-grid">'+summary+'</div>'
+    +(history.length?'<div class="rb-total-history">'+table(['Date','Category','Account / item','Pieces','Weight','Purity','Value','Notes','Action'],history)+'</div>':'<p>No opening entries yet.</p>')+'</section>';
+}
+window.rcOpeningFields=function(form){
+  const isMoney=['Cash in hand','Bank'].includes(form.elements.category.value);
+  for(const key of ['pieces','weight','purity']){
+    const input=form.elements[key];
+    input.disabled=isMoney;
+    input.closest('label').classList.toggle('hidden',isMoney);
+  }
+  form.elements.amount.required=isMoney;
+};
+window.rcEditOpening=function(id){
+  if(!rbCanLeave())return;
+  rcOpeningEdit=id;
+  render();
+};
+window.rcSaveOpening=function(event){
+  event.preventDefault();
+  if(!session||!goldleafContext?.has_access||workspaceMode!=='retail')return;
+  const form=event.currentTarget;
+  if(!form.reportValidity())return;
+  const data=Object.fromEntries(new FormData(form));
+  if(!RC_OPENING_TYPES.includes(data.category)||!data.description.trim())return say('Enter a category and account or item name.');
+  const isMoney=['Cash in hand','Bank'].includes(data.category);
+  const amount=n(data.amount), pieces=n(data.pieces), weight=n(data.weight), purity=n(data.purity);
+  if(isMoney?amount<=0:(pieces<=0&&weight<=0))return say(isMoney?'Enter a positive opening amount.':'Enter the opening pieces or weight.');
+  const now=new Date().toISOString();
+  const old=rcDocs('retail-shop-opening').find(row=>row.id===rcOpeningEdit);
+  const row={id:old?.id||crypto.randomUUID(),kind:'retail-shop-opening',accountType:'customer',when:data.when,
+    category:data.category,description:data.description.trim(),amount,pieces,weight,purity,notes:data.notes.trim(),
+    createdAt:old?.createdAt||now,updatedAt:now};
+  if(old)db.retailDocuments[db.retailDocuments.indexOf(old)]=row;
+  else db.retailDocuments.push(row);
+  rcOpeningEdit='';
+  let saving;
+  try{saving=save()}catch(error){saving=Promise.reject(error)}
+  render();
+  rcSaveStatus(saving,'Retail opening entry');
+};
+
+function rcStandaloneScreen(section){return '<div class="rc-screen rb-screen rc-standalone"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(section)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><main class="rc-content">'+(section==='Estimation / Quotation'?rcQuoteForm():section==='Products'?rcProductsView():section==='Tagging'?(window.rvTaggingScreen?rvTaggingScreen():rcTaggingView()):section==='Stock Verification'?(window.rvView?rvView():''):section==='Lot Entry'?(window.rvLotView?rvLotView():''):section==='Shop Opening'?rcOpeningView():rcChitView())+'</main></div>'}
 window.rcStandaloneScreen=rcStandaloneScreen;window.rcChitView=rcChitView;window.rcProductsView=rcProductsView;window.rcTaggingView=rcTaggingView;window.rcQuoteForm=rcQuoteForm;
 window.rcOpenStandalone=function(section){
-  if(!['Products','Estimation / Quotation','Tagging','Stock Verification','Lot Entry','Chit'].includes(section)||!rbCanLeave())return;
+  if(!['Products','Estimation / Quotation','Tagging','Stock Verification','Lot Entry','Shop Opening','Chit'].includes(section)||!rbCanLeave())return;
   workspaceMode='retail';
   localStorage.setItem('goldleaf-workspace-mode','retail');
   rcEstimateEdit='';rcProductEdit='';rcTagEdit='';rcChitEdit='';
+  rcOpeningEdit='';
   page=section;
   window.goldleafRememberView?.();
   render();
@@ -3494,7 +3568,7 @@ window.rcOpen=function(section){
   if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section==='Sales Return'?'Bill':section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
 const rcOldDirty=window.rbDirty;window.rbDirty=function(){return rcOldDirty()||!!document.querySelector('.rc-screen form[data-entry-dirty="1"]')};const rcOldCanLeave=window.rbCanLeave;window.rbCanLeave=function(){return !document.querySelector('.rc-screen form[data-entry-dirty="1"]')?rcOldCanLeave():confirm('Leave this entry and discard the unsaved changes?')};
 document.addEventListener('input',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});document.addEventListener('change',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});
-const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Stock Verification':'Stock Verification','Lot Entry':'Lot Entry','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
+const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Stock Verification':'Stock Verification','Lot Entry':'Lot Entry','Shop Opening':'Shop Opening','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
 function rcNavigation(){
   const nav=document.getElementById('nav');if(!nav)return;
   nav.querySelectorAll('[data-rc-sidebar],[data-rc-estimate-nav]').forEach(b=>b.remove());
@@ -3503,7 +3577,7 @@ function rcNavigation(){
   if(!session||!goldleafContext?.has_access||workspaceMode!=='retail')return;
   const anchor=nav.querySelector('button[aria-label*="Sales"]')||nav.querySelector('button:nth-child(2)')||nav.firstElementChild;
   const fragment=document.createDocumentFragment();
-  for(const [label,icon] of [['Estimation / Quotation','tagging'],['Products','plans'],['Tagging','tagging'],['Stock Verification','tagging'],['Lot Entry','tagging'],['Chit','chit']]){
+  for(const [label,icon] of [['Estimation / Quotation','tagging'],['Products','plans'],['Tagging','tagging'],['Stock Verification','tagging'],['Lot Entry','tagging'],['Shop Opening','plans'],['Chit','chit']]){
     const button=document.createElement('button');button.type='button';button.dataset.rcSidebar=label;
     button.setAttribute('aria-label',label);button.title=label;
     button.classList.toggle('active',page===label||page==='Retail '+label);
@@ -3515,7 +3589,7 @@ function rcNavigation(){
   if(anchor)anchor.after(fragment);
   else nav.append(fragment);
   if(more){
-    for(const label of ['Estimation / Quotation','Products','Tagging','Stock Verification','Lot Entry','Chit']){
+    for(const label of ['Estimation / Quotation','Products','Tagging','Stock Verification','Lot Entry','Shop Opening','Chit']){
       const button=document.createElement('button');button.type='button';button.dataset.rcNav=label;
       button.textContent=label;button.onclick=()=>{more.classList.remove('open');rcOpenStandalone(label)};more.append(button);
     }
@@ -3531,11 +3605,12 @@ window.render=function(){
   const active=page==='Sales Entry'&&workspaceMode==='retail';
   if(active)rcSection=RC_SECTIONS.includes(rbSection)?rbSection:'Bill';
   const result=rcPreviousRender(),section=RC_PAGES[page]||null;
-  if(section){
+  if(section&&(section!=='Shop Opening'||workspaceMode==='retail')){
     const appEl=document.getElementById('app');
     if(appEl) appEl.innerHTML=rcStandaloneScreen(section);
     document.body.classList.add('rb-active','rc-active');document.body.dataset.erpPage='Retail';
     if(section==='Estimation / Quotation')rcRecalc();
+    if(section==='Shop Opening'&&document.getElementById('rcShopOpeningForm'))rcOpeningFields(document.getElementById('rcShopOpeningForm'));
     if(section==='Chit'&&rcChitTab==='Entry')rcEntryPlan(document.getElementById('rcEntryMapping')?.value||'');
   }else if(active){
     const appEl=document.getElementById('app');
