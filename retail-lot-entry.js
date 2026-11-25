@@ -2,6 +2,31 @@
 let rvLotTab='list',rvLotEdit='',rvLotSearch='',rvLotFrom='',rvLotTo='';
 const rvLots=()=>rcDocs('retail-lot');
 window.rvLots=rvLots;
+
+window.rvPostOpeningLot=function(button){
+  if(!session||!goldleafContext?.has_access||workspaceMode!=='retail')return;
+  const opening=rcDocs('retail-shop-opening').find(row=>row.id===button.dataset.openingId);
+  const product=rcDocs('retail-product').find(row=>row.id===button.parentElement.querySelector('select')?.value);
+  if(!opening||!['Finished jewellery','Other stock'].includes(opening.category)||!product?.group)return say('Select a product with a product group.');
+  if(rvLots().some(lot=>lot.openingId===opening.id))return say('This opening entry already has a lot.');
+  const qty=rvLotNumber(opening.pieces),weight=rvLotNumber(opening.weight);
+  if(!Number.isInteger(qty)||qty<1||weight<=0)return say('Enter positive pieces and weight in the opening entry first.');
+  const entryNo='OB-'+opening.id.toUpperCase();
+  const existing=rvLotTags({entryNo});
+  if(existing.length)return say('This opening lot number is already used by tags.');
+  const now=new Date().toISOString();
+  db.retailDocuments.push({
+    id:'opening-lot-'+opening.id,kind:'retail-lot',accountType:'customer',openingId:opening.id,
+    entryNo,date:opening.when,ledgerName:'Opening stock',entryType:'By Product',rowCount:1,
+    remarks:opening.notes||'',status:'Open',createdAt:now,updatedAt:now,
+    items:[{group:product.group,product:product.name,qty,weight,touch:rvLotNumber(opening.purity),rate:0,wastage:0,mc:0,amount:rvLotNumber(opening.amount)}]
+  });
+  let pending;
+  try{pending=save()}catch(error){pending=Promise.reject(error)}
+  rvLotRefresh();
+  rcSaveStatus(pending,'Opening stock lot');
+};
+
 const rvLotToday=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const rvLotNumber=x=>Number(x)||0;
 const rvLotFixed=x=>rvLotNumber(x).toFixed(3);
@@ -16,7 +41,7 @@ function rvLotForm(){const x=rvLots().find(l=>l.id===rvLotEdit)||{},items=x.item
 window.rvLotView=function(){return rvLotTab==='list'?rvLotList()+(window.rcOpeningView?'<details class="panel" open><summary>Opening stock</summary>'+rcOpeningView('stock')+'</details>':''):rvLotForm()};
 window.rvLotRefresh=function(){const root=document.querySelector('.rc-content');if(root){root.innerHTML=rvLotView();if(rvLotTab==='create')rvLotCalc()}};
 window.rvLotOpen=function(tab){if(!['list','create'].includes(tab))return;rvLotTab=tab;rvLotEdit='';rvLotRefresh();window.scrollTo(0,0)};
-window.rvLotEditRow=function(id){rvLotEdit=id;rvLotTab='create';rvLotRefresh()};
+window.rvLotEditRow=function(id){if(rvLots().some(lot=>lot.id===id&&lot.openingId))return say('This lot was posted from Opening Stock.');rvLotEdit=id;rvLotTab='create';rvLotRefresh()};
 window.rvLotAdd=function(){const box=document.getElementById('rvLotRows');box.insertAdjacentHTML('beforeend',rvLotRow({},box.children.length));document.querySelector('#rvLotForm [name="rowCount"]').value=box.children.length;rvLotCalc()};
 window.rvLotRemove=function(btn){const box=document.getElementById('rvLotRows');if(box.children.length===1)return say('Keep at least one item.');btn.closest('[data-lot-row]').remove();[...box.children].forEach((e,i)=>e.querySelector('.rv-lot-row-head b').textContent='Item '+(i+1));document.querySelector('#rvLotForm [name="rowCount"]').value=box.children.length;rvLotCalc()};
 window.rvLotRowCount=function(input){const count=Math.max(1,Math.min(100,rvLotNumber(input.value)||1)),box=document.getElementById('rvLotRows');while(box.children.length<count)rvLotAdd();while(box.children.length>count)box.lastElementChild.remove();input.value=box.children.length;rvLotCalc()};
