@@ -659,6 +659,15 @@ window.rbOpenReturnPanel=function(button){
     section.remove();
   };
   section.innerHTML=`<style>
+    #glSalesReturnPanel.rc-sales-return-dropdown{box-sizing:border-box;width:100%;max-width:540px;min-width:0;margin:6px 0;padding:8px;border:1px solid color-mix(in srgb,#b45309 28%,var(--line,#ddd));border-radius:8px;background:var(--paper,#fffaf2)}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rc-old-gold-dropdown-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px;font-size:12px}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rc-old-gold-credit-pill{padding:2px 6px;border:1px solid currentColor;border-radius:12px;font-size:10px;white-space:nowrap}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px;margin:5px 0}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-field{display:grid;gap:2px;min-width:0;margin:0}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rb-field>span{font-size:11px;font-weight:700;line-height:1.25}
+    #glSalesReturnPanel.rc-sales-return-dropdown .rc-og-input{box-sizing:border-box;width:100%;min-width:0;min-height:32px;height:32px;padding:3px 6px;font-size:12px;border-radius:6px}
+    #glSalesReturnPanel.rc-sales-return-dropdown .right{display:flex;justify-content:flex-end}
+    #glSalesReturnPanel.rc-sales-return-dropdown .right button{min-height:32px;padding:4px 10px;font-size:12px}
     #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
     #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-field{min-width:0;margin:0;gap:2px}
     #glSalesReturnPanel:not(.rc-sales-return-dropdown) .rb-field>span{font-size:11px;line-height:1.25}
