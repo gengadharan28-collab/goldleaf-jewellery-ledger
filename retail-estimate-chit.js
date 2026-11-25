@@ -3144,6 +3144,14 @@ window.rcSaveTagBatch=function(e,printAfter=false){
     if(linkedLot&&!linkedLot.items.some(x=>x.group===t.group&&(linkedLot.entryType==='By Product Group'||x.product===t.product)))return say('Tag '+t.tagCode+' does not match a product in lot '+linkedLot.entryNo+'.');
     if(net<0||gross>0&&net>gross)return say('Net weight must be between zero and gross weight.');
   }
+  if(linkedLot?.openingId){
+    const edited=new Set(items.map(item=>item.id).filter(Boolean));
+    const assigned=rcDocs('retail-tagging').filter(tag=>!edited.has(tag.id)&&String(tag.lotEntry||'').trim().toLowerCase()===linkedLot.entryNo.toLowerCase());
+    const total=(rows,field)=>rows.reduce((sum,item)=>sum+n(item[field]),0);
+    const qty=total(assigned,'pieces')+total(items,'pieces');
+    const grams=total(assigned,'grossWeight')+total(items,'grossWeight');
+    if(qty>total(linkedLot.items,'qty')||grams>total(linkedLot.items,'weight')+0.0001)return say('These tags exceed the remaining pieces or gross weight in the opening lot.');
+  }
   if(rcTagEdit&&!confirm('Save changes to this tag?'))return;
   const now=new Date().toISOString();
   for(const t of items){
@@ -3479,6 +3487,14 @@ function rcRetailScreen(){const labels=RC_SECTIONS.map(x=>'<option '+(x===rcSect
 
 const RC_OPENING_TYPES=['Cash in hand','Bank','Loose gold','Loose silver','Old gold','Old silver','Finished jewellery','Other stock'];
 let rcOpeningEdit='';
+function openingStockLotAction(row,products){
+  const lot=window.rvLots?.().find(item=>item.openingId===row.id);
+  if(lot)return '<span>Lot '+esc(lot.entryNo)+'</span>';
+  const options=products.filter(product=>product.group).map(product=>'<option value="'+esc(product.id)+'">'+esc(product.name)+'</option>').join('');
+  return '<button type="button" data-opening-id="'+esc(row.id)+'" onclick="rcEditOpening(this.dataset.openingId)">Edit</button>'
+    +(options?'<div><select aria-label="Product for opening stock lot"><option value="">Select product</option>'+options+'</select>'
+    +'<button type="button" data-opening-id="'+esc(row.id)+'" onclick="rvPostOpeningLot(this)">Create opening lot</button></div>':'');
+}
 window.rcOpeningView=function(scope){
   if(workspaceMode!=='retail'||!session||!goldleafContext?.has_access)return '';
   const money=scope==='accounts';
@@ -3494,11 +3510,14 @@ window.rcOpeningView=function(scope){
     const weight=group.reduce((sum,row)=>sum+n(row.weight),0);
     return '<div><b>'+esc(type)+'</b> '+qty+' pcs · '+fmt(weight)+' g</div>';
   }).join('');
+  const products=money?[]:rcDocs('retail-product');
   const history=rows.map(row=>[
     esc(row.when),esc(row.category),esc(row.description),row.pieces||'—',
     row.weight?fmt(row.weight)+' g':'—',row.purity?row.purity+'%':'—',
     row.amount?rateMoney(row.amount):'—',esc(row.notes||''),
-    '<button type="button" data-opening-id="'+esc(row.id)+'" onclick="rcEditOpening(this.dataset.openingId)">Edit</button>'
+    money||!['Finished jewellery','Other stock'].includes(row.category)
+      ?'<button type="button" data-opening-id="'+esc(row.id)+'" onclick="rcEditOpening(this.dataset.openingId)">Edit</button>'
+      :openingStockLotAction(row,products)
   ]);
   return '<section class="panel"><h2>'+ (entry.id?'Edit opening entry':'Add opening entry')+'</h2>'
     +'<form id="rcShopOpeningForm" onsubmit="rcSaveOpening(event)">'
@@ -3541,6 +3560,7 @@ window.rcSaveOpening=function(event){
   if(isMoney?amount<=0:(pieces<=0&&weight<=0))return say(isMoney?'Enter a positive opening amount.':'Enter the opening pieces or weight.');
   const now=new Date().toISOString();
   const old=rcDocs('retail-shop-opening').find(row=>row.id===rcOpeningEdit);
+  if(old&&window.rvLots?.().some(lot=>lot.openingId===old.id))return say('This opening entry is already linked to a stock lot.');
   const row={id:old?.id||crypto.randomUUID(),kind:'retail-shop-opening',accountType:'customer',when:data.when,
     category:data.category,description:data.description.trim(),amount,pieces,weight,purity,notes:data.notes.trim(),
     createdAt:old?.createdAt||now,updatedAt:now};
