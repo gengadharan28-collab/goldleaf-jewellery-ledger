@@ -360,13 +360,41 @@ function rpItemTotalsMarkup(kind){
   return '<tfoot><tr><td colspan="4">Totals</td>'+total('rpTotalPieces','0')+total('rpTotalGross')+total('rpTotalLess')+total('rpTotalNet')+'<td colspan="2"></td>'+total('rpTotalPure')+'<td></td>'+total('rpTotalPayable')+'<td colspan="3"></td>'+total('rpTotalStone','₹ 0.00')+total('rpTotalOther','₹ 0.00')+total('rpItemsValue','₹ 0.00')+'<td></td></tr></tfoot>';
 }
 
+
+function rpTaxPaymentRow(row={}){
+  return '<div class="rp-extra-row rp-detail-grid" data-rp-tax-payment>'
+    +rbInput('Tax group','taxGroup',row.group||'','text','required maxlength="80"')
+    +'<label class="rb-field"><span>Tax type</span><select name="taxType">'+rbOptions(['TCS','TDS'],row.type||'TCS')+'</select></label>'
+    +rbInput('Rate %','taxRate',row.rate??'','number','min="0" max="100" step=".001"')
+    +'<label><input name="beforeGst" type="checkbox" '+(row.beforeGst?'checked':'')+'> Before GST</label>'
+    +'<label><input name="manual" type="checkbox" '+(row.manual?'checked':'')+'> Manual amount</label>'
+    +rbInput('Manual amount ₹','manualAmount',row.manualAmount??'','number','min="0" step=".01"')
+    +rbInput('Remarks','taxRemarks',row.remarks||'','text','maxlength="240"')
+    +'<div><output data-rp-tax-paid-out>'+rateMoney(row.amount||0)+'</output> <button type="button" aria-label="Remove tax payment" onclick="rpRemoveExtra(this)">×</button></div></div>';
+}
+window.rpAddTaxPayment=function(){
+  const form=document.getElementById('rpDocumentForm'),rows=form?.querySelector('#rpTaxPaymentRows');
+  if(!rows)return;
+  rows.insertAdjacentHTML('beforeend',rpTaxPaymentRow());
+  rbMarkDirty(form);
+  rpRecalc(form);
+};
+function rpReadTaxPayments(form,bill){
+  return [...form.querySelectorAll('[data-rp-tax-payment]')].map(row=>{
+    const input=name=>row.querySelector('[name="'+name+'"]');
+    const group=input('taxGroup').value.trim(),type=input('taxType').value,rate=n(input('taxRate').value);
+    const beforeGst=input('beforeGst').checked,manual=input('manual').checked,manualAmount=n(input('manualAmount').value);
+    const amount=rbRound(manual?manualAmount:(bill.taxableValue+(beforeGst?0:bill.gstAmount))*rate/100);
+    return {group,type,rate,beforeGst,manual,manualAmount,amount,remarks:input('taxRemarks').value.trim()};
+  });
+}
 function rpExtrasView(doc,kind){
   if(kind!=='purchase')return '';
   const charges=(doc.extraCharges||[]).map((x,i)=>'<div class="rp-extra-row" data-rp-extra="charge"><select aria-label="Charge type">'+rbOptions(['Hallmark Charge','Labour Charge','Making Charges','Transport','Other'],x.type||'Hallmark Charge')+'</select><input aria-label="Charge HSN" placeholder="HSN" value="'+esc(x.hsn||'')+'"><input type="number" aria-label="Charge amount" placeholder="Amount ₹" min="0" step=".01" value="'+esc(x.amount||'')+'"><input type="number" aria-label="Charge GST percent" placeholder="GST %" min="0" max="100" step=".01" value="'+esc(x.gstRate||'')+'"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>').join('');
   const groups=(doc.taxGroups||[]).map(x=>'<div class="rp-extra-row" data-rp-extra="tax"><select aria-label="Tax type">'+rbOptions(['TCS','TDS'],x.type||'TCS')+'</select><input type="number" aria-label="Tax percentage" placeholder="Rate %" min="0" max="100" step=".001" value="'+esc(x.rate||'')+'"><label><input type="checkbox" aria-label="Apply before GST" '+(x.beforeGst?'checked':'')+'> Before GST</label><input type="number" aria-label="Manual tax amount" placeholder="Manual ₹" min="0" step=".01" value="'+esc(x.manualAmount||'')+'"><input aria-label="Tax remarks" placeholder="Remarks" value="'+esc(x.remarks||'')+'"><button type="button" onclick="rpRemoveExtra(this)">×</button></div>').join('');
   return '<section class="panel rp-extras"><div class="rb-section-head"><h2>Other charges · Hallmark / Labour</h2><button type="button" onclick="rpAddExtra(\'charge\')">＋ Add charge</button></div><div id="rpExtraCharges">'+charges+'</div><p class="hint">Charge rows are added to the bill amount. Enter a GST rate only when it differs from the bill GST rate.</p></section>'
     +'<section class="panel rp-extras"><div class="rb-section-head"><h2>Tax groups · TCS / TDS</h2><button type="button" onclick="rpAddExtra(\'tax\')">＋ Add tax</button></div><div id="rpTaxGroups">'+groups+'</div><p class="hint">Tax is calculated on taxable value, or taxable value plus GST. A manual amount overrides the calculated amount.</p></section>'
-    +'<section class="panel rp-extras"><div class="rb-section-head"><h2>TCS / TDS payment record</h2></div><div class="rp-detail-grid">'+rbInput('Tax amount paid ₹','taxPaidAmount',doc.taxPaidAmount||0,'number','min="0" step=".01"')+rbInput('Payment reference','taxPaidReference',doc.taxPaidReference||'')+rbInput('Payment remarks','taxPaidRemarks',doc.taxPaidRemarks||'')+'</div><p class="hint">Tracks remittance separately; it does not reduce the supplier payment balance.</p></section>';
+    +'<section class="panel rp-extras"><div class="rb-section-head"><h2>TCS / TDS payment record</h2><button type="button" onclick="rpAddTaxPayment()">＋ Add payment</button></div><div id="rpTaxPaymentRows">'+(doc.taxPayments||[]).map(rpTaxPaymentRow).join('')+'</div><div class="rp-detail-grid">'+rbInput('Previous remittance total ₹','taxPaidAmount',doc.taxPayments?.length?0:doc.taxPaidAmount||0,'number','min="0" step=".01"')+rbInput('Payment reference','taxPaidReference',doc.taxPaidReference||'')+rbInput('Payment remarks','taxPaidRemarks',doc.taxPaidRemarks||'')+'</div><p class="hint">Remittance rows take precedence over the previous total and stay separate from supplier payments.</p></section>';
 }
 window.rpAddExtra=function(type){
   const f=document.getElementById('rpDocumentForm'),target=f?.querySelector(type==='charge'?'#rpExtraCharges':'#rpTaxGroups');
@@ -587,9 +615,11 @@ function rpReadDocument(form){
       metalDelivered:f.metalDelivered?.value,metalDeliveredMetal:f.metalDeliveredMetal?.value,
       paidAmount:f.paidAmount?.value
     });
+    const taxPayments=rpReadTaxPayments(form,t);
     return Object.assign(base,t,{
+      taxPayments,
       items:t.rows,metal:t.rows[0]?.metal||'Gold',roundMode:f.roundMode?.value||'none',
-      taxPaidAmount:n(f.taxPaidAmount?.value),taxPaidReference:f.taxPaidReference?.value?.trim()||'',taxPaidRemarks:f.taxPaidRemarks?.value?.trim()||'',
+      taxPaidAmount:taxPayments.length?rbRound(taxPayments.reduce((sum,row)=>sum+row.amount,0)):n(f.taxPaidAmount?.value),taxPaidReference:f.taxPaidReference?.value?.trim()||'',taxPaidRemarks:f.taxPaidRemarks?.value?.trim()||'',
       paidMethod:t.paidBank>0?'Bank':t.paidUpi>0?'UPI':t.paidCard>0?'Card':'Cash'
     });
   }
@@ -632,6 +662,7 @@ function rpValidate(d){
       }else if(x.grossWeight<=0||x.lessWeight<0||x.stoneWeight<0||x.diamondLessWeight<0||x.netWeight<=0||x.valueAddedWeight<0||x.purity<1||x.purity>100||x.wastage<0||x.rate<=0||x.makingRate<0||x.otherAmount<0||x.diamondAmount<0||x.itemDiscount<0||x.subtotal<0||n(x.gstRate)>100||!Number.isInteger(x.pieces)||x.pieces<1)return 'Check weight, touch purity, pieces and charges in item '+(i+1)+'.';
     }
     if(d.kind==='old-purchase'&&new Set(d.items.map(x=>x.metal)).size>1)return 'Record Gold and Silver old purchases separately so source weights stay distinct.';
+    if((d.taxPayments||[]).some(row=>!row.group||!['TCS','TDS'].includes(row.type)||row.rate<0||row.rate>100||row.manualAmount<0||row.amount<=0))return 'Complete a tax group and a positive amount or rate for each tax payment.';
     if(d.extraCharges.some(x=>x.amount<0||x.gstRate<0||x.gstRate>100)||d.taxGroups.some(x=>x.rate<0||x.rate>100||x.manualAmount<0)||d.taxPaidAmount<0)return 'Check other charges, tax groups and tax payment amounts.';
     if(d.discount<0||d.discount>d.subtotal||d.otherCharges<0||d.gstEnabled&&(d.gstRate<=0||d.gstRate>100)||d.amountDebit<-.001||d.paidAmount<0||d.paidAmount>Math.max(0,d.amountDebit)+.001)return 'Check discount, charges, GST and amount paid. In metal settlement, discount applies to cash charges only.';
     return '';
@@ -682,6 +713,7 @@ window.rpRecalc=function(form){
   if(!form)return;
   const d=rpReadDocument(form),kind=d.kind,computed=form.querySelector('#rpComputed'),row=(label,value)=>'<div class="rb-total-row"><span>'+label+'</span><b>'+value+'</b></div>';
   let html='',balance='';
+  form.querySelectorAll('[data-rp-tax-paid-out]').forEach((output,i)=>{output.textContent=rateMoney(d.taxPayments?.[i]?.amount||0)});
 
   form.querySelectorAll('[data-rp-payment]').forEach(e=>{
     const visible=e.dataset.rpPayment.split(',').includes(form.elements.paymentMode?.value);
