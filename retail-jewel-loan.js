@@ -9,7 +9,7 @@
   }
   async function checkAccess(force=false){
     const target=currentShop();
-    if(target!==shop){shop=target;allowed=false;drafts=[];checkedAt=0;}
+    if(target!==shop){shop=target;allowed=false;drafts=[];checkedAt=0;creating=false;filters={query:'',from:'',to:'',metal:''};shown=new Set(defaultLoanColumns);}
     if(!target||!client)return false;
     if(!force&&(checking||Date.now()-checkedAt<30000))return allowed;
     checking=true;
@@ -43,9 +43,40 @@
       parent.append(button);
     }
   }
+
+  const loanColumns={
+    reference:['Reference',p=>p.reference],date:['Date',p=>p.date],customer:['Customer',p=>account(p.customerId,'customer')?.name||'—'],
+    item:['Pledge item',p=>p.item],metal:['Metal',p=>p.metal],net:['Net g',p=>fmt(n(p.gross)-n(p.less))],
+    principal:['Principal ₹',p=>rateMoney(p.principal)],scheme:['Scheme',p=>p.scheme],staff:['Attended by',p=>p.staff||'—'],remarks:['Remarks',p=>p.remarks||'—']
+  };
+  const defaultLoanColumns=['reference','date','customer','item','metal','net','principal'];
+  let shown=new Set(defaultLoanColumns),filters={query:'',from:'',to:'',metal:''},creating=false;
+  window.glLoanCreate=value=>{creating=value;render()};
+  window.glLoanFilter=function(event){
+    event.preventDefault();
+    const values=Object.fromEntries(new FormData(event.currentTarget));
+    if(values.from&&values.to&&values.from>values.to)return say('Choose a valid date range.');
+    filters=values;render();
+  };
+  window.glLoanReset=function(){filters={query:'',from:'',to:'',metal:''};shown=new Set(defaultLoanColumns);render()};
+  window.glLoanColumns=function(input){
+    if(input.checked)shown.add(input.value);
+    else if(shown.size>1)shown.delete(input.value);
+    else input.checked=true;
+    render();
+    document.getElementById('glLoanColumnOptions')?.setAttribute('open','');
+  };
+  function filteredLoanDrafts(){
+    const query=filters.query.trim().toLowerCase();
+    return drafts.map(row=>row.payload).filter(row=>{
+      const customer=account(row.customerId,'customer');
+      const search=[row.reference,customer?.name,customer?.mobile,customer?.phone,row.item,row.scheme].filter(Boolean).join(' ').toLowerCase();
+      return (!query||search.includes(query))&&(!filters.from||row.date>=filters.from)&&(!filters.to||row.date<=filters.to)&&(!filters.metal||row.metal===filters.metal);
+    });
+  }
   function intake(){
-    const rows=drafts.map(({payload:p})=>[esc(p.reference),esc(p.date),esc(account(p.customerId,'customer')?.name||'—'),esc(p.item),esc(p.metal),fmt(p.gross-p.less),rateMoney(p.principal)]);
-    return header('Record pledge details for review. Drafts do not post payments or activate loans.')
+    const top=header('Protected loan drafts for review. Drafts do not post payments or activate loans.');
+    if(creating)return top+'<button type="button" onclick="glLoanCreate(false)">← Draft list</button>'
       +'<section class="panel"><h2>New jewel loan draft</h2><form id="glJewelLoanDraft" onsubmit="glSaveJewelLoanDraft(event)"><div class="rb-record-grid">'
       +field('Loan reference','reference','text','required maxlength="60"')
       +field('Date','date','date','required value="'+today()+'"')
@@ -62,8 +93,21 @@
       +field('Proposed principal · ₹','principal','number','required min=".01" step=".01"')
       +field('Other charges · ₹','charges','number','min="0" step=".01"')
       +field('Remarks','remarks','text','maxlength="300"')
-      +'</div><button class="primary" type="submit">Save draft</button></form></section>'
-      +'<section class="panel"><h2>Recent loan drafts</h2>'+(rows.length?table(['Reference','Date','Customer','Pledge item','Metal','Net g','Principal ₹'],rows):'<p>No drafts yet.</p>')+'</section>';
+      +'</div><button class="primary" type="submit">Save draft</button></form></section>';
+    const keys=Object.keys(loanColumns).filter(key=>shown.has(key));
+    const rows=filteredLoanDrafts();
+    return top+'<section class="panel"><div class="rb-section-head"><h2>Jewel loan drafts</h2>'
+      +'<button type="button" class="primary" onclick="glLoanCreate(true)">＋ Create</button></div>'
+      +'<form onsubmit="glLoanFilter(event)" class="rb-record-grid">'
+      +field('Search by reference, customer or item','query','search','value="'+esc(filters.query)+'"')
+      +field('From','from','date','value="'+esc(filters.from)+'"')
+      +field('To','to','date','value="'+esc(filters.to)+'"')
+      +'<label class="rb-field"><span>Metal</span><select name="metal"><option value="">All metals</option>'+rbOptions(['Gold','Silver'],filters.metal)+'</select></label>'
+      +'<div><button type="submit">Apply filters</button> <button type="button" onclick="glLoanReset()">Reset</button></div></form>'
+      +'<details id="glLoanColumnOptions"><summary>Display Columns</summary><div class="rb-record-grid">'
+      +Object.entries(loanColumns).map(([key,[label]])=>'<label><input type="checkbox" value="'+key+'" '+(shown.has(key)?'checked':'')+' onchange="glLoanColumns(this)"> '+label+'</label>').join('')
+      +'</div></details><p class="muted">'+rows.length+' matching · latest '+drafts.length+' loaded (up to 100)</p>'
+      +(rows.length?'<div class="rb-total-history">'+table(keys.map(key=>loanColumns[key][0]),rows.map(row=>keys.map(key=>esc(loanColumns[key][1](row)))))+'</div>':'<p>No matching loan drafts.</p>')+'</section>';
   }
   window.glSaveJewelLoanDraft=async function(event){
     event.preventDefault();
@@ -80,7 +124,7 @@
       const {data:row,error}=await client.from('goldleaf_jewel_loan_drafts').insert({shop_id:target,payload:data}).select('id,payload,created_at').single();
       if(error)throw error;
       if(target!==currentShop()||!allowed)return;
-      drafts.unshift(row);render();say('Jewel loan draft saved.');
+      drafts.unshift(row);creating=false;render();say('Jewel loan draft saved.');
     }catch(error){say(error.message||'Draft could not be saved.')}
     finally{saving=false}
   };
