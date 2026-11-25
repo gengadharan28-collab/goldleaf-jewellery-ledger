@@ -9,14 +9,14 @@
     layout: 'Classic',
     gstr3bView: 'Horizontal',
     bookMode: 'Detailed View',
-    daybookTab: 'V1',
+    daybookTab: 'Transactions',
     topDim: 'Product Group',
     metal: 'All',
     goldRate: 0,
     silverRate: 0
   };
 
-  const docs = (t) => (window.rcDocs ? window.rcDocs(t) : (db.retailDocuments||[]).filter(d=>d.type===t));
+  const docs = (t) => (window.rcDocs ? window.rcDocs(t) : (db.retailDocuments||[]).filter(d=>(d.kind||d.type)===t));
   const opts = (arr, cur) => arr.map(v=>'<option value="'+esc(v)+'" '+(String(cur||'')===String(v)?'selected':'')+'>'+esc(v)+'</option>').join('');
   const inRange = (dt) => {
     const d = String(dt||'').slice(0,10);
@@ -32,6 +32,7 @@
     window.tagReportActive = false;
     window.tradeReportActive = false;
     rarState.active = name;
+    if(name==='DayBook Report')rarState.daybookTab='Transactions';
     render();
   };
   window.rarBack = () => { rarState.active = ''; render(); };
@@ -52,6 +53,22 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'GSTR1-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
   };
 
+  window.rarDownloadCsv = () => {
+    const rows=[...document.querySelectorAll('#rar-report-results table tr')];
+    if(!rows.length)return say('There is no report table to export.');
+    const csvCell=cell=>{
+      const value=cell.textContent.trim();
+      const safe=/^[=+@\-]/.test(value)?"'"+value:value;
+      return '"'+safe.replaceAll('"','""')+'"';
+    };
+    const csv=rows.map(row=>[...row.cells].map(csvCell).join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=rarState.active.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.csv';
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
   function rarRenderReport(name){
     const sales = rSales(), pays = rPays(), purch = rPurch();
     const custs = db.customers || [], sups = db.retailSuppliers || [];
@@ -118,14 +135,42 @@
     }
 
     // ---- 2. ACCOUNTING, DAYBOOK, BOOKS, OUTSTANDING, ADVANCE, EXPENSE ----
-    else if(name === 'DayBook Report'){
-      subToolbar = ['V1','V2','V3','V4'].map(t=>'<button type="button" class="'+(rarState.daybookTab===t?'primary':'')+'" onclick="rarState.daybookTab=\''+t+'\';render()">'+t+'</button>').join(' ');
-      const rows = [
-        ...sales.map(s=>[esc(String(s.when||'').slice(0,16).replace('T',' ')), esc(s.documentNo||s.id.slice(0,8)), 'Sales Bill', esc(getCust(s.partyId).name||'Customer'), esc(s.product), rateMoney(s.amount), '₹ 0.00', fmt(s.weight)+' g', '0.000 g']),
-        ...pays.map(p=>[esc(String(p.when||'').slice(0,16).replace('T',' ')), esc(p.id.slice(0,8)), 'Receipt', esc(getCust(p.partyId).name||'Customer'), esc(p.kind||'Cash'), '₹ 0.00', rateMoney(p.amount), '0.000 g', '0.000 g']),
-        ...purch.map(p=>[esc(String(p.when||p.date||'').slice(0,16).replace('T',' ')), esc(p.billNo||p.id.slice(0,8)), 'Purchase', esc((sups.find(x=>x.id===p.supplierId)||{}).name||'Supplier'), esc(p.remarks||'Purchase'), '₹ 0.00', rateMoney(p.netAmount||p.amount), '0.000 g', fmt(p.totalNetWt||0)+' g'])
-      ].sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
-      content = rows.length ? table(['Date','Vch No.','Vch Type','Ledger Name','Narration','Amount (D)','Amount (C)','Weight (D)','Weight (C)'], rows) : '<p class="empty">No daybook transactions.</p>';
+    else if(name === 'DayBook Report' || name === 'DayBook Abstract'){
+      const ledgers=new Map(docs('retail-ledger').map(row=>[row.id,row.name]));
+      const entries=[];
+      const add=(date,no,type,ledger,notes,dr,cr,wd=0,wc=0)=>{
+        const day=String(date||'').slice(0,10);
+        if(day&&inRange(day))entries.push({day,no,type,ledger,notes,dr:n(dr),cr:n(cr),wd:n(wd),wc:n(wc)});
+      };
+      for(const row of sales)add(row.when||row.createdAt,row.documentNo||row.id,'Sales Bill',getCust(row.partyId).name,row.product,row.amount,0,row.weight);
+      for(const row of pays)add(row.when||row.createdAt,row.reference||row.id,'Receipt',getCust(row.partyId).name,row.kind,0,row.amount);
+      for(const row of purch)add(row.when||row.date||row.createdAt,row.billNo||row.id,'Purchase',sups.find(x=>x.id===row.supplierId)?.name,row.remarks,0,row.netAmount??row.amount,0,row.totalNetWt);
+      for(const row of docs('retail-account-posting')){
+        for(const line of row.lines||[]){
+          const amount=row.measure==='Amount';
+          add(line.date||row.date,row.number,row.voucherType,ledgers.get(line.ledgerId),row.description,
+            amount?line.debit:0,amount?line.credit:0,amount?0:line.debit,amount?0:line.credit);
+        }
+      }
+      const abstract=name==='DayBook Abstract'||rarState.daybookTab==='Abstract';
+      subToolbar=['Transactions','Abstract'].map(mode=>'<button type="button" class="'+(abstract===(mode==='Abstract')?'primary':'')
+        +'" onclick="rarState.active=\'DayBook Report\';rarState.daybookTab=\''+mode+'\';render()">'+mode+'</button>').join(' ');
+      const groups=new Map();
+      const sum=(target,row)=>{for(const key of ['dr','cr','wd','wc'])target[key]+=row[key]};
+      const values=row=>[rateMoney(row.dr),rateMoney(row.cr),fmt(row.wd)+' g',fmt(row.wc)+' g'];
+      const total={dr:0,cr:0,wd:0,wc:0};
+      entries.sort((a,b)=>b.day.localeCompare(a.day));
+      for(const row of entries){
+        sum(total,row);
+        const key=JSON.stringify([row.day,row.type]);
+        if(!groups.has(key))groups.set(key,{day:row.day,type:row.type,dr:0,cr:0,wd:0,wc:0});
+        sum(groups.get(key),row);
+      }
+      const heads=abstract?['Date','Voucher type']:['Date','Voucher no.','Voucher type','Ledger','Narration'];
+      const rows=abstract?[...groups.values()].map(row=>[esc(row.day),esc(row.type),...values(row)])
+        :entries.map(row=>[row.day,row.no,row.type,row.ledger,row.notes].map(value=>esc(value||'—')).concat(values(row)));
+      if(rows.length)rows.push(['<b>Total</b>',...heads.slice(1).map(()=>''),...values(total)]);
+      content=rows.length?table([...heads,'Amount Dr ₹','Amount Cr ₹','Weight Dr','Weight Cr'],rows):'<p class="empty">No daybook transactions.</p>';
     }
     else if(name === 'Cashbook & Bankbook' || name === 'Cashbook Report' || name === 'Bankbook Report'){
       const book=name==='Bankbook Report'?'Bank':'Cash';
@@ -207,9 +252,24 @@
       });
       content = rows.length ? table(['Ledger Name','Chit / Advance #','Mobile','Credit ₹','Used / Settled ₹','Closing Advance ₹'], rows) : '<p class="empty">No advance or chit balances.</p>';
     }
-    else if(name === 'Expense & Custom Ledgers'){
-      const exps = docs('retail-ledger').filter(l=>l.parentGroup==='Direct Expenses'||l.parentGroup==='Indirect Expenses');
-      content = exps.length ? table(['Expense Ledger','Parent Group','Opening / Amount ₹','Remarks'], exps.map(e=>['<b>'+esc(e.name)+'</b>', esc(e.parentGroup), rateMoney(e.openingAmount), esc(e.remarks||'—')])) : '<p class="empty">Create Expense Ledgers under Parent Group → Ledgers to track expenses here.</p>';
+    else if(name === 'Expense Report'){
+      const ledgers=new Map(docs('retail-ledger').map(row=>[row.id,row]));
+      const expenseGroups=new Set(window.rgaAllAccountingGroups().flat.filter(group=>group.type==='EXPENSE').map(group=>group.name));
+      const rows=[];
+      let total=0;
+      for(const entry of docs('retail-account-posting')){
+        if(entry.measure!=='Amount')continue;
+        for(const line of entry.lines||[]){
+          const date=line.date||entry.date, ledger=ledgers.get(line.ledgerId);
+          if(!ledger||!expenseGroups.has(ledger.parentGroup)||!inRange(date))continue;
+          const net=n(line.debit)-n(line.credit);
+          total+=net;
+          rows.push([date,entry.number,ledger.name,ledger.parentGroup,entry.description].map(value=>esc(value||'—')).concat(rateMoney(net)));
+        }
+      }
+      rows.sort((a,b)=>b[0].localeCompare(a[0]));
+      if(rows.length)rows.push(['<b>Total</b>','','','','',rateMoney(total)]);
+      content=rows.length?table(['Date','Voucher no.','Expense ledger','Group','Narration','Net expense ₹'],rows):'<p class="empty">No posted expenses in this period.</p>';
     }
 
     // ---- 3. ADVANCED SALES, STOCK & REORDER REPORTS ----
@@ -298,8 +358,8 @@
 
     return '<section class="panel">'
       + '<div class="rco-toolbar"><div class="rco-toolbar-left"><button type="button" onclick="rarBack()">← All Reports</button><h2 style="margin:0">'+esc(name)+'</h2></div>'
-      + '<div class="rco-toolbar-right"><label style="font-size:12px">From <input type="date" value="'+esc(rarState.from)+'" onchange="rarState.from=this.value;render()"></label><label style="font-size:12px">To <input type="date" value="'+esc(rarState.to)+'" onchange="rarState.to=this.value;render()"></label>'+subToolbar+' <button type="button" onclick="window.print()">🖨️ Print</button></div></div>'
-      + content + '</section>';
+      + '<div class="rco-toolbar-right"><label style="font-size:12px">From <input type="date" value="'+esc(rarState.from)+'" onchange="rarState.from=this.value;render()"></label><label style="font-size:12px">To <input type="date" value="'+esc(rarState.to)+'" onchange="rarState.to=this.value;render()"></label>'+subToolbar+' <button type="button" onclick="rarDownloadCsv()">CSV</button> <button type="button" onclick="window.print()">🖨️ Print</button></div></div>'
+      + '<div id="rar-report-results">'+content+'</div></section>';
   }
 
   const rarPrevReportsView = window.reportsView;
@@ -333,13 +393,14 @@
       ]],
       ['Accounts, Books & Financial Statements', [
         ['Trial Balance / Balance Sheet / P&L', "rgaState.mainTab='Accounts & Reports';go('Parent Group')"],
-        ['DayBook Report (V1–V4)', "rarOpen('DayBook Report')"],
+        ['DayBook Transactions', "rarOpen('DayBook Report')"],
+        ['DayBook Abstract', "rarOpen('DayBook Abstract')"],
         ['Cashbook Report', "rarOpen('Cashbook Report')"],
         ['Bankbook Report', "rarOpen('Bankbook Report')"],
         ['Bill Entry Report', "rarOpen('Bill Entry Report')"],
         ['Outstanding Report', "rarOpen('Outstanding Report')"],
         ['Advance Amount Report', "rarOpen('Advance Amount Report')"],
-        ['Expense & Custom Ledgers', "rarOpen('Expense & Custom Ledgers')"]
+        ['Expense Report', "rarOpen('Expense Report')"]
       ]],
       ['GST & Tax Reports', [
         ['GSTR1 Report & JSON Export', "rarOpen('GSTR1 Report')"],
