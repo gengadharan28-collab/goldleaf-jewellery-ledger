@@ -724,7 +724,32 @@ window.rbOpenReturnPanel=function(button){
         picker.closest('label').hidden=false;
         picker.focus();
       });
-      actions.prepend(editButton);
+      const grid=form.querySelector('.rb-record-grid');
+      const reason=form.elements.namedItem('reason')?.closest('label');
+      const notes=form.elements.namedItem('notes')?.closest('label');
+      if(reason&&notes){
+        const pair=document.createElement('div');
+        pair.style.cssText='grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;min-width:0';
+        grid.append(pair);
+        pair.append(reason,notes);
+      }
+      actions.style.flexWrap='wrap';
+      const actionButton=(label,action)=>{
+        const control=document.createElement('button');
+        control.type='button';
+        control.textContent=label;
+        control.addEventListener('click',action);
+        return control;
+      };
+      const startNew=focus=>{
+        picker.value='';
+        picker.closest('label').hidden=true;
+        showForm();
+        if(focus)fields.querySelector('[name="partyId"]')?.focus();
+      };
+      const clearButton=actionButton('Clear',()=>startNew(false));
+      const addButton=actionButton('Add Return',()=>startNew(true));
+      actions.replaceChildren(editButton,saveButton,addButton,clearButton);
     }
   };
   picker.addEventListener('change',showForm);
