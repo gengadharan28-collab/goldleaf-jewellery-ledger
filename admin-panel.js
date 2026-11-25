@@ -84,9 +84,26 @@ function platformExtendSelectHtml(shop, isExpired) {
     + `<option value="yearly" ${defaultPlan === 'yearly' ? 'selected' : ''}>Extend +1 year (Yearly)</option>`
     + `</select></label></div>`;
 }
+const platformLoanEntitlements=new Map();
+window.platformSetLoanAccess=async function(input){
+  const shopId=input.dataset.shopId,enabled=input.checked;
+  if(!client||!goldleafContext?.is_super_admin||!shopId){input.checked=!enabled;return;}
+  input.disabled=true;
+  try{
+    const {error}=await client.from('goldleaf_jewel_loan_access').upsert({shop_id:shopId,enabled});
+    if(error)throw error;
+    platformLoanEntitlements.set(shopId,enabled);
+    say('Jewel Loan & Auction access '+(enabled?'enabled':'disabled')+'.');
+  }catch(error){
+    input.checked=!enabled;
+    say(error.message||'Could not save loan access.');
+  }finally{
+    input.disabled=false;
+  }
+};
 function platformAccessFields(shop = {}) {
   const toggle=(name,label,checked,help)=>`<label class="platform-access-toggle"><input type="checkbox" name="${name}" ${checked?'checked':''}><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>${label}</b><small>${help}</small></span></label>`;
-  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}</div>`;
+  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}${shop.id?`<label class="platform-access-toggle"><input type="checkbox" data-shop-id="${esc(shop.id)}" ${platformLoanEntitlements.get(shop.id)?'checked':''} onchange="platformSetLoanAccess(this)"><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>Jewel Loan &amp; Auction</b><small>Access setting · module pending</small></span></label>`:''}</div>`;
 }
 function platformDashboard() {
   const shops = goldleafAdminShops, paid = shops.filter(s => s.payment_count > 0), active = shops.filter(s => ['active','trial'].includes(s.subscription_status) && Date.parse(s.expires_at) > Date.now());
@@ -346,14 +363,19 @@ window.pullCloud=async function(){
     if(!goldleafContext?.shop_id&&!goldleafContext?.is_super_admin)throw new Error('This login does not have a shop. Contact Super Admin.');
     const needsLedger=goldleafContext.has_access&&(goldleafContext.retail_enabled||goldleafContext.wholesale_enabled);
     const adminRequests=goldleafContext.is_super_admin
-      ? Promise.all([client.rpc('goldleaf_admin_list_shops'),client.rpc('goldleaf_admin_list_onboarding'),client.rpc('goldleaf_list_plans')])
+      ? Promise.all([client.rpc('goldleaf_admin_list_shops'),client.rpc('goldleaf_admin_list_onboarding'),client.rpc('goldleaf_list_plans'),client.from('goldleaf_jewel_loan_access').select('shop_id,enabled')])
       : Promise.resolve(null);
     const [shared,response,adminResponses]=await Promise.all([
       client.rpc('goldleaf_get_shared_rates'),
       needsLedger?client.rpc('goldleaf_read_ledger'):Promise.resolve(null),
       adminRequests
     ]);
-    if(adminResponses){for(const result of adminResponses)if(result.error)throw result.error;[goldleafAdminShops,platformInvites,platformPlans]=adminResponses.map(result=>result.data||[]);}
+    if(adminResponses){
+      const [shops,onboarding,plans,loanAccess]=adminResponses;
+      for(const result of [shops,onboarding,plans])if(result.error)throw result.error;
+      [goldleafAdminShops,platformInvites,platformPlans]=[shops,onboarding,plans].map(result=>result.data||[]);
+      if(!loanAccess.error){platformLoanEntitlements.clear();for(const row of loanAccess.data||[])platformLoanEntitlements.set(row.shop_id,row.enabled);}
+    }
     if(shared.error)throw shared.error;
     if(shared.data&&Number(shared.data.gold24)>0)try{localStorage.setItem('goldleaf-cached-public-rates',JSON.stringify(shared.data));}catch{}
     if(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled){db.rates=shared.data||{};platformError='';setCloudStatus((goldleafContext.has_access?'Awaiting workspace · ':'Subscription expired · ')+(goldleafContext.shop_name||session.user.email));render();return;}
