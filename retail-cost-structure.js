@@ -28,20 +28,27 @@
     listDisplay: JSON.parse(localStorage.getItem('goldleaf-cost-list-display') || '{"group":true,"product":true,"fromWt":true,"toWt":true,"va":true,"mc":true,"wastage":true,"rate":true,"estCharge":true,"actions":true}')
   };
 
-  const docs = (t) => (window.rcDocs ? window.rcDocs(t) : (db.retailDocuments||[]).filter(d=>d.type===t));
+  const docs = (t) => {
+    if(typeof rcEnsure === 'function') rcEnsure();
+    return (db.retailDocuments||[]).filter(d=>d&&(d.kind===t||d.type===t));
+  };
   const saveDoc = (t, d) => {
     if(window.rcSaveDoc) return window.rcSaveDoc(t, d);
     if(!Array.isArray(db.retailDocuments)) db.retailDocuments=[];
     const now = new Date().toISOString();
-    const row = Object.assign({ id: d.id || crypto.randomUUID(), type: t, createdAt: d.createdAt || now, updatedAt: now }, d);
-    const i = db.retailDocuments.findIndex(x=>x.id===row.id);
+    const clean = Object.assign({}, d);
+    if(!clean.id) delete clean.id;
+    const row = Object.assign({ id: crypto.randomUUID(), type: t, accountType: 'customer', createdAt: d.createdAt || now, updatedAt: now }, clean, { type: t, updatedAt: now });
+    if(typeof RC_SQL_KINDS !== 'undefined' && RC_SQL_KINDS.has(t)) row.kind = t; else delete row.kind;
+    const i = db.retailDocuments.findIndex(x=>x&&x.id===row.id);
     if(i<0) db.retailDocuments.unshift(row); else db.retailDocuments[i]=row;
-    save(); pushCloud(); return row;
+    if(typeof rcEnsure === 'function') rcEnsure();
+    save(); return row;
   };
   const delDoc = (t, id) => {
     if(window.rcDeleteDoc) return window.rcDeleteDoc(t, id);
-    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x.id!==id);
-    save(); pushCloud();
+    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id);
+    save();
   };
   const opts = (arr, cur, empty) => (empty!==undefined?'<option value="">'+esc(empty)+'</option>':'') + arr.map(v=>'<option value="'+esc(v)+'" '+(String(cur||'')===String(v)?'selected':'')+'>'+esc(v)+'</option>').join('');
 

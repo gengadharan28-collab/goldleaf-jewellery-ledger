@@ -30,26 +30,38 @@
     supFilter: { ornament:'', businessType:'', city:'' }
   };
 
-  const docs = (type) => (window.rcDocs ? window.rcDocs(type) : (db.retailDocuments||[]).filter(d=>d.type===type));
+  const docs = (type) => {
+    if(typeof rcEnsure === 'function') rcEnsure();
+    return (db.retailDocuments||[]).filter(d=>d&&(d.kind===type||d.type===type));
+  };
   const saveDoc = (type, doc) => {
     if(window.rcSaveDoc) return window.rcSaveDoc(type, doc);
     if(!Array.isArray(db.retailDocuments)) db.retailDocuments=[];
     const now = new Date().toISOString();
-    const row = Object.assign({ id: doc.id || crypto.randomUUID(), type, createdAt: doc.createdAt || now, updatedAt: now }, doc);
-    const idx = db.retailDocuments.findIndex(x=>x.id===row.id);
+    const clean = Object.assign({}, doc);
+    if(!clean.id) delete clean.id;
+    const row = Object.assign({ id: crypto.randomUUID(), type, accountType: 'customer', createdAt: doc.createdAt || now, updatedAt: now }, clean, { type, updatedAt: now });
+    if(typeof RC_SQL_KINDS !== 'undefined' && RC_SQL_KINDS.has(type)) row.kind = type; else delete row.kind;
+    const idx = db.retailDocuments.findIndex(x=>x&&x.id===row.id);
     if(idx<0) db.retailDocuments.unshift(row); else db.retailDocuments[idx] = row;
-    save(); pushCloud(); return row;
+    if(typeof rcEnsure === 'function') rcEnsure();
+    save(); return row;
   };
   const delDoc = (type, id) => {
     if(type==='crm-voucher'&&rbCustomerSales().some(sale=>sale.giftVoucherId===id))return say('This voucher is linked to a saved sales bill.');
     if(window.rcDeleteDoc) return window.rcDeleteDoc(type, id);
-    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x.id!==id);
-    save(); pushCloud();
+    db.retailDocuments = (db.retailDocuments||[]).filter(x=>x&&x.id!==id);
+    save();
   };
   const opts = (arr, cur, emptyLabel) => (emptyLabel!==undefined?'<option value="">'+esc(emptyLabel)+'</option>':'') + arr.map(v=>'<option value="'+esc(v)+'" '+(String(cur||'')===String(v)?'selected':'')+'>'+esc(v)+'</option>').join('');
   const custOpts = (cur, empty='-- Select Customer --') => '<option value="">'+esc(empty)+'</option>' + (db.customers||[]).map(c=>'<option value="'+esc(c.id)+'" '+(c.id===cur?'selected':'')+'>'+esc(c.name)+(c.phone?' · '+esc(c.phone):'')+'</option>').join('');
   const supOpts = (cur, empty='-- Select Supplier --') => '<option value="">'+esc(empty)+'</option>' + (db.retailSuppliers||[]).map(s=>'<option value="'+esc(s.id)+'" '+(s.id===cur?'selected':'')+'>'+esc(s.name)+'</option>').join('');
-  const prodOpts = (cur) => '<option value="">-- Select Product --</option>' + docs('retail-product').map(p=>'<option value="'+esc(p.name)+'" '+(p.name===cur?'selected':'')+'>'+esc(p.name)+'</option>').join('');
+  const prodOpts = (cur) => {
+    const names = [...new Set([...docs('retail-product').map(p=>p.name), ...(db.products||[])].filter(Boolean))];
+    if(cur && !names.includes(cur)) names.unshift(cur);
+    return '<option value="">-- Select Product --</option>' + names.map(name=>'<option value="'+esc(name)+'" '+(name===cur?'selected':'')+'>'+esc(name)+'</option>').join('');
+  };
+  const defaultGold22Rate = () => n(db.rates?.gold22) || (typeof v2RateForPurity==='function' ? n(v2RateForPurity(22)) : 0) || Math.round(n(db.rates?.gold24)*22/24*100)/100 || 0;
   const todayStr = () => new Date().toISOString().slice(0,10);
 
   // ======================== 1. ORDER TRACKING ========================
@@ -106,7 +118,7 @@
   function rcoOrderRowMarkup(it){
     const d = rcoState.orderDisplay;
     return '<tr class="rco-order-row">'
-      + '<td><select name="item_product" onchange="rcoRecalcOrder()">'+prodOpts(it.product)+'</select>'
+      + '<td><select name="item_product" onchange="if(this.value&&this.nextElementSibling)this.nextElementSibling.value=this.value;rcoRecalcOrder()">'+prodOpts(it.product)+'</select>'
       + '<input name="item_product_text" placeholder="Or type product" value="'+esc(it.product||'')+'" style="margin-top:4px;font-size:11px" oninput="rcoRecalcOrder()"></td>'
       + (d.huid?'<td><input name="item_huid" value="'+esc(it.huid||'')+'" placeholder="HUID" style="width:76px"></td>':'')
       + (d.tagging?'<td><input name="item_tag" value="'+esc(it.tagCode||'')+'" placeholder="Tag" style="width:76px"></td>':'')
@@ -116,7 +128,7 @@
       + (d.less?'<td><input name="item_less" type="number" min="0" step=".001" value="'+(it.lessWt||0)+'" style="width:68px" oninput="rcoRecalcOrder()"></td>':'')
       + (d.stoneWt?'<td><input name="item_stoneWt" type="number" min="0" step=".001" value="'+(it.stoneWt||0)+'" style="width:68px" oninput="rcoRecalcOrder()"></td>':'')
       + (d.netWt?'<td><input name="item_net" type="number" step=".001" readonly value="'+(it.netWt||0)+'" style="width:74px;background:#f4f4f4"></td>':'')
-      + '<td><input name="item_rate" type="number" min="0" step=".01" value="'+(it.rate||db.rates?.gold22||0)+'" style="width:82px" oninput="rcoRecalcOrder()"></td>'
+      + '<td><input name="item_rate" type="number" min="0" step=".01" value="'+(it.rate||defaultGold22Rate())+'" style="width:82px" oninput="rcoRecalcOrder()"></td>'
       + (d.skin?'<td><input name="item_skin" value="'+esc(it.skin||'22K')+'" style="width:60px"></td>':'')
       + (d.wst?'<td><input name="item_wst" type="number" min="0" step=".01" value="'+(it.wst||0)+'" style="width:60px" oninput="rcoRecalcOrder()"></td>':'')
       + (d.mc?'<td><input name="item_mc" type="number" min="0" step=".01" value="'+(it.mc||0)+'" style="width:70px" oninput="rcoRecalcOrder()"></td>':'')
@@ -145,8 +157,8 @@
       + '<td><input name="old_wt" type="number" min="0" step=".001" value="'+(o.weight||0)+'" oninput="rcoRecalcOrder()"></td>'
       + '<td><input name="old_less" type="number" min="0" step=".001" value="'+(o.less||0)+'" oninput="rcoRecalcOrder()"></td>'
       + '<td><input name="old_touch" type="number" min="0" max="100" step=".01" value="'+(o.touch||91.6)+'" oninput="rcoRecalcOrder()"></td>'
-      + '<td><input name="old_rate" type="number" min="0" step=".01" value="'+(o.rate||0)+'" oninput="rcoRecalcOrder()"></td>'
-      + '<td><input name="old_amt" type="number" min="0" step=".01" value="'+(o.amount||0)+'" oninput="rcoRecalcOrder()"></td>'
+      + '<td><input name="old_rate" type="number" min="0" step=".01" value="'+(o.rate||defaultGold22Rate())+'" oninput="rcoRecalcOrder()"></td>'
+      + '<td><input name="old_amt" type="number" min="0" step=".01" value="'+(o.amount||0)+'" oninput="this.dataset.manual=\'1\';rcoRecalcOrder()"></td>'
       + '<td><button type="button" class="rb-delete-btn" onclick="this.closest(\'tr\').remove();rcoRecalcOrder()">×</button></td>'
       + '</tr>';
   }
@@ -178,7 +190,17 @@
       salesAmt += amt; totalQty += qty; totalGross += gross;
     });
     let oldAmt = 0;
-    f.querySelectorAll('.rco-old-row').forEach(tr => { oldAmt += n(tr.querySelector('[name="old_amt"]')?.value); });
+    f.querySelectorAll('.rco-old-row').forEach(tr => {
+      const wt = n(tr.querySelector('[name="old_wt"]')?.value);
+      const less = n(tr.querySelector('[name="old_less"]')?.value);
+      const touch = n(tr.querySelector('[name="old_touch"]')?.value) || 100;
+      const rate = n(tr.querySelector('[name="old_rate"]')?.value);
+      const amtEl = tr.querySelector('[name="old_amt"]');
+      if(amtEl && !amtEl.dataset.manual && wt > 0 && rate > 0){
+        amtEl.value = (Math.round(Math.max(0, wt - less) * (touch / 100) * rate * 100) / 100).toFixed(2);
+      }
+      oldAmt += n(amtEl?.value);
+    });
     let chitAmt = 0;
     f.querySelectorAll('.rco-chit-row').forEach(tr => { chitAmt += n(tr.querySelector('[name="chit_amt"]')?.value); });
     let rcptAmt = 0;
@@ -209,8 +231,19 @@
   window.rcoSaveOrder = (e) => {
     e.preventDefault();
     const f = e.target;
-    const customerId = f.customerId.value;
-    if(!customerId) return say('Please select a Customer.');
+    let customerId = f.customerId?.value || '';
+    const quickName = f.customerName?.value?.trim() || '';
+    const quickMobile = f.customerMobile?.value?.trim() || '';
+    if(!customerId && quickName){
+      if(!Array.isArray(db.customers)) db.customers = [];
+      let match = db.customers.find(c => (quickMobile && String(c.phone||c.mobile||'')===quickMobile) || String(c.name||'').toLowerCase()===quickName.toLowerCase());
+      if(!match){
+        match = { id: crypto.randomUUID(), customerNo: 'C-' + Date.now().toString().slice(-5), name: quickName, phone: quickMobile, mobile: quickMobile, state: 'TAMIL NADU', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        db.customers.push(match);
+      }
+      customerId = match.id;
+    }
+    if(!customerId) return say('Please select a Customer or enter a New / Walk-in Customer Name.');
     const items = [];
     f.querySelectorAll('.rco-order-row').forEach(tr => {
       const pSel = tr.querySelector('[name="item_product"]')?.value || '';
@@ -345,8 +378,64 @@
     o.history = [{ at: new Date().toISOString(), action: 'Converted to Sales Bill', status: 'Closed', by: goldleafContext?.user_email||'Staff' }, ...(o.history||[])];
     saveDoc('retail-order', o);
     localStorage.setItem('goldleaf-pending-order-bill', JSON.stringify(o));
-    say('Order marked as converted. Opening Retail Sales Entry...');
-    if(window.rcOpen) rcOpen('Bill');
+    if(typeof window.rbOpen === 'function') window.rbOpen('Bill');
+    else if(window.rcOpen) rcOpen('Bill');
+    setTimeout(()=>{
+      const f = document.getElementById('customerSaleForm');
+      if(!f) return;
+      if(f.elements.partyId) f.elements.partyId.value = o.customerId || '';
+      if(typeof syncSaleAccount === 'function') syncSaleAccount(f);
+      if(f.elements.reference) f.elements.reference.value = 'Order: ' + o.orderNo;
+      const tb = f.querySelector('#rbItemsTable');
+      if(tb && typeof rbItemMarkup === 'function' && Array.isArray(o.items) && o.items.length){
+        tb.querySelectorAll('.rb-item').forEach(r => r.remove());
+        const mapped = o.items.map((x, i) => rbItemMarkup({
+          product: x.product,
+          huid: x.huid || '',
+          tagCode: x.tagCode || '',
+          metalType: x.ornament === 'Silver' ? 'Silver' : 'Gold',
+          pieces: n(x.qty) || 1,
+          grossWeight: n(x.grossWt),
+          lessWeight: n(x.lessWt),
+          stoneWeight: n(x.stoneWt),
+          netWeight: n(x.netWt),
+          purity: parseFloat(x.skin) || 22,
+          rate: n(x.rate),
+          wastage: n(x.wst),
+          wastageMode: 'percent',
+          makingRate: n(x.mc),
+          makingMode: 'fixed',
+          certificateCharge: n(x.stoneAmt),
+          subtotal: n(x.amount)
+        }, i)).join('');
+        tb.querySelector('tfoot')?.insertAdjacentHTML('beforebegin', mapped);
+      }
+      if(f.elements.discountMode) f.elements.discountMode.value = 'amount';
+      if(f.elements.discountValue) f.elements.discountValue.value = n(o.discount);
+      if(f.elements.gstEnabled) f.elements.gstEnabled.checked = !!o.gstEnabled;
+      if(Array.isArray(o.oldJewels) && o.oldJewels.length && typeof toggleOldGold === 'function'){
+        toggleOldGold(true);
+        const ogContainer = document.getElementById('oldGoldLines');
+        if(ogContainer && typeof exchangeLineMarkup === 'function'){
+          ogContainer.innerHTML = o.oldJewels.map(item => exchangeLineMarkup({
+            product: item.product || 'Old Gold',
+            weight: Math.max(0, n(item.weight) - n(item.less)),
+            purity: 22,
+            testingPurity: n(item.touch || 91.6),
+            rate: n(item.rate || o.goldRate),
+            amount: n(item.amount)
+          })).join('');
+        }
+      }
+      if(n(o.paidAmount) > 0){
+        const dirAmt = f.querySelector('#rbDirectAmount'); if(dirAmt) dirAmt.value = o.paidAmount;
+        const dirRef = f.querySelector('#rbDirectRef'); if(dirRef) dirRef.value = 'Advance from Order ' + o.orderNo;
+        const totIn = f.querySelector('#rbTotalCollectedInput'); if(totIn) totIn.value = o.paidAmount;
+      }
+      if(typeof rbMarkDirty === 'function') rbMarkDirty(f);
+      if(typeof rbRecalc === 'function') rbRecalc(f);
+      say('Order ' + o.orderNo + ' converted into Retail Sales Bill.');
+    }, 60);
   };
 
   function rcoOrderTrackingView(){
@@ -387,10 +476,12 @@
         + '<form id="rcoOrderForm" onsubmit="rcoSaveOrder(event)">'
         + '<section class="rco-section-card"><h3><span>'+(o ? 'Edit Order · '+esc(o.orderNo) : 'Create Order')+'</span><span><button type="button" onclick="rcoOpenDisplayCustomizer()">⚙️ Display</button> <button type="button" onclick="rcoCloseOrderForm()">← Back</button></span></h3><div class="rco-grid">'
         + '<label class="rco-field"><span>Order Date *</span><input name="orderDate" type="date" required value="'+esc(o?.orderDate||todayStr())+'"></label>'
-        + '<label class="rco-field"><span>Customer Name *</span><select name="customerId" required>'+custOpts(o?.customerId)+'</select></label>'
+        + '<label class="rco-field"><span>Customer Name *</span><select name="customerId" onchange="if(this.value){const c=(db.customers||[]).find(x=>x.id===this.value);if(c&&this.form.customerMobile)this.form.customerMobile.value=c.phone||c.mobile||\'\';}">'+custOpts(o?.customerId)+'</select></label>'
+        + '<label class="rco-field"><span>Or Quick Walk-in / New Customer</span><input name="customerName" placeholder="Type name if not in list"></label>'
+        + '<label class="rco-field"><span>Customer Mobile</span><input name="customerMobile" type="tel" placeholder="Mobile number" value="'+esc(((db.customers||[]).find(x=>x.id===o?.customerId)||{}).phone||'')+'"></label>'
         + '<label class="rco-field"><span>Status *</span><select name="status" required>'+opts(['Open','Closed','Cancel'], o?.status||'Open')+'</select></label>'
         + '<label class="rco-field"><span>Delivery Date</span><input name="deliveryDate" type="date" value="'+esc(o?.deliveryDate||'')+'"></label>'
-        + '<label class="rco-field"><span>Gold Rate ₹/g</span><input name="goldRate" type="number" step=".01" value="'+(o?.goldRate||db.rates?.gold22||0)+'"></label>'
+        + '<label class="rco-field"><span>Gold Rate ₹/g</span><input name="goldRate" type="number" step=".01" value="'+(o?.goldRate||defaultGold22Rate())+'"></label>'
         + '<label class="rco-field"><span>Silver Rate ₹/g</span><input name="silverRate" type="number" step=".01" value="'+(o?.silverRate||db.rates?.silver||0)+'"></label>'
         + '<label class="rco-field"><span>Sales Person</span><input name="salesPerson" value="'+esc(o?.salesPerson||'')+'" placeholder="Staff name"></label>'
         + '<label class="rco-field"><span>Order Tracking Ref</span><input name="orderRef" value="'+esc(o?.orderRef||'')+'" placeholder="Ref #"></label>'
