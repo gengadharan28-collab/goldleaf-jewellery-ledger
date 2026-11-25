@@ -72,21 +72,29 @@ function rpPurchaseCalc(items,options={}){
       taxable+=base;tax+=base*r/100;
     }
     taxable+=otherCharges;
-  } else if(kind==='purchase'&&gstEnabled&&rows.some(x=>n(x.gstRate)>0)){
-    const chargeBase=Math.max(0,subtotal-discount+otherCharges);
-    const itemSubtotal=Math.max(0,rows.reduce((sum,x)=>sum+x.subtotal,0));
-    for(const x of rows){
-      const share=itemSubtotal>0?chargeBase*x.subtotal/itemSubtotal:0,r=n(x.gstRate)>0?n(x.gstRate):gstRate,base=inclusive?share/(1+r/100):share;
-      taxable+=base;tax+=base*r/100;
+  } else if(kind==='purchase'&&gstEnabled){
+    const itemValue=Math.max(0,subtotal-discount);
+    const parts=rows.map(row=>({
+      value:subtotal>0?itemValue*row.subtotal/subtotal:0,
+      rate:n(row.gstRate)>0?n(row.gstRate):gstRate
+    }));
+    parts.push({value:n(options.otherCharges),rate:gstRate});
+    for(const charge of extraCharges)parts.push({value:charge.amount,rate:charge.gstRate||gstRate});
+    for(const part of parts){
+      const base=inclusive?part.value/(1+part.rate/100):part.value;
+      taxable+=base;
+      tax+=inclusive?part.value-base:base*part.rate/100;
     }
   } else {
     const after=Math.max(0,subtotal-discount+otherCharges),base=gstEnabled&&inclusive?after/(1+gstRate/100):after;
     taxable=base;tax=gstEnabled?base*gstRate/100:0;
   }
-  taxable=rbRound(taxable);tax=rbRound(tax);
-  let extraTax=0;
-  if(gstEnabled&&!inclusive)extraTax=rbRound(extraCharges.reduce((sum,x)=>sum+x.amount*((x.gstRate||gstRate)-gstRate)/100,0));
-  tax=rbRound(tax+extraTax);
+  taxable=rbRound(taxable);
+  tax=gstEnabled&&inclusive?rbRound(Math.max(0,subtotal-discount+otherCharges)-taxable):rbRound(tax);
+  const extraTax=gstEnabled?rbRound(extraCharges.reduce((sum,charge)=>{
+    const rate=charge.gstRate||gstRate;
+    return sum+(inclusive?charge.amount-charge.amount/(1+rate/100):charge.amount*rate/100);
+  },0)):0;
 
   // TDS (Section 194Q - 0.1% deduction) / TCS (Section 206C(1H) - 0.1% addition)
   const tdsTcsMode=options.tdsTcsMode||'none';
@@ -240,7 +248,7 @@ function rpItemMarkup(item={},index=0,kind='purchase'){
       rpInput('hsn',x.hsn||'','text','placeholder="HSN"'),
       input('quantity','any'),
       select('uom',['pcs','g','kg','service','other'],x.uom||'pcs'),
-      input('rate','.01'),
+      input('rate','any'),
       input('discount','.01'),
       input('gstRate','.01'),
       '<output data-rp-out="subtotal">'+rateMoney(x.subtotal)+'</output>'
@@ -255,7 +263,7 @@ function rpItemMarkup(item={},index=0,kind='purchase'){
       input('meltingLossPercent','.01'),
       input('purity','.01'),
       '<output data-rp-out="pureWeight">'+fmt(x.pureWeight)+'</output>',
-      input('rate','.01'),
+      input('rate','any'),
       input('otherAmount','.01'),
       '<output data-rp-out="subtotal">'+rateMoney(x.subtotal)+'</output>'
     ];
@@ -273,7 +281,7 @@ function rpItemMarkup(item={},index=0,kind='purchase'){
       '<output data-rp-out="pureWeight">'+fmt(x.pureWeight)+'</output>',
       input('wastage','.01'),
       '<output data-rp-out="payablePure">'+fmt(x.payablePure)+'</output>',
-      input('rate','.01'),
+      input('rate','any'),
       '<select data-rp-item="makingMode" aria-label="Making basis">'+[['piece','Per pc'],['gram','Per g'],['fixed','Fixed']].map(([v,label])=>'<option value="'+v+'" '+(v===x.makingMode?'selected':'')+'>'+label+'</option>').join('')+'</select>',
       input('makingRate','.01'),
       input('stoneAmount','.01'),
@@ -319,7 +327,7 @@ window.rpApplyCommonRate=function(){
   const f=document.getElementById('rpDocumentForm'),rate=n(f?.elements.commonRate?.value);
   if(!f||rate<=0)return say('Enter a common rate greater than zero.');
   const perGram=f.elements.commonUnit?.value==='kg'?rate/1000:rate;
-  f.querySelectorAll('.rp-item [data-rp-item="rate"]').forEach(e=>{e.value=perGram.toFixed(2);});
+  f.querySelectorAll('.rp-item [data-rp-item="rate"]').forEach(e=>{e.value=String(Number(perGram.toFixed(8)));});
   rbMarkDirty(f);rpRecalc(f);say('Common rate applied to all purchase items.');
 };
 window.rpRemoveItem=function(button){
@@ -479,7 +487,7 @@ function rpFormView(){
     +rbInput('Counter','counter',x.counter||'Counter 1','text')
     +rbInput('Supplier document date','supplierDate',x.supplierDate||'','date')
     +(kind==='purchase'?rbInput('Expected item rows','expectedRows',x.expectedRows||'','number','min="1" step="1" placeholder="Optional"')
-      +rbInput('Common rate / pure g ₹','commonRate',x.commonRate||'','number','min="0" step=".01" placeholder="Optional"')
+      +rbInput('Common rate ₹','commonRate',x.commonRate||'','number','min="0" step=".01" placeholder="Optional"')
       +'<label class="rb-field"><span>Common rate unit</span><select name="commonUnit">'+rbOptions(['g','kg'],x.commonUnit||'g')+'</select></label>':'');
 
   const content=invoice?rpItemsView(doc,kind):returns?rpReturnView(x,kind):kind==='payment'?rpPaymentView(x):rpConversionView(x);
@@ -531,7 +539,7 @@ function rpFormView(){
     +'<button type="button" onclick="rpSuppliers(\'new\')">＋ Add supplier / seller</button>'
     +'<button type="button" onclick="rpSuppliers(document.getElementById(\'rpDocumentForm\').elements.supplierId.value)">Edit selected supplier</button>'
     +'<button type="button" onclick="rpLedger()">Supplier Ledger</button>'
-    +(kind==='purchase'?'<button type="button" onclick="rpApplyCommonRate()">Apply common rate to items</button>':'')
+    +(kind==='purchase'?'<button type="button" onclick="rpApplyCommonRate()">Apply common rate to all items</button>':'')
     +'</div>'
     +dualBalanceMarkup
     +'</section>'
