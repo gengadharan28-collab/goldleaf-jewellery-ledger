@@ -127,14 +127,66 @@
       ].sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
       content = rows.length ? table(['Date','Vch No.','Vch Type','Ledger Name','Narration','Amount (D)','Amount (C)','Weight (D)','Weight (C)'], rows) : '<p class="empty">No daybook transactions.</p>';
     }
-    else if(name === 'Cashbook & Bankbook'){
-      subToolbar = ['Detailed View','Month Wise','Day Wise'].map(m=>'<button type="button" class="'+(rarState.bookMode===m?'primary':'')+'" onclick="rarState.bookMode=\''+m+'\';render()">'+m+'</button>').join(' ');
-      const entries = [];
-      sales.forEach(s=>{ if(n(s.collectedAmount)>0) entries.push({ dt:String(s.when||'').slice(0,10), no:s.documentNo||s.id.slice(0,8), type:'Sale Receipt', ledger:getCust(s.partyId).name||'Customer', mode:s.collectedMethod||'Cash', dr:n(s.collectedAmount), cr:0 }); });
-      pays.forEach(p=>entries.push({ dt:String(p.when||'').slice(0,10), no:p.id.slice(0,8), type:'Receipt', ledger:getCust(p.partyId).name||'Customer', mode:p.kind||'Cash', dr:n(p.amount), cr:0 }));
-      let run = 0;
-      const rows = entries.sort((a,b)=>a.dt.localeCompare(b.dt)).map(e=>{ run += (e.dr - e.cr); return [esc(e.dt), esc(e.no), esc(e.type), esc(e.ledger), esc(e.mode), rateMoney(e.dr), rateMoney(e.cr), '<b>'+rateMoney(run)+'</b>']; });
-      content = rows.length ? table(['Date','Txn.No','Txn Type','Ledger Name','Mode','Receipt (Dr) ₹','Payment (Cr) ₹','Running Balance ₹'], rows) : '<p class="empty">No cash/bank entries in range.</p>';
+    else if(name === 'Cashbook & Bankbook' || name === 'Cashbook Report' || name === 'Bankbook Report'){
+      const book=name==='Bankbook Report'?'Bank':'Cash';
+      const group=book==='Bank'?'Bank Accounts':'Cash in hand';
+      const bookLedgers=new Map(docs('retail-ledger').filter(l=>l.parentGroup===group).map(l=>[l.id,l]));
+      const entries=[];
+      const add=(date,no,type,ledger,dr,cr,opening=false)=>{
+        const dt=String(date||'').slice(0,10);
+        if(n(dr)||n(cr))entries.push({dt,no,type,ledger,dr:n(dr),cr:n(cr),opening});
+      };
+      for(const ledger of bookLedgers.values()){
+        const amount=n(ledger.openingAmount), credit=ledger.openingSide==='CR';
+        add(ledger.openingEffectiveDate,'','Opening balance',ledger.name,credit?0:amount,credit?amount:0,true);
+      }
+      for(const row of docs('retail-shop-opening')){
+        if(row.category===(book==='Bank'?'Bank':'Cash in hand'))add(row.when,'','Opening balance',row.description,n(row.amount),0,true);
+      }
+      for(const row of docs('retail-account-posting')){
+        if(row.measure!=='Amount')continue;
+        for(const line of row.lines||[]){
+          const ledger=bookLedgers.get(line.ledgerId);
+          if(ledger)add(line.date||row.date,row.number||row.id,row.voucherType,ledger.name,line.debit,line.credit);
+        }
+      }
+      const allSales=(db.sales||[]).filter(row=>row.accountType==='customer');
+      const allPayments=(db.payments||[]).filter(row=>row.accountType==='customer');
+      const matches=method=>book==='Cash'?/^cash$/i.test(String(method).trim()):/^(?:bank(?: transfer)?|upi|gpay|google pay|phonepe|card|debit card|credit card|cheque|check|neft|rtgs|imps)$/i.test(String(method).trim());
+      for(const sale of allSales){
+        const collections=sale.collections?.length?sale.collections:[{method:sale.collectedMethod||'Cash',amount:sale.collectedAmount}];
+        for(const payment of collections)if(matches(payment.method))add(sale.when||sale.createdAt,sale.documentNo||sale.id,'Sale receipt',getCust(sale.partyId).name||'Customer',payment.amount,0);
+      }
+      for(const payment of allPayments){
+        if(matches(payment.method||payment.kind||'Cash'))add(payment.when||payment.createdAt,payment.reference||payment.id,'Receipt',getCust(payment.partyId).name||'Customer',payment.amount,0);
+      }
+      subToolbar=['Detailed View','Month Wise','Day Wise'].map(m=>'<button type="button" class="'+(rarState.bookMode===m?'primary':'')+'" onclick="rarState.bookMode=\''+m+'\';render()">'+m+'</button>').join(' ');
+      const opening=entries.filter(e=>(!e.dt&&e.opening)||(rarState.from&&e.dt&&e.dt<rarState.from)).reduce((sum,e)=>sum+e.dr-e.cr,0);
+      const period=entries.filter(e=>e.dt&&inRange(e.dt)).sort((a,b)=>a.dt.localeCompare(b.dt));
+      let running=opening;
+      const summary=rarState.bookMode!=='Detailed View';
+      const grouped=new Map();
+      if(summary)for(const entry of period){
+        const key=entry.dt.slice(0,rarState.bookMode==='Month Wise'?7:10);
+        const group=grouped.get(key)||{dt:key,dr:0,cr:0};
+        group.dr+=entry.dr;group.cr+=entry.cr;grouped.set(key,group);
+      }
+      const heads=summary?['Period']:['Date','Txn No.','Type','Ledger'];
+      const rows=(summary?[...grouped.values()]:period).map(e=>{
+        running+=e.dr-e.cr;
+        return [...(summary?[esc(e.dt)]:[esc(e.dt),esc(e.no||'—'),esc(e.type||'—'),esc(e.ledger||'—')]),rateMoney(e.dr),rateMoney(e.cr),rateMoney(running)];
+      });
+      content='<p>Opening balance <b>'+rateMoney(opening)+'</b> · Closing balance <b>'+rateMoney(running)+'</b></p>'
+        +(rows.length?table([...heads,'Receipt ₹','Payment ₹','Closing ₹'],rows):'<p class="empty">No entries in this period.</p>');
+    }
+    else if(name === 'Bill Entry Report'){
+      const ledgers=new Map(docs('retail-ledger').map(ledger=>[ledger.id,ledger.name]));
+      const rows=docs('retail-account-posting').filter(entry=>entry.voucherType==='Bill Entry'&&inRange(entry.date))
+        .sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+        .map(entry=>[esc(entry.date||'—'),esc(entry.billNumber||entry.number||'—'),esc(entry.direction||'—'),
+          esc(ledgers.get(entry.source)||'—'),esc(ledgers.get(entry.destination)||'—'),rateMoney(n(entry.amount)),
+          esc(entry.dueDate||'—'),esc(entry.billStatus||'—'),esc(entry.description||'—')]);
+      content=rows.length?table(['Date','Bill no. / reference','Type','From','To','Amount ₹','Due date','Status','Narration'],rows):'<p class="empty">No bill entries in this period.</p>';
     }
     else if(name === 'Outstanding Report'){
       const rows = custs.map(c => {
@@ -282,7 +334,9 @@
       ['Accounts, Books & Financial Statements', [
         ['Trial Balance / Balance Sheet / P&L', "rgaState.mainTab='Accounts & Reports';go('Parent Group')"],
         ['DayBook Report (V1–V4)', "rarOpen('DayBook Report')"],
-        ['Cashbook & Bankbook', "rarOpen('Cashbook & Bankbook')"],
+        ['Cashbook Report', "rarOpen('Cashbook Report')"],
+        ['Bankbook Report', "rarOpen('Bankbook Report')"],
+        ['Bill Entry Report', "rarOpen('Bill Entry Report')"],
         ['Outstanding Report', "rarOpen('Outstanding Report')"],
         ['Advance Amount Report', "rarOpen('Advance Amount Report')"],
         ['Expense & Custom Ledgers', "rarOpen('Expense & Custom Ledgers')"]
