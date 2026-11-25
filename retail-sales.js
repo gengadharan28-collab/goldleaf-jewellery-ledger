@@ -751,6 +751,19 @@ window.rbOpenReturnPanel=function(button){
       };
       const clearButton=actionButton('Clear',()=>startNew(false));
       const addButton=actionButton('Add Return',()=>startNew(true));
+      actions.classList.add('rc-og-actions-bar');
+      for(const [control,kind,icon,label] of [
+        [editButton,'edit','✎','Edit'],
+        [saveButton,'save','💾','Save'],
+        [addButton,'add','＋','Add Return'],
+        [clearButton,'clear','✕','Clear']
+      ]){
+        control.classList.add('rc-og-btn','rc-og-btn-'+kind);
+        const glyph=document.createElement('span');
+        glyph.setAttribute('aria-hidden','true');
+        glyph.textContent=icon;
+        control.replaceChildren(glyph,document.createTextNode(' '+label));
+      }
       actions.replaceChildren(editButton,saveButton,addButton,clearButton);
     }
   };
