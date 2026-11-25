@@ -370,18 +370,42 @@
   }
   window.rgaAddJournalRow=button=>button.previousElementSibling.insertAdjacentHTML('beforeend',journalRow());
 
+  function expenseLedgers(rows){
+    const groups=new Set(window.rgaAllAccountingGroups().flat.filter(group=>group.type==='EXPENSE').map(group=>group.name));
+    return rows.filter(ledger=>groups.has(ledger.parentGroup));
+  }
+  function expenseRow(row={},ledgers=expenseLedgers(retailLedgers().filter(ledger=>!ledger.disabled))){
+    return '<div class="rco-grid" data-expense-row>'
+      +postingLedger('Expense ledger','expenseLedger',ledgers,row.ledgerId)
+      +postingInput('Expense type','expenseDetail',row.detail,'text','required')
+      +postingInput('Amount · ₹','expenseAmount',row.amount,'number','min=".01" step=".01" required')
+      +postingInput('Expense date','expenseDate',row.date||rbNow().slice(0,10),'date','required')
+      +'<button type="button" onclick="rgaRemoveExpenseRow(this)">Remove row</button></div>';
+  }
+  window.rgaAddExpenseRow=button=>button.previousElementSibling.insertAdjacentHTML('beforeend',expenseRow());
+  window.rgaRemoveExpenseRow=button=>{
+    const row=button.closest('[data-expense-row]');
+    if(row.parentElement.children.length>1)row.remove();
+  };
+
   function postingView(tab){
     const rows=docs(postingKind).filter(row=>row.voucherType===tab).sort((a,b)=>b.date.localeCompare(a.date));
     const entry=rows.find(row=>row.id===rgaState.postingEditId)||{};
     const active=retailLedgers().filter(l=>!l.disabled||entry.lines?.some(row=>row.ledgerId===l.id));
     const cash=cashBank(active);
-    const expenses=active.filter(l=>window.rgaAllAccountingGroups().flat.some(group=>group.name===l.parentGroup&&group.type==='EXPENSE'));
+    const expenses=expenseLedgers(active);
     const number=postingInput('Entry number','number',entry.number,'text','maxlength="50" placeholder="Automatic"');
     let fields='';
     if(tab==='Journal Entry'){
       fields=postingField('Type','<select name="measure">'+opts(['Amount','Gold weight','Silver weight'],entry.measure||'Amount')+'</select>')
         +'<div style="grid-column:1/-1" data-journal-lines>'+(entry.lines||[{},{}]).map(journalRow).join('')+'</div>'
         +'<button type="button" onclick="rgaAddJournalRow(this)">＋ Add ledger row</button>';
+    }else if(tab==='Expenses'){
+      const expenseItems=entry.expenseItems||(entry.id?[{ledgerId:entry.destination,detail:entry.detail,amount:entry.amount,date:entry.date}]:[{}]);
+      fields='<div style="grid-column:1/-1" data-expense-lines>'+expenseItems.map(row=>expenseRow(row,expenses)).join('')+'</div>'
+        +'<button type="button" onclick="rgaAddExpenseRow(this)">＋ Add expense</button>'
+        +postingLedger('Paid from','source',cash,entry.source)
+        +postingField('Payment mode','<select name="paymentMode">'+opts(['Cash','Bank transfer','Cheque','UPI','Card'],entry.paymentMode||'Cash')+'</select>');
     }else{
       const types=tab==='Contra Entry'?transferTypes:tab==='Bill Entry'?['Receipt','Payment']:['Expense'];
       fields=postingField('Transaction type','<select name="direction">'+opts(types,entry.direction||types[0])+'</select>')
@@ -413,12 +437,25 @@
     const scale=measure==='Amount'?100:1000;
     const unit=x=>Math.round(n(x)*scale);
     const ledgers=retailLedgers(),byId=id=>ledgers.find(l=>l.id===id);
-    let lines=[];
+    let lines=[],expenseItems;
     if(voucherType==='Journal Entry'){
       lines=[...form.querySelectorAll('[data-journal-row]')].map(row=>{
         const field=name=>row.querySelector('[name="'+name+'"]');
         return {ledgerId:field('ledgerId').value,debit:unit(field('debit').value),credit:unit(field('credit').value),remarks:field('lineRemarks').value.trim(),advance:field('lineAdvance').checked};
       });
+    }else if(voucherType==='Expenses'){
+      const source=byId(v.source);
+      if(!source||!cashBank([source]).length)return say('Choose a cash or bank payment ledger.');
+      const allowed=new Set(expenseLedgers(ledgers).map(ledger=>ledger.id));
+      expenseItems=[...form.querySelectorAll('[data-expense-row]')].map(row=>{
+        const field=name=>row.querySelector('[name="'+name+'"]').value;
+        return {ledgerId:field('expenseLedger'),detail:field('expenseDetail').trim(),amount:unit(field('expenseAmount'))/scale,date:field('expenseDate')};
+      });
+      if(!expenseItems.length||expenseItems.some(row=>!allowed.has(row.ledgerId)||row.amount<=0||!row.date||!row.detail))return say('Complete the ledger, type, date and amount on every expense row.');
+      lines=expenseItems.flatMap(row=>[
+        {ledgerId:row.ledgerId,debit:unit(row.amount),credit:0,date:row.date,remarks:row.detail},
+        {ledgerId:source.id,debit:0,credit:unit(row.amount),date:row.date,remarks:row.detail}
+      ]);
     }else{
       const source=byId(v.source),destination=byId(v.destination);
       const amount=unit(v.amount);
@@ -441,7 +478,7 @@
     if(docs(postingKind).some(row=>row.id!==id&&row.number.toLowerCase()===number.toLowerCase()))return say('That entry number already exists.');
     const saved={id,kind:postingKind,accountType:'customer',voucherType,measure,total:debit/scale,date:v.date,number,
       source:v.source,destination:v.destination,amount:n(v.amount),direction:v.direction,description:v.description.trim(),detail:v.detail,
-      dueDate:v.dueDate,attendedBy:v.attendedBy,paymentMode:v.paymentMode,
+      dueDate:v.dueDate,attendedBy:v.attendedBy,paymentMode:v.paymentMode,expenseItems,
       lines:lines.map(row=>({...row,debit:row.debit/scale,credit:row.credit/scale})),createdAt:old?.createdAt||now,updatedAt:now};
     if(old)db.retailDocuments[db.retailDocuments.indexOf(old)]=saved;
     else db.retailDocuments.push(saved);
@@ -492,8 +529,9 @@
       addLine(row.description,row.category==='Bank'?bankGroup:cashGroup,n(row.amount),0);
     }
     const postingLedgers=retailLedgers();
-    docs(postingKind).filter(row=>row.date<=asOf).forEach(row=>{
+    docs(postingKind).forEach(row=>{
       for(const entry of row.lines||[]){
+        if((entry.date||row.date)>asOf)continue;
         const ledger=postingLedgers.find(item=>item.id===entry.ledgerId);
         if(!ledger)continue;
         if(row.measure==='Amount')addLine(ledger.name,ledger.parentGroup,entry.debit,entry.credit);
