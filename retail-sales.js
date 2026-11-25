@@ -693,6 +693,7 @@ window.rbOpenReturnPanel=function(button){
     #glSalesReturnPanel.rc-sales-return-dropdown .rb-wide{grid-column:auto!important}
     #glSalesReturnPanel.rc-sales-return-dropdown .right{display:flex!important;gap:5px!important;margin:4px 0 0!important}
     #glSalesReturnPanel.rc-sales-return-dropdown .right button{height:30px!important;min-height:30px!important;margin:0!important}
+    #glSalesReturnPanel .rb-quote-return-actions button{min-width:0!important;width:100%;white-space:nowrap;padding:2px 3px!important;font-size:11px!important}
     #glSalesReturnPanel label[hidden]{display:none!important}
   </style>`);
   const picker=section.querySelector('[data-return-edit]');
@@ -733,7 +734,8 @@ window.rbOpenReturnPanel=function(button){
         grid.append(pair);
         pair.append(reason,notes);
       }
-      actions.style.flexWrap='wrap';
+      actions.style.cssText='display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important';
+      actions.classList.add('rb-quote-return-actions');
       const actionButton=(label,action)=>{
         const control=document.createElement('button');
         control.type='button';
