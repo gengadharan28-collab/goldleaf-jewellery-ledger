@@ -734,7 +734,7 @@ window.rbOpenReturnPanel=function(button){
         grid.append(pair);
         pair.append(reason,notes);
       }
-      actions.style.cssText='display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important';
+      actions.style.cssText='display:flex!important;flex-flow:row nowrap!important;align-items:center!important;justify-content:space-between!important;gap:3px!important;width:100%;overflow-x:auto';
       actions.classList.add('rb-quote-return-actions');
       const actionButton=(label,action)=>{
         const control=document.createElement('button');
@@ -759,8 +759,11 @@ window.rbOpenReturnPanel=function(button){
         [clearButton,'clear','✕','Clear']
       ]){
         control.classList.add('rc-og-btn','rc-og-btn-'+kind);
+        control.style.cssText='display:inline-flex!important;flex:1 0 auto!important;width:auto!important;min-width:0!important;align-items:center!important;justify-content:center!important;gap:2px!important;white-space:nowrap!important;padding:2px 4px!important;font-size:11px!important';
+
         const glyph=document.createElement('span');
         glyph.setAttribute('aria-hidden','true');
+        glyph.style.display='inline';
         glyph.textContent=icon;
         control.replaceChildren(glyph,document.createTextNode(' '+label));
       }
