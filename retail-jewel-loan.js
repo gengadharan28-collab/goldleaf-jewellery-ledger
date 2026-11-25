@@ -34,7 +34,7 @@
   }
   function navigation(){
     document.querySelectorAll('[data-retail-loan-nav]').forEach(button=>button.remove());
-    if(!allowed||!currentShop())return;
+    if(!allowed||!currentShop()||shop!==currentShop())return;
     for(const parent of [document.getElementById('nav'),document.getElementById('moreMenu')]){
       if(!parent)continue;
       const button=document.createElement('button');
@@ -86,7 +86,7 @@
   };
   const previous=window.render;
   window.render=function(){
-    if(page===title&&(!currentShop()||!allowed))page='Dashboard';
+    if(page===title&&(!currentShop()||!allowed||shop!==currentShop()))page='Dashboard';
     const result=previous.apply(this,arguments);
     if(page===title&&allowed&&currentShop()){const root=document.getElementById('app');if(root)root.innerHTML=intake();}
     navigation();
