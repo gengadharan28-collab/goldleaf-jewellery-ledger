@@ -705,8 +705,17 @@ window.glShowUpdateSuccessMessage = function(ver) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js', { scope: './' }).then(reg => {
+    navigator.serviceWorker.register('./service-worker.js', { scope: './', updateViaCache: 'none' }).then(reg => {
       window.glSwRegistration = reg;
+      let lastUpdateCheck=0;
+      function checkForGoldleafUpdate(){
+        if(document.visibilityState!=='visible'||!navigator.onLine||Date.now()-lastUpdateCheck<30000)return;
+        lastUpdateCheck=Date.now();
+        reg.update().catch(()=>{});
+      }
+      document.addEventListener('visibilitychange',checkForGoldleafUpdate);
+      window.addEventListener('online',checkForGoldleafUpdate);
+      setInterval(checkForGoldleafUpdate,60000);
       if (reg.waiting) {
         window.glPendingWorker = reg.waiting;
         glUpdateAvailable = true;
