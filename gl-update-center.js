@@ -313,18 +313,22 @@
     }
   }
 
+  function isUpdateHistoryPage() {
+    return (typeof page !== 'undefined' && page === 'Update History') || !!document.getElementById('glReleaseTimeline');
+  }
+
   window.glCheckForUpdate = async function (manual = false) {
     if (updateState.status === 'checking') return;
     if (!navigator.onLine) {
       updateState.status = 'offline';
       updateState.lastCheckedAt = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       if (manual && typeof window.say === 'function') window.say('You are offline. Connect to internet to check for updates.');
-      if (window.page === 'Update History') render();
+      if (isUpdateHistoryPage()) render();
       return;
     }
 
     updateState.status = 'checking';
-    if (manual && window.page === 'Update History') render();
+    if (manual && isUpdateHistoryPage()) render();
 
     try {
       if ('serviceWorker' in navigator) {
@@ -367,12 +371,12 @@
         window.say('You are on the latest Goldleaf version (v' + CURRENT_VERSION + ').');
       }
     }
-    if (window.page === 'Update History') render();
+    if (isUpdateHistoryPage()) render();
   };
 
   window.glSetUpdateFilter = function (category) {
     updateState.category = category || 'All Releases';
-    if (window.page === 'Update History') render();
+    if (isUpdateHistoryPage()) render();
   };
 
   window.glSetUpdateSearch = function (val) {
