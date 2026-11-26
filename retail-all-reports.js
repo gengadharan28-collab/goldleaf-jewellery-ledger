@@ -2743,7 +2743,7 @@
     {
       heading: 'Directory & Books',
       items: [
-        ['All Directory (132)', "rarOpenFromSidebar('All','')"],
+        ['All Directory (129)', "rarOpenFromSidebar('All','')"],
         ['DayBook Report (V1–V4)', "rarOpenFromSidebar('Accounts & Books','DayBook Report','V2')"],
         ['DayBook Abstract', "rarOpenFromSidebar('Accounts & Books','DayBook Abstract')"],
         ['Bill Entry Report', "rarOpenFromSidebar('Accounts & Books','Bill Entry Report')"],
@@ -2843,5 +2843,10 @@
       rarNavigation();
       return r;
     };
+  }
+  if (typeof page !== 'undefined' && (page === 'Reports' || page === 'Chit Reports') && typeof window.render === 'function') {
+    window.render();
+  } else {
+    rarNavigation();
   }
 })();
