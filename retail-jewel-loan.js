@@ -22,7 +22,7 @@
   async function checkAccess(force=false){
     const target=currentShop();
     if(target!==shop){shop=target;allowed=false;drafts=[];checkedAt=0;creating=false;filters=emptyFilters();selectedDraft=null;shown=new Set(defaultLoanColumns);subTab='Drafts';editTxId='';}
-    if(!target||!client)return false;
+    if(!target||!client||target==='demo-shop-1'||(typeof platformIsDemo==='function'&&platformIsDemo()))return false;
     if(!force&&(checking||Date.now()-checkedAt<30000))return allowed;
     checking=true;
     try{

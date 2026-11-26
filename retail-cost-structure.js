@@ -341,7 +341,7 @@
     const more = document.getElementById('moreMenu');
     if(more) more.querySelectorAll('[data-rcs-nav]').forEach(b=>b.remove());
     if(!session || !goldleafContext?.has_access || workspaceMode !== 'retail') return;
-    const anchor = nav.querySelector('[data-rga-sidebar="Parent Group"]') || nav.querySelector('[data-rc-sidebar="Products"]') || nav.firstElementChild;
+    const anchor = nav.querySelector('[data-rga-sub="1"]') || nav.querySelector('[data-rga-sidebar="Parent Group"]') || nav.querySelector('[data-rc-sidebar="Products"]') || nav.firstElementChild;
     const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.rcsSidebar = 'Cost Structure';
     btn.setAttribute('aria-label', 'Cost Structure'); btn.title = 'Cost Structure';
     btn.classList.toggle('active', page === 'Cost Structure');

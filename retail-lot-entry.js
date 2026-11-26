@@ -1,5 +1,6 @@
 /* Retail Lot Entry: Connects incoming product/group quantities to generated tags under Stock & Tagging. */
 let rvLotTab = 'list', rvLotEdit = '', rvLotSearch = '', rvLotFrom = '', rvLotTo = '', rvLotStatusFilter = '';
+let rvLotDetailMode = false, rvLotHiddenCols = new Set();
 const rvLots = () => rcDocs('retail-lot');
 window.rvLots = rvLots;
 
@@ -46,7 +47,6 @@ function rvLotTotals(lot) {
   };
 }
 
-// End-to-end Lot -> Generate Tags workflow!
 window.rvGenerateTagsFromLot = function(lotId) {
   const lot = rvLots().find(l => l.id === lotId);
   if (!lot) return say('Lot not found.');
@@ -81,6 +81,7 @@ window.rvGenerateTagsFromLot = function(lotId) {
     }
   }
   rcTagEdit = '';
+  if (window.rvToggleTagCreate) window.rvToggleTagCreate(true, true);
   if (window.rvStockOpen) window.rvStockOpen('tagging');
   else if (window.rcOpenStandalone) window.rcOpenStandalone('Tagging');
   setTimeout(() => {
@@ -96,7 +97,7 @@ window.rvGenerateTagsFromLot = function(lotId) {
       box.querySelectorAll('.rc-tag-row').forEach(r => window.rcTagCalcRow?.(r));
     }
     f.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    say('Loaded lot ' + lot.entryNo + ' (' + tagItems.length + ' tag rows) into Tagging.');
+    say('Loaded lot ' + lot.entryNo + ' (' + tagItems.length + ' tag rows) into Tagging :: Create.');
   }, 40);
 };
 
@@ -115,9 +116,26 @@ window.rvLotDeleteRow = function(id) {
   say('Lot ' + lot.entryNo + ' deleted.');
 };
 
-function rvLotNav() {
-  return '<nav class="rv-tag-nav" aria-label="Lot Entry views"><button type="button" class="' + (rvLotTab === 'list' ? 'active' : '') + '" onclick="rvLotOpen(\'list\')">Lot Entry :: Lists</button><button type="button" class="' + (rvLotTab === 'create' ? 'active' : '') + '" onclick="rvLotOpen(\'create\')">＋ Create Lot</button></nav>';
+window.rvToggleLotCol = function(col, checked) {
+  if (checked) rvLotHiddenCols.delete(col); else rvLotHiddenCols.add(col);
+  rvLotRefresh();
+  document.getElementById('rvLotColPicker')?.setAttribute('open', '');
+};
+
+function rvLotColFilteredTable(heads, rows, footRow) {
+  const keep = heads.map((h, idx) => !rvLotHiddenCols.has(h) ? idx : -1).filter(i => i >= 0);
+  const fHeads = keep.map(i => heads[i]);
+  const fRows = rows.map(r => keep.map(i => r[i]));
+  const colMenu = '<details id="rvLotColPicker" style="position:relative;display:inline-block"><summary class="gl-dt-btn" style="padding:5px 10px;font-size:12px;cursor:pointer;white-space:nowrap">Display Columns (' + fHeads.length + '/' + heads.length + ')</summary><div style="position:absolute;right:0;z-index:40;min-width:210px;max-height:260px;overflow:auto;padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--white,#fff);box-shadow:0 8px 24px rgba(0,0,0,.14);display:grid;gap:5px">'
+    + heads.map(h => '<label style="font-size:12px;display:flex;align-items:center;gap:6px;min-width:0"><input type="checkbox" ' + (!rvLotHiddenCols.has(h) ? 'checked' : '') + ' onchange="rvToggleLotCol(\'' + esc(h) + '\',this.checked)"> ' + esc(h) + '</label>').join('')
+    + '</div></details>';
+  const tbl = fRows.length ? '<div class="rv-table-wrap"><table class="rv-table"><thead><tr>' + fHeads.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>'
+    + fRows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('')
+    + (footRow ? '</tbody><tfoot><tr>' + keep.map(i => '<th>' + (footRow[i] ?? '') + '</th>').join('') + '</tr></tfoot>' : '</tbody>')
+    + '</table></div>' : '<p class="rv-no-tags">No lot entries found. Click ＋ Create to record incoming jewellery lots.</p>';
+  return { colMenu, tbl };
 }
+
 function rvLotList() {
   const rows = rvLots().filter(l => {
     const q = [l.entryNo, l.ledgerName, l.remarks, ...(l.items || []).map(i => i.group + ' ' + i.product)].join(' ').toLowerCase();
@@ -131,25 +149,49 @@ function rvLotList() {
   const tagQty = rows.reduce((a, l) => a + rvLotTotals(l).tagQty, 0);
   const tagWeight = rows.reduce((a, l) => a + rvLotTotals(l).tagWeight, 0);
 
-  return rvLotNav() + '<section class="panel"><div class="rc-section-title"><div><h2>Lot Entry :: Lists</h2><p class="muted">Compare entered lots with generated tags, or generate a tag batch directly from any open lot.</p></div><button class="primary" type="button" onclick="rvLotOpen(\'create\')">＋ Create new</button></div>'
-    + '<div class="rv-summary"><div class="rv-stat"><small>Lot quantity</small><b>' + qty + ' pcs</b><span>' + rvLotFixed(weight) + ' g</span></div><div class="rv-stat"><small>Tagged quantity</small><b>' + tagQty + ' pcs</b><span>' + rvLotFixed(tagWeight) + ' g</span></div><div class="rv-stat"><small>Pending to tag</small><b>' + (qty - tagQty) + ' pcs</b><span>' + rvLotFixed(weight - tagWeight) + ' g</span></div><div class="rv-stat"><small>Lots</small><b>' + rows.length + '</b><span>Matching filters</span></div></div>'
-    + '<div class="rv-filters"><label>Search<input type="search" value="' + esc(rvLotSearch) + '" onchange="rvLotSearch=this.value;rvLotRefresh()" placeholder="Entry no, supplier or product"></label><label>From date<input type="date" value="' + esc(rvLotFrom) + '" onchange="rvLotFrom=this.value;rvLotRefresh()"></label><label>To date<input type="date" value="' + esc(rvLotTo) + '" onchange="rvLotTo=this.value;rvLotRefresh()"></label><label>Status<select onchange="rvLotStatusFilter=this.value;rvLotRefresh()"><option value="">All</option><option ' + (rvLotStatusFilter === 'Open' ? 'selected' : '') + '>Open</option><option ' + (rvLotStatusFilter === 'Closed' ? 'selected' : '') + '>Closed</option></select></label><button type="button" onclick="rvLotSearch=rvLotFrom=rvLotTo=rvLotStatusFilter=\'\';rvLotRefresh()">Reset</button><button type="button" onclick="rvLotExport()">CSV</button><button type="button" onclick="window.print()">Print / PDF</button></div>'
-    + (rows.length ? '<div class="rv-table-wrap"><table class="rv-table"><thead><tr><th>Entry no</th><th>Date</th><th>Ledger / Supplier</th><th>Qty</th><th>Weight g</th><th>Tags</th><th>Tag qty</th><th>Tag wt g</th><th>Diff qty</th><th>Diff wt g</th><th>Amount ₹</th><th>Status</th><th>Actions</th></tr></thead><tbody>'
-      + rows.map(l => {
-        const t = rvLotTotals(l);
-        return '<tr><td><b>' + esc(l.entryNo) + '</b></td><td>' + esc(l.date) + '</td><td>' + esc(l.ledgerName) + '</td><td>' + t.qty + '</td><td>' + rvLotFixed(t.weight) + '</td><td>' + t.tags + '</td><td>' + t.tagQty + '</td><td>' + rvLotFixed(t.tagWeight) + '</td><td>' + (t.qty - t.tagQty) + '</td><td>' + rvLotFixed(t.weight - t.tagWeight) + '</td><td>' + rvLotMoney(t.amount) + '</td><td>' + esc(l.status || 'Open') + '</td><td style="white-space:nowrap"><button type="button" class="primary" onclick="rvGenerateTagsFromLot(\'' + esc(l.id) + '\')">＋ Tag Lot</button> ' + (!l.openingId ? '<button type="button" onclick="rvLotEditRow(\'' + esc(l.id) + '\')">Edit</button> ' : '') + '<button type="button" class="rb-delete-btn" onclick="rvLotDeleteRow(\'' + esc(l.id) + '\')">Delete</button></td></tr>';
-      }).join('')
-      + '</tbody><tfoot><tr><th>TOTAL · ' + rows.length + '</th><th colspan="2"></th><th>' + qty + '</th><th>' + rvLotFixed(weight) + '</th><th></th><th>' + tagQty + '</th><th>' + rvLotFixed(tagWeight) + '</th><th>' + (qty - tagQty) + '</th><th>' + rvLotFixed(weight - tagWeight) + '</th><th colspan="3"></th></tr></tfoot></table></div>' : '<p class="rv-no-tags">No lot entries found. Click ＋ Create new to record incoming jewellery lots.</p>') + '</section>';
+  let heads, dataRows, footRow;
+  if (rvLotDetailMode) {
+    heads = ['Entry No','Entry Date','Ledger','Product Group','Product Name','Qty','Weight','Touch %','Rate','Wastage %','MC','Amount ₹','Status','Actions'];
+    dataRows = rows.flatMap(l => (l.items || [{}]).map(it => [
+      '<b>' + esc(l.entryNo) + '</b>', esc(l.date), esc(l.ledgerName), esc(it.group || '—'), '<b>' + esc(it.product || '—') + '</b>',
+      rvLotNumber(it.qty), rvLotFixed(it.weight), rvLotNumber(it.touch) ? rvLotNumber(it.touch) + '%' : '—',
+      rvLotMoney(it.rate), rvLotNumber(it.wastage) + '%', rvLotMoney(it.mc), rvLotMoney(it.amount), esc(l.status || 'Open'),
+      '<button type="button" class="primary" onclick="rvGenerateTagsFromLot(\'' + esc(l.id) + '\')">＋ Tag</button>'
+    ]));
+    footRow = ['TOTAL (' + dataRows.length + ' items)','','','','',qty,rvLotFixed(weight),'','','','','','',''];
+  } else {
+    heads = ['Entry No','Entry Date','Ledger','Qty','Weight','Total Tags','Total Tag Qty','Total Tag Wt','Difference Qty','Difference Wt','Amount ₹','Reference Object','Remarks','Updated On','Status','Actions'];
+    dataRows = rows.map(l => {
+      const t = rvLotTotals(l);
+      return [
+        '<b>' + esc(l.entryNo) + '</b>', esc(l.date), esc(l.ledgerName), t.qty, rvLotFixed(t.weight),
+        t.tags, t.tagQty, rvLotFixed(t.tagWeight), t.qty - t.tagQty, rvLotFixed(t.weight - t.tagWeight),
+        rvLotMoney(t.amount), esc(l.openingId ? 'Opening Stock' : (l.entryType || 'Lot')), esc(l.remarks || '—'),
+        esc(String(l.updatedAt || l.createdAt || '').slice(0, 10)), esc(l.status || 'Open'),
+        '<span style="white-space:nowrap"><button type="button" class="primary" onclick="rvGenerateTagsFromLot(\'' + esc(l.id) + '\')">＋ Tag Lot</button> '
+        + (!l.openingId ? '<button type="button" onclick="rvLotEditRow(\'' + esc(l.id) + '\')">Edit</button> ' : '')
+        + '<button type="button" class="rb-delete-btn" onclick="rvLotDeleteRow(\'' + esc(l.id) + '\')">Delete</button></span>'
+      ];
+    });
+    footRow = ['TOTAL · ' + rows.length,'','',qty,rvLotFixed(weight),'',tagQty,rvLotFixed(tagWeight),(qty - tagQty),rvLotFixed(weight - tagWeight),'','','','','',''];
+  }
+
+  const { colMenu, tbl } = rvLotColFilteredTable(heads, dataRows, footRow);
+
+  return '<section class="panel"><div class="rc-section-title" style="flex-wrap:wrap;gap:8px"><div><h2>Lot Entry :: ' + (rvLotDetailMode ? 'Detail Lists' : 'Lists') + ' (' + rows.length + ')</h2><p class="muted">Compare entered lots with generated tags, switch to Detail Lists, or click ＋ Tag Lot.</p></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" class="' + (rvLotDetailMode ? 'primary' : '') + '" onclick="rvLotDetailMode=!rvLotDetailMode;rvLotHiddenCols.clear();rvLotRefresh()">' + (rvLotDetailMode ? 'Summary Lists' : 'Detail Lists') + '</button>' + colMenu + '<button type="button" onclick="rvLotExport()">Export CSV</button><button type="button" onclick="window.print()">Print</button><button class="primary" type="button" onclick="rvLotOpen(\'create\')">＋ Create</button></div></div>'
+    + '<div class="rv-filters"><label>Search<input type="search" value="' + esc(rvLotSearch) + '" onchange="rvLotSearch=this.value;rvLotRefresh()" placeholder="Entry no, ledger or product"></label><label>From date<input type="date" value="' + esc(rvLotFrom) + '" onchange="rvLotFrom=this.value;rvLotRefresh()"></label><label>To date<input type="date" value="' + esc(rvLotTo) + '" onchange="rvLotTo=this.value;rvLotRefresh()"></label><label>Status<select onchange="rvLotStatusFilter=this.value;rvLotRefresh()"><option value="">All</option><option ' + (rvLotStatusFilter === 'Open' ? 'selected' : '') + '>Open</option><option ' + (rvLotStatusFilter === 'Closed' ? 'selected' : '') + '>Closed</option></select></label><button type="button" onclick="rvLotSearch=rvLotFrom=rvLotTo=rvLotStatusFilter=\'\';rvLotHiddenCols.clear();rvLotRefresh()">Reset</button></div>'
+    + tbl + '</section>';
 }
 function rvLotInput(label, key, value, type = 'text', extra = '') { return '<label>' + label + '<input data-lot="' + key + '" type="' + type + '" value="' + esc(value ?? '') + '" ' + extra + '></label>'; }
 function rvLotRow(x = {}, i = 0) {
   const groups = rvProductGroups(), products = rvProducts(x.group), options = (xs, v) => '<option value="">Select</option>' + xs.map(a => '<option ' + (a === v ? 'selected' : '') + '>' + esc(a) + '</option>').join('');
-  return '<div class="rv-lot-row" data-lot-row><div class="rv-lot-row-head"><b>Item ' + (i + 1) + '</b><button type="button" class="rb-delete-btn" onclick="rvLotRemove(this)">Remove</button></div><div class="rv-lot-fields"><label>Product group *<select data-lot="group" required onchange="rvLotGroup(this)">' + options(groups, x.group) + '</select></label><label>Product name<select data-lot="product" onchange="rvLotCalc()">' + options(products, x.product) + '</select></label>' + rvLotInput('Qty *', 'qty', x.qty || 1, 'number', 'min="1" step="1" required oninput="rvLotCalc()"') + rvLotInput('Weight g *', 'weight', x.weight || '', 'number', 'min="0" step=".001" required oninput="rvLotCalc()"') + rvLotInput('Touch %', 'touch', x.touch || '', 'number', 'min="0" max="100" step=".01" oninput="rvLotCalc()"') + rvLotInput('Rate ₹/g', 'rate', x.rate || '', 'number', 'min="0" step=".01" oninput="rvLotCalc()"') + rvLotInput('Wastage %', 'wastage', x.wastage || 0, 'number', 'min="0" max="100" step=".01" oninput="rvLotCalc()"') + rvLotInput('MC ₹', 'mc', x.mc || 0, 'number', 'min="0" step=".01" oninput="rvLotCalc()"') + rvLotInput('Amount ₹', 'amount', x.amount || '', 'number', 'min="0" step=".01" oninput="this.dataset.manual=\'1\';rvLotCalc()"') + '</div></div>';
+  return '<div class="rv-lot-row" data-lot-row><div class="rv-lot-row-head"><b>No. ' + (i + 1) + '</b><button type="button" class="rb-delete-btn" onclick="rvLotRemove(this)">Remove</button></div><div class="rv-lot-fields"><label>Product group *<select data-lot="group" required onchange="rvLotGroup(this)">' + options(groups, x.group) + '</select></label><label>Product name<select data-lot="product" onchange="rvLotCalc()">' + options(products, x.product) + '</select></label>' + rvLotInput('Qty *', 'qty', x.qty || 1, 'number', 'min="1" step="1" required oninput="rvLotCalc()"') + rvLotInput('Weight g *', 'weight', x.weight || '', 'number', 'min="0" step=".001" required oninput="rvLotCalc()"') + rvLotInput('Touch %', 'touch', x.touch || '', 'number', 'min="0" max="100" step=".01" oninput="rvLotCalc()"') + rvLotInput('Rate ₹/g', 'rate', x.rate || '', 'number', 'min="0" step=".01" oninput="rvLotCalc()"') + rvLotInput('Wastage %', 'wastage', x.wastage || 0, 'number', 'min="0" max="100" step=".01" oninput="rvLotCalc()"') + rvLotInput('MC ₹', 'mc', x.mc || 0, 'number', 'min="0" step=".01" oninput="rvLotCalc()"') + rvLotInput('Amount ₹', 'amount', x.amount || '', 'number', 'min="0" step=".01" oninput="this.dataset.manual=\'1\';rvLotCalc()"') + '</div></div>';
 }
 function rvLotForm() {
   const x = rvLots().find(l => l.id === rvLotEdit) || {}, items = x.items?.length ? x.items : [{}];
   const ledgers = [...new Set([...(db.retailSuppliers || []).map(s => s.name), ...rcDocs('retail-purchase').map(p => p.supplier || p.ledgerName), ...rvLots().map(l => l.ledgerName)].filter(Boolean))];
-  return rvLotNav() + '<section class="panel"><div class="rc-section-title"><div><h2>Lot Entry :: ' + (x.id ? 'Edit' : 'Create') + '</h2><p class="muted">Enter incoming stock by product or group, then click ＋ Tag Lot to generate item tags.</p></div><button type="button" onclick="rvLotOpen(\'list\')">← Back to Lists</button></div><form id="rvLotForm" onsubmit="rvLotSave(event)"><input name="id" type="hidden" value="' + esc(x.id || '') + '"><div class="rv-fields"><label>Entry no *<input name="entryNo" required value="' + esc(x.entryNo || 'LOT-' + Date.now().toString(36).toUpperCase()) + '"></label><label>Entry date *<input name="date" type="date" required value="' + esc(x.date || rvLotToday()) + '"></label><label>Ledger / Supplier *<input name="ledgerName" list="rvLotLedgers" required value="' + esc(x.ledgerName || '') + '" placeholder="Supplier / ledger"><datalist id="rvLotLedgers">' + ledgers.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist></label><label>Type<select name="entryType" onchange="rvLotType(this)"><option ' + (x.entryType !== 'By Product Group' ? 'selected' : '') + '>By Product</option><option ' + (x.entryType === 'By Product Group' ? 'selected' : '') + '>By Product Group</option></select></label><label>No of rows<input name="rowCount" type="number" min="1" step="1" value="' + items.length + '" onchange="rvLotRowCount(this)"></label><label>Status<select name="status"><option ' + (x.status !== 'Closed' ? 'selected' : '') + '>Open</option><option ' + (x.status === 'Closed' ? 'selected' : '') + '>Closed</option></select></label><label class="rv-wide">Remarks<input name="remarks" value="' + esc(x.remarks || '') + '"></label></div><div id="rvLotRows">' + items.map(rvLotRow).join('') + '</div><div class="rv-actions"><button type="button" onclick="rvLotAdd()">＋ Add row</button><button type="submit" class="primary">' + (x.id ? 'Save changes' : 'Save lot') + '</button></div><div class="rv-lot-totals"><span>Items <b id="rvLotItems">' + items.length + '</b></span><span>Qty <b id="rvLotQty">0</b></span><span>Weight <b id="rvLotWeight">0.000 g</b></span><span>Amount <b id="rvLotAmount">₹ 0.00</b></span></div></form></section>';
+  return '<section class="panel"><div class="rc-section-title"><div><h2>Lot Entry :: ' + (x.id ? 'Edit' : 'Create') + '</h2><p class="muted">Enter incoming stock by product or group, then save or generate item tags.</p></div><div style="display:flex;gap:6px"><button type="button" onclick="rvLotCalc()">Display</button><button type="button" onclick="rvLotOpen(\'list\')">← Back</button></div></div><form id="rvLotForm" onsubmit="rvLotSave(event)"><input name="id" type="hidden" value="' + esc(x.id || '') + '"><div class="rv-fields"><label>Entry no *<input name="entryNo" required value="' + esc(x.entryNo || 'LOT-' + Date.now().toString(36).toUpperCase()) + '"></label><label>Entry date *<input name="date" type="date" required value="' + esc(x.date || rvLotToday()) + '"></label><label>Ledger Name *<input name="ledgerName" list="rvLotLedgers" required value="' + esc(x.ledgerName || '') + '" placeholder="Supplier / ledger"><datalist id="rvLotLedgers">' + ledgers.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist></label><label>Type<select name="entryType" onchange="rvLotType(this)"><option ' + (x.entryType !== 'By Product Group' ? 'selected' : '') + '>By Product</option><option ' + (x.entryType === 'By Product Group' ? 'selected' : '') + '>By Product Group</option></select></label><label>No of Rows<input name="rowCount" type="number" min="1" step="1" value="' + items.length + '" onchange="rvLotRowCount(this)"></label><label>Status<select name="status"><option ' + (x.status !== 'Closed' ? 'selected' : '') + '>Open</option><option ' + (x.status === 'Closed' ? 'selected' : '') + '>Closed</option></select></label><label class="rv-wide">Remarks<input name="remarks" value="' + esc(x.remarks || '') + '"></label></div><div id="rvLotRows">' + items.map(rvLotRow).join('') + '</div><div class="rv-actions"><button type="button" onclick="rvLotAdd()">＋ Add row</button><button type="submit" class="primary">' + (x.id ? 'Save changes' : 'Save') + '</button></div><div class="rv-lot-totals"><span>Items <b id="rvLotItems">' + items.length + '</b></span><span>Total Qty <b id="rvLotQty">0</b></span><span>Total Weight <b id="rvLotWeight">0.000 g</b></span><span>Total Amount <b id="rvLotAmount">₹ 0.00</b></span></div></form></section>';
 }
 window.rvLotView = function() {
   return rvLotTab === 'list' ? rvLotList() + (window.rcOpeningView ? '<details class="panel"><summary style="font-weight:750;cursor:pointer">Opening Stock to Lot</summary>' + rcOpeningView('stock') + '</details>' : '') : rvLotForm();
@@ -166,7 +208,7 @@ window.rvLotRefresh = function() {
 window.rvLotOpen = function(tab) { if (!['list','create'].includes(tab)) return; rvLotTab = tab; rvLotEdit = ''; rvLotRefresh(); window.scrollTo?.(0, 0); };
 window.rvLotEditRow = function(id) { if (rvLots().some(lot => lot.id === id && lot.openingId)) return say('This lot was posted from Opening Stock.'); rvLotEdit = id; rvLotTab = 'create'; rvLotRefresh(); };
 window.rvLotAdd = function() { const box = document.getElementById('rvLotRows'); box.insertAdjacentHTML('beforeend', rvLotRow({}, box.children.length)); document.querySelector('#rvLotForm [name="rowCount"]').value = box.children.length; rvLotCalc(); };
-window.rvLotRemove = function(btn) { const box = document.getElementById('rvLotRows'); if (box.children.length === 1) return say('Keep at least one item.'); btn.closest('[data-lot-row]').remove(); [...box.children].forEach((e, i) => e.querySelector('.rv-lot-row-head b').textContent = 'Item ' + (i + 1)); document.querySelector('#rvLotForm [name="rowCount"]').value = box.children.length; rvLotCalc(); };
+window.rvLotRemove = function(btn) { const box = document.getElementById('rvLotRows'); if (box.children.length === 1) return say('Keep at least one item.'); btn.closest('[data-lot-row]').remove(); [...box.children].forEach((e, i) => e.querySelector('.rv-lot-row-head b').textContent = 'No. ' + (i + 1)); document.querySelector('#rvLotForm [name="rowCount"]').value = box.children.length; rvLotCalc(); };
 window.rvLotRowCount = function(input) { const count = Math.max(1, Math.min(100, rvLotNumber(input.value) || 1)), box = document.getElementById('rvLotRows'); while (box.children.length < count) rvLotAdd(); while (box.children.length > count) box.lastElementChild.remove(); input.value = box.children.length; rvLotCalc(); };
 window.rvLotGroup = function(select) { const row = select.closest('[data-lot-row]'), prod = row.querySelector('[data-lot="product"]'); prod.innerHTML = '<option value="">Select</option>' + rvProducts(select.value).map(x => '<option>' + esc(x) + '</option>').join(''); rvLotCalc(); };
 window.rvLotType = function(select) { document.querySelectorAll('#rvLotRows [data-lot="product"]').forEach(e => { e.required = select.value === 'By Product'; }); rvLotCalc(); };

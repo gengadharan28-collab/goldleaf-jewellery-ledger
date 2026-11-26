@@ -68,8 +68,8 @@ const RV_ROOF_SECTIONS = [
 let rvTab = 'group-list', rvDraft = null, rvSearch = '', rvDate = '', rvRfidFrom = '', rvRfidTo = '';
 let rvStockPage = 'tagging';
 let rvTagTab = 'tagging', rvSoldSearch = '', rvSoldDate = '';
-let rvTagListSearch = '', rvTagListGroup = '', rvTagListMetal = '', rvTagListStatus = '', rvSelectedTagIds = new Set();
-let rvVoucherState = { showForm: false, editId: '', search: '', from: '', to: '', metal: '' };
+let rvTagShowCreate = false, rvTagListSearch = '', rvTagListFrom = '', rvTagListTo = '', rvTagListGroup = '', rvTagListMetal = '', rvTagListStatus = '', rvTagHiddenCols = new Set(['Di.Carat','Di.Pcs','Reference 1']), rvSelectedTagIds = new Set();
+let rvVoucherState = { showForm: false, editId: '', search: '', from: '', to: '', metal: '', showCancel: false, detailMode: false, hiddenCols: new Set() };
 let rvReorderState = { showForm: false, editId: '', search: '', group: '' };
 let rvGiftState = { showForm: false, editId: '', search: '', from: '', to: '', prefillLotId: '' };
 
@@ -155,39 +155,69 @@ window.rvExportTagsCsv = function() {
   rvCsvDownload('tagged-inventory.csv', lines);
 };
 
+window.rvToggleTagCreate = function(open, silent = false) {
+  rvTagShowCreate = !!open;
+  if (!open && typeof rcTagEdit !== 'undefined') rcTagEdit = '';
+  if (!silent) rvRefreshStockHub();
+};
+window.rvToggleTagCol = function(col, checked) {
+  if (checked) rvTagHiddenCols.delete(col); else rvTagHiddenCols.add(col);
+  rvRefreshStockHub();
+  document.getElementById('rvTagColPicker')?.setAttribute('open', '');
+};
+
 window.rvRenderTagInventoryPanel = function(rows) {
   const groups = rvProductGroups();
   const filtered = rows.filter(t => {
+    const d = String(t.tagDate || t.createdAt || '').slice(0, 10);
+    if (rvTagListFrom && d < rvTagListFrom) return false;
+    if (rvTagListTo && d > rvTagListTo) return false;
     if (rvTagListGroup && t.group !== rvTagListGroup) return false;
     if (rvTagListMetal && (t.metalType || 'Gold') !== rvTagListMetal) return false;
     if (rvTagListStatus && (t.status || 'In stock') !== rvTagListStatus) return false;
     if (rvTagListSearch) {
       const q = rvTagListSearch.toLowerCase();
-      const hay = [t.tagCode, t.product, t.group, t.lotEntry, t.huid, t.supplier, t.counter, t.location].join(' ').toLowerCase();
+      const hay = [t.tagCode, t.product, t.group, t.lotEntry, t.huid, t.supplier, t.counter, t.tray, t.location, t.reference1].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
   });
   const totPcs = filtered.reduce((s, t) => s + rvQty(t), 0);
-  const totGross = filtered.reduce((s, t) => s + rvF(t.grossWeight) * 1, 0);
+  const totGross = filtered.reduce((s, t) => s + rvNum(t.grossWeight), 0);
   const totNet = filtered.reduce((s, t) => s + rvNum(t.netWeight), 0);
 
-  return '<section class="panel"><div class="rc-section-title"><div><h2>Tagging :: Lists (' + filtered.length + ' of ' + rows.length + ')</h2><p class="muted">Filter, bulk-print QR barcode labels, duplicate, edit or delete stock tags.</p></div>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="rvBulkPrintBtn" onclick="rvPrintSelectedTags()">🖨 Print Selected QR (' + rvSelectedTagIds.size + ')</button><button type="button" onclick="rvExportTagsCsv()">Export CSV</button><button type="button" onclick="document.getElementById(\'rcTagBatchForm\')?.scrollIntoView({behavior:\'smooth\'})">＋ Create Tag Batch ↑</button></div></div>'
+  const allCols = ['Tag Date','Tag No','Lot No','Product','Group','Metal','Qty','Grs Wt','Net Wt','Wst','MC','Rate/G','Sales Value','Product Size','Di.Pcs','Di.Carat','HUID','Tray','Reference 1','Status'];
+  const keepIdx = allCols.map((c, i) => !rvTagHiddenCols.has(c) ? i : -1).filter(i => i >= 0);
+  const colPicker = '<details id="rvTagColPicker" style="position:relative;display:inline-block"><summary class="gl-dt-btn" style="padding:5px 10px;font-size:12px;cursor:pointer;white-space:nowrap">Display Columns (' + keepIdx.length + '/' + allCols.length + ')</summary><div style="position:absolute;right:0;z-index:40;min-width:210px;max-height:260px;overflow:auto;padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--white,#fff);box-shadow:0 8px 24px rgba(0,0,0,.14);display:grid;gap:5px">'
+    + allCols.map(c => '<label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" ' + (!rvTagHiddenCols.has(c) ? 'checked' : '') + ' onchange="rvToggleTagCol(\'' + esc(c) + '\',this.checked)"> ' + esc(c) + '</label>').join('')
+    + '</div></details>';
+
+  return '<section class="panel"><div class="rc-section-title" style="flex-wrap:wrap;gap:8px"><div><h2>Tagging :: Lists (' + filtered.length + ' of ' + rows.length + ' · ' + totPcs + ' pcs · Net ' + rvF(totNet) + ' g)</h2><p class="muted">Search, customize columns, bulk-print QR labels, or click ＋ Create to add tags.</p></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" id="rvBulkPrintBtn" onclick="rvPrintSelectedTags()">🖨 Print QR (' + rvSelectedTagIds.size + ')</button>' + colPicker + '<button type="button" onclick="rvExportTagsCsv()">Export CSV</button><button type="button" class="primary" onclick="rvToggleTagCreate(true)">＋ Create</button></div></div>'
     + '<div class="rv-filters">'
-    + '<label>Search<input type="search" value="' + esc(rvTagListSearch) + '" onchange="rvTagListSearch=this.value;rvRefreshStockHub()" placeholder="Tag, HUID, Lot, Product"></label>'
+    + '<label>Search<input type="search" value="' + esc(rvTagListSearch) + '" onchange="rvTagListSearch=this.value;rvRefreshStockHub()" placeholder="Tag, HUID, Lot, Product, Tray"></label>'
+    + '<label>From<input type="date" value="' + esc(rvTagListFrom) + '" onchange="rvTagListFrom=this.value;rvRefreshStockHub()"></label>'
+    + '<label>To<input type="date" value="' + esc(rvTagListTo) + '" onchange="rvTagListTo=this.value;rvRefreshStockHub()"></label>'
     + '<label>Group<select onchange="rvTagListGroup=this.value;rvRefreshStockHub()">' + rvOptions(groups, rvTagListGroup, 'All Groups') + '</select></label>'
     + '<label>Metal<select onchange="rvTagListMetal=this.value;rvRefreshStockHub()">' + rvOptions(['Gold','Silver','Platinum','Other'], rvTagListMetal, 'All Metals') + '</select></label>'
     + '<label>Status<select onchange="rvTagListStatus=this.value;rvRefreshStockHub()">' + rvOptions(['In stock','Reserved','Sold'], rvTagListStatus, 'All Status') + '</select></label>'
-    + '<button type="button" onclick="rvTagListSearch=rvTagListGroup=rvTagListMetal=rvTagListStatus=\'\';rvRefreshStockHub()">Reset</button>'
+    + '<button type="button" onclick="rvTagListSearch=rvTagListFrom=rvTagListTo=rvTagListGroup=rvTagListMetal=rvTagListStatus=\'\';rvRefreshStockHub()">Reset</button>'
     + '</div>'
-    + '<div class="rv-summary" style="margin-bottom:10px"><div class="rv-stat"><small>Matching Tags</small><b>' + filtered.length + ' tags · ' + totPcs + ' pcs</b><span>Gross ' + rvF(totGross) + ' g · Net ' + rvF(totNet) + ' g</span></div></div>'
-    + (filtered.length ? '<div class="rv-table-wrap"><table class="rv-table"><thead><tr><th><input type="checkbox" title="Select all" onchange="rvToggleSelectAllTags(this.checked)"></th><th>Tag / Barcode</th><th>Date</th><th>Lot</th><th>Product</th><th>Metal</th><th>Group</th><th>Pcs</th><th>Gross g</th><th>Net g</th><th>Rate ₹/g</th><th>Total ₹</th><th>Purity</th><th>HUID</th><th>Status</th><th>Actions</th></tr></thead><tbody>'
+    + (filtered.length ? '<div class="rv-table-wrap"><table class="rv-table"><thead><tr><th><input type="checkbox" title="Select all" onchange="rvToggleSelectAllTags(this.checked)"></th>'
+      + keepIdx.map(i => '<th>' + esc(allCols[i]) + '</th>').join('') + '<th>Actions</th></tr></thead><tbody>'
       + filtered.map(t => {
-        const isSil = t.metalType === 'Silver' || String(t.product || '').toLowerCase().includes('silver');
-        return '<tr><td><input type="checkbox" data-rv-tag-chk="' + esc(t.id) + '" ' + (rvSelectedTagIds.has(t.id) ? 'checked' : '') + ' onchange="rvToggleSelectTag(\'' + esc(t.id) + '\',this.checked)"></td><td><b>' + esc(t.tagCode) + '</b></td><td>' + esc(t.tagDate || '—') + '</td><td>' + esc(t.lotEntry || '—') + '</td><td>' + esc(t.product) + '</td><td>' + esc(t.metalType || 'Gold') + '</td><td>' + esc(t.group || '—') + '</td><td>' + rvQty(t) + '</td><td>' + rvF(t.grossWeight) + '</td><td><b>' + rvF(t.netWeight) + '</b></td><td>' + rateMoney(t.rate) + '</td><td>' + rateMoney(t.totalAmount) + '</td><td>' + (isSil ? '—' : (n(t.purity) + '%')) + '</td><td>' + esc(t.huid || '—') + '</td><td>' + esc(t.status || 'In stock') + '</td><td style="white-space:nowrap"><button type="button" onclick="rcEditTag(\'' + esc(t.id) + '\')">Edit</button> <button type="button" onclick="rcPrintOneTag(\'' + esc(t.id) + '\')">Print</button> <button type="button" onclick="rcDuplicateTag(\'' + esc(t.id) + '\')">Copy</button> <button type="button" class="rb-delete-btn" onclick="rcDeleteTag(\'' + esc(t.id) + '\')">Delete</button></td></tr>';
+        const cells = [
+          esc(t.tagDate || '—'), '<b>' + esc(t.tagCode) + '</b>', esc(t.lotEntry || '—'), esc(t.product), esc(t.group || '—'),
+          esc(t.metalType || 'Gold'), rvQty(t), rvF(t.grossWeight), '<b>' + rvF(t.netWeight) + '</b>',
+          (t.wastage || 0) + (t.wastageMode === 'grams' ? 'g' : '%'), rateMoney(t.makingRate || 0),
+          rateMoney(t.rate), '<b>' + rateMoney(t.totalAmount) + '</b>', esc(t.size || '—'),
+          n(t.stonePieces || 0), rvF(t.stoneCarat || 0), esc(t.huid || '—'), esc(t.tray || '—'), esc(t.reference1 || '—'), esc(t.status || 'In stock')
+        ];
+        return '<tr><td><input type="checkbox" data-rv-tag-chk="' + esc(t.id) + '" ' + (rvSelectedTagIds.has(t.id) ? 'checked' : '') + ' onchange="rvToggleSelectTag(\'' + esc(t.id) + '\',this.checked)"></td>'
+          + keepIdx.map(i => '<td>' + cells[i] + '</td>').join('')
+          + '<td style="white-space:nowrap"><button type="button" onclick="rcEditTag(\'' + esc(t.id) + '\')">Edit</button> <button type="button" onclick="rcPrintOneTag(\'' + esc(t.id) + '\')">Print</button> <button type="button" onclick="rcDuplicateTag(\'' + esc(t.id) + '\')">Copy</button> <button type="button" class="rb-delete-btn" onclick="rcDeleteTag(\'' + esc(t.id) + '\')">Delete</button></td></tr>';
       }).join('')
-      + '</tbody></table></div>' : '<p class="rv-no-tags">No tags match these filters.</p>')
+      + '</tbody></table></div>' : '<p class="rv-no-tags">No tags match these filters. Click <b>＋ Create</b> to build a tag batch.</p>')
     + '</section>';
 };
 
@@ -330,6 +360,11 @@ window.rvSaveStockVoucher = function(e, kind, prefix, label) {
     voucherNo: String(v.voucherNo || '').trim() || old?.voucherNo || (prefix + '-' + Date.now().toString(36).toUpperCase().slice(-5)),
     date: v.date || rvToday(),
     party: String(v.party || '').trim() || 'Goldsmith / Counter',
+    team: String(v.team || '').trim(),
+    counter: String(v.counter || '').trim(),
+    tagCode: String(v.tagCode || '').trim(),
+    huid: String(v.huid || '').trim(),
+    hsn: String(v.hsn || '7113').trim(),
     direction: v.direction || label,
     metal: v.metal || 'Gold',
     product: String(v.product || '').trim() || 'Ornament',
@@ -342,8 +377,24 @@ window.rvSaveStockVoucher = function(e, kind, prefix, label) {
     targetProduct: String(v.targetProduct || '').trim(),
     targetWt: rvNum(v.targetWt),
     charges: rvNum(v.charges),
-    remarks: String(v.remarks || '').trim()
+    remarks: String(v.remarks || '').trim(),
+    cancelled: old?.cancelled || false,
+    cancelReason: old?.cancelReason || ''
   }, label);
+};
+
+window.rvCancelStockVoucher = function(kind, id, label) {
+  const r = rvCustomDocs(kind).find(x => x.id === id);
+  if (!r) return;
+  const reason = prompt('Enter cancellation reason for ' + r.voucherNo + ':', r.cancelReason || 'Cancelled by user');
+  if (reason === null) return;
+  rvSaveCustomDoc(kind, Object.assign({}, r, { cancelled: true, cancelReason: reason.trim() || 'Cancelled' }), label + ' cancelled');
+};
+
+window.rvToggleVoucherCol = function(col, checked) {
+  if (checked) rvVoucherState.hiddenCols.delete(col); else rvVoucherState.hiddenCols.add(col);
+  rvRefreshStockHub();
+  document.getElementById('rvVchColPicker')?.setAttribute('open', '');
 };
 
 window.rvPrintStockVoucher = function(kind, id, title) {
@@ -353,25 +404,26 @@ window.rvPrintStockVoucher = function(kind, id, title) {
   if (r.targetProduct) rows.push(['Output: ' + r.targetProduct, r.metal || 'Gold', '—', '—', rvF(r.targetWt) + ' g', '—', '—', '—']);
   pdfPrintModel({
     kind: 'ledger', retail: true, title: title.toUpperCase(),
-    entityLabel: 'Party / Counter', entityName: r.party || 'Counter',
-    entityDetails: [r.direction, r.remarks].filter(Boolean).join(' · '),
+    entityLabel: 'Ledger / Counter', entityName: r.party || 'Counter',
+    entityDetails: [r.direction, r.counter ? 'Counter: ' + r.counter : '', r.team ? 'Team: ' + r.team : '', r.remarks].filter(Boolean).join(' · '),
     reference: r.voucherNo, date: r.date,
-    heads: ['Product','Metal','Pcs','Gross Wt','Net Wt','Touch %','Pure Wt','Charges ₹'],
+    heads: ['Product','Metal','Pcs','Gross Wt','Net Wt','Touch %','Pure Wt','Net Amount ₹'],
     rows,
-    totals: [['Net Weight', rvF(r.netWt) + ' g', true], ['Pure Weight', rvF(r.pureWt) + ' g'], ['Charges', rateMoney(r.charges || 0)]]
+    totals: [['Net Weight', rvF(r.netWt) + ' g', true], ['Pure Weight', rvF(r.pureWt) + ' g'], ['Net Amount', rateMoney(r.charges || 0)]]
   }, 'retail', 'classic');
 };
 
 window.rvExportVouchers = function(kind, name) {
-  const lines = [['Date','Voucher No','Direction','Party / Counter','Metal','Product','Qty','Gross g','Net g','Purity %','Pure g','Target Output','Target Wt g','Charges','Remarks']];
-  rvCustomDocs(kind).forEach(r => lines.push([r.date, r.voucherNo, r.direction || '', r.party || '', r.metal || '', r.product || '', r.pieces || 1, rvF(r.grossWt), rvF(r.netWt), r.purity || '', rvF(r.pureWt), r.targetProduct || '', rvF(r.targetWt), r.charges || 0, r.remarks || '']));
+  const lines = [['Date','Voucher No','Direction','Ledger','Team','Counter','Metal','Product','Qty','Gross g','Net g','Purity %','Pure g','Net Amount','Remarks','Status','Cancel Reason']];
+  rvCustomDocs(kind).forEach(r => lines.push([r.date, r.voucherNo, r.direction || '', r.party || '', r.team || '', r.counter || '', r.metal || '', r.product || '', r.pieces || 1, rvF(r.grossWt), rvF(r.netWt), r.purity || '', rvF(r.pureWt), r.charges || 0, r.remarks || '', r.cancelled ? 'Cancelled' : 'Active', r.cancelReason || '']));
   rvCsvDownload(name + '.csv', lines);
 };
 
 function rvVoucherView(kind, title, prefix) {
   const all = rvCustomDocs(kind).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-  const prods = rvProducts('');
-  const parties = [...new Set([...(db.retailSuppliers || []).map(s => s.name), ...rvCounters(), ...rvCustomDocs('retail-master-item').filter(m => m.masterCat === 'Employees & Teams').map(m => m.name)].filter(Boolean))];
+  const prods = rvProducts(''), counters = rvCounters();
+  const teams = rvCustomDocs('retail-master-item').filter(m => m.masterCat === 'Employees & Teams').map(m => m.name);
+  const parties = [...new Set([...(db.retailSuppliers || []).map(s => s.name), ...counters, ...teams].filter(Boolean))];
   const isJournal = kind === 'retail-stock-journal', isMetal = kind === 'retail-metal-voucher';
 
   if (rvVoucherState.showForm || rvVoucherState.editId) {
@@ -381,42 +433,62 @@ function rvVoucherView(kind, title, prefix) {
       + '<label>Voucher No.<input name="voucherNo" placeholder="Auto" value="' + esc(ed?.voucherNo || '') + '"></label>'
       + '<label>Date *<input type="date" name="date" required value="' + esc(ed?.date || rvToday()) + '"></label>'
       + (isMetal ? '<label>Direction<select name="direction"><option ' + (ed?.direction !== 'Metal Receipt' ? 'selected' : '') + '>Metal Issue</option><option ' + (ed?.direction === 'Metal Receipt' ? 'selected' : '') + '>Metal Receipt</option></select></label>' : '')
-      + '<label>' + (kind.includes('issue') ? 'Issue To' : kind.includes('receipt') ? 'Received From' : 'Smith / Counter / Party') + ' *<input name="party" required list="rvPartiesDl" value="' + esc(ed?.party || '') + '" placeholder="Karigar, smith or counter"><datalist id="rvPartiesDl">' + parties.map(p => '<option value="' + esc(p) + '">').join('') + '</datalist></label>'
-      + '<label>Metal<select name="metal">' + ['Gold','Silver','Diamond','Platinum'].map(m => '<option ' + (ed?.metal === m ? 'selected' : '') + '>' + m + '</option>').join('') + '</select></label>'
+      + '<label>' + (kind.includes('issue') ? 'Ledger / Issue To' : kind.includes('receipt') ? 'Ledger / Received From' : isJournal ? 'Counter / Workshop' : 'Ledger / Visitor') + ' *<input name="party" required list="rvPartiesDl" value="' + esc(ed?.party || '') + '" placeholder="Ledger, smith or counter"><datalist id="rvPartiesDl">' + parties.map(p => '<option value="' + esc(p) + '">').join('') + '</datalist></label>'
+      + '<label>Counter<input name="counter" list="rvCtrDl" value="' + esc(ed?.counter || '') + '" placeholder="Counter"><datalist id="rvCtrDl">' + counters.map(c => '<option value="' + esc(c) + '">').join('') + '</datalist></label>'
+      + '<label>Team / Staff<input name="team" list="rvTeamDl" value="' + esc(ed?.team || '') + '" placeholder="Team / employee"><datalist id="rvTeamDl">' + teams.map(t => '<option value="' + esc(t) + '">').join('') + '</datalist></label>'
+      + '<label>Ornament / Metal<select name="metal">' + ['Gold','Silver','Diamond','Platinum'].map(m => '<option ' + (ed?.metal === m ? 'selected' : '') + '>' + m + '</option>').join('') + '</select></label>'
       + '<label>' + (isJournal ? 'Source Product' : 'Product / Bullion') + ' *<input name="product" required list="rvProdDl" value="' + esc(ed?.product || '') + '" placeholder="Select or type"><datalist id="rvProdDl">' + prods.map(p => '<option value="' + esc(p) + '">').join('') + '</datalist></label>'
-      + '<label>Pieces / Qty<input type="number" name="pieces" min="1" step="1" value="' + (ed?.pieces || 1) + '"></label>'
+      + (isMetal ? '<label>Tag Code<input name="tagCode" value="' + esc(ed?.tagCode || '') + '"></label><label>HUID<input name="huid" value="' + esc(ed?.huid || '') + '"></label><label>HSN<input name="hsn" value="' + esc(ed?.hsn || '7113') + '"></label>' : '')
+      + '<label>Total Qty<input type="number" name="pieces" min="1" step="1" value="' + (ed?.pieces || 1) + '"></label>'
       + '<label>Gross Weight (g) *<input type="number" name="grossWt" min=".001" step=".001" required value="' + (ed?.grossWt ?? '') + '" oninput="const f=this.form;if(f&&!f.netWt.dataset.manual)f.netWt.value=Math.max(0,Number(this.value||0)-Number(f.lessWt.value||0)).toFixed(3)"></label>'
       + '<label>Less / Stone Wt (g)<input type="number" name="lessWt" min="0" step=".001" value="' + (ed?.lessWt || 0) + '" oninput="const f=this.form;if(f&&!f.netWt.dataset.manual)f.netWt.value=Math.max(0,Number(f.grossWt.value||0)-Number(this.value||0)).toFixed(3)"></label>'
       + '<label>Net Weight (g) *<input type="number" name="netWt" min=".001" step=".001" required value="' + (ed?.netWt ?? '') + '" oninput="this.dataset.manual=\'1\'"></label>'
       + '<label>Touch / Purity %<input type="number" name="purity" min="1" max="100" step=".01" value="' + (ed?.purity || 91.6) + '"></label>'
       + (isJournal ? '<label>Target Product / Output<input name="targetProduct" list="rvProdDl" value="' + esc(ed?.targetProduct || '') + '" placeholder="Converted product"></label><label>Target Output Wt (g)<input type="number" name="targetWt" step=".001" value="' + (ed?.targetWt || '') + '"></label>' : '')
-      + '<label>Charges / Value ₹<input type="number" name="charges" min="0" step=".01" value="' + (ed?.charges || 0) + '"></label>'
-      + '<label class="rc-wide">Narration / Remarks<input name="remarks" value="' + esc(ed?.remarks || '') + '"></label>'
+      + '<label>Net Amount / Charges ₹<input type="number" name="charges" min="0" step=".01" value="' + (ed?.charges || 0) + '"></label>'
+      + '<label class="rc-wide">Remarks / Reference<input name="remarks" value="' + esc(ed?.remarks || '') + '"></label>'
       + '<div class="rc-actions rc-wide"><button type="button" onclick="rvVoucherState.showForm=false;rvVoucherState.editId=\'\';rvRefreshStockHub()">Cancel</button> <button class="primary" type="submit">Save ' + esc(title) + '</button></div></form></section>';
   }
 
   const list = all.filter(r => {
+    if (!rvVoucherState.showCancel && r.cancelled) return false;
     if (rvVoucherState.from && r.date < rvVoucherState.from) return false;
     if (rvVoucherState.to && r.date > rvVoucherState.to) return false;
     if (rvVoucherState.metal && r.metal !== rvVoucherState.metal) return false;
     if (rvVoucherState.search) {
       const q = rvVoucherState.search.toLowerCase();
-      if (![r.voucherNo, r.party, r.product, r.targetProduct, r.remarks].join(' ').toLowerCase().includes(q)) return false;
+      if (![r.voucherNo, r.party, r.team, r.counter, r.product, r.tagCode, r.huid, r.remarks].join(' ').toLowerCase().includes(q)) return false;
     }
     return true;
   });
-  const totNet = list.reduce((s, r) => s + rvNum(r.netWt), 0);
-  const totPure = list.reduce((s, r) => s + rvNum(r.pureWt), 0);
 
-  return '<section class="panel"><div class="rc-section-title"><div><h2>' + esc(title) + ' :: Lists (' + list.length + ')</h2><p class="muted">Manage ' + esc(title.toLowerCase()) + ' records with print vouchers, edit and delete controls.</p></div>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" onclick="rvExportVouchers(\'' + kind + '\',\'' + prefix.toLowerCase() + '-vouchers\')">CSV</button><button type="button" onclick="window.print()">Print</button><button type="button" class="primary" onclick="rvVoucherState.editId=\'\';rvVoucherState.showForm=true;rvRefreshStockHub()">＋ Create</button></div></div>'
-    + '<div class="rv-filters"><label>Search<input type="search" value="' + esc(rvVoucherState.search) + '" onchange="rvVoucherState.search=this.value;rvRefreshStockHub()" placeholder="Voucher, smith or product"></label><label>From<input type="date" value="' + esc(rvVoucherState.from) + '" onchange="rvVoucherState.from=this.value;rvRefreshStockHub()"></label><label>To<input type="date" value="' + esc(rvVoucherState.to) + '" onchange="rvVoucherState.to=this.value;rvRefreshStockHub()"></label><label>Metal<select onchange="rvVoucherState.metal=this.value;rvRefreshStockHub()">' + rvOptions(['Gold','Silver','Diamond','Platinum'], rvVoucherState.metal, 'All') + '</select></label><button type="button" onclick="rvVoucherState.search=rvVoucherState.from=rvVoucherState.to=rvVoucherState.metal=\'\';rvRefreshStockHub()">Reset</button></div>'
-    + '<div class="rv-summary" style="margin-bottom:10px"><div class="rv-stat"><small>Vouchers</small><b>' + list.length + '</b><span>Net ' + rvF(totNet) + ' g · Pure ' + rvF(totPure) + ' g</span></div></div>'
-    + (list.length ? table(['Date','Voucher No','Party / Counter','Metal','Product','Qty','Gross g','Net g','Touch %','Pure g',isJournal ? 'Target Output' : 'Charges ₹','Actions'], list.map(r => [
-      esc(r.date), '<b>' + esc(r.voucherNo) + '</b>', esc(r.party), esc(r.metal), esc(r.product), r.pieces, rvF(r.grossWt) + ' g', '<b>' + rvF(r.netWt) + ' g</b>', r.purity + '%', rvF(r.pureWt) + ' g',
-      isJournal ? esc((r.targetProduct || '—') + ' (' + rvF(r.targetWt) + ' g)') : rateMoney(r.charges),
-      '<button type="button" onclick="rvVoucherState.editId=\'' + esc(r.id) + '\';rvVoucherState.showForm=true;rvRefreshStockHub()">Edit</button> <button type="button" onclick="rvPrintStockVoucher(\'' + kind + '\',\'' + esc(r.id) + '\',\'' + esc(title) + '\')">Print</button> <button type="button" class="rb-delete-btn" onclick="rvDeleteCustomDoc(\'' + esc(r.id) + '\',\'' + esc(title) + '\')">Delete</button>'
-    ])) : '<p class="rv-no-tags">No ' + esc(title.toLowerCase()) + ' records yet. Click ＋ Create to add one.</p>') + '</section>';
+  const heads = isMetal
+    ? ['No','Date','Ornament Type','Tag Code','Product','HUID','HSN','Qty','Gross Wt','Pure Wt','Reference','Updated On','Actions']
+    : isJournal
+    ? ['Stock Journal No','Stock Journal Date','Counter Name','Type','Product','Total Gross Weight','Target Output','Updated On','Remarks','Actions']
+    : ['Voucher No','Date','Ledger','Team','Counter','Total Qty','Gross Wt','Pure Wt','Net Amount','Remarks','Cancel Reason','Updated On','Actions'];
+
+  const keepIdx = heads.map((h, i) => !rvVoucherState.hiddenCols.has(h) ? i : -1).filter(i => i >= 0);
+  const colPicker = '<details id="rvVchColPicker" style="position:relative;display:inline-block"><summary class="gl-dt-btn" style="padding:5px 10px;font-size:12px;cursor:pointer;white-space:nowrap">Display Columns (' + keepIdx.length + '/' + heads.length + ')</summary><div style="position:absolute;right:0;z-index:40;min-width:205px;max-height:250px;overflow:auto;padding:10px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--white,#fff);box-shadow:0 8px 24px rgba(0,0,0,.14);display:grid;gap:5px">'
+    + heads.map(h => '<label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" ' + (!rvVoucherState.hiddenCols.has(h) ? 'checked' : '') + ' onchange="rvToggleVoucherCol(\'' + esc(h) + '\',this.checked)"> ' + esc(h) + '</label>').join('')
+    + '</div></details>';
+
+  const rowsHtml = list.map(r => {
+    const acts = '<span style="white-space:nowrap"><button type="button" onclick="rvVoucherState.editId=\'' + esc(r.id) + '\';rvVoucherState.showForm=true;rvRefreshStockHub()">Edit</button> <button type="button" onclick="rvPrintStockVoucher(\'' + kind + '\',\'' + esc(r.id) + '\',\'' + esc(title) + '\')">Print</button> '
+      + (!r.cancelled ? '<button type="button" onclick="rvCancelStockVoucher(\'' + kind + '\',\'' + esc(r.id) + '\',\'' + esc(title) + '\')">Cancel</button> ' : '')
+      + '<button type="button" class="rb-delete-btn" onclick="rvDeleteCustomDoc(\'' + esc(r.id) + '\',\'' + esc(title) + '\')">Delete</button></span>';
+    const cells = isMetal
+      ? ['<b>' + esc(r.voucherNo) + '</b>', esc(r.date), esc(r.metal), esc(r.tagCode || '—'), esc(r.product), esc(r.huid || '—'), esc(r.hsn || '7113'), r.pieces || 1, rvF(r.grossWt) + ' g', rvF(r.pureWt) + ' g', esc(r.remarks || '—'), esc(String(r.updatedAt || '').slice(0, 10)), acts]
+      : isJournal
+      ? ['<b>' + esc(r.voucherNo) + '</b>', esc(r.date), esc(r.counter || r.party), esc(r.direction || 'Jobwork'), esc(r.product), '<b>' + rvF(r.grossWt) + ' g</b>', esc((r.targetProduct || '—') + ' (' + rvF(r.targetWt) + ' g)'), esc(String(r.updatedAt || '').slice(0, 10)), esc(r.remarks || '—'), acts]
+      : ['<b>' + esc(r.voucherNo) + '</b>', esc(r.date), esc(r.party), esc(r.team || '—'), esc(r.counter || '—'), r.pieces || 1, rvF(r.grossWt) + ' g', '<b>' + rvF(r.pureWt) + ' g</b>', rateMoney(r.charges), esc(r.remarks || '—'), esc(r.cancelReason || '—'), esc(String(r.updatedAt || '').slice(0, 10)), acts];
+    return '<tr>' + keepIdx.map(i => '<td>' + cells[i] + '</td>').join('') + '</tr>';
+  }).join('');
+
+  return '<section class="panel"><div class="rc-section-title" style="flex-wrap:wrap;gap:8px"><div><h2>' + esc(title) + ' :: ' + (rvVoucherState.detailMode ? 'Detail Lists' : 'Lists') + ' (' + list.length + ')</h2><p class="muted">Manage ' + esc(title.toLowerCase()) + ' records with team/counter tracking, cancellation, print and CSV export.</p></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" class="' + (rvVoucherState.detailMode ? 'primary' : '') + '" onclick="rvVoucherState.detailMode=!rvVoucherState.detailMode;rvRefreshStockHub()">Detail Lists</button>' + colPicker + '<button type="button" onclick="rvExportVouchers(\'' + kind + '\',\'' + prefix.toLowerCase() + '-vouchers\')">Export CSV</button><button type="button" onclick="window.print()">Print</button><button type="button" class="primary" onclick="rvVoucherState.editId=\'\';rvVoucherState.showForm=true;rvRefreshStockHub()">＋ Create</button></div></div>'
+    + '<div class="rv-filters"><label>Search<input type="search" value="' + esc(rvVoucherState.search) + '" onchange="rvVoucherState.search=this.value;rvRefreshStockHub()" placeholder="Ledger, voucher no, product"></label><label>From<input type="date" value="' + esc(rvVoucherState.from) + '" onchange="rvVoucherState.from=this.value;rvRefreshStockHub()"></label><label>To<input type="date" value="' + esc(rvVoucherState.to) + '" onchange="rvVoucherState.to=this.value;rvRefreshStockHub()"></label><label>Metal<select onchange="rvVoucherState.metal=this.value;rvRefreshStockHub()">' + rvOptions(['Gold','Silver','Diamond','Platinum'], rvVoucherState.metal, 'All') + '</select></label><label style="display:inline-flex;align-items:center;gap:6px;min-width:auto;padding-bottom:6px"><input type="checkbox" ' + (rvVoucherState.showCancel ? 'checked' : '') + ' onchange="rvVoucherState.showCancel=this.checked;rvRefreshStockHub()"> Show Cancel</label><button type="button" onclick="rvVoucherState.search=rvVoucherState.from=rvVoucherState.to=rvVoucherState.metal=\'\';rvVoucherState.showCancel=false;rvVoucherState.hiddenCols.clear();rvRefreshStockHub()">Reset</button></div>'
+    + (list.length ? '<div class="rv-table-wrap"><table class="rv-table"><thead><tr>' + keepIdx.map(i => '<th>' + esc(heads[i]) + '</th>').join('') + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' : '<p class="rv-no-tags">No ' + esc(title.toLowerCase()) + ' records yet. Click ＋ Create to add one.</p>') + '</section>';
 }
 
 // ======================== REORDER WORKFLOWS (4 DEDICATED PAGES) ========================
@@ -764,6 +836,7 @@ window.rvStockSidebarSubmenuHtml = function() {
 window.rvStockOpen = function(key, silent = false) {
   if (!silent && typeof rbCanLeave === 'function' && !rbCanLeave()) return;
   rvStockPage = key;
+  if (key === 'tagging' && !rcTagEdit) rvTagShowCreate = false;
   rvVoucherState.showForm = false; rvVoucherState.editId = '';
   rvReorderState.showForm = false; rvReorderState.editId = '';
   if (!rvGiftState.prefillLotId) { rvGiftState.showForm = false; rvGiftState.editId = ''; }
@@ -798,22 +871,26 @@ window.rvUnifiedStockScreen = function() {
   const soldCount = rvSoldRows().length;
   const verCount = rvRows().length;
 
-  const kpiBar = '<div class="rga-kpis" style="margin-bottom:10px">'
-    + '<div class="rga-kpi"><small>In-Stock Tags</small><b>' + inStock.length + ' tags · ' + rvF(inStockWt) + ' g</b></div>'
-    + '<div class="rga-kpi"><small>Open Lots</small><b>' + allLots.filter(l => (l.status || 'Open') === 'Open').length + ' / ' + allLots.length + ' lots</b></div>'
-    + '<div class="rga-kpi"><small>Sold Tags</small><b>' + soldCount + ' tags</b></div>'
-    + '<div class="rga-kpi"><small>Verification Sessions</small><b>' + verCount + ' audits</b></div>'
-    + '</div>';
-
-  const roofNav = '<div class="rga-roof-bar" role="navigation" aria-label="Stock and Tagging sections">'
-    + RV_ROOF_SECTIONS.map(sec => '<div class="rga-roof-group"><div class="rga-roof-group-title"><span>' + esc(sec.heading) + '</span></div><div class="rga-roof-pills">'
-      + sec.items.map(([key, label]) => '<button type="button" class="' + (rvStockPage === key ? 'active' : '') + '" onclick="rvStockOpen(\'' + esc(key) + '\')">' + esc(label) + '</button>').join('')
-      + '</div></div>').join('')
-    + '</div>';
+  const activeSec = RV_ROOF_SECTIONS.find(s => s.items.some(([k]) => k === rvStockPage)) || RV_ROOF_SECTIONS[0];
+  const roofNav = '<div class="rga-compact-roof" role="navigation" aria-label="Stock and Tagging sections">'
+    + '<div class="rga-roof-top"><div class="rga-roof-cats">'
+    + RV_ROOF_SECTIONS.map(sec => '<button type="button" class="rga-roof-cat-btn ' + (sec.heading === activeSec.heading ? 'active' : '') + '" onclick="rvStockOpen(\'' + esc(sec.items[0][0]) + '\')">' + esc(sec.heading) + '</button>').join('')
+    + '</div><div class="rga-roof-inline-kpis">'
+    + '<span class="rga-inline-kpi">In-Stock <b>' + inStock.length + ' (' + rvF(inStockWt) + ' g)</b></span>'
+    + '<span class="rga-inline-kpi">Open Lots <b>' + allLots.filter(l => (l.status || 'Open') === 'Open').length + '/' + allLots.length + '</b></span>'
+    + '<span class="rga-inline-kpi">Sold <b>' + soldCount + '</b></span>'
+    + '<span class="rga-inline-kpi">Audits <b>' + verCount + '</b></span>'
+    + '</div></div>'
+    + '<div class="rga-roof-pills">'
+    + activeSec.items.map(([key, label]) => '<button type="button" class="' + (rvStockPage === key ? 'active' : '') + '" onclick="rvStockOpen(\'' + esc(key) + '\')">' + esc(label) + '</button>').join('')
+    + '</div></div>';
 
   let content = '';
   if (rvStockPage === 'lot-entry') content = window.rvLotView ? window.rvLotView() : '';
-  else if (rvStockPage === 'tagging') content = rcTaggingView();
+  else if (rvStockPage === 'tagging') {
+    const showCreate = rvTagShowCreate || (typeof rcTagEdit !== 'undefined' && !!rcTagEdit);
+    content = showCreate ? rcTaggingView() : window.rvRenderTagInventoryPanel(rcDocs('retail-tagging').sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))));
+  }
   else if (rvStockPage === 'sold') content = rvSoldView();
   else if (rvStockPage === 'issue-voucher') content = rvVoucherView('retail-issue-voucher', 'Issue Voucher', 'ISS');
   else if (rvStockPage === 'receipt-voucher') content = rvVoucherView('retail-receipt-voucher', 'Receipt Voucher', 'RCV');
@@ -827,9 +904,9 @@ window.rvUnifiedStockScreen = function() {
   else if (rvStockPage.startsWith('gift-')) content = rvGiftWorkflowPage(rvStockPage);
   else if (rvStockPage === 'opening-stock') {
     content = (window.rcOpeningView ? rcOpeningView('stock') : '') + (window.rgaLooseOpeningView ? rgaLooseOpeningView() : '');
-  } else content = rcTaggingView();
+  } else content = window.rvLotView ? window.rvLotView() : '';
 
-  return kpiBar + roofNav + content;
+  return roofNav + content;
 };
 
 // Backward-compatible aliases

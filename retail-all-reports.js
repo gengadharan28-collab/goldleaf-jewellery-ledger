@@ -108,6 +108,29 @@
     'DayBook Report V4 (By Ledger)': 'DayBook Report'
   };
 
+  window.rarReportsDirectoryReady = true;
+  window.rarState.domainFilter = window.rarState.domainFilter || 'All';
+  window.rarState.sidebarOpen = window.rarState.sidebarOpen ?? false;
+
+  window.rarOpenFromSidebar = (domain, reportName, optDim) => {
+    workspaceMode = 'retail';
+    localStorage.setItem('goldleaf-workspace-mode', 'retail');
+    rarState.sidebarOpen = true;
+    if (domain) rarState.domainFilter = domain;
+    if (!reportName) {
+      window.tagReportActive = false;
+      window.tradeReportActive = false;
+      rarState.active = '';
+      page = 'Reports';
+      render();
+      window.scrollTo?.(0, 0);
+      return;
+    }
+    page = 'Reports';
+    window.rarOpen(reportName, optDim);
+    window.scrollTo?.(0, 0);
+  };
+
   window.rarOpen = (name, optDim) => {
     window.tagReportActive = false;
     window.tradeReportActive = false;
@@ -122,6 +145,7 @@
     if(name==='DayBook Report V3 (By Voucher)') rarState.daybookTab='V3';
     if(name==='DayBook Report V4 (By Ledger)') rarState.daybookTab='V4';
     if(canonical==='DayBook Abstract') rarState.daybookTab='Abstract';
+    if(page !== 'Reports') page = 'Reports';
     render();
   };
   window.rarOpenChitReport = (tabName) => {
@@ -2671,20 +2695,153 @@
       ]]
     ];
 
-    const totalReportsCount = sections.reduce((acc, [, items]) => acc + items.length, 0);
-    const q = (rarState.dirSearch||'').trim().toLowerCase();
-    const filteredSections = sections.map(([secTitle, items]) => [
-      secTitle,
-      !q ? items : items.filter(([lbl]) => lbl.toLowerCase().includes(q) || secTitle.toLowerCase().includes(q))
-    ]).filter(([, items]) => items.length > 0);
+    const domainGroups = [
+      ['All', 'All 32 Categories', () => true],
+      ['Accounts & Books', 'Accounts, DayBook & Books', idx => [1,2,3,4,12,15].includes(idx)],
+      ['Stock & Tags', 'Stock & Tag Stock', idx => [5,6,7,8,31].includes(idx)],
+      ['Chit', 'Chit Reports', idx => [9,10,11].includes(idx)],
+      ['Sales & Analysis', 'Sales, Top Sales & Analysis', idx => [13,16,17,18,19,20].includes(idx)],
+      ['Purchase & Payments', 'Purchase, Old Metal & Payments', idx => [14,21,30].includes(idx)],
+      ['GST & HSN', 'GSTR1, HSN/SAC & GSTR3B', idx => [22,23,24].includes(idx)],
+      ['Reorder & Gift', 'Reorder & Gift Reports', idx => [25,26].includes(idx)],
+      ['Jewel Loan', 'Jewel Loan & Auction', idx => [27].includes(idx)],
+      ['Orders, CRM & Dashboards', 'Orders, CRM & Dashboards', idx => [28,29,32].includes(idx)]
+    ];
 
-    return header('Reports Directory ('+sections.length+' Categories · '+totalReportsCount+' Reports)', '')
-      + '<div class="rco-toolbar" style="margin-bottom:12px"><div class="rco-toolbar-left"><input type="search" class="rco-search" placeholder="Search all '+totalReportsCount+' reports by name or category..." value="'+esc(rarState.dirSearch||'')+'" oninput="rarState.dirSearch=this.value;render()" style="min-width:300px"></div>'
-      + '<div class="rco-toolbar-right"><button type="button" onclick="rarOpen(\'DayBook Report\',\'V2\')">📒 DayBook V2</button> <button type="button" onclick="rarOpen(\'Business Dashboard\')">📈 Business Dashboard</button> <button type="button" onclick="rarOpen(\'Rate History\')">🪙 Rate History</button> <button type="button" onclick="rgaState.mainTab=\'Accounts & Reports\';go(\'Parent Group\')">🏦 Accounts Hub</button></div></div>'
-      + filteredSections.map(([secTitle, items])=>
-        '<section class="rco-section-card"><h3>'+esc(secTitle)+' <small class="muted">('+items.length+')</small></h3><div style="display:flex;flex-wrap:wrap;gap:8px">'
-        + items.map(([lbl, act])=>'<button type="button" class="gl-dt-btn" style="padding:8px 14px;font-size:12.5px" onclick="'+act+'">📊 '+esc(lbl)+'</button>').join('')
+    const totalReportsCount = sections.reduce((acc, [, items]) => acc + items.length, 0);
+    const q = (rarState.dirSearch || '').trim().toLowerCase();
+    const curDomain = rarState.domainFilter || 'All';
+    const domainRule = (domainGroups.find(d => d[0] === curDomain) || domainGroups[0])[2];
+
+    const filteredSections = sections.map(([secTitle, items], idx) => {
+      const secNum = idx + 1;
+      if (!q && !domainRule(secNum)) return [secTitle, []];
+      const matched = !q ? items : items.filter(([lbl]) => lbl.toLowerCase().includes(q) || secTitle.toLowerCase().includes(q));
+      return [secTitle, matched];
+    }).filter(([, items]) => items.length > 0);
+
+    const domainBar = '<div class="rga-compact-roof" style="margin-bottom:12px"><div class="rga-roof-top"><div class="rga-roof-cats">'
+      + domainGroups.map(([key, label, fn]) => {
+        const cnt = key === 'All' ? totalReportsCount : sections.reduce((s, [, it], i) => s + (fn(i + 1) ? it.length : 0), 0);
+        return '<button type="button" class="rga-roof-cat-btn ' + (curDomain === key ? 'active' : '') + '" onclick="rarState.domainFilter=\'' + esc(key) + '\';render()">' + esc(key) + ' (' + cnt + ')</button>';
+      }).join('')
+      + '</div></div>'
+      + '<div class="rco-toolbar" style="padding:0"><div class="rco-toolbar-left"><input type="search" class="rco-search" placeholder="Search all ' + totalReportsCount + ' reports by name or category..." value="' + esc(rarState.dirSearch || '') + '" oninput="rarState.dirSearch=this.value;render()" style="min-width:260px">'
+      + (q || curDomain !== 'All' ? '<button type="button" onclick="rarState.dirSearch=\'\';rarState.domainFilter=\'All\';render()">Reset</button>' : '')
+      + '</div><div class="rco-toolbar-right"><button type="button" onclick="rarOpen(\'DayBook Report\',\'V2\')">📒 DayBook V2</button><button type="button" onclick="rarOpen(\'Trial Balance Report\')">⚖️ Trial Balance</button><button type="button" onclick="rarOpen(\'GSTR1 Report\')">🧾 GSTR-1</button><button type="button" onclick="rarOpen(\'Business Dashboard\')">📈 Business Dashboard</button></div></div></div>';
+
+    return header(sections.length + ' Categories · ' + totalReportsCount + ' Reports · Accounts, Stock, Tag, Chit, Sales, Purchase, GST, Loan & CRM', '')
+      + domainBar
+      + filteredSections.map(([secTitle, items]) =>
+        '<section class="rco-section-card" style="margin-bottom:10px"><h3>' + esc(secTitle) + ' <small class="muted">(' + items.length + ')</small></h3><div style="display:flex;flex-wrap:wrap;gap:7px">'
+        + items.map(([lbl, act]) => '<button type="button" class="gl-dt-btn" style="padding:7px 13px;font-size:12.5px;white-space:nowrap" onclick="' + act + '">📊 ' + esc(lbl) + '</button>').join('')
         + '</div></section>'
       ).join('');
   };
+
+  const RAR_SIDEBAR_ITEMS = [
+    {
+      heading: 'Directory & Books',
+      items: [
+        ['All Directory (132)', "rarOpenFromSidebar('All','')"],
+        ['DayBook Report (V1–V4)', "rarOpenFromSidebar('Accounts & Books','DayBook Report','V2')"],
+        ['DayBook Abstract', "rarOpenFromSidebar('Accounts & Books','DayBook Abstract')"],
+        ['Bill Entry Report', "rarOpenFromSidebar('Accounts & Books','Bill Entry Report')"],
+        ['Trial Balance Report', "rarOpenFromSidebar('Accounts & Books','Trial Balance Report')"],
+        ['Balance Sheet Report', "rarOpenFromSidebar('Accounts & Books','Balance Sheet Report')"],
+        ['Profit Loss Report', "rarOpenFromSidebar('Accounts & Books','Profit Loss Report')"],
+        ['Cashbook Report', "rarOpenFromSidebar('Accounts & Books','Cashbook Report')"],
+        ['Bankbook Report', "rarOpenFromSidebar('Accounts & Books','Bankbook Report')"],
+        ['Outstanding Report', "rarOpenFromSidebar('Accounts & Books','Outstanding Report')"],
+        ['Advance Amount Report', "rarOpenFromSidebar('Accounts & Books','Advance Amount Report')"],
+        ['Ledger Report', "rarOpenFromSidebar('Accounts & Books','Ledger Report')"],
+        ['Expense Report', "rarOpenFromSidebar('Accounts & Books','Expense Report')"]
+      ]
+    },
+    {
+      heading: 'Stock, Tag & Reorder',
+      items: [
+        ['Stock & Overall Stock', "rarOpenFromSidebar('Stock & Tags','Stock')"],
+        ['Stock Transactions', "rarOpenFromSidebar('Stock & Tags','Stock Transactions')"],
+        ['Tag Stocks & V1', "rarOpenTagReport('Tag Stocks')"],
+        ['Tag Purchase Report', "rarOpenTagReport('Tag Purchase Report')"],
+        ['Tag Age Wise Report', "rarOpenTagReport('Tag Age Wise Report')"],
+        ['Overall Available Tag', "rarOpenTagReport('Overall Available Tag')"],
+        ['Reorder By Weight / Size', "rarOpenFromSidebar('Reorder & Gift','Reorder Report By Weight')"]
+      ]
+    },
+    {
+      heading: 'Sales, Purchase & Chit',
+      items: [
+        ['Sale Bill Summary', "rarOpenFromSidebar('Sales & Analysis','Sale Bill Summary Matrix')"],
+        ['Sales Register & Abstract', "rarOpenFromSidebar('Sales & Analysis','Sales Register Report')"],
+        ['Top Sales (All 11 Views)', "rarOpenFromSidebar('Sales & Analysis','Top Sales (Centralized)')"],
+        ['Retail Purchase Report', "rarOpenFromSidebar('Purchase & Payments','Retail Purchase Report')"],
+        ['Payment Reports', "rarOpenFromSidebar('Purchase & Payments','Payment Report By Ledger')"],
+        ['Chit Reports (All 11)', "rarOpenChitReport('Chit Report')"]
+      ]
+    },
+    {
+      heading: 'GST, Loan, Gift & CRM',
+      items: [
+        ['GSTR1 (All 8 Sections)', "rarOpenFromSidebar('GST & HSN','GSTR1 Report')"],
+        ['HSN/SAC Summary', "rarOpenFromSidebar('GST & HSN','GSTR1 HSN/SAC Sales Summary')"],
+        ['GSTR3B Report', "rarOpenFromSidebar('GST & HSN','GSTR3B Report')"],
+        ['Gift Stock & Voucher', "rarOpenFromSidebar('Reorder & Gift','Gift Stock Report')"],
+        ['Jewel Loan Reports', "rarOpenFromSidebar('Jewel Loan','Jewel Loan Stock Report')"],
+        ['Orders, Repair & CRM', "rarOpenFromSidebar('Orders, CRM & Dashboards','')"]
+      ]
+    }
+  ];
+
+  function rarNavigation() {
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+    nav.querySelectorAll('[data-rar-sub]').forEach(el => el.remove());
+    if (!session || !goldleafContext?.has_access || workspaceMode !== 'retail') return;
+    const isRepPage = page === 'Reports' || page === 'Chit Reports';
+    if (isRepPage && !rarState._visitedReports) { rarState.sidebarOpen = true; rarState._visitedReports = true; }
+    if (!isRepPage) rarState._visitedReports = false;
+
+    const repBtn = [...nav.querySelectorAll(':scope > button')].find(b => (b.getAttribute('aria-label') || b.textContent || '').trim() === 'Reports');
+    if (!repBtn) return;
+    repBtn.classList.toggle('active', isRepPage);
+    repBtn.setAttribute('aria-expanded', String(!!rarState.sidebarOpen));
+    const lblSpan = repBtn.querySelector('.erp-nav-label') || repBtn.querySelector('span:last-child');
+    if (lblSpan) {
+      lblSpan.style.cssText = 'display:flex;align-items:center;justify-content:space-between;width:100%';
+      lblSpan.innerHTML = '<span>Reports</span><small style="opacity:.75;font-size:10px">' + (rarState.sidebarOpen ? '▾' : '▸') + '</small>';
+    }
+    repBtn.onclick = () => {
+      if (isRepPage) {
+        rarState.sidebarOpen = !rarState.sidebarOpen;
+        rarNavigation();
+      } else {
+        rarState.sidebarOpen = true;
+        rarState._visitedReports = true;
+        window.tagReportActive = false;
+        window.tradeReportActive = false;
+        rarState.active = '';
+        go('Reports');
+      }
+    };
+    if (rarState.sidebarOpen) {
+      const sub = document.createElement('div');
+      sub.className = 'rga-sidebar-sub';
+      sub.dataset.rarSub = '1';
+      sub.innerHTML = RAR_SIDEBAR_ITEMS.map(sec => '<div class="rga-sidebar-sub-head">' + esc(sec.heading) + '</div>'
+        + sec.items.map(([label, act]) => '<button type="button" onclick="' + act + '"><span>' + esc(label) + '</span></button>').join('')
+      ).join('');
+      repBtn.after(sub);
+    }
+  }
+
+  const rarPrevRenderHook = window.render;
+  if (typeof rarPrevRenderHook === 'function') {
+    window.render = function() {
+      const r = rarPrevRenderHook.apply(this, arguments);
+      rarNavigation();
+      return r;
+    };
+  }
 })();

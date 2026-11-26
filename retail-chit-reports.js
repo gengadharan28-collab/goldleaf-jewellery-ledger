@@ -202,7 +202,7 @@ function chitReportsView() {
     }
     return esc(value);
   }))) : '<p class="muted">No matching Chit records.</p>';
-  return '<section class="panel"><h2>Chit Reports</h2><div class="chit-report-tabs">' +
+  return '<section class="panel"><div class="rc-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px"><button type="button" onclick="if(window.rarState)window.rarState.active=\'\';go(\'Reports\')">← All Reports</button><h2 style="margin:0">Chit Reports</h2></div><span>11 Chit Report Views</span></div><div class="chit-report-tabs">' +
     chitReportNames.map(name => '<button type="button" class="' + (chitReportName === name ? 'primary' : '') + '" onclick="chitReportName=\'' + name + '\';render()">' + name + '</button>').join('') +
     '</div></section><section class="panel chit-report-panel"><div class="rc-section-title"><h2>' + esc(chitReportName) + '</h2><span>' + data.rows.length + ' rows</span></div>' +
     filter + '<div class="chit-report-actions"><button type="button" onclick="chitReportSearch=chitReportFrom=chitReportTo=chitReportType=chitReportStatus=\'\';render()">Reset</button>' +
@@ -277,14 +277,16 @@ function chitReportDetailView() {
     content + '<div class="chit-report-actions"><button type="button" onclick="window.print()">Print / PDF</button></div></section>';
 }
 
-function reportsView() {
-  if (window.tagReportActive) return tagReportsView();
-  if (window.tradeReportActive) return tradeReportsView();
-  return '<section class="panel"><h2>Retail Reports</h2><p class="muted">Review saved transactions, weights and amounts.</p><div class="chit-report-tabs">' +
-    '<button type="button" onclick="tradeReportOpen(\'Sales\')">Sales Reports</button>' +
-    '<button type="button" onclick="tradeReportOpen(\'Purchase\')">Purchase Reports</button>' +
-    '<button type="button" onclick="go(\'Chit Reports\')">Chit Reports</button>' +
-    '<button type="button" onclick="tagReportOpen(\'Tag Stocks\')">Tag Reports</button></div></section>';
+if (!window.rarReportsDirectoryReady) {
+  window.reportsView = function() {
+    if (window.tagReportActive) return tagReportsView();
+    if (window.tradeReportActive) return tradeReportsView();
+    return '<section class="panel"><h2>Retail Reports</h2><p class="muted">Review saved transactions, weights and amounts.</p><div class="chit-report-tabs">' +
+      '<button type="button" onclick="tradeReportOpen(\'Sales\')">Sales Reports</button>' +
+      '<button type="button" onclick="tradeReportOpen(\'Purchase\')">Purchase Reports</button>' +
+      '<button type="button" onclick="go(\'Chit Reports\')">Chit Reports</button>' +
+      '<button type="button" onclick="tagReportOpen(\'Tag Stocks\')">Tag Reports</button></div></section>';
+  };
 }
 
 function chitReportCsv() {

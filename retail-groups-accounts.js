@@ -99,23 +99,47 @@
       body.erp-sidebar-collapsed:not(.erp-mobile-nav-open) .rga-sidebar-sub{display:none!important}
       .rga-sidebar-sub-head{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#6b7280);padding:5px 6px 2px;margin-top:2px}
       .rga-sidebar-sub-head:first-child{margin-top:0}
-      .rga-sidebar-sub button{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;min-height:30px!important;padding:4px 8px!important;border:0!important;border-radius:6px!important;background:transparent!important;color:var(--ink,#1f2937)!important;font-size:12px!important;font-weight:600!important;text-align:left!important;cursor:pointer!important}
+      .rga-sidebar-sub button{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;min-height:29px!important;padding:4px 8px!important;border:0!important;border-radius:6px!important;background:transparent!important;color:var(--ink,#1f2937)!important;font-size:12px!important;font-weight:600!important;text-align:left!important;cursor:pointer!important}
       .rga-sidebar-sub button:hover{background:rgba(24,57,42,0.08)!important}
       .rga-sidebar-sub button.active{background:#18392a!important;color:#fff!important;font-weight:750!important}
       html[data-theme="dark"] .rga-sidebar-sub button.active{background:#c3a06c!important;color:#181c1a!important}
-      .rga-roof-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:0 0 14px}
-      .rga-roof-group{background:var(--white,#fff);border:1px solid var(--line,#e2dccf);border-radius:11px;padding:9px 11px;box-shadow:0 1px 4px rgba(0,0,0,0.03)}
-      .rga-roof-group-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#6b7280);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
-      .rga-roof-pills{display:flex;flex-wrap:wrap;gap:5px}
-      .rga-roof-pills button{min-height:31px;padding:4px 10px;font-size:12px;font-weight:650;border-radius:7px;border:1px solid var(--line,#dfd8c8);background:var(--paper,#faf8f3);color:var(--ink,#1e293b);cursor:pointer}
-      .rga-roof-pills button.active{background:#18392a;border-color:#18392a;color:#fff;font-weight:750}
-      html[data-theme="dark"] .rga-roof-pills button.active{background:#c3a06c;border-color:#c3a06c;color:#181c1a}
-      .rga-ob-input{width:110px!important;min-height:32px!important;padding:4px 7px!important;font-size:12.5px!important}
+
+      .rga-compact-roof{background:var(--white,#fff);border:1px solid var(--line,#e2dccf);border-radius:11px;padding:8px 12px;margin:0 0 10px;display:grid;gap:7px;box-shadow:0 1px 4px rgba(0,0,0,0.03)}
+      .rga-roof-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-bottom:6px;border-bottom:1px dashed var(--line,#e6dfd2)}
+      .rga-roof-cats{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+      .rga-roof-cat-btn{min-height:30px!important;padding:4px 11px!important;font-size:11.5px!important;font-weight:750!important;border-radius:999px!important;border:1px solid var(--line,#dfd8c8)!important;background:var(--paper,#faf8f3)!important;color:var(--muted,#57534e)!important;cursor:pointer;white-space:nowrap}
+      .rga-roof-cat-btn.active{background:#18392a!important;border-color:#18392a!important;color:#fff!important}
+      html[data-theme="dark"] .rga-roof-cat-btn.active{background:#c3a06c!important;border-color:#c3a06c!important;color:#181c1a!important}
+      .rga-roof-inline-kpis{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+      .rga-inline-kpi{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:var(--paper,#f6f3ec);border:1px solid var(--line,#e2dccf);font-size:11px;color:var(--muted,#57534e);white-space:nowrap}
+      .rga-inline-kpi b{color:var(--ink,#111827);font-weight:750}
+      .rga-roof-pills{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+      .rga-roof-pills button{min-height:30px!important;padding:4px 11px!important;font-size:12px!important;font-weight:650!important;border-radius:7px!important;border:1px solid var(--line,#dfd8c8)!important;background:var(--paper,#faf8f3)!important;color:var(--ink,#1e293b)!important;cursor:pointer;white-space:nowrap}
+      .rga-roof-pills button.active{background:#18392a!important;border-color:#18392a!important;color:#fff!important;font-weight:750!important}
+      html[data-theme="dark"] .rga-roof-pills button.active{background:#c3a06c!important;border-color:#c3a06c!important;color:#181c1a!important}
+
+      .rga-ob-input{width:106px!important;min-height:32px!important;padding:4px 7px!important;font-size:12.5px!important}
       .rga-ob-select{width:68px!important;min-height:32px!important;padding:4px 5px!important;font-size:12px!important}
-      .rga-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
-      .rga-kpi{padding:9px 12px;border-radius:9px;border:1px solid var(--line,#e2dccf);background:var(--paper,#faf8f3)}
+      .rga-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+      @media(max-width:900px){.rga-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      .rga-kpi{padding:8px 11px;border-radius:9px;border:1px solid var(--line,#e2dccf);background:var(--paper,#faf8f3);min-width:0}
       .rga-kpi small{display:block;font-size:10px;font-weight:750;text-transform:uppercase;color:var(--muted,#6b7280)}
-      .rga-kpi b{font-size:15px;color:var(--ink,#111827)}
+      .rga-kpi b{font-size:14.5px;color:var(--ink,#111827)}
+
+      /* Prevent header & toolbar horizontal overflow and fix Tagging action bar overlap */
+      .top{min-width:0;max-width:100%;box-sizing:border-box}
+      .top>div:first-child{min-width:0;overflow-wrap:anywhere}
+      .rco-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;max-width:100%}
+      .rco-toolbar-left,.rco-toolbar-right{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+      .rco-toolbar button,.rv-filters button,.rc-section-title button{white-space:nowrap!important}
+      .rv-filters{display:flex!important;flex-wrap:wrap!important;align-items:flex-end!important;gap:8px!important}
+      .rv-filters label{min-width:135px;flex:0 1 auto}
+      .rv-filters input[type="search"]{min-width:190px}
+      .rv-filters input[type="date"]{min-width:138px}
+      body .rc-tag-actions,body[data-erp] .rc-tag-actions,body[data-erp] .rc-tag-actions .primary{position:static!important;inset:auto!important;bottom:auto!important;top:auto!important;z-index:auto!important;box-shadow:none!important;margin-top:12px!important}
+      .rb-collected-row{box-sizing:border-box!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+      .rb-collected-row .rb-total-input-wrap{min-width:0!important;max-width:115px!important}
+      .rb-collected-row input{min-width:0!important;width:100%!important;box-sizing:border-box!important}
     `;
     document.head.appendChild(st);
   }
@@ -1477,13 +1501,16 @@
     else if (cur === 'Shop Masters') inner = rgaMastersView();
     else inner = rgaReportsView();
 
-    const roofHtml = '<div class="rga-roof-bar" role="navigation" aria-label="Accounts module navigation">'
-      + RGA_NAV_SECTIONS.map(sec => '<div class="rga-roof-group"><div class="rga-roof-group-title"><span>' + esc(sec.heading) + '</span></div><div class="rga-roof-pills">'
-        + sec.items.map(([key, label]) => '<button type="button" class="' + (cur === key ? 'active' : '') + '" onclick="rgaOpen(\'' + esc(key) + '\')">' + esc(label) + '</button>').join('')
-        + '</div></div>').join('')
-      + '</div>';
+    const activeSec = RGA_NAV_SECTIONS.find(s => s.items.some(([k]) => k === cur)) || RGA_NAV_SECTIONS[0];
+    const roofHtml = '<div class="rga-compact-roof" role="navigation" aria-label="Accounts module navigation">'
+      + '<div class="rga-roof-top"><div class="rga-roof-cats">'
+      + RGA_NAV_SECTIONS.map(sec => '<button type="button" class="rga-roof-cat-btn ' + (sec.heading === activeSec.heading ? 'active' : '') + '" onclick="rgaOpen(\'' + esc(sec.items[0][0]) + '\')">' + esc(sec.heading) + '</button>').join('')
+      + '</div><div class="rga-roof-inline-kpis"><span class="rga-inline-kpi">Ledgers <b>' + retailLedgers().length + '</b></span><span class="rga-inline-kpi">Vouchers <b>' + docs(postingKind).length + '</b></span></div></div>'
+      + '<div class="rga-roof-pills">'
+      + activeSec.items.map(([key, label]) => '<button type="button" class="' + (cur === key ? 'active' : '') + '" onclick="rgaOpen(\'' + esc(key) + '\')">' + esc(label) + '</button>').join('')
+      + '</div></div>';
 
-    return header('Accounts · ' + (cur === 'Accounting Groups' ? 'Ledger Groups' : cur === 'Accounts & Reports' ? 'Financial Statements' : cur), 'Ledgers, Opening Balance, Expenses, Journal, Contra, Bill Entry & Financial Statements')
+    return header((cur === 'Accounting Groups' ? 'Ledger Groups' : cur === 'Accounts & Reports' ? 'Financial Statements' : cur) + ' · Ledgers, Opening Balances, Vouchers & Statements', '')
       + roofHtml
       + '<section class="panel">' + inner + '</section>';
   };
@@ -1498,7 +1525,8 @@
 
     const anchor = nav.querySelector('[data-rco-sidebar="Suppliers"]') || nav.querySelector('[data-rc-sidebar="Products"]') || nav.firstElementChild;
     const activeAccounts = isAccountsPage();
-    if (activeAccounts) rgaState.sidebarOpen = true;
+    if (activeAccounts && !rgaState._visitedAccounts) { rgaState.sidebarOpen = true; rgaState._visitedAccounts = true; }
+    if (!activeAccounts) rgaState._visitedAccounts = false;
 
     const btn = document.createElement('button');
     btn.type = 'button';
