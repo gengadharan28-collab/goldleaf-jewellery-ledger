@@ -481,6 +481,86 @@
     }, 60);
   };
 
+  window.rcoConvertOrderToQuotation = (id) => {
+    const o = docs('retail-order').find(x=>x.id===id);
+    if(!o) return;
+    if(!confirm('Create / open Estimation / Quotation from Order ' + o.orderNo + '?')) return;
+    if(!Array.isArray(db.retailDocuments)) db.retailDocuments = [];
+    const existingQuote = o.linkedQuotationId ? db.retailDocuments.find(d => d.id === o.linkedQuotationId && d.kind === 'retail-estimate') : null;
+    const estItems = (o.items || []).map(x => ({
+      id: crypto.randomUUID(),
+      product: x.product || '',
+      tagCode: x.tagCode || '',
+      metalType: x.ornament === 'Silver' ? 'Silver' : 'Gold',
+      pieces: n(x.qty) || 1,
+      grossWeight: n(x.grossWt),
+      lessWeight: n(x.lessWt),
+      stoneWeight: n(x.stoneWt),
+      netWeight: n(x.netWt) || Math.max(0, n(x.grossWt) - n(x.lessWt)),
+      purity: parseFloat(x.skin) || (x.ornament === 'Silver' ? 92.5 : 91.6),
+      rate: n(x.rate) || (typeof v2RateForPurity === 'function' ? v2RateForPurity(22) : n(db.rates?.gold22 || db.rates?.gold24)),
+      wastage: n(x.wst),
+      wastageMode: 'percent',
+      makingRate: n(x.mc),
+      makingMode: 'fixed',
+      stoneAmount: n(x.stoneAmt),
+      certificateCharge: 0,
+      subtotal: n(x.amount)
+    }));
+    const ogItems = (o.oldJewels || []).map(item => ({
+      id: crypto.randomUUID(),
+      product: item.product || 'Old Gold',
+      metalType: 'Gold',
+      grossWeight: n(item.weight),
+      lessWeight: n(item.less),
+      purity: 22,
+      testingPurity: n(item.touch || 91.6),
+      rate: n(item.rate || o.goldRate || db.rates?.oldGold || db.rates?.gold22),
+      amount: n(item.amount)
+    }));
+    const exchangeAmount = ogItems.reduce((s, it) => s + n(it.amount), 0);
+    const quoteNo = existingQuote?.estimateNo || ('EST-ORD-' + String(o.orderNo || '').replace(/^ORD-/i, '') || ('EST-' + Date.now().toString().slice(-6)));
+    const quoteDoc = Object.assign({}, existingQuote || {}, {
+      id: existingQuote?.id || crypto.randomUUID(),
+      kind: 'retail-estimate',
+      type: 'retail-estimate',
+      estimateNo: quoteNo,
+      when: new Date().toISOString().slice(0, 16),
+      customerId: o.customerId || '',
+      salesPerson: o.salesPerson || '',
+      reference: 'Order: ' + (o.orderNo || ''),
+      items: estItems,
+      oldGoldItems: ogItems,
+      exchangeAmount: exchangeAmount,
+      discount: n(o.discount),
+      discountOnNet: false,
+      gstEnabled: !!o.gstEnabled,
+      gstRate: o.gstEnabled ? 3 : 0,
+      collectedAmount: n(o.paidAmount),
+      notes: 'Converted from Order ' + (o.orderNo || ''),
+      sourceOrderId: o.id,
+      sourceOrderNo: o.orderNo || '',
+      updatedAt: new Date().toISOString()
+    });
+    const idx = db.retailDocuments.findIndex(d => d.id === quoteDoc.id);
+    if(idx < 0) db.retailDocuments.push(quoteDoc);
+    else db.retailDocuments[idx] = quoteDoc;
+    o.linkedQuotationId = quoteDoc.id;
+    o.linkedQuotationNo = quoteDoc.estimateNo;
+    o.history = [{ at: new Date().toISOString(), action: 'Converted to Quotation (' + quoteDoc.estimateNo + ')', status: o.status || 'Open', by: goldleafContext?.user_email||'Staff' }, ...(o.history||[])];
+    saveDoc('retail-order', o);
+    save();
+    if(typeof window.rcEstimateEdit !== 'undefined') window.rcEstimateEdit = quoteDoc.id;
+    if(typeof window.rcOpenStandalone === 'function') window.rcOpenStandalone('Estimation / Quotation');
+    else if(typeof window.rcOpen === 'function') window.rcOpen('Estimation / Quotation');
+    else if(typeof go === 'function') go('Estimation / Quotation');
+    setTimeout(() => {
+      if(typeof rcEditEstimate === 'function') rcEditEstimate(quoteDoc.id);
+      else if(typeof render === 'function') render();
+      say('Order ' + o.orderNo + ' opened in Estimation / Quotation (' + quoteDoc.estimateNo + ').');
+    }, 60);
+  };
+
   function rcoOrderTrackingView(){
     const all = docs('retail-order');
     if(rcoState.orderViewId){
@@ -491,6 +571,7 @@
         const ordBtns = '<button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> '
           + '<select id="rcoCopyType" style="min-height:36px;border-radius:8px;padding:0 8px"><option>Original</option><option>Duplicate</option><option>Triplicate</option></select> '
           + '<button type="button" class="primary" onclick="rcoPrintOrderPdf(\''+esc(o.id)+'\',document.getElementById(\'rcoCopyType\').value)">🖨️ Print / PDF</button> '
+          + '<button type="button" onclick="rcoConvertOrderToQuotation(\''+esc(o.id)+'\')">📋 Convert to Quotation</button> '
           + '<button type="button" onclick="rcoConvertOrderToBill(\''+esc(o.id)+'\')">⚡ Convert Into Sale Bill</button> '
           + '<button type="button" onclick="rcoCloseOrderView()">← Back</button>';
         return header('Order Details · ' + o.orderNo, '')
@@ -610,7 +691,7 @@
           + '<td>'+rateMoney(silvAmt)+'</td>'
           + '<td><b>'+rateMoney(o.netAmount)+'</b></td>'
           + '<td><span class="rco-badge rco-badge-'+(o.status==='Cancel'?'cancel':o.status==='Closed'?'closed':'open')+'">'+esc(o.status)+'</span></td>'
-          + '<td style="white-space:nowrap"><button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> <button type="button" class="primary" onclick="rcoViewOrder(\''+esc(o.id)+'\')">View</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete order?\')){rcoDelOrder(\''+esc(o.id)+'\')}">×</button></td>'
+          + '<td style="white-space:nowrap"><button type="button" onclick="rcoOpenOrderForm(\''+esc(o.id)+'\')">Edit</button> <button type="button" class="primary" onclick="rcoViewOrder(\''+esc(o.id)+'\')">View</button> <button type="button" onclick="rcoConvertOrderToQuotation(\''+esc(o.id)+'\')" title="Convert to Quotation">📋 Quote</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete order?\')){rcoDelOrder(\''+esc(o.id)+'\')}">×</button></td>'
           + '</tr>';
         if(exp){
           body += '<tr class="rco-subtable-row"><td colspan="14">'+table(['Product','Qty','Gross Wt','Stone Wt','Net Wt','Rate','Skin','Wst','Supplier','Status'], (o.items||[]).map(it=>[esc(it.product), it.qty, fmt(it.grossWt)+' g', fmt(it.stoneWt)+' g', fmt(it.netWt)+' g', rateMoney(it.rate), esc(it.skin), it.wst+'%', esc(((db.retailSuppliers||[]).find(s=>s.id===it.supplierId)||{}).name||'—'), esc(it.status)]))+'</td></tr>';
