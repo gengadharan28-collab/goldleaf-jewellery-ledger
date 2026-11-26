@@ -512,8 +512,10 @@ function rpFormView(){
     +rbInput('Entry / bill number','documentNo',x.documentNo||'','text','placeholder="Auto after saving" maxlength="60"')
     +'<label class="rb-field"><span>'+(kind==='conversion'?'Refiner / supplier · optional':'Supplier / seller *')+'</span><select name="supplierId" class="rp-supplier-select" '+(kind==='conversion'?'':'required')+' onchange="rpSupplierChanged(this.form)">'+rpSupplierOptions(x.supplierId)+'</select></label>'
     +rbInput('Reference / supplier document','reference',x.reference||'')
+    +rbInput('Supplier invoice no.','supplierBillNo',x.supplierBillNo||'','text','placeholder="Vendor Inv #"')
     +rbInput('Counter','counter',x.counter||'Counter 1','text')
     +rbInput('Supplier document date','supplierDate',x.supplierDate||'','date')
+    +(invoice?'<label class="rb-field"><span>Payment terms</span><select name="paymentTerms">'+rbOptions(['Immediate','7 Days','15 Days','30 Days','Custom'],x.paymentTerms||'Immediate')+'</select></label>'+rbInput('Due date','dueDate',x.dueDate||'','date'):'')
     +(kind==='purchase'?rbInput('Expected item rows','expectedRows',x.expectedRows||'','number','min="1" step="1" placeholder="Optional"')
       +rbInput('Common rate ₹','commonRate',x.commonRate||'','number','min="0" step=".01" placeholder="Optional"')
       +'<label class="rb-field"><span>Common rate unit</span><select name="commonUnit">'+rbOptions(['g','kg'],x.commonUnit||'g')+'</select></label>':'');
@@ -550,7 +552,7 @@ function rpFormView(){
     +'<div class="rb-discount-controls">'
     +rbInput('GST percentage','gstRate',x.gstRate||3,'number','min="0" max="100" step="any"')
     +'<label class="rb-field"><span>Tax treatment</span><select name="taxTreatment">'+rbOptions(['exclusive','inclusive'],x.taxTreatment||'exclusive')+'</select></label>'
-    +(kind==='purchase'?'<label class="rb-field"><span>GST split</span><select name="taxRegion">'+rbOptions(['In-state · CGST + SGST','Interstate · IGST'],x.taxRegion||'In-state · CGST + SGST')+'</select></label>':'')
+    +(kind==='purchase'?'<label class="rb-field"><span>GST split</span><select name="taxRegion">'+rbOptions(['In-state · CGST + SGST','Interstate · IGST'],x.taxRegion||'In-state · CGST + SGST')+'</select></label><div class="rb-discount-controls" style="margin-top:4px"><label class="pdf-checkbox"><input name="reverseCharge" type="checkbox" '+(x.reverseCharge?'checked':'')+'> Reverse charge (RCM)</label><label class="pdf-checkbox"><input name="itcEligible" type="checkbox" '+(x.itcEligible!==false?'checked':'')+'> ITC eligible</label></div>':'')
     +'</div>'
     +'<label class="rb-field"><span>TDS / TCS Withholding Tax</span><select name="tdsTcsMode">'
     +[['none','None (Standard Purchase)'],['tds194q','TDS deduction'],['tcs206c','TCS addition']].map(([v,l])=>'<option value="'+v+'" '+((x.tdsTcsMode||'none')===v?'selected':'')+'>'+l+'</option>').join('')
@@ -598,8 +600,10 @@ function rpReadDocument(form){
   const base={
     id:id||crypto.randomUUID(),kind,supplierId:f.supplierId.value,when:f.when.value,
     documentNo:f.documentNo.value.trim()||kind.toUpperCase()+'-'+Date.now().toString(36).toUpperCase(),
-    reference:f.reference.value.trim(),counter:f.counter?.value?.trim()||'Counter 1',
-    supplierDate:f.supplierDate?.value||'',notes:f.notes?.value?.trim()||'',
+    reference:f.reference.value.trim(),supplierBillNo:f.supplierBillNo?.value?.trim()||'',counter:f.counter?.value?.trim()||'Counter 1',
+    supplierDate:f.supplierDate?.value||'',paymentTerms:f.paymentTerms?.value||'Immediate',dueDate:f.dueDate?.value||'',
+    reverseCharge:!!f.reverseCharge?.checked,itcEligible:f.itcEligible?!!f.itcEligible.checked:true,
+    notes:f.notes?.value?.trim()||'',
     expectedRows:n(f.expectedRows?.value),commonRate:n(f.commonRate?.value),commonUnit:f.commonUnit?.value||'g',taxRegion:f.taxRegion?.value||'In-state · CGST + SGST',
     createdAt:old?.createdAt||now,updatedAt:now
   };
@@ -1059,6 +1063,25 @@ window.rpPrintCurrent=function(forcedTemplate=null){
   pdfPrintModel(model,'retail',forcedTemplate);
 };
 
+window.rpDeleteDocument=function(id){
+  rpEnsure();
+  const doc=rpDocs().find(x=>x.id===id);
+  if(!doc)return;
+  if(!confirm('Delete '+doc.documentNo+'? This action cannot be undone.'))return;
+  db.retailDocuments=db.retailDocuments.filter(x=>x.id!==id);
+  if(rpEdit===id)rpEdit='';
+  save();
+  if(document.getElementById('rpHistoryPanel'))rpHistory();
+  render();
+  say('Deleted '+doc.documentNo+'.');
+};
+window.rpFilterHistory=function(q){
+  const term=String(q||'').trim().toLowerCase();
+  document.querySelectorAll('#rpHistoryPanel tbody tr').forEach(tr=>{
+    if(tr.textContent.startsWith('TOTAL ·'))return;
+    tr.style.display=!term||tr.textContent.toLowerCase().includes(term)?'':'none';
+  });
+};
 window.rpHistory=function(){
   document.getElementById('rpHistoryPanel')?.remove();
   const kind=RP_KINDS[RP_SECTIONS.indexOf(rpSection)];
@@ -1068,18 +1091,20 @@ window.rpHistory=function(){
     d.documentNo,
     whenShow(d),
     esc(rpSupplier(d.supplierId)?.name||'Shop conversion'),
-    esc(d.reference||d.product||(d.items||[]).map(x=>x.product).join(' + ')),
+    esc(d.supplierBillNo||d.reference||d.product||(d.items||[]).map(x=>x.product).join(' + ')),
     value(d),
     '<div class="rb-history-actions">'
     +'<button type="button" onclick="rbDialog(\'rpHistoryPanel\',false);rpEditDocument(\''+d.id+'\')">Edit</button> '
     +'<button type="button" onclick="rpPrintDocument(\''+d.id+'\')">PDF</button> '
-    +'<button type="button" onclick="rpPrintDocument(\''+d.id+'\',\'thermal-80\')">POS</button>'
+    +'<button type="button" onclick="rpPrintDocument(\''+d.id+'\',\'thermal-80\')">POS</button> '
+    +'<button type="button" class="rb-delete-btn" onclick="rpDeleteDocument(\''+d.id+'\')">×</button>'
     +'</div>'
   ]);
   const total=docs.reduce((s,d)=>s+n(d.kind==='conversion'?d.pureReceived:kind==='payment'?d.amountCredit:(d.totalAmount??d.creditAmount??d.amountCredit)),0);
   const totalDisplay=kind==='conversion'?fmt(total)+' pure g':kind==='payment'?rateMoney(total)+' · '+fmt(docs.reduce((s,d)=>s+n(d.pureWeight),0))+' pure g':rateMoney(total);
   if(rows.length)rows.push(['TOTAL · '+docs.length,'','','',totalDisplay,'']);
-  document.body.insertAdjacentHTML('beforeend',rbModal('rpHistoryPanel',rpSection+' history',rows.length?'<div class="rb-total-history">'+table(['Entry','Date','Supplier / seller','Reference / product','Value','Actions'],rows)+'</div>':'<div class="empty">No saved entries in this section yet.</div>'));
+  const searchBar=rows.length?'<div style="margin-bottom:10px"><input type="search" placeholder="Search entry no, supplier, bill no, product..." oninput="rpFilterHistory(this.value)" style="width:100%;max-width:340px;min-height:36px;padding:5px 10px;border-radius:8px;border:1px solid var(--line)"></div>':'';
+  document.body.insertAdjacentHTML('beforeend',rbModal('rpHistoryPanel',rpSection+' history',rows.length?searchBar+'<div class="rb-total-history">'+table(['Entry','Date','Supplier / seller','Reference / product','Value','Actions'],rows)+'</div>':'<div class="empty">No saved entries in this section yet.</div>'));
   rbDialog('rpHistoryPanel');
 };
 
