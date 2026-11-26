@@ -738,7 +738,7 @@ html body[data-erp] #customerSaleForm .rb-total-row b {
   font-weight: 550 !important;
 }
 
-/* v2.12.33: Item Quotation Tag Details fields at 10px */
+/* v2.12.34: Item Quotation Tag Details fields at 13px */
 html body[data-erp] #rcEstimateForm #rcQuoteTable,
 html body[data-erp] #rcEstimateForm #rcQuoteTable th,
 html body[data-erp] #rcEstimateForm #rcQuoteTable td,
@@ -750,7 +750,7 @@ html body[data-erp] #rcEstimateForm #rcQuoteTable .rc-q-lineamount,
 html body[data-erp] #rcEstimateForm #rcQuoteManualCard label,
 html body[data-erp] #rcEstimateForm #rcQuoteManualCard input,
 html body[data-erp] #rcEstimateForm #rcQuoteManualCard select {
-  font-size: 10px !important;
+  font-size: 13px !important;
   line-height: 1.25 !important;
 }
 
