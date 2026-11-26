@@ -738,6 +738,22 @@ html body[data-erp] #customerSaleForm .rb-total-row b {
   font-weight: 550 !important;
 }
 
+/* v2.12.33: Item Quotation Tag Details fields at 10px */
+html body[data-erp] #rcEstimateForm #rcQuoteTable,
+html body[data-erp] #rcEstimateForm #rcQuoteTable th,
+html body[data-erp] #rcEstimateForm #rcQuoteTable td,
+html body[data-erp] #rcEstimateForm #rcQuoteTable td::before,
+html body[data-erp] #rcEstimateForm #rcQuoteTable input,
+html body[data-erp] #rcEstimateForm #rcQuoteTable select,
+html body[data-erp] #rcEstimateForm #rcQuoteTable .rc-q-ratetax,
+html body[data-erp] #rcEstimateForm #rcQuoteTable .rc-q-lineamount,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard label,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard input,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard select {
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+}
+
 @media screen and (max-width:760px){
   #rcEstimateForm .rc-pos-payment-head{gap:1px!important;margin-bottom:2px!important}
   #rcEstimateForm .rc-pos-payment-title{line-height:1!important;margin:0!important}
