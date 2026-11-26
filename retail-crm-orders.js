@@ -22,6 +22,7 @@
     expandedOrders: new Set(),
     orderDisplay: JSON.parse(localStorage.getItem('goldleaf-order-display') || '{"oldJewel":true,"chit":true,"huid":true,"deliveryDate":true,"mc":true,"wst":true,"netWt":true}'),
     orderFilter: { q:'', dateBy:'orderDate', from:'', to:'', supplierId:'', ornament:'All', product:'', salesPerson:'' },
+    repairSearch: '', repairStatusFilter: 'All',
     crmTab: 'Leads', crmShowForm: false, crmEditId: '', crmFilterOpen: false, crmSearch: '', callTypeFilter: 'All',
     calMonth: new Date().toISOString().slice(0,7),
     custViewId: '', custViewTab: 'Details', custEditId: '', custShowForm: false, custSearch: '', custFilterOpen: false,
@@ -745,10 +746,108 @@
     });
     rcoState.repairEditId = ''; say('Jewellery repair entry saved.'); render();
   };
+  window.rcoPrintRepairPdf = (id) => {
+    const r = docs('retail-repair').find(x=>x.id===id);
+    if(!r) return say('Repair ticket not found.');
+    const cust = (db.customers||[]).find(c=>c.id===r.customerId) || {};
+    const totals = [
+      ['Service / Labour Charge', rateMoney(r.serviceCharge)],
+      ...(n(r.addedMetalCharge) > 0 ? [['Added Metal Charge (' + fmt(r.addedWt) + ' g)', rateMoney(r.addedMetalCharge)]] : []),
+      ['Total Repair Charge', rateMoney(r.totalCharge), true],
+      ['Advance Paid', rateMoney(r.advancePaid)],
+      ['Balance Due', rateMoney(r.balance), true]
+    ];
+    const model = {
+      kind: 'order',
+      retail: true,
+      title: 'JEWELLERY REPAIR RECEIPT',
+      copyType: 'Customer Copy',
+      entityLabel: 'Customer',
+      entityName: r.customerName || cust.name || 'Walk-in Customer',
+      customerAddress: [cust.doorNo, cust.address, cust.city].filter(Boolean).join(', '),
+      customerMobile: r.mobile || cust.phone || cust.mobile || '',
+      customerState: cust.state || 'TAMIL NADU',
+      reference: r.repairNo,
+      date: r.date,
+      deliveryDate: r.deliveryDate,
+      notes: [r.serviceType, r.karigar ? 'Karigar: ' + r.karigar : '', r.remarks].filter(Boolean).join(' · '),
+      netAmount: r.totalCharge,
+      invoiceItems: [{
+        product: (r.item || 'Jewellery Ornament') + ' (' + (r.serviceType || 'Repair') + ')',
+        metalType: r.metal || 'Gold',
+        pieces: 1,
+        grossWeight: n(r.grossWt),
+        netWeight: n(r.grossWt) + n(r.addedWt),
+        rate: 0,
+        makingTotal: n(r.serviceCharge) + n(r.addedMetalCharge),
+        wastage: 0,
+        subtotal: n(r.totalCharge),
+        notes: 'Status: ' + (r.status || 'Received') + (n(r.addedWt) > 0 ? ' · Added Wt: ' + fmt(r.addedWt) + ' g' : '')
+      }],
+      totals
+    };
+    if(typeof pdfPrintModel === 'function') pdfPrintModel(model, 'retail', 'classic');
+    else say('Print module not ready.');
+  };
+  window.rcoConvertRepairToBill = (id) => {
+    const r = docs('retail-repair').find(x=>x.id===id);
+    if(!r) return;
+    if(!confirm('Convert Repair ' + r.repairNo + ' to Sales Bill and mark as Delivered?')) return;
+    r.status = 'Delivered';
+    r.convertedToBill = true;
+    saveDoc('retail-repair', r);
+    if(typeof window.rbOpen === 'function') window.rbOpen('Bill');
+    else if(window.rcOpen) rcOpen('Bill');
+    setTimeout(()=>{
+      const f = document.getElementById('customerSaleForm');
+      if(!f) return;
+      if(f.elements.partyId && r.customerId) f.elements.partyId.value = r.customerId;
+      if(typeof syncSaleAccount === 'function') syncSaleAccount(f);
+      if(f.elements.reference) f.elements.reference.value = 'Repair: ' + r.repairNo;
+      const tb = f.querySelector('#rbItemsTable');
+      if(tb && typeof rbItemMarkup === 'function'){
+        tb.querySelectorAll('.rb-item').forEach(row => row.remove());
+        const itemHtml = rbItemMarkup({
+          product: (r.item || 'Jewellery Repair') + ' (' + (r.serviceType || 'Service') + ')',
+          metalType: r.metal === 'Silver' ? 'Silver' : 'Gold',
+          pieces: 1,
+          grossWeight: n(r.addedWt) > 0 ? n(r.addedWt) : 0.001,
+          lessWeight: 0,
+          stoneWeight: 0,
+          netWeight: n(r.addedWt) > 0 ? n(r.addedWt) : 0.001,
+          purity: r.metal === 'Silver' ? 92.5 : 22,
+          rate: 0,
+          wastage: 0,
+          wastageMode: 'percent',
+          makingRate: n(r.totalCharge),
+          makingMode: 'fixed',
+          certificateCharge: 0,
+          subtotal: n(r.totalCharge)
+        }, 0);
+        tb.querySelector('tfoot')?.insertAdjacentHTML('beforebegin', itemHtml);
+      }
+      if(n(r.advancePaid) > 0){
+        const dirAmt = f.querySelector('#rbDirectAmount'); if(dirAmt) dirAmt.value = r.advancePaid;
+        const dirRef = f.querySelector('#rbDirectRef'); if(dirRef) dirRef.value = 'Repair Advance ' + r.repairNo;
+        const totIn = f.querySelector('#rbTotalCollectedInput'); if(totIn) totIn.value = r.advancePaid;
+      }
+      if(typeof rbMarkDirty === 'function') rbMarkDirty(f);
+      if(typeof rbRecalc === 'function') rbRecalc(f);
+      say('Repair ' + r.repairNo + ' converted into Retail Sales Bill.');
+    }, 60);
+  };
   function rcoRepairView(){
-    const list = docs('retail-repair');
-    const cur = rcoState.repairEditId ? list.find(x=>x.id===rcoState.repairEditId) : null;
+    const allList = docs('retail-repair');
+    const q = String(rcoState.repairSearch || '').trim().toLowerCase();
+    const stFilter = rcoState.repairStatusFilter || 'All';
+    const list = allList.filter(r => {
+      if(stFilter !== 'All' && r.status !== stFilter) return false;
+      if(!q) return true;
+      return [r.repairNo, r.customerName, r.mobile, r.item, r.serviceType, r.karigar].some(v => String(v||'').toLowerCase().includes(q));
+    });
+    const cur = rcoState.repairEditId ? allList.find(x=>x.id===rcoState.repairEditId) : null;
     const services = ['Soldering & Polishing','Stone Fixing / Tightening','Ring / Bangle Resizing','Rhodium / Gold Plating','Laser Welding','Engraving','Cleaning & Buffing','Custom Repair'];
+    const statuses = ['All','Received','In Workshop','Ready for Delivery','Delivered','Cancelled'];
     return '<section class="panel"><h3>'+(cur?'Edit Repair Entry · '+esc(cur.repairNo):'Jewellery Repair & Service :: Create')+'</h3>'
       + '<form onsubmit="rcoSaveRepair(event)"><div class="rco-grid">'
       + '<label class="rco-field"><span>Repair No.</span><input name="repairNo" placeholder="Auto" value="'+esc(cur?.repairNo||'')+'"></label>'
@@ -769,10 +868,12 @@
       + '<label class="rco-field"><span>Repair Status</span><select name="status">'+opts(['Received','In Workshop','Ready for Delivery','Delivered','Cancelled'], cur?.status||'Received')+'</select></label>'
       + '<label class="rco-field wide"><span>Repair Remarks / Defect Notes</span><input name="remarks" value="'+esc(cur?.remarks||'')+'"></label>'
       + '</div><div style="margin-top:10px"><button type="submit" class="primary">Save Repair Ticket</button> '+(cur?'<button type="button" onclick="rcoState.repairEditId=\'\';render()">Cancel</button>':'')+'</div></form></section>'
-      + '<section class="panel"><h3>Repair & Service Tickets · '+list.length+'</h3>'
+      + '<section class="panel"><div class="rco-toolbar"><div class="rco-toolbar-left"><h3 style="margin:0">Repair & Service Tickets · '+list.length+' / '+allList.length+'</h3></div>'
+      + '<div class="rco-toolbar-right"><input class="rco-search" placeholder="Search Repair No, Customer, Mobile, Karigar..." value="'+esc(rcoState.repairSearch||'')+'" oninput="rcoState.repairSearch=this.value;render()"></div></div>'
+      + '<div class="rco-tabs" style="margin:8px 0 12px">'+statuses.map(s=>'<button type="button" class="'+(stFilter===s?'active':'')+'" onclick="rcoState.repairStatusFilter=\''+s+'\';render()">'+esc(s)+'</button>').join('')+'</div>'
       + (list.length ? table(['Repair No','Date','Delivery','Customer','Mobile','Service Type','Item','Item Wt g','Added Wt g','Total Charge ₹','Advance ₹','Balance ₹','Karigar','Status','Action'], list.map(r=>[
-        '<b>'+esc(r.repairNo)+'</b>',esc(r.date),esc(r.deliveryDate),'<b>'+esc(r.customerName)+'</b>',esc(r.mobile||'—'),esc(r.serviceType),esc(r.item),fmt(r.grossWt)+' g',fmt(r.addedWt)+' g','<b>'+rateMoney(r.totalCharge)+'</b>',rateMoney(r.advancePaid),'<b>'+rateMoney(r.balance)+'</b>',esc(r.karigar||'—'),'<span class="rco-badge '+(r.status==='Delivered'?'rco-badge-open':r.status==='Cancelled'?'rco-badge-cancel':'rco-badge-wait')+'">'+esc(r.status)+'</span>','<button type="button" onclick="rcoState.repairEditId=\''+esc(r.id)+'\';render()">Edit</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete repair ticket?\')){rcoDelCrm(\'retail-repair\',\''+esc(r.id)+'\')}">×</button>'
-      ])) : '<p class="empty">No jewellery repair tickets yet.</p>') + '</section>';
+        '<b>'+esc(r.repairNo)+'</b>',esc(r.date),esc(r.deliveryDate),'<b>'+esc(r.customerName)+'</b>',esc(r.mobile||'—'),esc(r.serviceType),esc(r.item),fmt(r.grossWt)+' g',fmt(r.addedWt)+' g','<b>'+rateMoney(r.totalCharge)+'</b>',rateMoney(r.advancePaid),'<b>'+rateMoney(r.balance)+'</b>',esc(r.karigar||'—'),'<span class="rco-badge '+(r.status==='Delivered'?'rco-badge-open':r.status==='Cancelled'?'rco-badge-cancel':'rco-badge-wait')+'">'+esc(r.status)+'</span>','<span style="white-space:nowrap"><button type="button" onclick="rcoState.repairEditId=\''+esc(r.id)+'\';render()">Edit</button> <button type="button" onclick="rcoPrintRepairPdf(\''+esc(r.id)+'\')" title="Print Repair Receipt">🖨️ Print</button> <button type="button" onclick="rcoConvertRepairToBill(\''+esc(r.id)+'\')" title="Convert to Sales Bill">⚡ Bill</button> <button type="button" class="rb-delete-btn" onclick="if(confirm(\'Delete repair ticket?\')){rcoDelCrm(\'retail-repair\',\''+esc(r.id)+'\')}">×</button></span>'
+      ])) : '<p class="empty">No jewellery repair tickets match your filter.</p>') + '</section>';
   }
 
   // ======================== 2. CRM MODULE (8 SUB-PAGES) ========================
