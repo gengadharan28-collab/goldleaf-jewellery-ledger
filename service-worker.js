@@ -1,4 +1,4 @@
-const CACHE='goldleaf-shell-v2373';
+const CACHE='goldleaf-shell-v2374';
 self.addEventListener('install',event=>{
   event.waitUntil(self.skipWaiting());
 });
@@ -10,16 +10,30 @@ self.addEventListener('activate',event=>{
     await caches.open(CACHE);
     const keys=await caches.keys();
     const previous=keys.filter(key=>key.startsWith('goldleaf-shell-')&&key!==CACHE);
-    await Promise.all(previous.slice(0,-1).map(key=>caches.delete(key)));
+    await Promise.all(previous.map(key=>caches.delete(key)));
+    const clients=await self.clients.matchAll({type:'window'});
+    for(const client of clients){
+      client.postMessage({type:'SW_ACTIVATED',cache:CACHE});
+    }
   })());
 });
 self.addEventListener('message',event=>{
   if(event.data==='skipWaiting'||event.data?.type==='SKIP_WAITING'||event.data==='applyUpdate'){
     self.skipWaiting();
+  }else if(event.data?.type==='CLEAR_CACHES'){
+    event.waitUntil((async()=>{
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>k.startsWith('goldleaf-shell-')).map(k=>caches.delete(k)));
+    })());
   }
 });
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;
+  const reqUrl=new URL(event.request.url);
+  if(reqUrl.pathname.endsWith('/version.json')||reqUrl.pathname.endsWith('/service-worker.js')){
+    event.respondWith(fetch(event.request,{cache:'no-store'}));
+    return;
+  }
   if(event.request.mode==='navigate'){
     const network=(async()=>{
       const response=await fetch(event.request,{cache:'no-cache'});
@@ -62,11 +76,3 @@ self.addEventListener('fetch',event=>{
     }))
   );
 });
-
-
-
-
-
-
-
-

@@ -1,0 +1,12 @@
+{
+  "version": "2.13.0",
+  "build": "goldleaf-shell-v2374",
+  "releasedAt": "2026-11-26",
+  "title": "Complete ERP Suite: Reports Hub, Accounts, Stock & Tagging, High-Darkness POS Print",
+  "highlights": [
+    "32-Category / 129-Report Directory with expandable Reports sidebar & domain filters",
+    "Dedicated Accounts module with Ledger Statements, Save-All Opening Balance & Vouchers",
+    "Unified Stock & Tagging roof across 21 Lot, Tagging, Voucher, Verification, Reorder & Gift pages",
+    "Sales Bill Delete with automatic Stock Tag & Chit Passbook restoration + High-Darkness Printing"
+  ]
+}
