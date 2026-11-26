@@ -674,6 +674,71 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
 
 /* v2.11.8: emphasize Total/Paid and keep Split as a small right-side action. */
 @media screen and (max-width:760px){
+  #rcEstimateForm .rc-pos-payment-head{gap:4px!important;margin-bottom:6px!important}
+  #rcEstimateForm .rc-pos-payment-title{line-height:1.15!important;margin:0!important}
+  #rcEstimateForm .rc-pos-payment-total-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto!important;align-items:center!important;gap:6px!important}
+  #rcEstimateForm .rc-pos-header-total{grid-column:1!important;grid-row:1!important}
+  #rcEstimateForm .rc-pos-header-paid{grid-column:2!important;grid-row:1!important}
+  #rcEstimateForm .rc-pos-header-total,#rcEstimateForm .rc-pos-header-paid{height:auto!important;min-height:40px!important;padding:5px 8px!important}
+  #rcEstimateForm .rc-pos-split-btn{grid-column:3!important;grid-row:1!important;align-self:center!important;justify-self:end!important;width:auto!important;min-width:60px!important;height:36px!important;min-height:36px!important;margin-top:0!important;padding:4px 10px!important;border-radius:7px!important}
+}
+
+/* v2.12.32: ~60% card-fill readable size (normal/medium weight, no heavy bold) across Estimation, Sales Bill & Payment Received. */
+html body[data-erp] #rcEstimateForm .rc-pos-pill,
+html body[data-erp] #rcEstimateForm .rc-pos-pill *,
+html body[data-erp] #rcEstimateForm .rc-old-gold-btn,
+html body[data-erp] #rcEstimateForm .rc-old-gold-title,
+html body[data-erp] #rcEstimateForm .rc-old-gold-badge,
+html body[data-erp] #rcEstimateForm .rc-adj-card-title,
+html body[data-erp] #rcEstimateForm .rc-adj-card-val,
+html body[data-erp] #rcEstimateForm .rc-pos-payment-title,
+html body[data-erp] #rcEstimateForm .rc-pos-header-total,
+html body[data-erp] #rcEstimateForm .rc-pos-header-total b,
+html body[data-erp] #rcEstimateForm .rc-pos-header-paid,
+html body[data-erp] #rcEstimateForm .rc-pos-header-paid b,
+html body[data-erp] #rcEstimateForm .rc-pos-split-btn {
+  font-size: 14.5px !important;
+  font-weight: 550 !important;
+  line-height: 1.15 !important;
+}
+html body[data-erp] #rcEstimateForm .rc-pos-pill {
+  min-height: 36px !important;
+  height: auto !important;
+  padding: 6px 8px !important;
+}
+html body[data-erp] #rcEstimateForm .rc-pos-summary-grid span,
+html body[data-erp] #rcEstimateForm .rc-pos-summary-grid b,
+html body[data-erp] #rcEstimateForm .rc-totals span,
+html body[data-erp] #rcEstimateForm .rc-totals b,
+html body[data-erp] #rcEstimateForm .rc-adj-label,
+html body[data-erp] #rcEstimateForm .rc-og-label-text {
+  font-size: 15px !important;
+  font-weight: 550 !important;
+  line-height: 1.2 !important;
+}
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button,
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button span,
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button b {
+  font-size: 14.5px !important;
+  font-weight: 550 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.15 !important;
+}
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button {
+  padding: 6px 9px !important;
+  min-height: 40px !important;
+  gap: 4px !important;
+}
+html body[data-erp] #customerSaleForm .rb-total-row,
+html body[data-erp] #customerSaleForm .rb-total-row span,
+html body[data-erp] #customerSaleForm .rb-total-row b {
+  font-size: 15px !important;
+  font-weight: 550 !important;
+}
+
+@media screen and (max-width:760px){
   #rcEstimateForm .rc-pos-payment-head{gap:1px!important;margin-bottom:2px!important}
   #rcEstimateForm .rc-pos-payment-title{line-height:1!important;margin:0!important}
   #rcEstimateForm .rc-pos-payment-total-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px!important;align-items:start!important;gap:5px!important}
