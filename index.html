@@ -173,10 +173,12 @@ function render(){
     'Order Tracking': () => window.rcoOrderTrackingView ? window.rcoOrderTrackingView() : dash(),
     'CRM': () => window.rcoCrmView ? window.rcoCrmView() : dash(),
     'Suppliers': () => window.rcoRetailSupplierView ? window.rcoRetailSupplierView() : dash(),
+    'Accounts': () => window.rgaParentGroupPage ? window.rgaParentGroupPage() : dash(),
     'Parent Group': () => window.rgaParentGroupPage ? window.rgaParentGroupPage() : dash(),
     'Cost Structure': () => window.rcsCostStructurePage ? window.rcsCostStructurePage() : dash(),
     'Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
     'Retail Products': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Products') : (window.rcProductsView ? window.rcProductsView() : salesView()),
+    'Stock & Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Stock & Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
     'Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
     'Retail Tagging': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Tagging') : (window.rcTaggingView ? window.rcTaggingView() : salesView()),
     'Stock Verification': () => window.rcStandaloneScreen ? window.rcStandaloneScreen('Stock Verification') : '',
@@ -211,7 +213,7 @@ function setWorkspaceMode(mode){
   let type=workspaceMode==='retail'?'customer':'party';registerType=type;summaryType=type;ledgerType=type;
   if(edit&&['Sales Entry','Payments','Register'].includes(page))edit=null;
   if(workspaceMode==='wholesale'){
-    if(['Estimation / Quotation','Retail Estimation','Order Tracking','CRM','Suppliers','Parent Group','Cost Structure','Products','Retail Products','Tagging','Retail Tagging','Stock Verification','Lot Entry','Chit','Retail Chit'].includes(page))page='Dashboard';
+    if(['Estimation / Quotation','Retail Estimation','Order Tracking','CRM','Suppliers','Accounts','Parent Group','Cost Structure','Products','Retail Products','Stock & Tagging','Tagging','Retail Tagging','Stock Verification','Lot Entry','Chit','Retail Chit'].includes(page))page='Dashboard';
     else if(page==='Customer Register')page='Register';
     else if(page==='Customer Sales Entry')page='Sales Entry';
     else if(['Payments','Ledger','Summary','Customer Payment','Customer Ledger','Customer Summary'].includes(page))page='Dashboard';
@@ -540,7 +542,7 @@ window.glTryNativeInstall=function(){
 };
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;updateInstallButton()});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;updateInstallButton();say('Goldleaf is installed on your Desktop.')});
-window.GL_APP_VERSION = '2.11.14';
+window.GL_APP_VERSION = '2.11.15';
 for (const glFreshStyle of ['./mobile-erp-layout.css?v=2.11.7','./retail-mobile-polish.css?v=2.11.11']) {
   if (!document.querySelector('link[href="'+glFreshStyle+'"]')) {
     const glLink=document.createElement('link');glLink.rel='stylesheet';glLink.href=glFreshStyle;document.head.appendChild(glLink);
@@ -1151,7 +1153,7 @@ window.go=function(target){
     localStorage.setItem('goldleaf-workspace-mode','retail');
     registerType=summaryType=ledgerType='customer';
   }
-  if(['Order Tracking','CRM','Suppliers','Parent Group','Cost Structure'].includes(target)){
+  if(['Order Tracking','CRM','Suppliers','Accounts','Parent Group','Cost Structure'].includes(target)){
     workspaceMode = 'retail';
     localStorage.setItem('goldleaf-workspace-mode', 'retail');
     registerType = summaryType = ledgerType = 'customer';
@@ -1161,7 +1163,7 @@ window.go=function(target){
     render();
     return;
   }
-  if(['Products','Tagging','Stock Verification','Lot Entry','Estimation / Quotation','Chit','Retail Products','Retail Tagging','Retail Estimation','Retail Chit'].includes(target)){
+  if(['Products','Stock & Tagging','Tagging','Stock Verification','Lot Entry','Estimation / Quotation','Chit','Retail Products','Retail Tagging','Retail Estimation','Retail Chit'].includes(target)){
     workspaceMode = 'retail';
     localStorage.setItem('goldleaf-workspace-mode', 'retail');
     let section = target.replace(/^Retail /, '');
@@ -1341,7 +1343,7 @@ window.render=function(){
 };
 window.setInterval(()=>{if(session)window.checkRateReminder()},30000);window.addEventListener('focus',()=>{if(session)checkRateReminder()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)checkRateReminder()});
 render();
-</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.8&layoutcards=1"></script><script src="./admin-panel.js?v=2.11.20&cloudfix=4&loanaccess=2"></script><script src="./pdf-templates-v21281.js?v=8&mono=6&notable=1"></script><script src="./direct-print-helper.js?v=2.12.80&clearfont=7&mono=5"></script><script src="./erp-ui.js?v=2.12.35&sharedrate=1"></script><script src="./retail-sales.js?v=2.12.14&strictiso=1&return=12&netdiscount=1&voucher=1"></script><script src="./retail-purchases.js?v=2.11.15&deletefix=2&purchasecalc=3"></script><script src="./retail-estimate-chit.js?v=2.12.43&historyview=1&return=6&netdiscount=1&shopopening=3&dedup=2"></script><script src="./retail-crm-orders.js?v=2.12.33&vouchercheck=2&repair=4&dedup=2"></script><script src="./retail-groups-accounts.js?v=2.12.27&opening=2&postings=8&masters=1"></script><script src="./retail-cost-structure.js?v=2.12.29"></script><script src="./retail-all-reports.js?v=2.12.38&books=5&daybookv4=1"></script><script src="./gl-datatable-drill.js?v=2.12.33"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.10.91&openingmetal=1&vouchers=1"></script><script src="./retail-lot-entry.js?v=2.10.90&opening=3"></script><script src="./retail-chit-reports.js?v=2.10.77"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.81"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.12.31"><style id="grid80-final-alignment">.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-weight:500!important;color:#000!important;-webkit-text-stroke:0!important;text-shadow:none!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}</style><script src="./retail-jewel-loan.js?v=5"></script></body></html>
+</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.9&delpay=1"></script><script src="./admin-panel.js?v=2.11.20&cloudfix=4&loanaccess=2"></script><script src="./pdf-templates-v21281.js?v=10&mono=7&notable=1&dark=3"></script><script src="./direct-print-helper.js?v=2.12.82&clearfont=8&mono=6&dark=3"></script><script src="./erp-ui.js?v=2.12.36&stockroof=1"></script><script src="./retail-sales.js?v=2.12.15&salesdelete=1"></script><script src="./retail-purchases.js?v=2.11.15&deletefix=2&purchasecalc=3"></script><script src="./retail-estimate-chit.js?v=2.12.44&stockroof=1"></script><script src="./retail-crm-orders.js?v=2.12.33&vouchercheck=2&repair=4&dedup=2"></script><script src="./retail-groups-accounts.js?v=2.12.28&accountshub=1"></script><script src="./retail-cost-structure.js?v=2.12.29"></script><script src="./retail-all-reports.js?v=2.12.38&books=5&daybookv4=1"></script><script src="./gl-datatable-drill.js?v=2.12.33"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.12.1&stockroof=1"></script><script src="./retail-lot-entry.js?v=2.12.1&stockroof=1"></script><script src="./retail-chit-reports.js?v=2.10.77"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.81"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.12.31"><style id="grid80-final-alignment">.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-weight:500!important;color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0.45px #000!important;text-shadow:none!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}@media print{body,body .main,body .panel,body table,body th,body td,body h1,body h2,body h3,body p,body span,body b,body strong,body small{color:#000!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}body table,body th,body td{border-color:#000!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{-webkit-text-stroke:0.55px #000!important}}</style><script src="./retail-jewel-loan.js?v=5"></script></body></html>
 
 
 

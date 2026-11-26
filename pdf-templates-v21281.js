@@ -1257,7 +1257,7 @@ const PDF_DOCUMENT_CSS=`
 .pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.8mm 1mm;font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums;font-size:13px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:500!important;background:#fff!important;overflow:hidden;-webkit-font-smoothing:none;text-rendering:geometricPrecision}
 .pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}
 .pdf-thermal-estimate-80 .pdf-thermal-80{font-size:12.5px!important;line-height:1.34!important}
-.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;font-weight:500!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:none;text-rendering:geometricPrecision;background:transparent}
+.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:500!important;-webkit-text-stroke:0.45px #000!important;text-shadow:none!important;-webkit-font-smoothing:none;text-rendering:geometricPrecision;background:transparent}
 .gl-pdf.pdf-estimate{background:#fff!important;font-size:12.5px!important;line-height:1.4!important;color:#000!important}
 .gl-pdf.pdf-estimate .pdf-brand{border:0!important;border-bottom:1px solid #000!important;background:#fff!important;padding:8px 0!important;margin-bottom:8px!important}
 .gl-pdf.pdf-estimate .pdf-brand h1{font-size:20px!important;color:#000!important}
@@ -1328,10 +1328,14 @@ const PDF_DOCUMENT_CSS=`
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf:not(.gl-pdf-thermal){box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;padding:1.5mm 2mm!important;break-after:avoid!important;page-break-after:avoid!important}
-  .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:12px!important;line-height:1.36!important}
+  .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:12.5px!important;line-height:1.38!important}
   .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
   .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}
-  .pdf-estimate .pdf-brand p{margin:2px 0!important;font-size:8px!important}
+  .pdf-estimate .pdf-brand p{margin:2px 0!important;font-size:11.5px!important}
+  .gl-pdf:not(.pdf-modern),.gl-pdf:not(.pdf-modern) *:not(.pdf-sample){color:#000!important;-webkit-text-fill-color:#000!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+  .gl-pdf th,.gl-pdf td,.gl-pdf .pdf-meta,.gl-pdf .pdf-section-title,.gl-pdf footer{border-color:#000!important}
+  .gl-pdf:not(.pdf-estimate):not(.pdf-modern) *{text-shadow:none!important;-webkit-text-stroke:0.28px #000}
+  .gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *,.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *{-webkit-text-stroke:0.55px #000!important;border-color:#000!important}
   .pdf-estimate .pdf-meta{gap:5px!important;margin:4px 0 6px!important;padding:5px!important}
   .pdf-estimate .pdf-section-title{margin:7px 0 3px!important;padding-bottom:2px!important;font-size:9px!important}
   .pdf-estimate th,.pdf-estimate td{padding:3px 4px!important;font-size:7.5px!important;line-height:1.2!important}
@@ -1471,7 +1475,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const hostW=is80?265:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
-  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1.5mm 2mm':'14px')+'!important}</style>'+pdfDocument(model,c,template);
+  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1.5mm 2mm':'14px')+'!important}.gl-pdf:not(.pdf-modern),.gl-pdf:not(.pdf-modern) *{color:#000!important;-webkit-text-fill-color:#000!important}'+(isEstimate?'.gl-pdf,.gl-pdf *{-webkit-text-stroke:0.55px #000!important}':'')+'</style>'+pdfDocument(model,c,template);
   const mask=document.createElement('div');
   mask.style.cssText='position:fixed;inset:0;z-index:2147483645;background:rgba(246,242,232,0.92);display:grid;place-items:center;font:700 14px Inter,sans-serif;color:#143d2b;';
   mask.textContent='Preparing PDF…';
@@ -1486,7 +1490,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
       margin:(is80||is58)?[1, 5, 1, 5]:5,
       filename,
       image:{type:'jpeg',quality:0.98},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',width:hostW,windowWidth:hostW,scrollX:0,scrollY:0},
+      html2canvas:{scale:3,useCORS:true,backgroundColor:'#ffffff',width:hostW,windowWidth:hostW,scrollX:0,scrollY:0},
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
     const file=new File([blob],filename,{type:'application/pdf'});

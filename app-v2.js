@@ -293,7 +293,7 @@ window.ledgerPage=function(type){
           saleCollectionValue(row)?v2Money(saleCollectionValue(row)):'—',
           billPending>0?'<b style="color:#b45309">'+v2Money(billPending)+'</b>':'<span style="color:#059669">Paid</span>',
           '<b>'+v2Money(closing)+'</b>',
-          '<button type="button" onclick="rbPrintSavedSale(\''+esc(row.id)+'\')">View Bill</button>'
+          '<button type="button" onclick="rbPrintSavedSale(\''+esc(row.id)+'\')">View Bill</button> <button type="button" onclick="rbEdit(\''+esc(row.id)+'\')">Edit</button> <button type="button" class="rb-delete-btn" onclick="rbDeleteSale(\''+esc(row.id)+'\')">Delete</button>'
         ];
       }
       if(row.retailKind==='return'){
@@ -388,6 +388,12 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
   ].map(String));
   merged.deletedSaleIds=[...deletedSaleIds];
 
+  const deletedPaymentIds=new Set([
+    ...(Array.isArray(merged.deletedPaymentIds)?merged.deletedPaymentIds:[]),
+    ...(Array.isArray(current.deletedPaymentIds)?current.deletedPaymentIds:[])
+  ].map(String));
+  merged.deletedPaymentIds=[...deletedPaymentIds];
+
   const deletedLotIds=new Set([
     ...(Array.isArray(merged.deletedLotIds)?merged.deletedLotIds:[]),
     ...(Array.isArray(current.deletedLotIds)?current.deletedLotIds:[])
@@ -403,6 +409,7 @@ function v2MergeCloudLedgers(remote,local,preferLocal=true){
   merged.retailDocuments=(merged.retailDocuments||[]).filter(item=>!deletedRetailDocumentIds.has(String(item?.id||'')));
   merged.wholesalePacketSales=(merged.wholesalePacketSales||[]).filter(item=>!deletedWholesaleSaleIds.has(String(item?.id||'')));
   merged.sales=(merged.sales||[]).filter(item=>!deletedSaleIds.has(String(item?.id||'')));
+  merged.payments=(merged.payments||[]).filter(item=>!deletedPaymentIds.has(String(item?.id||'')));
   merged.wholesaleLots=(merged.wholesaleLots||[]).filter(item=>!deletedLotIds.has(String(item?.id||'')));
   for(const key of ['products','purities','partyPurities']){const seen=new Map();for(const item of [...(merged[key]||[]),...(current[key]||[])])seen.set(String(item).toLowerCase(),item);merged[key]=[...seen.values()]}
   const remotePdf=merged.pdfSettings||{},localPdf=current.pdfSettings||{};

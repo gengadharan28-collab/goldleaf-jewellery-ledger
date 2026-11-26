@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const HELPER='http://127.0.0.1:17655';
-  const THERMAL=new Set(['thermal-80','thermal-estimate-80','thermal-estimate-grid-80']);
+  const THERMAL=new Set(['thermal-80','thermal-estimate-80','thermal-estimate-grid-80','thermal-58','thermal-estimate-58']);
   let lastPrintAt=0;
 
   function notify(message,type){
@@ -36,16 +36,28 @@
     const mask=new Uint8Array(w*h);
     for(let i=0,p=0;i<pixels.length;i+=4,p++){
       const luminance=(299*pixels[i]+587*pixels[i+1]+114*pixels[i+2])/1000;
-      mask[p]=luminance<238?1:0;
+      mask[p]=luminance<245?1:0;
     }
-    // 1-subpixel horizontal reinforcement at scale:3 so thin monospace strokes stay pitch-black after printer downscaling
+    // 2D horizontal + vertical stroke darkening at scale:3 so every stem, crossbar,
+    // digit, and divider prints at full 2.5-3 dot thermal density after 203-DPI downscaling
+    // without bridging gaps or closing character loops.
     for(let y=0;y<h;y++){
       const row=y*w;
       for(let x=0;x<w;x++){
-        const dark=mask[row+x]||(x>0&&mask[row+x-1]&&!(x+1<w&&mask[row+x+1]));
+        let dark=mask[row+x]===1;
+        if(!dark&&x>0&&mask[row+x-1]===1&&!(x+2<w&&mask[row+x+1]===1&&mask[row+x+2]===1)){
+          dark=true;
+        }
+        if(!dark&&x+1<w&&mask[row+x+1]===1&&!(x>=2&&mask[row+x-1]===1&&mask[row+x-2]===1)&&(x>1&&mask[row+x-2]===0)){
+          dark=true;
+        }
+        if(!dark&&y>0&&mask[(y-1)*w+x]===1&&!(y+2<h&&mask[(y+1)*w+x]===1&&mask[(y+2)*w+x]===1)){
+          dark=true;
+        }
         const val=dark?0:255;
         const idx=(row+x)*4;
         pixels[idx]=pixels[idx+1]=pixels[idx+2]=val;
+        pixels[idx+3]=255;
       }
     }
     context.putImageData(image,0,0);
@@ -66,9 +78,11 @@
     doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'
       +'html{margin:0!important;padding:0!important;width:80mm!important;background:#fff!important;}body{margin:0!important;padding:2mm 0!important;width:80mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +PDF_DOCUMENT_CSS
-      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:78mm!important;max-width:78mm!important;height:auto!important;padding:1mm!important;border:1.5px solid #000!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
-      +'.grid80-items{width:100%!important;max-width:100%!important;table-layout:fixed!important}.grid80-item-total-cell,.grid80-item-total-box,.grid80-product-total,.grid80-summary-row{max-width:100%!important;box-sizing:border-box!important;overflow:hidden!important}.grid80-tot-right{min-width:0!important;max-width:100%!important}.grid80-tot-val{font-size:16px!important;max-width:36mm!important;overflow:visible!important;text-overflow:clip!important;text-align:right!important}.grid80-readable-total,.grid80-product-total,.grid80-summary-row{padding-right:2mm!important}.grid80-product-total b,.grid80-summary-row b{max-width:36mm!important;overflow:visible!important;text-align:right!important}'
-      +(sharpEstimate?'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{border:0!important;background:#fff!important}.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;font-weight:500!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important}.gl-pdf th,.gl-pdf td,.gl-pdf hr,.gl-pdf [class*="grid80-"]{border-color:#000!important;background-color:#fff!important}':'')
+      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:78mm!important;max-width:78mm!important;height:auto!important;padding:1mm!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
+      +'.gl-pdf,.gl-pdf *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0.65px #000!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important}'
+      +'.grid80-top,.grid80-product-total,.grid80-summary-row.grid80-highlight,.est-plain-head,.est-plain-highlight,.thermal-items-head,.thermal-total-highlight{border-top-width:2px!important;border-bottom-width:2px!important;border-color:#000!important}'
+      +'.grid80-meta,.grid80-plain-item,.grid80-sec-label,.est-plain-item,.est-plain-section{border-color:#000!important;border-width:1.5px!important}'
+      +(sharpEstimate?'.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:500!important;-webkit-text-stroke:0.65px #000!important;text-shadow:none!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important;background-color:transparent!important}.gl-pdf{background-color:#fff!important}':'')
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
     doc.close();
     try{
@@ -78,7 +92,7 @@
       const receiptHeight=Math.max(receipt.getBoundingClientRect().height,receipt.scrollHeight);
       frame.style.height=Math.ceil(receiptHeight+(4*96/25.4)+2)+'px';
       const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(80*96/25.4),height:Math.ceil(receiptHeight+(4*96/25.4))});
-      if(sharpEstimate)sharpenThermalEstimate(canvas);
+      sharpenThermalEstimate(canvas);
       return canvas.toDataURL('image/png');
     }finally{
       frame.remove();
@@ -96,7 +110,7 @@
         method:'POST',
         headers:{'Content-Type':'application/json'},
         cache:'no-store',
-        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:64,cut:true})
+        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:68,cut:true})
       });
       const body=await res.text();
       if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');

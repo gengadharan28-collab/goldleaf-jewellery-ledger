@@ -3083,7 +3083,7 @@ function rcTaggingView(){
         batch=x?.batchId||crypto.randomUUID();
   rcTagMode=x?(x.entryMode==='item'?'item':'gram'):rcTagMode;
   rcTagBatch=x?[x]:[{}];
-  return '<section class="panel"><div class="rc-section-title"><div><h2>'+(x?'Edit tagged item':'Retail product tagging')+'</h2><p class="muted">Build a tag batch, enter each piece or gram based item, then save, display or print the tags.</p></div><span>'+rows.length+' tags in stock</span></div><form id="rcTagBatchForm" onsubmit="rcSaveTagBatch(event)"><input type="hidden" name="batchId" value="'+esc(batch)+'"><section class="rc-tag-batch-meta"><label>Tag date *<input name="tagDate" type="date" required value="'+esc(x?.tagDate||new Date().toISOString().slice(0,10))+'"></label><label>Lot entry<input name="lotEntry" list="rvLotEntries" value="'+esc(x?.lotEntry||'')+'" placeholder="Lot / batch reference"><datalist id="rvLotEntries">'+rcDocs('retail-lot').map(l=>'<option value="'+esc(l.entryNo)+'">').join('')+'</datalist></label><label>Supplier<input name="supplier" value="'+esc(supplier)+'" placeholder="Supplier name"></label><label>Tray<input name="tray" value="'+esc(tray)+'" placeholder="Tray number"></label><label>Counter<input name="counter" value="'+esc(counter)+'" placeholder="Counter"></label><label>No. of rows<input name="rowCount" type="number" min="1" step="1" onchange="rcSetTagRowCount(this)" value="'+rcTagBatch.length+'"></label><label class="rc-tag-check"><input name="isEcommerce" type="checkbox" '+(x?.isEcommerce?'checked':'')+'> E-commerce</label></section><div class="rc-tag-modebar"><b>Products info</b><div role="group" aria-label="Tagging entry mode"><button type="button" class="'+(rcTagMode==='gram'?'active':'')+'" onclick="rcSetTagMode(\'gram\')">⚖ Gram based</button><button type="button" class="'+(rcTagMode==='item'?'active':'')+'" onclick="rcSetTagMode(\'item\')">▣ Item based</button></div></div><div id="rcTagRows">'+rcTagBatch.map(rcTagRow).join('')+'</div><div class="rc-tag-actions"><button type="button" onclick="rcAddTagRow()">＋ Add new item</button><button type="button" onclick="rcAddTagRow(\'group\')">＋ Same product group</button><button type="button" onclick="rcAddTagRow(\'product\')">＋ Same product</button><button type="button" onclick="rcDisplayTagBatch()">Display / preview</button><button type="button" onclick="rcSaveTagBatch(event,true)">Save & print tags</button><button class="primary">'+(x?'Save changes':'Save tag batch')+'</button><button type="button" onclick="rcTagEdit=\'\';rcTagMode=\'gram\';render()">Clear / new</button></div></form></section><section class="panel"><div class="rc-section-title"><h2>Tagged items · '+rows.length+'</h2><span>Retail stock</span></div>'+(rows.length?table(['Tag / Barcode','Date','Lot','Product','Metal','Group','Pcs','Gross g','Net g','Rate ₹/g','Total ₹','Purity %','HUID','Status','Actions'],rows.map(t=>[esc(t.tagCode),esc(t.tagDate||''),esc(t.lotEntry||''),esc(t.product),esc(t.metalType||'Gold'),esc(t.group||'—'),n(t.pieces)||1,fmt(t.grossWeight),fmt(t.netWeight),rateMoney(t.rate),rateMoney(t.totalAmount),((t.metalType==='Silver'||String(t.product||'').toLowerCase().includes('silver'))?'—':(n(t.purity)+'%')),esc(t.huid||'—'),esc(t.status||'In stock'),'<button type="button" onclick="rcEditTag(\''+esc(t.id)+'\')">Edit</button> <button type="button" onclick="rcPrintOneTag(\''+esc(t.id)+'\')">Print</button>'])):'<p class="muted">No tagged items yet.</p>')+'</section>';
+  return '<section class="panel"><div class="rc-section-title"><div><h2>'+(x?'Edit tagged item':'Retail product tagging')+'</h2><p class="muted">Build a tag batch, enter each piece or gram based item, then save, display or print the tags.</p></div><span>'+rows.length+' tags in stock</span></div><form id="rcTagBatchForm" onsubmit="rcSaveTagBatch(event)"><input type="hidden" name="batchId" value="'+esc(batch)+'"><section class="rc-tag-batch-meta"><label>Tag date *<input name="tagDate" type="date" required value="'+esc(x?.tagDate||new Date().toISOString().slice(0,10))+'"></label><label>Lot entry<input name="lotEntry" list="rvLotEntries" value="'+esc(x?.lotEntry||'')+'" placeholder="Lot / batch reference"><datalist id="rvLotEntries">'+rcDocs('retail-lot').map(l=>'<option value="'+esc(l.entryNo)+'">').join('')+'</datalist></label><label>Supplier<input name="supplier" value="'+esc(supplier)+'" placeholder="Supplier name"></label><label>Tray<input name="tray" value="'+esc(tray)+'" placeholder="Tray number"></label><label>Counter<input name="counter" value="'+esc(counter)+'" placeholder="Counter"></label><label>No. of rows<input name="rowCount" type="number" min="1" step="1" onchange="rcSetTagRowCount(this)" value="'+rcTagBatch.length+'"></label><label class="rc-tag-check"><input name="isEcommerce" type="checkbox" '+(x?.isEcommerce?'checked':'')+'> E-commerce</label></section><div class="rc-tag-modebar"><b>Products info</b><div role="group" aria-label="Tagging entry mode"><button type="button" class="'+(rcTagMode==='gram'?'active':'')+'" onclick="rcSetTagMode(\'gram\')">⚖ Gram based</button><button type="button" class="'+(rcTagMode==='item'?'active':'')+'" onclick="rcSetTagMode(\'item\')">▣ Item based</button></div></div><div id="rcTagRows">'+rcTagBatch.map(rcTagRow).join('')+'</div><div class="rc-tag-actions"><button type="button" onclick="rcAutoFillTagCodes()">⚡ Auto tag codes</button><button type="button" onclick="rcAddTagRow()">＋ Add new item</button><button type="button" onclick="rcAddTagRow(\'group\')">＋ Same product group</button><button type="button" onclick="rcAddTagRow(\'product\')">＋ Same product</button><button type="button" onclick="rcDisplayTagBatch()">Display / preview</button><button type="button" onclick="rcSaveTagBatch(event,true)">Save & print tags</button><button class="primary">'+(x?'Save changes':'Save tag batch')+'</button><button type="button" onclick="rcTagEdit=\'\';rcTagMode=\'gram\';render()">Clear / new</button></div></form></section>'+(window.rvRenderTagInventoryPanel ? window.rvRenderTagInventoryPanel(rows) : '<section class="panel"><div class="rc-section-title"><h2>Tagged items · '+rows.length+'</h2><span>Retail stock</span></div>'+(rows.length?table(['Tag / Barcode','Date','Lot','Product','Metal','Group','Pcs','Gross g','Net g','Rate ₹/g','Total ₹','Purity %','HUID','Status','Actions'],rows.map(t=>[esc(t.tagCode),esc(t.tagDate||''),esc(t.lotEntry||''),esc(t.product),esc(t.metalType||'Gold'),esc(t.group||'—'),n(t.pieces)||1,fmt(t.grossWeight),fmt(t.netWeight),rateMoney(t.rate),rateMoney(t.totalAmount),((t.metalType==='Silver'||String(t.product||'').toLowerCase().includes('silver'))?'—':(n(t.purity)+'%')),esc(t.huid||'—'),esc(t.status||'In stock'),'<button type="button" onclick="rcEditTag(\''+esc(t.id)+'\')">Edit</button> <button type="button" onclick="rcPrintOneTag(\''+esc(t.id)+'\')">Print</button> <button type="button" class="rb-delete-btn" onclick="rcDeleteTag(\''+esc(t.id)+'\')">Delete</button>'])):'<p class="muted">No tagged items yet.</p>')+'</section>');
 }
 
 window.rcSetTagMode=function(mode){rcTagMode=mode==='item'?'item':'gram';const f=document.getElementById('rcTagBatchForm');if(!f)return;const data=rcTagReadRows(),meta=new FormData(f);const keep={tagDate:meta.get('tagDate'),lotEntry:meta.get('lotEntry'),supplier:meta.get('supplier'),tray:meta.get('tray'),counter:meta.get('counter'),rowCount:data.length,isEcommerce:f.elements.isEcommerce.checked};rcTagBatch=data;render();Object.entries(keep).forEach(([k,v])=>{const el=f.elements[k];if(el)if(el.type==='checkbox')el.checked=!!v;else el.value=v})};
@@ -3652,15 +3652,88 @@ window.rcSaveOpening=function(event){
   rcSaveStatus(saving,'Retail opening entry');
 };
 
-function rcStandaloneScreen(section){return '<div class="rc-screen rb-screen rc-standalone"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(section)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><main class="rc-content">'+(section==='Estimation / Quotation'?rcQuoteForm():section==='Products'?rcProductsView():section==='Tagging'?(window.rvTaggingScreen?rvTaggingScreen():rcTaggingView()):section==='Stock Verification'?(window.rvView?rvView():''):section==='Lot Entry'?(window.rvLotView?rvLotView():''):rcChitView())+'</main></div>'}
+window.rcAutoFillTagCodes=function(){
+  const existing=new Set(rcDocs('retail-tagging').map(t=>String(t.tagCode||'').trim().toUpperCase()));
+  let seq=rcDocs('retail-tagging').length+1;
+  document.querySelectorAll('#rcTagRows .rc-tag-row').forEach(row=>{
+    const inp=row.querySelector('[data-tag="tagCode"]');
+    if(!inp||inp.value.trim())return;
+    const p=rcDocs('retail-product').find(z=>z.id===row.querySelector('[data-tag="productId"]')?.value);
+    const prefix=(p?.tagPrefix||'GL').replace(/[^A-Za-z0-9-]/g,'').toUpperCase()||'GL';
+    let num=Math.max(seq,Number(p?.tagNextNumber)||1);
+    let candidate='';
+    do{
+      candidate=prefix+'-'+String(num).padStart(4,'0');
+      num++;
+    }while(existing.has(candidate));
+    existing.add(candidate);
+    seq=num;
+    inp.value=candidate;
+  });
+};
+window.rcDeleteTag=function(id){
+  const t=rcDocs('retail-tagging').find(z=>z.id===id);
+  if(!t)return say('Tag not found.');
+  if(t.status==='Sold')return say('Tag '+t.tagCode+' is marked Sold. Delete or edit its sales bill first.');
+  if(!confirm('Delete tag '+t.tagCode+' ('+(t.product||'item')+')?'))return;
+  if(!Array.isArray(db.deletedRetailDocumentIds))db.deletedRetailDocumentIds=[];
+  if(!db.deletedRetailDocumentIds.includes(String(id)))db.deletedRetailDocumentIds.push(String(id));
+  db.retailDocuments=(db.retailDocuments||[]).filter(z=>z&&z.id!==id);
+  if(rcTagEdit===id)rcTagEdit='';
+  save();
+  if(window.rvRefreshStockHub&&(page==='Stock & Tagging'||page==='Tagging'))window.rvRefreshStockHub();
+  else render();
+  say('Tag '+t.tagCode+' deleted.');
+};
+window.rcDuplicateTag=function(id){
+  const t=rcDocs('retail-tagging').find(z=>z.id===id);
+  if(!t)return;
+  rcTagEdit='';
+  rcTagMode=t.entryMode==='item'?'item':'gram';
+  const copy=Object.assign({},t,{id:'',tagCode:'',huid:'',rfidUid:'',status:'In stock',soldBySaleId:'',soldBillNo:'',soldAt:''});
+  if(window.rvStockOpen)window.rvStockOpen('tagging');
+  setTimeout(()=>{
+    const container=document.getElementById('rcTagRows');
+    if(container){
+      container.innerHTML=rcTagRow(copy,0);
+      const rcInp=document.querySelector('#rcTagBatchForm [name="rowCount"]');
+      if(rcInp)rcInp.value=1;
+      window.rcAutoFillTagCodes();
+      document.getElementById('rcTagBatchForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  },30);
+};
+
+function rcIsStockRoofSection(section){
+  return ['Stock & Tagging','Tagging','Stock Verification','Lot Entry'].includes(section);
+}
+function rcStandaloneScreen(section){
+  const isStock=rcIsStockRoofSection(section);
+  const title=isStock?'Stock & Tagging':section;
+  let body='';
+  if(section==='Estimation / Quotation')body=rcQuoteForm();
+  else if(section==='Products')body=rcProductsView();
+  else if(isStock){
+    if(window.rvUnifiedStockScreen)body=window.rvUnifiedStockScreen(section);
+    else if(section==='Stock Verification'&&window.rvView)body=window.rvView();
+    else if(section==='Lot Entry'&&window.rvLotView)body=window.rvLotView();
+    else body=window.rvTaggingScreen?window.rvTaggingScreen():rcTaggingView();
+  }else body=rcChitView();
+  return '<div class="rc-screen rb-screen rc-standalone"><header class="rb-header"><div><div class="eyebrow">GOLDLEAF · RETAIL</div><h1>'+esc(title)+'</h1></div><div class="rb-tools"><button type="button" onclick="if(rbCanLeave())go(\'Dashboard\')">Home</button><button type="button" onclick="if(rbCanLeave())go(\'Rate Book\')">Rates</button><button type="button" class="theme-toggle" onclick="toggleTheme()">'+(appTheme==='dark'?'☀':'☾')+'</button></div></header><main class="rc-content">'+body+'</main></div>';
+}
 window.rcStandaloneScreen=rcStandaloneScreen;window.rcChitView=rcChitView;window.rcProductsView=rcProductsView;window.rcTaggingView=rcTaggingView;window.rcQuoteForm=rcQuoteForm;
-window.rcOpenStandalone=function(section){
-  if(!['Products','Estimation / Quotation','Tagging','Stock Verification','Lot Entry','Chit'].includes(section)||!rbCanLeave())return;
+window.rcOpenStandalone=function(section,subTab=''){
+  if(!['Products','Estimation / Quotation','Stock & Tagging','Tagging','Stock Verification','Lot Entry','Chit'].includes(section)||!rbCanLeave())return;
   workspaceMode='retail';
   localStorage.setItem('goldleaf-workspace-mode','retail');
   rcEstimateEdit='';rcProductEdit='';rcTagEdit='';rcChitEdit='';
   rcOpeningEdit='';
-  page=section;
+  if(rcIsStockRoofSection(section)){
+    if(window.rvSyncInitialStockSection)window.rvSyncInitialStockSection(section,subTab);
+    page='Stock & Tagging';
+  }else{
+    page=section;
+  }
   window.goldleafRememberView?.();
   render();
   window.scrollTo?.(0,0);
@@ -3671,28 +3744,54 @@ window.rcOpen=function(section){
   if(!RC_SECTIONS.includes(section)||!rbCanLeave())return;rcSection=rbSection=section;localStorage.setItem('goldleaf-retail-section',section==='Sales Return'?'Bill':section);rcEstimateEdit='';edit=null;page='Sales Entry';window.goldleafRememberView?.();render();window.scrollTo?.(0,0)};
 const rcOldDirty=window.rbDirty;window.rbDirty=function(){return rcOldDirty()||!!document.querySelector('.rc-screen form[data-entry-dirty="1"]')};const rcOldCanLeave=window.rbCanLeave;window.rbCanLeave=function(){return !document.querySelector('.rc-screen form[data-entry-dirty="1"]')?rcOldCanLeave():confirm('Leave this entry and discard the unsaved changes?')};
 document.addEventListener('input',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});document.addEventListener('change',e=>{if(e.target.closest?.('.rc-screen form'))e.target.closest('.rc-screen form').dataset.entryDirty='1';if(e.target.closest?.('#rcEstimateForm'))rcRecalc()});
-const RC_PAGES={'Products':'Products','Retail Products':'Products','Tagging':'Tagging','Retail Tagging':'Tagging','Stock Verification':'Stock Verification','Lot Entry':'Lot Entry','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
+const RC_PAGES={'Products':'Products','Retail Products':'Products','Stock & Tagging':'Stock & Tagging','Tagging':'Tagging','Retail Tagging':'Tagging','Stock Verification':'Stock Verification','Lot Entry':'Lot Entry','Estimation / Quotation':'Estimation / Quotation','Retail Estimation':'Estimation / Quotation','Chit':'Chit','Retail Chit':'Chit'};
+window.rcStockSidebarOpen=window.rcStockSidebarOpen??false;
 function rcNavigation(){
   const nav=document.getElementById('nav');if(!nav)return;
-  nav.querySelectorAll('[data-rc-sidebar],[data-rc-estimate-nav]').forEach(b=>b.remove());
+  nav.querySelectorAll('[data-rc-sidebar],[data-rc-estimate-nav],[data-rc-stock-sub]').forEach(b=>b.remove());
   const more=document.getElementById('moreMenu');
   if(more)more.querySelectorAll('[data-rc-nav]').forEach(b=>b.remove());
   if(!session||!goldleafContext?.has_access||workspaceMode!=='retail')return;
   const anchor=nav.querySelector('button[aria-label*="Sales"]')||nav.querySelector('button:nth-child(2)')||nav.firstElementChild;
   const fragment=document.createDocumentFragment();
-  for(const [label,icon] of [['Estimation / Quotation','tagging'],['Products','plans'],['Tagging','tagging'],['Stock Verification','tagging'],['Lot Entry','tagging'],['Chit','chit']]){
+  const isStockActive=rcIsStockRoofSection(page);
+  if(isStockActive)window.rcStockSidebarOpen=true;
+  for(const [label,icon] of [['Estimation / Quotation','estimate'],['Products','plans'],['Stock & Tagging','tagging'],['Chit','chit']]){
     const button=document.createElement('button');button.type='button';button.dataset.rcSidebar=label;
     button.setAttribute('aria-label',label);button.title=label;
-    button.classList.toggle('active',page===label||page==='Retail '+label);
-    if(page===label||page==='Retail '+label)button.setAttribute('aria-current','page');
-    button.onclick=()=>rcOpenStandalone(label);
-    button.innerHTML='<span class="nav-icon">'+erpIcon(icon)+'</span><span class="erp-nav-label">'+esc(label)+'</span>';
-    fragment.append(button);
+    const active=(label==='Stock & Tagging')?isStockActive:(page===label||page==='Retail '+label);
+    button.classList.toggle('active',active);
+    if(active)button.setAttribute('aria-current','page');
+    if(label==='Stock & Tagging'){
+      button.setAttribute('aria-expanded',String(!!window.rcStockSidebarOpen));
+      button.onclick=()=>{
+        if(isStockActive){
+          window.rcStockSidebarOpen=!window.rcStockSidebarOpen;
+          rcNavigation();
+        }else{
+          window.rcStockSidebarOpen=true;
+          rcOpenStandalone('Stock & Tagging');
+        }
+      };
+      button.innerHTML='<span class="nav-icon">'+erpIcon(icon)+'</span><span class="erp-nav-label" style="display:flex;align-items:center;justify-content:space-between;width:100%"><span>Stock &amp; Tagging</span><small style="opacity:.75;font-size:10px">'+(window.rcStockSidebarOpen?'▾':'▸')+'</small></span>';
+      fragment.append(button);
+      if(window.rcStockSidebarOpen&&window.rvStockSidebarSubmenuHtml){
+        const sub=document.createElement('div');
+        sub.className='rga-sidebar-sub';
+        sub.dataset.rcStockSub='1';
+        sub.innerHTML=window.rvStockSidebarSubmenuHtml();
+        fragment.append(sub);
+      }
+    }else{
+      button.onclick=()=>rcOpenStandalone(label);
+      button.innerHTML='<span class="nav-icon">'+erpIcon(icon)+'</span><span class="erp-nav-label">'+esc(label)+'</span>';
+      fragment.append(button);
+    }
   }
   if(anchor)anchor.after(fragment);
   else nav.append(fragment);
   if(more){
-    for(const label of ['Estimation / Quotation','Products','Tagging','Stock Verification','Lot Entry','Chit']){
+    for(const label of ['Estimation / Quotation','Products','Stock & Tagging','Chit']){
       const button=document.createElement('button');button.type='button';button.dataset.rcNav=label;
       button.textContent=label;button.onclick=()=>{more.classList.remove('open');rcOpenStandalone(label)};more.append(button);
     }
