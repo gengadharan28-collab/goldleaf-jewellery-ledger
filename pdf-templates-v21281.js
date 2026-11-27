@@ -52,6 +52,7 @@ function pdfConfig(mode=pdfMode()){
     showGrossLess: true,
     showNetWeight: true,
     showWastage: true,
+    showRate: true,
     showMaking: true,
     showHuid: true,
     showStones: true,
@@ -133,6 +134,7 @@ function pdfSettingsPanel(){
     +'<label class="pdf-checkbox"><input type="checkbox" name="showGrossLess" '+(c.showGrossLess?'checked':'')+'> Gross Wt & Less Wt</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="showNetWeight" '+(c.showNetWeight?'checked':'')+'> Net Gold / Silver Weight</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="showWastage" '+(c.showWastage?'checked':'')+'> Wastage % & Wastage Wt</label>'
+    +'<label class="pdf-checkbox"><input type="checkbox" name="showRate" '+(c.showRate!==false?'checked':'')+'> Metal Rate / Gram</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="showMaking" '+(c.showMaking?'checked':'')+'> Making Charges / Labour</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="showHuid" '+(c.showHuid?'checked':'')+'> HUID / Tag Barcode</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="showStones" '+(c.showStones?'checked':'')+'> Stone & Diamond Breakup</label>'
@@ -225,6 +227,7 @@ function pdfReadSettingsForm(){
     showGrossLess: f.has('showGrossLess'),
     showNetWeight: f.has('showNetWeight'),
     showWastage: f.has('showWastage'),
+    showRate: f.has('showRate'),
     showMaking: f.has('showMaking'),
     showHuid: f.has('showHuid'),
     showStones: f.has('showStones'),
@@ -384,6 +387,10 @@ function pdfThermalMarkup(model,c,size='80mm'){
   const singleDivHtml = isEstThermal ? '<div class="thermal-divider is-single"></div>' : '<div class="thermal-divider">'+divider+'</div>';
   const doubleDivHtml = isEstThermal ? '<div class="thermal-divider is-double"></div>' : '<div class="thermal-divider">'+doubleDivider+'</div>';
   const items = model.invoiceItems?.length ? model.invoiceItems : (model.item ? [model.item] : []);
+  const estGoldItem = items.find(it => !/silver|chandi|925|999/i.test(String(it.product||'')));
+  const estSilverItem = items.find(it => /silver|chandi|925|999/i.test(String(it.product||'')));
+  const hdrGoldRate = n(estGoldItem?.rate || estGoldItem?.ratePerGram) || n(model.goldRate) || n(typeof db!=='undefined'&&db?.rates?.gold22) || n(typeof db!=='undefined'&&db?.rates?.gold24);
+  const hdrSilverRate = n(estSilverItem?.rate || estSilverItem?.ratePerGram) || n(typeof db!=='undefined'&&db?.rates?.silverBoard) || n(typeof db!=='undefined'&&db?.rates?.silver);
 
   let html = '<div class="pdf-thermal-ticket '+(is58?'pdf-thermal-58':'pdf-thermal-80')+'">'
     +(isEstThermal ? '' : '<div class="thermal-center thermal-bold thermal-title">'+esc(c.shopName)+'</div>'
@@ -393,7 +400,8 @@ function pdfThermalMarkup(model,c,size='80mm'){
     +'<div class="thermal-center thermal-doc-title">'+esc(model.title)+'</div>'
     +singleDivHtml
     +(isEstThermal
-      ? '<div class="thermal-row"><span>Date: '+esc(model.date)+'</span></div>'
+      ? '<div class="thermal-row"><span>Gold: '+(hdrGoldRate>0?pdfMoney(hdrGoldRate)+'/g':'—')+'</span><span class="thermal-right">Silver: '+(hdrSilverRate>0?pdfMoney(hdrSilverRate)+'/g':'—')+'</span></div>'
+        +'<div class="thermal-row"><span>Date: '+esc(model.date)+'</span></div>'
         +(model.reference?'<div class="thermal-row"><span>Quotation No: '+esc(model.reference)+'</span></div>':'')
         +'<div class="thermal-row"><span>'+esc(model.entityLabel||'Cust')+': '+esc(model.entityName)+'</span>'+(model.entityDetails?'<span>'+esc(model.entityDetails)+'</span>':'')+'</div>'
       : '<div class="thermal-row"><span>Date: '+esc(model.date)+'</span><span>'+esc(model.reference||'')+'</span></div>'
@@ -423,17 +431,29 @@ function pdfThermalMarkup(model,c,size='80mm'){
       const mcVal = n(it.makingTotal || it.making || 0);
       const wstLabel = wstPct + (it.wastageMode === 'grams' ? 'g' : '%');
       const moneyShort = v => '₹' + Math.round(n(v)).toLocaleString('en-IN');
+      const estCols = [];
+      if (c.showGrossLess !== false) {
+        estCols.push({ lbl:'Gross', val:fmt(grossWt), fr:'1.12fr' });
+        estCols.push({ lbl:'Less', val:fmt(lessWt), fr:'0.94fr' });
+      }
+      if (c.showNetWeight !== false) {
+        estCols.push({ lbl:'Net', val:fmt(netWt), fr:'1.04fr' });
+      }
+      if (c.showWastage !== false) {
+        estCols.push({ lbl:'Wst', val:esc(wstLabel), sub:(wstAmt>0?esc(moneyShort(wstAmt)):''), fr:'0.78fr' });
+      }
+      if (c.showRate !== false) {
+        estCols.push({ lbl:'Rate', val:(rateVal>0?esc(moneyShort(rateVal)):'—'), fr:'1fr' });
+      }
+      if (c.showMaking !== false) {
+        estCols.push({ lbl:'MC', val:(mcVal>0?esc(moneyShort(mcVal)):'₹0'), fr:'0.92fr' });
+      }
 
       html += '<div class="thermal-item-entry">'
         +'<div class="thermal-item-main"><span>Item '+(itemIdx+1)+' · '+esc(rawName)+'</span></div>'
-        +'<div class="thermal-item-cols">'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">Gross</span><span class="thermal-col-val">'+fmt(grossWt)+'</span></div>'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">Less</span><span class="thermal-col-val">'+fmt(lessWt)+'</span></div>'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">Net</span><span class="thermal-col-val">'+fmt(netWt)+'</span></div>'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">Wst</span><span class="thermal-col-val">'+esc(wstLabel)+'</span>'+(wstAmt>0?'<span class="thermal-col-sub">'+esc(moneyShort(wstAmt))+'</span>':'')+'</div>'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">Rate</span><span class="thermal-col-val">'+(rateVal>0?esc(moneyShort(rateVal)):'—')+'</span></div>'
-        +'<div class="thermal-col"><span class="thermal-col-lbl">MC</span><span class="thermal-col-val">'+(mcVal>0?esc(moneyShort(mcVal)):'₹0')+'</span></div>'
-        +'</div>'
+        +(estCols.length ? '<div class="thermal-item-cols" style="grid-template-columns:'+estCols.map(col=>col.fr).join(' ')+'">'
+          +estCols.map(col=>'<div class="thermal-col"><span class="thermal-col-lbl">'+col.lbl+'</span><span class="thermal-col-val">'+col.val+'</span>'+(col.sub?'<span class="thermal-col-sub">'+col.sub+'</span>':'')+'</div>').join('')
+          +'</div>' : '')
         +'<div class="thermal-item-amt-bottom"><span>Item Amount</span><span class="thermal-right">'+pdfMoney(it.subtotal)+'</span></div>'
         +'</div>';
       continue;
@@ -443,7 +463,7 @@ function pdfThermalMarkup(model,c,size='80mm'){
     if(c.showGrossLess && (it.grossWeight || it.lessWeight)) metaParts.push('Gr:'+fmt(it.grossWeight||it.weight)+'g Less:'+fmt(it.lessWeight||0)+'g');
     if(c.showNetWeight) metaParts.push('Net:'+fmt(it.netWeight||it.weight)+'g');
     if(it.purity) metaParts.push(it.purity + (String(it.purity).includes('%')||String(it.purity).includes('K')?'':'K'));
-    if(it.rate) metaParts.push('@'+pdfMoney(it.rate));
+    if(c.showRate !== false && it.rate) metaParts.push('@'+pdfMoney(it.rate));
     if(c.showWastage && n(it.wastage)>0) metaParts.push('Wst:'+it.wastage+'%');
     if(c.showMaking && n(it.makingTotal||it.making)>0) metaParts.push('MC:'+pdfMoney(it.makingTotal||it.making));
 
@@ -855,8 +875,8 @@ async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=fa
     pageSize = thermalWidth + 'mm auto';
   }
 
-  const printBoxW = isGrid80 ? 74 : (thermalWidth === 80 ? 74 : 52);
-  const printPadCss = isGrid80 ? '0.8mm 0.5mm' : (thermalWidth === 80 ? '1mm 0.5mm' : '1mm 1mm');
+  const printBoxW = isGrid80 ? 78 : (thermalWidth === 80 ? 78 : 56);
+  const printPadCss = '0.5mm 0';
 
   // Fallback DOM root
   let root=document.getElementById('goldleafPdfRoot');
@@ -1209,7 +1229,7 @@ const PDF_DOCUMENT_CSS=`
 
 /* Thermal POS Receipts (80mm & 58mm) */
 .gl-pdf-thermal{background:#fff;padding:2mm 2.5mm;font-family:"Courier New",Courier,monospace;line-height:1.28;box-shadow:0 1px 6px rgba(0,0,0,.15);border:1.5px solid #000;color:#000;box-sizing:border-box}
-.pdf-thermal-80{max-width:68mm;font-size:11px;font-weight:600;color:#000;margin:0 auto}
+.pdf-thermal-80{max-width:78mm;font-size:11px;font-weight:600;color:#000;margin:0 auto}
 .pdf-thermal-58{max-width:48mm;font-size:9.5px;font-weight:600;color:#000;padding:1.5mm 2mm;margin:0 auto}
 .thermal-center{text-align:center}
 .thermal-right{text-align:right}
@@ -1222,11 +1242,11 @@ const PDF_DOCUMENT_CSS=`
 .thermal-divider.is-double{width:100%;height:0;font-size:0;line-height:0;border-top:3px double #000;margin:5px 0}
 .thermal-item-cols{display:grid;grid-template-columns:1.12fr 0.94fr 1.04fr 0.78fr 1fr 0.92fr;gap:2px;width:100%;box-sizing:border-box;margin-top:4px;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
 .thermal-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:hidden}
-.thermal-col-lbl{font-size:11.5px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.35px;white-space:nowrap}
-.thermal-col-val{font-size:13px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.35px}
-.thermal-col-sub{font-size:11px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.3px}
-.thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:13.5px!important;font-weight:400!important}
-.thermal-item-amt-bottom .thermal-right,.thermal-row .thermal-right{font-size:14.5px!important}
+.thermal-col-lbl{font-size:12px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.35px;white-space:nowrap}
+.thermal-col-val{font-size:13.5px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.35px}
+.thermal-col-sub{font-size:11.5px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.3px}
+.thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:14px!important;font-weight:400!important}
+.thermal-item-amt-bottom .thermal-right,.thermal-row .thermal-right{font-size:15px!important}
 .thermal-row{display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:600}
 .thermal-items-head{display:flex;justify-content:space-between;font-weight:800;margin:4px 0 2px;border-bottom:1.5px solid #000;padding-bottom:2px;color:#000}
 .thermal-item-entry{margin:4px 0;color:#000}
@@ -1237,9 +1257,9 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:74mm;max-width:74mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.8mm .5mm;font-family:monospace!important;font-variant-numeric:tabular-nums;font-size:13.5px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:400!important;background:#fff!important;overflow:hidden;text-rendering:geometricPrecision}
+.pdf-thermal-estimate-grid-80{width:78mm;max-width:78mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.5mm 0;font-family:monospace!important;font-variant-numeric:tabular-nums;font-size:14px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:400!important;background:#fff!important;overflow:hidden;text-rendering:geometricPrecision}
 .pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}
-.pdf-thermal-estimate-80 .pdf-thermal-80{font-size:13.5px!important;line-height:1.34!important}
+.pdf-thermal-estimate-80 .pdf-thermal-80{width:100%!important;max-width:100%!important;padding:0!important;font-size:14px!important;line-height:1.34!important}
 .pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:400!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;background:transparent}
 .gl-pdf.pdf-estimate{background:#fff!important;font-size:12.5px!important;line-height:1.4!important;color:#000!important}
 .gl-pdf.pdf-estimate .pdf-brand{border:0!important;border-bottom:1px solid #000!important;background:#fff!important;padding:8px 0!important;margin-bottom:8px!important}
@@ -1310,7 +1330,7 @@ const PDF_DOCUMENT_CSS=`
 @media print{
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf:not(.gl-pdf-thermal){box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;padding:1.5mm 2mm!important;break-after:avoid!important;page-break-after:avoid!important}
+  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;padding:0.5mm 0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:12.5px!important;line-height:1.38!important}
   .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
   .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}
