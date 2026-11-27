@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
   const CURRENT_VERSION = '2.13.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2413';
+  const CURRENT_BUILD = 'goldleaf-shell-v2414';
   const CURRENT_DATE = '26 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -491,7 +491,6 @@
       + (updateReady ? '<button type="button" class="primary" onclick="glApplyUpdate()">⚡ Install Update Now</button>' : '')
       + '<button type="button" class="' + (updateReady ? '' : 'primary') + '" onclick="glCheckForUpdate(true)" ' + (updateState.status === 'checking' ? 'disabled' : '') + '>' + (updateState.status === 'checking' ? 'Checking…' : '↻ Check for Updates') + '</button>'
       + '<button type="button" onclick="glForceHardRefresh()" title="Clears cached shell files and reloads fresh from server">⚡ Force Refresh Cache</button>'
-      + '<a href="./v3/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid var(--gold,#c2a06b);background:var(--white,#fff);color:var(--ink,#172a21);font-weight:700;text-decoration:none">🚀 Open Angular v3</a>'
       + '</div>'
       + '</div>'
       + '</section>'

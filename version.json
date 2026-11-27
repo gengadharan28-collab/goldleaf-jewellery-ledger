@@ -1,12 +1,12 @@
 {
   "version": "2.13.0",
-  "build": "goldleaf-shell-v2413",
+  "build": "goldleaf-shell-v2414",
   "releasedAt": "2026-11-26",
-  "title": "Complete ERP Suite: Reports Hub, Accounts, Stock & Tagging, High-Darkness POS Print",
+  "title": "Unified Live + Angular Design Suite (Atelier · SaaS · Obsidian)",
   "highlights": [
-    "32-Category / 129-Report Directory with expandable Reports sidebar & domain filters",
-    "Dedicated Accounts module with Ledger Statements, Save-All Opening Balance & Vouchers",
-    "Unified Stock & Tagging roof across 21 Lot, Tagging, Voucher, Verification, Reorder & Gift pages",
-    "Sales Bill Delete with automatic Stock Tag & Chit Passbook restoration + High-Darkness Printing"
+    "Unified single Goldleaf app combining all live ERP modules with 3 switchable Angular design themes (Atelier, SaaS, Obsidian)",
+    "Gold Pure Cash Rate · 24K sync & Sales Return calculation inside Quotation & Sales Entry",
+    "Direct WhatsApp PDF link sharing, 72mm crisp thermal POS receipts & Mobile-to-Laptop Print Bridge",
+    "Bilingual EN | தமிழ் sidebar toggle & smooth zero-flash software updates"
   ]
 }

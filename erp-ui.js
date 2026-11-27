@@ -134,6 +134,63 @@ render();
 
 (function(){
   const LANG_KEY='goldleaf-lang';
+  const DESIGN_KEY='goldleaf-ng-design';
+  function ensureDesignStyles(){
+    if(document.getElementById('glNgDesignStyles'))return;
+    const st=document.createElement('style');
+    st.id='glNgDesignStyles';
+    st.textContent=`
+      html[data-ng-design="saas"]{--paper:#f8fafc!important;--white:#ffffff!important;--line:#e2e8f0!important;--ink:#0f172a!important;--muted:#64748b!important;--green:#059669!important;--gold:#0ea5e9!important;--mint:#ecfdf5!important}
+      html[data-ng-design="saas"] .side{background:#ffffff!important;color:#1e293b!important;border-right:1px solid #e2e8f0!important}
+      html[data-ng-design="saas"] .side .nav button{color:#334155!important}
+      html[data-ng-design="saas"] .side .nav button.active{background:#ecfdf5!important;color:#047857!important;box-shadow:inset 3px 0 0 #059669!important}
+      html[data-ng-design="saas"] .top h1,html[data-ng-design="saas"] .panel h2,html[data-ng-design="saas"] .card b{font-family:Inter,system-ui,sans-serif!important;letter-spacing:-.3px!important}
+      html[data-ng-design="obsidian"]{--paper:#111615!important;--white:#161d1b!important;--line:#26312e!important;--ink:#ecfdf5!important;--muted:#94a3b8!important;--green:#d97706!important;--gold:#fbbf24!important;--mint:#1e2926!important}
+      html[data-ng-design="obsidian"] .side{background:#0b0f0e!important;color:#ecfdf5!important;border-right:1px solid #1f2927!important}
+      html[data-ng-design="obsidian"] .side .nav button{color:#cbd5e1!important}
+      html[data-ng-design="obsidian"] .side .nav button.active{background:rgba(251,191,36,.15)!important;color:#fde68a!important;box-shadow:inset 3px 0 0 #fbbf24!important}
+      html[data-ng-design="obsidian"] input,html[data-ng-design="obsidian"] select,html[data-ng-design="obsidian"] textarea,html[data-ng-design="obsidian"] table{background:#111615!important;color:#ecfdf5!important;border-color:#26312e!important}
+      html[data-ng-design="obsidian"] th{background:#161d1b!important;color:#fbbf24!important}
+      html[data-ng-design="obsidian"] #erpWorkbar{background:#161d1b!important;border-color:#26312e!important}
+    `;
+    document.head.appendChild(st);
+  }
+  function getDesign(){try{const v=localStorage.getItem(DESIGN_KEY);return ['atelier','saas','obsidian'].includes(v)?v:'atelier';}catch(_){return 'atelier';}}
+  window.glSetDesign=function(d){
+    const next=['atelier','saas','obsidian'].includes(d)?d:'atelier';
+    try{localStorage.setItem(DESIGN_KEY,next);}catch(_){}
+    ensureDesignStyles();
+    document.documentElement.setAttribute('data-ng-design',next);
+    if(next==='obsidian')document.documentElement.setAttribute('data-theme','dark');
+    else if(localStorage.getItem('goldleaf-theme')!=='dark')document.documentElement.setAttribute('data-theme','light');
+    ensureDesignSwitcher();
+  };
+  function ensureDesignSwitcher(){
+    ensureDesignStyles();
+    const cur=getDesign();
+    if(document.documentElement.getAttribute('data-ng-design')!==cur)document.documentElement.setAttribute('data-ng-design',cur);
+    if(cur==='obsidian'&&document.documentElement.getAttribute('data-theme')!=='dark')document.documentElement.setAttribute('data-theme','dark');
+    const side=document.querySelector('.side');
+    if(!side)return;
+    let box=document.getElementById('glDesignSwitcher');
+    if(!box){
+      box=document.createElement('div');
+      box.id='glDesignSwitcher';
+      box.style.cssText='margin:6px 8px 4px;padding:4px;border-radius:10px;border:1px solid rgba(189,151,97,.32);background:rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(3,1fr);gap:3px';
+      box.innerHTML='<button type="button" data-gl-design="atelier" title="Design 1: Royal Atelier" style="min-height:26px;padding:2px 4px;font-size:10px;font-weight:700;border-radius:6px;border:0;cursor:pointer">Atelier</button><button type="button" data-gl-design="saas" title="Design 2: Modern SaaS Pearl" style="min-height:26px;padding:2px 4px;font-size:10px;font-weight:700;border-radius:6px;border:0;cursor:pointer">SaaS</button><button type="button" data-gl-design="obsidian" title="Design 3: Obsidian Bullion Pro" style="min-height:26px;padding:2px 4px;font-size:10px;font-weight:700;border-radius:6px;border:0;cursor:pointer">Obsidian</button>';
+      box.addEventListener('click',e=>{
+        const btn=e.target.closest('[data-gl-design]');
+        if(btn)window.glSetDesign(btn.dataset.glDesign);
+      });
+      const langBox=document.getElementById('glLangSwitcher')||side.querySelector('.foot');
+      if(langBox)side.insertBefore(box,langBox);else side.appendChild(box);
+    }
+    box.querySelectorAll('[data-gl-design]').forEach(btn=>{
+      const active=btn.dataset.glDesign===cur;
+      btn.style.background=active?'var(--green,#194735)':'transparent';
+      btn.style.color=active?'#fff':'inherit';
+    });
+  }
   const TA_DICT={
     'Dashboard':'முகப்பு','Sales Entry':'விற்பனை பதிவு','Estimation / Quotation':'மதிப்பீடு / கொட்டேஷன்',
     'Register':'பதிவு','Customer Register':'வாடிக்கையாளர் பதிவு','Party Register':'பார்ட்டி பதிவு',
@@ -179,7 +236,7 @@ render();
       }
     }else if(node.nodeType===1){
       const tag=node.tagName;
-      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||node.id==='glLangSwitcher')return;
+      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||node.id==='glLangSwitcher'||node.id==='glDesignSwitcher')return;
       for(let c=node.firstChild;c;c=c.nextSibling)translateNode(c,lang);
     }
   }
@@ -213,6 +270,7 @@ render();
     translating=true;
     try{
       ensureLangSwitcher();
+      ensureDesignSwitcher();
       const lang=getLang();
       document.documentElement.lang=lang==='ta'?'ta':'en';
       if(document.body)translateNode(document.body,lang);
@@ -227,7 +285,7 @@ render();
   const obs=new MutationObserver(()=>{
     if(translating)return;
     clearTimeout(timer);
-    timer=setTimeout(()=>{if(getLang()==='ta'||!document.getElementById('glLangSwitcher'))window.glTranslateApp();},60);
+    timer=setTimeout(()=>{if(getLang()==='ta'||!document.getElementById('glLangSwitcher')||!document.getElementById('glDesignSwitcher'))window.glTranslateApp();},60);
   });
   window.addEventListener('DOMContentLoaded',()=>{
     window.glTranslateApp();
