@@ -1454,7 +1454,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const isLand=template==='detailed'||template==='compact-estimate-a5l'||template==='compact-a5-l';
   const isA5=template.includes('a5');
   const is80=template.includes('80'),is58=template.includes('58');
-  const hostW=is80?265:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
+  const hostW=is80?272:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
   host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'72mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'72mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1mm 0':'14px')+'!important}.gl-pdf:not(.pdf-modern),.gl-pdf:not(.pdf-modern) *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important}</style>'+pdfDocument(model,c,template);
@@ -1485,9 +1485,9 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
       const {data:pubData}=client.storage.from('shared-pdfs').getPublicUrl(objectPath);
       const directPdfUrl=pubData?.publicUrl;
       if(!directPdfUrl)throw new Error('Direct PDF URL unavailable.');
-      const waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent('View your jewellery '+(isEstimate?'estimate':'bill')+' PDF: '+directPdfUrl);
-      if(waWin&&!waWin.closed)waWin.location.href=waUrl;else window.open(waUrl,'_blank','noopener');
-      say('WhatsApp opened with direct PDF link.');
+      const waUrl='https://api.whatsapp.com/send?phone='+phone+'&text='+encodeURIComponent('View your jewellery '+(isEstimate?'estimate':'bill')+' PDF: '+directPdfUrl);
+      if(waWin&&!waWin.closed)waWin.location.href=waUrl;else window.location.assign(waUrl);
+      say('WhatsApp opened — tap Send.');
       return;
     }
     const file=new File([blob],filename,{type:'application/pdf'});

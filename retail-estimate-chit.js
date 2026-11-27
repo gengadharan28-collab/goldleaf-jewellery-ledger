@@ -2064,7 +2064,7 @@ window.rcShareQuoteWhatsApp = function(id){
 
   document.getElementById('rcWaSendSmsBtn').onclick=()=>{
     backdrop.remove();
-    const url='https://wa.me/'+phone+'?text='+encodeURIComponent(rcQuoteWhatsAppText(q,customer));
+    const url='https://api.whatsapp.com/send?phone='+phone+'&text='+encodeURIComponent(rcQuoteWhatsAppText(q,customer));
     window.open(url,'_blank','noopener');
   };
   document.getElementById('rcWaSendPdfBtn').onclick=()=>{
