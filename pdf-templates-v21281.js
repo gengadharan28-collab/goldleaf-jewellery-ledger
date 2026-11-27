@@ -62,6 +62,7 @@ function pdfConfig(mode=pdfMode()){
     showExpiry: true,
     remotePrintStation: false,
     remotePrintFromMobile: false,
+    oldGoldRateSource: 'both',
     // Bank & Payment QR details
     bankName: '',
     bankBranch: '',
@@ -171,7 +172,16 @@ function pdfSettingsPanel(){
     +'<label class="pdf-checkbox"><input type="checkbox" name="remotePrintFromMobile" '+(c.remotePrintFromMobile?'checked':'')+'> Send Mobile Prints to Laptop Printer (Use when local USB printer is not attached)</label>'
     +'</div>'
     +'<div style="margin-top:8px"><button type="button" onclick="window.goldleafDirectPrint?.pollRemote?.(true)">↻ Check Mobile Print Queue Now</button></div>'
-    +'</fieldset>';
+    +'</fieldset>'
+    +(retail?'<fieldset class="pdf-thermal-settings">'
+      +'<legend>Old Gold Pure Rate Source</legend>'
+      +'<p class="hint">Choose which 24K rate appears in the Old Gold Exchange Pure Rate field (Rate Book, Gold Pure Cash Rate, or a dropdown with both).</p>'
+      +'<div class="grid"><label class="field">Old Gold Pure Rate Option<select name="oldGoldRateSource">'
+      +'<option value="both" '+((c.oldGoldRateSource||'both')==='both'?'selected':'')+'>Both (Show Dropdown in Old Gold)</option>'
+      +'<option value="rateBook" '+(c.oldGoldRateSource==='rateBook'?'selected':'')+'>Pure Rate Book only</option>'
+      +'<option value="cashRate" '+(c.oldGoldRateSource==='cashRate'?'selected':'')+'>Gold Pure Cash Rate only</option>'
+      +'</select></label></div>'
+      +'</fieldset>':'');
 
   // Bank & UPI QR Settings
   const bankSettings = 
@@ -248,6 +258,7 @@ function pdfReadSettingsForm(){
     showExpiry: f.has('showExpiry'),
     remotePrintStation: f.has('remotePrintStation'),
     remotePrintFromMobile: f.has('remotePrintFromMobile'),
+    oldGoldRateSource: f.get('oldGoldRateSource')||'both',
     bankName: String(f.get('bankName')||'').trim(),
     bankBranch: String(f.get('bankBranch')||'').trim(),
     accountNo: String(f.get('accountNo')||'').trim(),

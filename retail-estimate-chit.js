@@ -139,7 +139,7 @@ function rcOldGoldTypeOptions(selected='Old Gold'){
     + '<option value="__new__">＋ Create New Type...</option>';
 }
 
-function rcGetPureRateFromRateBook(typeName='Old Gold', form=null){
+function rcGetPureRateFromRateBook(typeName='Old Gold', form=null, sourceMode=null){
   const defs = rcGetOldGoldTypeDefs();
   const match = defs.find(d => d.name.toLowerCase() === String(typeName || '').trim().toLowerCase());
   const isSilver = (match?.metal === 'Silver') || String(typeName || '').toLowerCase().includes('silver');
@@ -147,6 +147,11 @@ function rcGetPureRateFromRateBook(typeName='Old Gold', form=null){
     return n(db?.rates?.silver) || n(db?.rates?.oldSilver) || n(db?.rates?.silverBoard) || n(db?.rateHistory?.[0]?.rates?.silver) || 0;
   }
   const f = form || (typeof document !== 'undefined' ? document.getElementById('rcEstimateForm') : null);
+  const cfgSrc = (typeof pdfConfig === 'function' ? pdfConfig('retail').oldGoldRateSource : 'both') || 'both';
+  const mode = sourceMode || f?.elements?.exchangePureSource?.value || (cfgSrc === 'cashRate' ? 'cashRate' : 'rateBook');
+  if(mode === 'cashRate'){
+    return n(db?.rates?.gold24Cash) || n(db?.rateHistory?.[0]?.rates?.gold24Cash) || n(db?.rates?.gold24) || 0;
+  }
   return n(db?.rates?.gold24) || n(db?.rateHistory?.[0]?.rates?.gold24) || n(f?.elements?.goldRate?.value) || n(db?.rates?.oldGold) || 0;
 }
 
@@ -1573,7 +1578,7 @@ function rcQuoteForm(){
     +'<label class="rc-og-field rc-og-less-type" style="margin:0"><span class="rc-og-label-text">Less Type</span><select name="exchangeLessType" class="rc-og-input'+ogLockedClass+'" onchange="rcOldGoldFieldChanged()"><option value="grams" '+(ogLessTypeVal==='grams'?'selected':'')+'>Grams (g)</option><option value="percent" '+(ogLessTypeVal==='percent'?'selected':'')+'>Percentage (%)</option></select></label>'
     +'<label class="rc-og-field rc-og-less" style="margin:0"><span class="rc-og-label-text" id="rcOgLessLabel">Less ('+(ogLessTypeVal==='percent'?'%':'g')+')</span><input name="exchangeLess" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".001" placeholder="0.000" value="'+ogLessVal+'" oninput="rcOldGoldFieldChanged()"></label>'
     +'<label class="rc-og-field rc-og-net" style="margin:0"><span class="rc-og-label-text">Net Wt</span><input name="exchangeNet" class="rc-og-input rc-og-computed" readonly type="number" step=".001" placeholder="0.000 g" value="'+ogNetVal+'" tabindex="-1"></label>'
-    +'<label class="rc-og-field rc-og-purerate" style="margin:0"><div class="rc-og-label-row"><span class="rc-og-label-text">Pure Rate</span><small class="rc-og-ratebook-tag">Rate Book</small></div><input name="exchangePureRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate Book ₹/g" value="'+ogPureRateVal+'" oninput="rcOldGoldFieldChanged(\'pure\')"></label>'
+    +'<label class="rc-og-field rc-og-purerate" style="margin:0"><div class="rc-og-label-row"><span class="rc-og-label-text">Pure Rate</span>'+(function(){const src=(typeof pdfConfig==='function'?pdfConfig('retail').oldGoldRateSource:'both')||'both';if(src==='both')return '<select name="exchangePureSource" class="rc-og-ratebook-tag" style="border:1px solid #d97706;border-radius:6px;padding:1px 4px;font-size:10.5px;background:#fffbeb;color:#92400e;font-weight:700;cursor:pointer;min-height:22px" onchange="rcOldGoldPureSourceChanged(this)"><option value="rateBook">Pure Rate Book</option><option value="cashRate">Gold Pure Cash Rate</option></select>';return '<small class="rc-og-ratebook-tag">'+(src==='cashRate'?'Gold Pure Cash Rate':'Pure Rate Book')+'</small>';})()+'</div><input name="exchangePureRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate Book ₹/g" value="'+ogPureRateVal+'" oninput="rcOldGoldFieldChanged(\'pure\')"></label>'
     +'<label class="rc-og-field rc-og-touch" style="margin:0"><span class="rc-og-label-text">Touch(%)</span><input name="exchangeTesting" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+ogTestingVal+'" oninput="rcOldGoldFieldChanged(\'touch\')"></label>'
     +'<label class="rc-og-field rc-og-rate" style="margin:0"><span class="rc-og-label-text">Rate</span><input name="exchangeRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogRateVal+'" oninput="rcOldGoldRateManualChanged()"></label>'
     +'<label class="rc-og-field rc-og-amount" style="margin:0"><span class="rc-og-label-text">Amount</span><input name="exchangeAmount" id="rcExchangeAmountInput" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogAmtVal+'" oninput="rcOldGoldAmountChanged()"></label>'
@@ -2598,6 +2603,17 @@ window.rcBaseGoldRateChanged = function(inp){
     }
   }
   rcRecalc();
+};
+
+window.rcOldGoldPureSourceChanged = function(sel){
+  const form = document.getElementById('rcEstimateForm');
+  if(!form || rcOldGoldFormLocked) return;
+  const fType = String(form.elements.exchangeType?.value || 'Old Gold');
+  const pureRate = rcGetPureRateFromRateBook(fType, form, sel?.value || 'rateBook');
+  if(form.elements.exchangePureRate){
+    form.elements.exchangePureRate.value = pureRate > 0 ? pureRate : '';
+  }
+  window.rcOldGoldFieldChanged('pure');
 };
 
 window.rcOldGoldFieldChanged = function(source){
