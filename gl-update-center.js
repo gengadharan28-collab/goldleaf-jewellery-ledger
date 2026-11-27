@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.1';
-  const CURRENT_BUILD = 'goldleaf-shell-v2415';
+  const CURRENT_VERSION = '2.13.2';
+  const CURRENT_BUILD = 'goldleaf-shell-v2416';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,15 +11,15 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.1',
+      version: '2.13.2',
       date: '28 Nov 2026',
       tag: 'Current',
       category: 'Platform & Security',
-      title: 'Unified Angular 22 Engine & 3 Live Design Themes (Single App)',
+      title: 'Clean Unified Angular 22 Single-App Workspace',
       notes: [
-        'Integrated compiled Angular v22.3 Zoneless Signals runtime (<gl-angular-shell>) directly inside the single Goldleaf app with zero data or workflow separation.',
-        'Added live Angular Command & Design Bar featuring 1-click switching across Royal Atelier, SaaS Pearl, and Obsidian Bullion Pro, plus Ctrl+K Quick Jump.',
-        'Added live 24K + 24K Cash Rate reactive strip, EN | தமிழ் toggle, Sales Return fix, and Direct 80mm / Cloud Print Bridge status indicator.'
+        'Removed top-of-page Atelier / SaaS / Obsidian switcher ribbon and duplicate rate bar across all pages for a clean, distraction-free workspace.',
+        'Retained compiled Angular v22.3 Zoneless Signals engine (<gl-angular-shell>) with Ctrl+K Quick Jump and unified Royal Emerald sidebar design.',
+        'Preserved Gold Pure Cash Rate · 24K sync, Sales Return calculation, Direct WhatsApp PDF sharing, and 72mm Citizen Thermal Printing.'
       ]
     },
     {
