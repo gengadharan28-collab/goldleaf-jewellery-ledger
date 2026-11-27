@@ -33,32 +33,11 @@
     const w=canvas.width,h=canvas.height;
     const image=context.getImageData(0,0,w,h);
     const pixels=image.data;
-    const mask=new Uint8Array(w*h);
-    for(let i=0,p=0;i<pixels.length;i+=4,p++){
+    for(let i=0;i<pixels.length;i+=4){
       const luminance=(299*pixels[i]+587*pixels[i+1]+114*pixels[i+2])/1000;
-      mask[p]=luminance<245?1:0;
-    }
-    // 2D horizontal + vertical stroke darkening at scale:3 so every stem, crossbar,
-    // digit, and divider prints at full 2.5-3 dot thermal density after 203-DPI downscaling
-    // without bridging gaps or closing character loops.
-    for(let y=0;y<h;y++){
-      const row=y*w;
-      for(let x=0;x<w;x++){
-        let dark=mask[row+x]===1;
-        if(!dark&&x>0&&mask[row+x-1]===1&&!(x+2<w&&mask[row+x+1]===1&&mask[row+x+2]===1)){
-          dark=true;
-        }
-        if(!dark&&x+1<w&&mask[row+x+1]===1&&!(x>=2&&mask[row+x-1]===1&&mask[row+x-2]===1)&&(x>1&&mask[row+x-2]===0)){
-          dark=true;
-        }
-        if(!dark&&y>0&&mask[(y-1)*w+x]===1&&!(y+2<h&&mask[(y+1)*w+x]===1&&mask[(y+2)*w+x]===1)){
-          dark=true;
-        }
-        const val=dark?0:255;
-        const idx=(row+x)*4;
-        pixels[idx]=pixels[idx+1]=pixels[idx+2]=val;
-        pixels[idx+3]=255;
-      }
+      const val=luminance<185?0:255;
+      pixels[i]=pixels[i+1]=pixels[i+2]=val;
+      pixels[i+3]=255;
     }
     context.putImageData(image,0,0);
   }
@@ -79,10 +58,10 @@
       +'html{margin:0!important;padding:0!important;width:80mm!important;background:#fff!important;}body{margin:0!important;padding:2mm 0!important;width:80mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +PDF_DOCUMENT_CSS
       +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:78mm!important;max-width:78mm!important;height:auto!important;padding:1mm!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
-      +'.gl-pdf,.gl-pdf *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0.65px #000!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important}'
-      +'.grid80-top,.grid80-product-total,.grid80-summary-row.grid80-highlight,.est-plain-head,.est-plain-highlight,.thermal-items-head,.thermal-total-highlight{border-top-width:2px!important;border-bottom-width:2px!important;border-color:#000!important}'
-      +'.grid80-meta,.grid80-plain-item,.grid80-sec-label,.est-plain-item,.est-plain-section{border-color:#000!important;border-width:1.5px!important}'
-      +(sharpEstimate?'.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:500!important;-webkit-text-stroke:0.65px #000!important;text-shadow:none!important;-webkit-font-smoothing:none!important;text-rendering:geometricPrecision!important;background-color:transparent!important}.gl-pdf{background-color:#fff!important}':'')
+      +'.gl-pdf,.gl-pdf *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important;font-weight:400!important;text-rendering:geometricPrecision!important}'
+      +'.grid80-top,.grid80-product-total,.grid80-summary-row.grid80-highlight,.est-plain-head,.est-plain-highlight,.thermal-items-head,.thermal-total-highlight{border-top-width:1.5px!important;border-bottom-width:1.5px!important;border-color:#000!important}'
+      +'.grid80-meta,.grid80-plain-item,.grid80-sec-label,.est-plain-item,.est-plain-section{border-color:#000!important;border-width:1px!important}'
+      +(sharpEstimate?'.gl-pdf,.gl-pdf *,.gl-pdf b,.gl-pdf strong,.gl-pdf th,.gl-pdf td,.gl-pdf h1,.gl-pdf h2,.gl-pdf h3,.gl-pdf small,.gl-pdf span{font-family:monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:400!important;-webkit-text-stroke:0!important;text-shadow:none!important;text-rendering:geometricPrecision!important;background-color:transparent!important}.gl-pdf{background-color:#fff!important}':'')
       +'</style></head><body>'+pdfDocument(model,cfg,template)+'</body></html>');
     doc.close();
     try{
