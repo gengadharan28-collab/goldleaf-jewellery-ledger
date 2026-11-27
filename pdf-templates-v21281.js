@@ -378,21 +378,24 @@ function pdfBillColumns(item,template,retail,c={}){
 
 function pdfThermalMarkup(model,c,size='80mm'){
   const is58 = size==='58mm' || c.thermalSize==='2inch';
+  const isEstThermal = model.kind==='estimate' || String(model.title||'').toUpperCase().includes('ESTIMATE') || String(model.title||'').toUpperCase().includes('QUOTATION');
   const divider = is58 ? '--------------------------------' : '--------------------------------------------';
   const doubleDivider = is58 ? '================================' : '============================================';
+  const singleDivHtml = isEstThermal ? '<div class="thermal-divider is-single"></div>' : '<div class="thermal-divider">'+divider+'</div>';
+  const doubleDivHtml = isEstThermal ? '<div class="thermal-divider is-double"></div>' : '<div class="thermal-divider">'+doubleDivider+'</div>';
   const items = model.invoiceItems?.length ? model.invoiceItems : (model.item ? [model.item] : []);
 
   let html = '<div class="pdf-thermal-ticket '+(is58?'pdf-thermal-58':'pdf-thermal-80')+'">'
-    +'<div class="thermal-center thermal-bold thermal-title">'+esc(c.shopName)+'</div>'
-    +(c.address ? '<div class="thermal-center thermal-addr">'+esc(c.address)+'</div>' : '')
-    +(c.phone ? '<div class="thermal-center">Tel: '+esc(c.phone)+'</div>' : '')
-    +(model.retail && c.gstNumber ? '<div class="thermal-center">GSTIN: '+esc(c.gstNumber)+'</div>' : '')
+    +(isEstThermal ? '' : '<div class="thermal-center thermal-bold thermal-title">'+esc(c.shopName)+'</div>'
+      +(c.address ? '<div class="thermal-center thermal-addr">'+esc(c.address)+'</div>' : '')
+      +(c.phone ? '<div class="thermal-center">Tel: '+esc(c.phone)+'</div>' : '')
+      +(model.retail && c.gstNumber ? '<div class="thermal-center">GSTIN: '+esc(c.gstNumber)+'</div>' : ''))
     +'<div class="thermal-center thermal-doc-title">'+esc(model.title)+'</div>'
-    +'<div class="thermal-divider">'+divider+'</div>'
+    +singleDivHtml
     +'<div class="thermal-row"><span>Date: '+esc(model.date)+'</span><span>'+esc(model.reference||'')+'</span></div>'
-    +'<div class="thermal-row"><span>'+esc(model.entityLabel||'Cust')+': <b>'+esc(model.entityName)+'</b></span>'+(model.entityDetails?'<span>'+esc(model.entityDetails)+'</span>':'')+'</div>'
-    +(model.validUntil ? '<div class="thermal-row thermal-bold"><span>ESTIMATE VALIDITY:</span><span>'+esc(model.validUntil)+'</span></div>' : '')
-    +'<div class="thermal-divider">'+divider+'</div>';
+    +'<div class="thermal-row"><span>'+esc(model.entityLabel||'Cust')+': '+esc(model.entityName)+'</span>'+(model.entityDetails?'<span>'+esc(model.entityDetails)+'</span>':'')+'</div>'
+    +(!isEstThermal && model.validUntil ? '<div class="thermal-row thermal-bold"><span>ESTIMATE VALIDITY:</span><span>'+esc(model.validUntil)+'</span></div>' : '')
+    +singleDivHtml;
 
   // Items
   html += '<div class="thermal-items-head">'
@@ -400,7 +403,37 @@ function pdfThermalMarkup(model,c,size='80mm'){
     +'<span class="thermal-right">Amount (₹)</span>'
     +'</div>';
 
-  for(const it of items){
+  for(let itemIdx = 0; itemIdx < items.length; itemIdx++){
+    const it = items[itemIdx];
+    if(isEstThermal){
+      const rawName = String(it.product || 'Jewellery Item')
+        .replace(/\s*\[HUID:[^\]]*\]/gi, '')
+        .replace(/^(?:\d+(?:\.\d+)?[Kk%]\s+)+/, '')
+        .trim() || String(it.product || 'Item');
+      const netWt = n(it.netWeight || it.weight);
+      const grossWt = n(it.grossWeight || it.weight);
+      const lessWt = n(it.lessWeight || 0);
+      const rateVal = n(it.rate || it.ratePerGram);
+      const wstPct = n(it.wastage);
+      const wstAmt = n(it.wastageAmount) > 0 ? n(it.wastageAmount) : (it.wastageMode === 'grams' ? wstPct * rateVal : (netWt * wstPct / 100) * rateVal);
+      const mcVal = n(it.makingTotal || it.making || 0);
+      const wstLabel = wstPct + (it.wastageMode === 'grams' ? 'g' : '%');
+      const moneyShort = v => '₹' + Math.round(n(v)).toLocaleString('en-IN');
+
+      html += '<div class="thermal-item-entry">'
+        +'<div class="thermal-item-main"><span>Item '+(itemIdx+1)+' · '+esc(rawName)+'</span></div>'
+        +'<div class="thermal-item-cols">'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">Gross</span><span class="thermal-col-val">'+fmt(grossWt)+'g</span></div>'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">Less</span><span class="thermal-col-val">'+fmt(lessWt)+'g</span></div>'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">Net</span><span class="thermal-col-val">'+fmt(netWt)+'g</span></div>'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">Wst</span><span class="thermal-col-val">'+esc(wstLabel)+'</span>'+(wstAmt>0?'<span class="thermal-col-sub">'+esc(moneyShort(wstAmt))+'</span>':'')+'</div>'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">Rate</span><span class="thermal-col-val">'+(rateVal>0?esc(moneyShort(rateVal)):'—')+'</span></div>'
+        +'<div class="thermal-col"><span class="thermal-col-lbl">MC</span><span class="thermal-col-val">'+(mcVal>0?esc(moneyShort(mcVal)):'₹0')+'</span></div>'
+        +'</div>'
+        +'<div class="thermal-item-amt-bottom"><span>Item Amount</span><span class="thermal-right">'+pdfMoney(it.subtotal)+'</span></div>'
+        +'</div>';
+      continue;
+    }
     const desc = it.product + (c.showHuid && it.huid ? ' [HUID:'+it.huid+']' : '');
     const metaParts = [];
     if(c.showGrossLess && (it.grossWeight || it.lessWeight)) metaParts.push('Gr:'+fmt(it.grossWeight||it.weight)+'g Less:'+fmt(it.lessWeight||0)+'g');
@@ -451,13 +484,13 @@ function pdfThermalMarkup(model,c,size='80mm'){
   }
 
   // Totals
-  html += '<div class="thermal-divider">'+doubleDivider+'</div>';
+  html += doubleDivHtml;
   for(const [label, val, highlight] of (model.totals||[])){
     html += '<div class="thermal-row '+(highlight?'thermal-bold thermal-total-highlight':'')+'">'
       +'<span>'+esc(label)+'</span><span class="thermal-right">'+esc(val)+'</span>'
       +'</div>';
   }
-  html += '<div class="thermal-divider">'+doubleDivider+'</div>';
+  html += doubleDivHtml;
 
   // Bank & UPI QR Code for thermal
   if(c.showBankQR && c.upiId){
@@ -468,10 +501,13 @@ function pdfThermalMarkup(model,c,size='80mm'){
       +'</div>';
   }
 
-  // Footer Disclaimer
+  // Footer Disclaimer & Estimate Validity
   const disclaimer = model.kind==='estimate' ? (c.estimateBottomMargin || c.footerText) : c.footerText;
   if(c.showTerms && disclaimer){
-    html += '<div class="thermal-center thermal-footer-text">'+esc(disclaimer)+'</div>';
+    html += '<div class="thermal-center thermal-footer-text" style="margin:3px 0 2px;padding:0">'+esc(disclaimer)+'</div>';
+  }
+  if(isEstThermal && model.validUntil){
+    html += '<div class="thermal-row" style="margin:2px 0 0"><span>Estimate Validity:</span><span class="thermal-right">'+esc(model.validUntil)+'</span></div>';
   }
 
   // Blank feed lines
@@ -1243,7 +1279,15 @@ const PDF_DOCUMENT_CSS=`
 .thermal-title{font-size:15px;font-weight:800;letter-spacing:.3px;margin-bottom:2px;color:#000}
 .thermal-addr{font-size:9.5px;font-weight:600;margin-bottom:3px;color:#000}
 .thermal-doc-title{font-size:12.5px;margin:5px 0;font-weight:800;letter-spacing:.8px;color:#000}
-.thermal-divider{overflow:hidden;white-space:nowrap;margin:4px 0;font-family:monospace;letter-spacing:-1px;color:#000;font-weight:700}
+.thermal-divider{overflow:hidden;white-space:nowrap;margin:4px 0;font-family:monospace;letter-spacing:-1px;color:#000;font-weight:400}
+.thermal-divider.is-single{width:100%;height:0;font-size:0;line-height:0;border-top:1px dashed #000;margin:4px 0}
+.thermal-divider.is-double{width:100%;height:0;font-size:0;line-height:0;border-top:3px double #000;margin:5px 0}
+.thermal-item-cols{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-top:4px;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
+.thermal-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.thermal-col-lbl{font-size:12.5px;text-transform:uppercase;line-height:1.2;font-weight:400}
+.thermal-col-val{font-size:12.5px;line-height:1.25;white-space:nowrap;font-weight:400}
+.thermal-col-sub{font-size:9.5px;line-height:1.15;white-space:nowrap;font-weight:400}
+.thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:12.5px;font-weight:400}
 .thermal-row{display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:600}
 .thermal-items-head{display:flex;justify-content:space-between;font-weight:800;margin:4px 0 2px;border-bottom:1.5px solid #000;padding-bottom:2px;color:#000}
 .thermal-item-entry{margin:4px 0;color:#000}
@@ -1257,7 +1301,7 @@ const PDF_DOCUMENT_CSS=`
 .pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.8mm 1mm;font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums;font-size:13px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:500!important;background:#fff!important;overflow:hidden;-webkit-font-smoothing:none;text-rendering:geometricPrecision}
 .pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}
 .pdf-thermal-estimate-80 .pdf-thermal-80{font-size:12.5px!important;line-height:1.34!important}
-.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:500!important;-webkit-text-stroke:0.45px #000!important;text-shadow:none!important;-webkit-font-smoothing:none;text-rendering:geometricPrecision;background:transparent}
+.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:400!important;-webkit-text-stroke:0.25px #000!important;text-shadow:none!important;-webkit-font-smoothing:none;text-rendering:geometricPrecision;background:transparent}
 .gl-pdf.pdf-estimate{background:#fff!important;font-size:12.5px!important;line-height:1.4!important;color:#000!important}
 .gl-pdf.pdf-estimate .pdf-brand{border:0!important;border-bottom:1px solid #000!important;background:#fff!important;padding:8px 0!important;margin-bottom:8px!important}
 .gl-pdf.pdf-estimate .pdf-brand h1{font-size:20px!important;color:#000!important}
