@@ -177,6 +177,7 @@ function rcCalcOldGoldItem(raw={}, fallbackPureRate=0){
     pureRate,
     testing,
     rate,
+    manualRate: !!raw.manualRate,
     amount,
     remarks,
     product
@@ -1572,9 +1573,9 @@ function rcQuoteForm(){
     +'<label class="rc-og-field rc-og-less-type" style="margin:0"><span class="rc-og-label-text">Less Type</span><select name="exchangeLessType" class="rc-og-input'+ogLockedClass+'" onchange="rcOldGoldFieldChanged()"><option value="grams" '+(ogLessTypeVal==='grams'?'selected':'')+'>Grams (g)</option><option value="percent" '+(ogLessTypeVal==='percent'?'selected':'')+'>Percentage (%)</option></select></label>'
     +'<label class="rc-og-field rc-og-less" style="margin:0"><span class="rc-og-label-text" id="rcOgLessLabel">Less ('+(ogLessTypeVal==='percent'?'%':'g')+')</span><input name="exchangeLess" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".001" placeholder="0.000" value="'+ogLessVal+'" oninput="rcOldGoldFieldChanged()"></label>'
     +'<label class="rc-og-field rc-og-net" style="margin:0"><span class="rc-og-label-text">Net Wt</span><input name="exchangeNet" class="rc-og-input rc-og-computed" readonly type="number" step=".001" placeholder="0.000 g" value="'+ogNetVal+'" tabindex="-1"></label>'
-    +'<label class="rc-og-field rc-og-purerate" style="margin:0"><div class="rc-og-label-row"><span class="rc-og-label-text">Pure Rate</span><small class="rc-og-ratebook-tag">Rate Book</small></div><input name="exchangePureRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate Book ₹/g" value="'+ogPureRateVal+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label class="rc-og-field rc-og-touch" style="margin:0"><span class="rc-og-label-text">Touch(%)</span><input name="exchangeTesting" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+ogTestingVal+'" oninput="rcOldGoldFieldChanged()"></label>'
-    +'<label class="rc-og-field rc-og-rate" style="margin:0"><span class="rc-og-label-text">Rate</span><input name="exchangeRate" class="rc-og-input rc-og-computed'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogRateVal+'" oninput="rcOldGoldRateManualChanged()"></label>'
+    +'<label class="rc-og-field rc-og-purerate" style="margin:0"><div class="rc-og-label-row"><span class="rc-og-label-text">Pure Rate</span><small class="rc-og-ratebook-tag">Rate Book</small></div><input name="exchangePureRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="Rate Book ₹/g" value="'+ogPureRateVal+'" oninput="rcOldGoldFieldChanged(\'pure\')"></label>'
+    +'<label class="rc-og-field rc-og-touch" style="margin:0"><span class="rc-og-label-text">Touch(%)</span><input name="exchangeTesting" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="1" max="100" step=".01" placeholder="91.6" value="'+ogTestingVal+'" oninput="rcOldGoldFieldChanged(\'touch\')"></label>'
+    +'<label class="rc-og-field rc-og-rate" style="margin:0"><span class="rc-og-label-text">Rate</span><input name="exchangeRate" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogRateVal+'" oninput="rcOldGoldRateManualChanged()"></label>'
     +'<label class="rc-og-field rc-og-amount" style="margin:0"><span class="rc-og-label-text">Amount</span><input name="exchangeAmount" id="rcExchangeAmountInput" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' type="number" min="0" step=".01" placeholder="0.00" value="'+ogAmtVal+'" oninput="rcOldGoldAmountChanged()"></label>'
     +'<label class="rc-og-field rc-og-remarks" style="margin:0"><span class="rc-og-label-text">Remarks</span><input name="exchangeProduct" class="rc-og-input'+ogLockedClass+'"'+ogLockedAttr+' value="'+esc(ogRemarksVal)+'" placeholder="e.g. Ring, Chain..." oninput="rcRecalc()"></label>'
     +'</div>'
@@ -2204,7 +2205,7 @@ function rcPopulateOldGoldFormFields(form, item=null){
   if(form.elements.exchangePureRate) form.elements.exchangePureRate.value = pureRate > 0 ? pureRate : '';
   if(form.elements.exchangeTesting) form.elements.exchangeTesting.value = testing;
   if(form.elements.exchangeRate){
-    form.elements.exchangeRate.dataset.manualRate = '0';
+    form.elements.exchangeRate.dataset.manualRate = item?.manualRate ? '1' : '0';
     form.elements.exchangeRate.value = rateVal > 0 ? rateVal.toFixed(2) : '';
   }
   if(form.elements.exchangeAmount){
@@ -2599,7 +2600,7 @@ window.rcBaseGoldRateChanged = function(inp){
   rcRecalc();
 };
 
-window.rcOldGoldFieldChanged = function(){
+window.rcOldGoldFieldChanged = function(source){
   const form = document.getElementById('rcEstimateForm');
   if(!form || rcOldGoldFormLocked) return;
   const fType = String(form.elements.exchangeType?.value || 'Old Gold');
@@ -2623,9 +2624,10 @@ window.rcOldGoldFieldChanged = function(){
     }
   }
   const touch = n(form.elements.exchangeTesting?.value || 91.6);
-  const calcRate = pureRate > 0 ? rbRound(pureRate * touch / 100) : n(form.elements.exchangeRate?.value);
+  const keepManualRate = (source !== 'pure' && source !== 'touch') && form.elements.exchangeRate?.dataset?.manualRate === '1' && n(form.elements.exchangeRate?.value) > 0;
+  const calcRate = keepManualRate ? n(form.elements.exchangeRate.value) : (pureRate > 0 ? rbRound(pureRate * touch / 100) : n(form.elements.exchangeRate?.value));
 
-  if(form.elements.exchangeRate){
+  if(form.elements.exchangeRate && !keepManualRate){
     form.elements.exchangeRate.dataset.manualRate = '0';
     form.elements.exchangeRate.value = calcRate > 0 ? calcRate.toFixed(2) : '';
   }
