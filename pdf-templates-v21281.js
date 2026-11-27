@@ -867,8 +867,8 @@ async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=fa
     pageSize = thermalWidth + 'mm auto';
   }
 
-  const printBoxW = isGrid80 ? 78 : (thermalWidth === 80 ? 78 : 56);
-  const printPadCss = '0.5mm 0';
+  const printBoxW = isGrid80 ? 72 : (thermalWidth === 80 ? 72 : 56);
+  const printPadCss = '0';
 
   // Fallback DOM root
   let root=document.getElementById('goldleafPdfRoot');
@@ -1221,7 +1221,7 @@ const PDF_DOCUMENT_CSS=`
 
 /* Thermal POS Receipts (80mm & 58mm) */
 .gl-pdf-thermal{background:#fff;padding:2mm 2.5mm;font-family:"Courier New",Courier,monospace;line-height:1.28;box-shadow:0 1px 6px rgba(0,0,0,.15);border:1.5px solid #000;color:#000;box-sizing:border-box}
-.pdf-thermal-80{max-width:78mm;font-size:11px;font-weight:600;color:#000;margin:0 auto}
+.pdf-thermal-80{max-width:72mm;font-size:11px;font-weight:600;color:#000;margin:0}
 .pdf-thermal-58{max-width:48mm;font-size:9.5px;font-weight:600;color:#000;padding:1.5mm 2mm;margin:0 auto}
 .thermal-center{text-align:center}
 .thermal-right{text-align:right}
@@ -1234,9 +1234,9 @@ const PDF_DOCUMENT_CSS=`
 .thermal-divider.is-double{width:100%;height:0;font-size:0;line-height:0;border-top:3px double #000;margin:5px 0}
 .thermal-item-cols{display:grid;grid-template-columns:1.05fr 0.90fr 1.05fr 1.00fr 1.05fr 0.95fr;gap:2px;width:100%;box-sizing:border-box;margin-top:4px;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
 .thermal-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:visible}
-.thermal-col-lbl{font-size:11.5px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.4px;white-space:nowrap}
-.thermal-col-val{font-size:13.5px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.5px}
-.thermal-col-sub{font-size:12px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.5px}
+.thermal-col-lbl{font-size:11px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.45px;white-space:nowrap}
+.thermal-col-val{font-size:13px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.55px}
+.thermal-col-sub{font-size:11.5px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.55px}
 .thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:14px!important;font-weight:400!important}
 .thermal-item-amt-bottom .thermal-right,.thermal-row .thermal-right{font-size:14.5px!important}
 .thermal-rate-row,.thermal-rate-row span,.thermal-rate-row .thermal-right{font-size:12.5px!important;white-space:nowrap!important;gap:4px}
@@ -1250,7 +1250,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:78mm;max-width:78mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.5mm 0;font-family:monospace!important;font-variant-numeric:tabular-nums;font-size:14px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:400!important;background:#fff!important;overflow:hidden;text-rendering:geometricPrecision}
+.pdf-thermal-estimate-grid-80{width:72mm;max-width:72mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:0;font-family:monospace!important;font-variant-numeric:tabular-nums;font-size:13.5px;line-height:1.34;margin:0;color:#000!important;font-weight:400!important;background:#fff!important;overflow:hidden;text-rendering:geometricPrecision}
 .pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}
 .pdf-thermal-estimate-80 .pdf-thermal-80{width:100%!important;max-width:100%!important;padding:0!important;margin:0!important;font-size:13.5px!important;line-height:1.32!important}
 .pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:400!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;background:transparent}
@@ -1323,7 +1323,7 @@ const PDF_DOCUMENT_CSS=`
 @media print{
   #goldleafPdfRoot,.gl-pdf{height:auto!important;min-height:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf:not(.gl-pdf-thermal){box-shadow:none!important;margin:0 auto!important;padding:0!important;width:100%!important;max-width:100%!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin-left:auto!important;margin-right:auto!important;margin-top:0!important;padding:0!important;break-after:avoid!important;page-break-after:avoid!important}
+  .gl-pdf-thermal,.pdf-thermal-80,.pdf-thermal-58,.pdf-thermal-estimate-grid-80{margin:0!important;padding:0!important;break-after:avoid!important;page-break-after:avoid!important}
   .gl-pdf.pdf-estimate:not(.gl-pdf-thermal){font-size:12.5px!important;line-height:1.38!important}
   .pdf-estimate .pdf-brand{padding:5px 0!important;margin-bottom:5px!important}
   .pdf-estimate .pdf-brand h1{font-size:17px!important;margin:0!important}

@@ -50,14 +50,14 @@
     // Render a slightly wider white canvas than the receipt.  The CT-D150 raw
     // raster path has a small non-printable edge; this safety gutter prevents
     // the right-most column and amounts from being clipped on paper.
-    frame.style.cssText='position:fixed;left:-10000px;top:0;width:80mm;height:10px;border:0;visibility:hidden;pointer-events:none;';
+    frame.style.cssText='position:fixed;left:-10000px;top:0;width:72mm;height:10px;border:0;visibility:hidden;pointer-events:none;';
     document.body.appendChild(frame);
     const doc=frame.contentDocument;
     doc.open();
     doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'
-      +'html{margin:0!important;padding:0!important;width:80mm!important;background:#fff!important;}body{margin:0!important;padding:0!important;width:80mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
+      +'html{margin:0!important;padding:0!important;width:72mm!important;background:#fff!important;}body{margin:0!important;padding:0!important;width:72mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +PDF_DOCUMENT_CSS
-      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:76mm!important;max-width:76mm!important;height:auto!important;padding:0!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
+      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0!important;width:72mm!important;max-width:72mm!important;height:auto!important;padding:0!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +'.gl-pdf,.gl-pdf *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important;font-weight:400!important;text-rendering:geometricPrecision!important}'
       +'.grid80-top,.grid80-product-total,.grid80-summary-row.grid80-highlight,.est-plain-head,.est-plain-highlight,.thermal-items-head,.thermal-total-highlight{border-top-width:1.5px!important;border-bottom-width:1.5px!important;border-color:#000!important}'
       +'.grid80-meta,.grid80-plain-item,.grid80-sec-label,.est-plain-item,.est-plain-section{border-color:#000!important;border-width:1px!important}'
@@ -70,7 +70,7 @@
       const receipt=doc.querySelector('.pdf-thermal-estimate-grid-80,.pdf-thermal-ticket,.gl-pdf-thermal,.gl-pdf')||doc.body;
       const receiptHeight=Math.max(receipt.getBoundingClientRect().height,receipt.scrollHeight);
       frame.style.height=Math.ceil(receiptHeight+2)+'px';
-      const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(80*96/25.4),height:Math.ceil(receiptHeight+2)});
+      const canvas=await window.html2canvas(doc.body,{scale:3,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,logging:false,width:Math.ceil(72*96/25.4),height:Math.ceil(receiptHeight+2)});
       sharpenThermalEstimate(canvas);
       return canvas.toDataURL('image/png');
     }finally{
@@ -89,7 +89,7 @@
         method:'POST',
         headers:{'Content-Type':'application/json'},
         cache:'no-store',
-        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:75,cut:true})
+        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:72,cut:true})
       });
       const body=await res.text();
       if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
