@@ -1,6 +1,6 @@
 {
-  "version": "2.13.2",
-  "build": "goldleaf-shell-v2416",
+  "version": "2.13.3",
+  "build": "goldleaf-shell-v2417",
   "releasedAt": "2026-11-28",
   "title": "Clean Unified Angular 22 Single-App Workspace",
   "highlights": [

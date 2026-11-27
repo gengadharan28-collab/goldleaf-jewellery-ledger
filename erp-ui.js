@@ -41,7 +41,6 @@ window.erpToggleSidebar=function(force){
   const collapsed=typeof force==='boolean'?!force:document.body.classList.toggle('erp-sidebar-collapsed');
   if(typeof force==='boolean')document.body.classList.toggle('erp-sidebar-collapsed',collapsed);
   localStorage.setItem('goldleaf-sidebar-collapsed',String(collapsed));
-  localStorage.setItem('goldleaf-sidebar-user-toggled','true');
   document.getElementById('erpSidebarToggle')?.setAttribute('aria-expanded',String(!collapsed));
   if(page==='Sales Entry'&&workspaceMode==='retail')requestAnimationFrame(fitRetailSaleScreen);
 };
@@ -76,8 +75,7 @@ window.erpWorkspaceSwitchHtml=function(extraClass=''){
 function erpBuildShell(){
   const side=document.querySelector('.side'),nav=document.getElementById('nav'),main=document.getElementById('app');if(!side||!nav||!main)return;
   if(!session){document.body.classList.add('gl-auth-active');document.getElementById('erpSideSearch')?.remove();document.getElementById('erpSideCaption')?.remove();document.getElementById('erpSideMode')?.remove();document.getElementById('erpWorkbar')?.remove();nav.querySelectorAll(':scope>button:not(.active)').forEach(b=>b.remove());return;}document.body.classList.remove('gl-auth-active');
-  const shouldCollapse=localStorage.getItem('goldleaf-sidebar-user-toggled')==='true'?localStorage.getItem('goldleaf-sidebar-collapsed')==='true':!window.matchMedia('(min-width:1100px)').matches;
-  document.body.classList.toggle('erp-sidebar-collapsed',shouldCollapse);
+  document.body.classList.toggle('erp-sidebar-collapsed',localStorage.getItem('goldleaf-sidebar-collapsed')!=='false');
   let search=document.getElementById('erpSideSearch');if(!search){search=document.createElement('div');search.id='erpSideSearch';search.className='erp-side-search';search.innerHTML=erpIcon('search')+'<input id="erpNavSearch" type="search" aria-label="Find a page" placeholder="Find a page…" oninput="erpFilterNavigation(this.value)" onkeydown="if(event.key===\'Escape\'){this.value=\'\';erpFilterNavigation(\'\')}"><button type="button" aria-label="Expand navigation" onclick="erpToggleSidebar()">'+erpIcon('search')+'</button>';side.insertBefore(search,nav);const caption=document.createElement('div');caption.id='erpSideCaption';caption.className='erp-side-caption';side.insertBefore(caption,nav);const empty=document.createElement('p');empty.id='erpNavEmpty';empty.className='erp-nav-empty hidden';empty.textContent='No matching page';nav.after(empty);}
   document.getElementById('erpNavSearch').value=erpNavQuery;document.getElementById('erpSideCaption').textContent=erpIsAdmin()?'PLATFORM CONTROL':session?(workspaceMode==='retail'?'RETAIL WORKSPACE':'WHOLESALE WORKSPACE'):'WELCOME';
   const sideCap=document.getElementById('erpSideCaption'),sideModeHtml=erpWorkspaceSwitchHtml('erp-side-mode-nav');
@@ -136,35 +134,11 @@ render();
 
 (function(){
   const LANG_KEY='goldleaf-lang';
-  try{localStorage.removeItem('goldleaf-ng-design');}catch(_){}
+  try{localStorage.removeItem('goldleaf-ng-design');localStorage.removeItem('goldleaf-sidebar-user-toggled');}catch(_){}
   document.documentElement.removeAttribute('data-ng-design');
   document.getElementById('glNgDesignStyles')?.remove();
+  document.getElementById('glNgRoyalStyles')?.remove();
   document.getElementById('glDesignSwitcher')?.remove();
-  function ensureRoyalTheme(){
-    if(document.getElementById('glNgRoyalStyles'))return;
-    const st=document.createElement('style');
-    st.id='glNgRoyalStyles';
-    st.textContent=`
-      @media screen {
-        html:not([data-theme="dark"]){--paper:#f6f3eb!important;--white:#fffdf9!important;--line:#e5decb!important;--ink:#1b2a22!important;--muted:#686f68!important;--green:#153b2b!important;--gold:#c9a259!important;--mint:#ebf2ee!important;--erp-soft:#f3efe4!important;--erp-soft-2:#faf7f0!important}
-        html:not([data-theme="dark"]) body[data-erp] .side{background:linear-gradient(180deg,#123527 0%,#0b2219 100%)!important;color:#f3efe6!important;border-right:1px solid #23493a!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .brand{color:#f8f3e6!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .brand small,html:not([data-theme="dark"]) body[data-erp] .side .erp-side-caption{color:#d8b774!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search{background:rgba(255,255,255,.08)!important;border-color:rgba(212,175,55,.28)!important;color:#fff!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input{color:#fff!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input::placeholder{color:rgba(243,239,230,.6)!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .nav>button{color:#dce5df!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .nav>button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .nav>button.active{background:rgba(212,175,55,.2)!important;color:#fff8e6!important;box-shadow:inset 3px 0 0 #d4af37!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .nav .nav-icon{color:#e2be78!important}
-        html:not([data-theme="dark"]) body[data-erp] .side .foot{color:#b8c7be!important;border-top-color:rgba(255,255,255,.14)!important}
-        html:not([data-theme="dark"]) body[data-erp] .primary{background:#153b2b!important;border-color:#153b2b!important;color:#fff!important}
-        html:not([data-theme="dark"]) body[data-erp] .panel{border-radius:12px!important;box-shadow:0 4px 16px rgba(18,53,39,.05)!important}
-        html:not([data-theme="dark"]) body[data-erp] .erp-metric{border-radius:10px!important;border-top:2px solid #d4af37!important;background:#fffdf9!important}
-      }
-    `;
-    document.head.appendChild(st);
-  }
   const TA_DICT={
     'Dashboard':'முகப்பு','Sales Entry':'விற்பனை பதிவு','Estimation / Quotation':'மதிப்பீடு / கொட்டேஷன்',
     'Register':'பதிவு','Customer Register':'வாடிக்கையாளர் பதிவு','Party Register':'பார்ட்டி பதிவு',
@@ -243,7 +217,6 @@ render();
     if(translating)return;
     translating=true;
     try{
-      ensureRoyalTheme();
       ensureLangSwitcher();
       const lang=getLang();
       document.documentElement.lang=lang==='ta'?'ta':'en';
