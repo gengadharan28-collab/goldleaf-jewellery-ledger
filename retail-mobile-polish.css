@@ -738,7 +738,19 @@ html body[data-erp] #customerSaleForm .rb-total-row b {
   font-weight: 550 !important;
 }
 
-/* v2.12.34: Item Quotation Tag Details fields at 13px */
+/* v2.12.35: Quotation :: New, Item Entry Mode, and Item Quotation Tag Details fields uniformly at 13px */
+html body[data-erp] #rcEstimateForm .rc-quote-top-card,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card label,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card input,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card select,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card button,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card .muted,
+html body[data-erp] #rcEstimateForm .rc-quote-top-card .pill,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-section,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-section button,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-section input,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-section select,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-section label,
 html body[data-erp] #rcEstimateForm #rcQuoteTable,
 html body[data-erp] #rcEstimateForm #rcQuoteTable th,
 html body[data-erp] #rcEstimateForm #rcQuoteTable td,
