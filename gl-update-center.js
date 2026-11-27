@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
   const CURRENT_VERSION = '2.13.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2400';
+  const CURRENT_BUILD = 'goldleaf-shell-v2401';
   const CURRENT_DATE = '26 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -180,10 +180,53 @@
     };
   }
 
+  function ensureUpdateStyles() {
+    if (document.getElementById('glUpdateUiStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'glUpdateUiStyles';
+    style.textContent = `
+      @keyframes glFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes glPopIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes glSpin { to { transform: rotate(360deg); } }
+      #glUpdateModal { animation: glFadeIn .18s ease-out; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+      #glUpdateModal .gl-update-modal-card { animation: glPopIn .2s ease-out; max-height: 90dvh; display: flex; flex-direction: column; }
+      #glUpdateModal .gl-update-modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+      .gl-update-overlay { position: fixed; inset: 0; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(10, 31, 21, 0.94); color: #f3ead9; font-family: system-ui, -apple-system, sans-serif; animation: glFadeIn .16s ease-out; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 24px; text-align: center; }
+      .gl-update-spinner { width: 38px; height: 38px; border-radius: 50%; border: 3px solid rgba(243, 234, 217, 0.22); border-top-color: #10b981; animation: glSpin .75s linear infinite; }
+      @media (max-width: 560px) {
+        #glUpdateModal .gl-update-features-grid { grid-template-columns: 1fr !important; }
+        #glUpdateModal .gl-update-modal-actions { flex-direction: column-reverse !important; align-items: stretch !important; }
+        #glUpdateModal .gl-update-modal-actions > div { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; }
+        #glUpdateModal .gl-update-modal-actions > button { text-align: center; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showApplyingOverlay(titleText, subText) {
+    ensureUpdateStyles();
+    let overlay = document.getElementById('glApplyingUpdateOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'glApplyingUpdateOverlay';
+      overlay.className = 'gl-update-overlay';
+      overlay.setAttribute('role', 'status');
+      overlay.setAttribute('aria-live', 'polite');
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '<div class="gl-update-spinner" aria-hidden="true"></div>'
+      + '<div style="font-size:16px;font-weight:750;letter-spacing:-0.2px">' + esc(titleText || 'Updating Goldleaf ERP…') + '</div>'
+      + '<div style="font-size:12.5px;color:#c9c0b1;max-width:300px;line-height:1.45">' + esc(subText || 'Applying the latest version cleanly. Your records are safe.') + '</div>';
+  }
+
   window.glShowUpdatePrompt = function (reason = 'loaded') {
+    ensureUpdateStyles();
     const info = getActiveReleaseBannerData();
     const existing = document.getElementById('glUpdateModal');
-    if (existing) existing.remove();
+    if (existing) {
+      if (existing.dataset.version === String(info.version) && existing.dataset.reason === String(reason)) return;
+      existing.remove();
+    }
 
     const cards = info.highlights.slice(0, 4).map((text, idx) => {
       const icons = ['📊', '📒', '🏷️', '🖨️'];
@@ -195,7 +238,7 @@
         + '</div>';
     }).join('');
 
-    const html = '<div id="glUpdateModal" class="retail-modal-backdrop" role="dialog" aria-modal="true" style="z-index:10000;display:flex;align-items:center;justify-content:center">'
+    const html = '<div id="glUpdateModal" class="retail-modal-backdrop" data-version="' + esc(info.version) + '" data-reason="' + esc(reason) + '" role="dialog" aria-modal="true" style="z-index:10000;display:flex;align-items:center;justify-content:center">'
       + '<section class="retail-modal gl-update-modal-card" style="max-width:540px;width:92%;padding:0;border-radius:14px;overflow:hidden;box-shadow:0 18px 45px rgba(0,0,0,0.4);border:1px solid #75603c">'
       + '<div style="background:linear-gradient(135deg,#133726,#0a1f15);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(212,175,55,0.25)">'
       + '<div style="display:flex;align-items:center;gap:12px">'
@@ -241,18 +284,24 @@
     window.glPendingWorker = null;
     window.glUpdateAvailable = false;
     if (typeof window.glUpdatePillVisibility === 'function') window.glUpdatePillVisibility(false);
+    showApplyingOverlay('Updating to v' + targetVer + '…', 'Refreshing app files cleanly without losing any saved data.');
     if (typeof window.glCloseUpdatePrompt === 'function') window.glCloseUpdatePrompt();
-    if (typeof window.say === 'function') window.say('Installing latest update...');
 
     let reloaded = false;
-    const doReload = () => {
+    const doReload = (bustCache = false) => {
       if (reloaded) return;
       reloaded = true;
-      window.location.reload();
+      if (bustCache) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('_upd', Date.now().toString());
+        window.location.replace(url.toString());
+      } else {
+        window.location.reload();
+      }
     };
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', doReload, { once: true });
+      navigator.serviceWorker.addEventListener('controllerchange', () => doReload(false), { once: true });
       try {
         if (waitingWorker) {
           waitingWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -267,17 +316,17 @@
         const keys = await caches.keys();
         await Promise.all(
           keys
-            .filter(k => k.startsWith('goldleaf-shell-') && k !== CURRENT_BUILD)
+            .filter(k => k.startsWith('goldleaf-shell-'))
             .map(k => caches.delete(k))
         );
       } catch (e) {}
     }
 
-    setTimeout(doReload, 700);
+    setTimeout(() => doReload(!waitingWorker), 650);
   };
 
   window.glForceHardRefresh = async function () {
-    if (typeof window.say === 'function') window.say('Clearing cached shell files and reloading...');
+    showApplyingOverlay('Refreshing Goldleaf ERP…', 'Clearing cached files and loading the latest build.');
     try {
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
