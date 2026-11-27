@@ -141,8 +141,9 @@
   let stationBusy=false;
   async function pollRemotePrintJobs(){
     if(stationBusy) return;
-    const cfg=typeof pdfConfig==='function'?pdfConfig('retail'):{};
-    if(!cfg.remotePrintStation) return;
+    const cfgR=typeof pdfConfig==='function'?pdfConfig('retail'):{};
+    const cfgW=typeof pdfConfig==='function'?pdfConfig('wholesale'):{};
+    if(!cfgR.remotePrintStation&&!cfgW.remotePrintStation) return;
     const shopId=(typeof goldleafContext!=='undefined'?goldleafContext?.shop_id:window.goldleafContext?.shop_id)||(typeof session!=='undefined'?session?.user?.id:null);
     if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!shopId) return;
     stationBusy=true;
@@ -162,6 +163,7 @@
           notify('Printed mobile job on Citizen CT-D150');
         }catch(jobErr){
           await client.from('goldleaf_print_jobs').update({status:'error',error_message:String(jobErr?.message||jobErr)}).eq('id',job.id);
+          notify('Laptop print error: '+String(jobErr?.message||jobErr),'error');
         }
       }
     }catch(_){}
