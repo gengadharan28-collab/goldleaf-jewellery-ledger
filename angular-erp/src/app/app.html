@@ -1,0 +1,76 @@
+@if (!sb.authReady()) {
+  <div class="boot-screen">Opening Goldleaf…</div>
+} @else if (!sb.session()) {
+  <app-login />
+} @else {
+  <div class="erp-shell" [class.drawer-open]="drawerOpen()">
+    <aside class="sidebar">
+      <div class="brand">
+        <svg width="34" height="34" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+          <circle cx="60" cy="60" r="54" stroke="#D4AF37" stroke-width="2.5"/>
+          <path d="M60 20L78 35L60 66L42 35L60 20Z" fill="#D4AF37"/>
+          <path d="M60 66V98" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <b>Goldleaf</b>
+          <small>JEWELLERY ERP</small>
+        </div>
+        <button type="button" class="mobile-close" (click)="drawerOpen.set(false)" aria-label="Close">✕</button>
+      </div>
+
+      <nav class="nav-list">
+        <a routerLink="/dashboard" routerLinkActive="active" (click)="drawerOpen.set(false)">⌂ {{ i18n.t('Dashboard') }}</a>
+        <a routerLink="/register" routerLinkActive="active" (click)="drawerOpen.set(false)">♙ {{ i18n.t('Register') }}</a>
+        <a routerLink="/sales-entry" routerLinkActive="active" (click)="drawerOpen.set(false)">＋ {{ i18n.t('Sales Entry') }}</a>
+        <a routerLink="/estimation" routerLinkActive="active" (click)="drawerOpen.set(false)">🧾 {{ i18n.t('Estimation / Quotation') }}</a>
+        <a routerLink="/ledger" routerLinkActive="active" (click)="drawerOpen.set(false)">▤ {{ i18n.t('Ledger') }}</a>
+        <a routerLink="/chit-loan" routerLinkActive="active" (click)="drawerOpen.set(false)">🪙 {{ i18n.t('Chit & Jewel Loan') }}</a>
+        <a routerLink="/stock-reports" routerLinkActive="active" (click)="drawerOpen.set(false)">🏷 {{ i18n.t('Stock & Reports') }}</a>
+        <a routerLink="/rate-book" routerLinkActive="active" (click)="drawerOpen.set(false)">⚖ {{ i18n.t('Rate Book') }}</a>
+        <a routerLink="/settings" routerLinkActive="active" (click)="drawerOpen.set(false)">⚙ {{ i18n.t('Settings') }}</a>
+        @if (sb.context()?.is_super_admin) {
+          <a routerLink="/super-admin" routerLinkActive="active" (click)="drawerOpen.set(false)">◈ Super Admin</a>
+        }
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="lang-switch">
+          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.setLang('en')">EN</button>
+          <button type="button" [class.active]="i18n.lang() === 'ta'" (click)="i18n.setLang('ta')">தமிழ்</button>
+        </div>
+        <div class="cloud-foot">{{ sb.syncStatus() }}</div>
+      </div>
+    </aside>
+
+    @if (drawerOpen()) {
+      <div class="drawer-backdrop" (click)="drawerOpen.set(false)"></div>
+    }
+
+    <div class="main-col">
+      <header class="workbar">
+        <button type="button" class="menu-btn" (click)="drawerOpen.set(!drawerOpen())">☰ {{ i18n.t('Menu') }}</button>
+        <div class="mode-toggle">
+          <button type="button" [class.active]="sb.workspaceMode() === 'retail'" (click)="sb.setWorkspaceMode('retail')">{{ i18n.t('Retail') }}</button>
+          <button type="button" [class.active]="sb.workspaceMode() === 'wholesale'" (click)="sb.setWorkspaceMode('wholesale')">{{ i18n.t('Wholesale') }}</button>
+        </div>
+        <div class="workbar-right">
+          <a routerLink="/rate-book" class="rate-chip">
+            <span>24K <b>{{ (sb.rates().gold24 || 0).toLocaleString('en-IN') }}</b></span>
+            <span>22K <b>{{ (sb.rates().gold22 || 0).toLocaleString('en-IN') }}</b></span>
+            <span>SLV <b>{{ (sb.rates().silver || 0).toLocaleString('en-IN') }}</b></span>
+          </a>
+          <button type="button" (click)="sb.toggleTheme()" aria-label="Toggle theme">{{ sb.theme() === 'dark' ? '☀' : '☾' }}</button>
+          <button type="button" (click)="sb.signOut()">{{ i18n.t('Sign out') }}</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+}
+
+@if (sb.toastMessage(); as msg) {
+  <div class="toast" role="status">{{ msg }}</div>
+}
