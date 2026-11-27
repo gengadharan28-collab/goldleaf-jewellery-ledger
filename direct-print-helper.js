@@ -92,11 +92,12 @@
     return true;
   }
   async function queueRemotePrint(imageDataUrl){
-    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!window.goldleafContext?.shop_id){
+    const shopId=(typeof goldleafContext!=='undefined'?goldleafContext?.shop_id:window.goldleafContext?.shop_id)||(typeof session!=='undefined'?session?.user?.id:null);
+    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!shopId){
       throw new Error('Sign in to send print jobs to your Laptop Print Station.');
     }
     const {error}=await client.from('goldleaf_print_jobs').insert({
-      shop_id:window.goldleafContext.shop_id,
+      shop_id:shopId,
       printer:'CITIZEN CT-D150',
       image_data_url:imageDataUrl,
       width_mm:80,
@@ -142,13 +143,14 @@
     if(stationBusy) return;
     const cfg=typeof pdfConfig==='function'?pdfConfig('retail'):{};
     if(!cfg.remotePrintStation) return;
-    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!window.goldleafContext?.shop_id) return;
+    const shopId=(typeof goldleafContext!=='undefined'?goldleafContext?.shop_id:window.goldleafContext?.shop_id)||(typeof session!=='undefined'?session?.user?.id:null);
+    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!shopId) return;
     stationBusy=true;
     try{
       if(!(await helperReady())) return;
       const {data,error}=await client.from('goldleaf_print_jobs')
         .select('id,printer,image_data_url,width_mm')
-        .eq('shop_id',window.goldleafContext.shop_id)
+        .eq('shop_id',shopId)
         .eq('status','pending')
         .order('created_at',{ascending:true})
         .limit(5);
