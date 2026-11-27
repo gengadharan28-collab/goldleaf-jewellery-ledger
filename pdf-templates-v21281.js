@@ -22,7 +22,7 @@ const PDF_ESTIMATE_LAYOUTS = {
   'thermal-estimate-58': { name: 'Thermal Estimate Slip (58mm / 2")', description: 'Mini 2-inch continuous roll estimate slip', size: '58mm auto', kind: 'estimate' }
 };
 
-const PDF_GRID_FIELDS=[['product','Product'],['purity','Purity'],['huid','HUID'],['pieces','Pieces'],['gross','Gross'],['less','Less'],['net','Net'],['wastage','Wastage'],['making','Making'],['hallmark','Hallmark'],['stone','Stone weight'],['stoneCharge','Stone charge'],['itemTotal','Item total']];
+const PDF_GRID_FIELDS=[['product','Product'],['purity','Purity'],['huid','HUID'],['pieces','Pieces'],['gross','Gross'],['less','Less'],['net','Net'],['wastage','Wastage'],['rate','Rate'],['making','Making'],['hallmark','Hallmark'],['stone','Stone weight'],['stoneCharge','Stone charge'],['itemTotal','Item total']];
 const PDF_GRID_KEYS=PDF_GRID_FIELDS.map(([key])=>key);
 const PDF_GRID_DEFAULTS=PDF_GRID_KEYS.slice();
 
@@ -431,23 +431,15 @@ function pdfThermalMarkup(model,c,size='80mm'){
       const mcVal = n(it.makingTotal || it.making || 0);
       const wstLabel = wstPct + (it.wastageMode === 'grams' ? 'g' : '%');
       const moneyShort = v => '₹' + Math.round(n(v)).toLocaleString('en-IN');
+      const gridSet = c.estimateTemplate === 'thermal-estimate-grid-80' ? new Set(c.estimateGridFields || PDF_GRID_DEFAULTS) : null;
+      const showCol = (flag, gridKey) => (flag !== false) && (!gridSet || gridSet.has(gridKey));
       const estCols = [];
-      if (c.showGrossLess !== false) {
-        estCols.push({ lbl:'Gross', val:fmt(grossWt), fr:'1.05fr' });
-        estCols.push({ lbl:'Less', val:fmt(lessWt), fr:'0.90fr' });
-      }
-      if (c.showNetWeight !== false) {
-        estCols.push({ lbl:'Net', val:fmt(netWt), fr:'1.05fr' });
-      }
-      if (c.showWastage !== false) {
-        estCols.push({ lbl:'Wst', val:esc(wstLabel), sub:(wstAmt>0?esc(moneyShort(wstAmt)):''), fr:'1.00fr' });
-      }
-      if (c.showRate !== false) {
-        estCols.push({ lbl:'Rate', val:(rateVal>0?esc(moneyShort(rateVal)):'—'), fr:'1.05fr' });
-      }
-      if (c.showMaking !== false) {
-        estCols.push({ lbl:'MC', val:(mcVal>0?esc(moneyShort(mcVal)):'₹0'), fr:'0.95fr' });
-      }
+      if (showCol(c.showGrossLess, 'gross')) estCols.push({ lbl:'Gross', val:fmt(grossWt), fr:'1.05fr' });
+      if (showCol(c.showGrossLess, 'less')) estCols.push({ lbl:'Less', val:fmt(lessWt), fr:'0.90fr' });
+      if (showCol(c.showNetWeight, 'net')) estCols.push({ lbl:'Net', val:fmt(netWt), fr:'1.05fr' });
+      if (showCol(c.showWastage, 'wastage')) estCols.push({ lbl:'Wst', val:esc(wstLabel), sub:(wstAmt>0?esc(moneyShort(wstAmt)):''), fr:'1.00fr' });
+      if (showCol(c.showRate, 'rate')) estCols.push({ lbl:'Rate', val:(rateVal>0?esc(moneyShort(rateVal)):'—'), fr:'1.05fr' });
+      if (showCol(c.showMaking, 'making')) estCols.push({ lbl:'MC', val:(mcVal>0?esc(moneyShort(mcVal)):'₹0'), fr:'0.95fr' });
 
       html += '<div class="thermal-item-entry">'
         +'<div class="thermal-item-main"><span>Item '+(itemIdx+1)+' · '+esc(rawName)+'</span></div>'
@@ -530,7 +522,7 @@ function pdfThermalMarkup(model,c,size='80mm'){
   if(c.showTerms && disclaimer){
     html += '<div class="thermal-center thermal-footer-text" style="margin:3px 0 2px;padding:0">'+esc(disclaimer)+'</div>';
   }
-  if(isEstThermal && model.validUntil){
+  if(isEstThermal && c.showExpiry !== false && model.validUntil){
     html += '<div class="thermal-row" style="margin:2px 0 0"><span>Estimate Validity:</span><span class="thermal-right">'+esc(model.validUntil)+'</span></div>';
   }
 
@@ -1243,8 +1235,8 @@ const PDF_DOCUMENT_CSS=`
 .thermal-item-cols{display:grid;grid-template-columns:1.05fr 0.90fr 1.05fr 1.00fr 1.05fr 0.95fr;gap:2px;width:100%;box-sizing:border-box;margin-top:4px;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
 .thermal-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:visible}
 .thermal-col-lbl{font-size:11.5px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.4px;white-space:nowrap}
-.thermal-col-val{font-size:12.5px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.45px}
-.thermal-col-sub{font-size:11px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.45px}
+.thermal-col-val{font-size:13.5px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.5px}
+.thermal-col-sub{font-size:12px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.5px}
 .thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:14px!important;font-weight:400!important}
 .thermal-item-amt-bottom .thermal-right,.thermal-row .thermal-right{font-size:14.5px!important}
 .thermal-rate-row,.thermal-rate-row span,.thermal-rate-row .thermal-right{font-size:12.5px!important;white-space:nowrap!important;gap:4px}

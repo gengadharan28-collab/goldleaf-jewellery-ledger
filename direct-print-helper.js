@@ -35,7 +35,7 @@
     const pixels=image.data;
     for(let i=0;i<pixels.length;i+=4){
       const luminance=(299*pixels[i]+587*pixels[i+1]+114*pixels[i+2])/1000;
-      const val=luminance<185?0:255;
+      const val=luminance<150?0:255;
       pixels[i]=pixels[i+1]=pixels[i+2]=val;
       pixels[i+3]=255;
     }
@@ -57,7 +57,7 @@
     doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'
       +'html{margin:0!important;padding:0!important;width:80mm!important;background:#fff!important;}body{margin:0!important;padding:0!important;width:80mm!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +PDF_DOCUMENT_CSS
-      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0!important;width:80mm!important;max-width:80mm!important;height:auto!important;padding:0!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
+      +'.gl-pdf-thermal,.pdf-thermal-ticket,.pdf-thermal-estimate-grid-80{display:block!important;position:relative!important;margin:0 auto!important;width:76mm!important;max-width:76mm!important;height:auto!important;padding:0!important;border:'+(sharpEstimate?'0':'2px solid #000')+'!important;box-sizing:border-box!important;box-shadow:none!important;background:#fff!important;color:#000!important;overflow:hidden!important;}'
       +'.gl-pdf,.gl-pdf *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important;font-weight:400!important;text-rendering:geometricPrecision!important}'
       +'.grid80-top,.grid80-product-total,.grid80-summary-row.grid80-highlight,.est-plain-head,.est-plain-highlight,.thermal-items-head,.thermal-total-highlight{border-top-width:1.5px!important;border-bottom-width:1.5px!important;border-color:#000!important}'
       +'.grid80-meta,.grid80-plain-item,.grid80-sec-label,.est-plain-item,.est-plain-section{border-color:#000!important;border-width:1px!important}'
@@ -89,7 +89,7 @@
         method:'POST',
         headers:{'Content-Type':'application/json'},
         cache:'no-store',
-        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:72,cut:true})
+        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:75,cut:true})
       });
       const body=await res.text();
       if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
