@@ -80,7 +80,7 @@ window.rateBookView=function(){
   const date=istDateTime(new Date()).date,slot=r.entrySlot||(Number(istDateTime(new Date()).time.slice(0,2))>=16?'PM':'AM');
   const modeSwitch='<div class="rate-mode-switch" style="display:flex;gap:8px;margin-bottom:14px"><button type="button" class="'+(rateBookMode==='auto'?'active':'')+'" onclick="setRateBookMode(\'auto\')">⚖ Automatic Calculation (22K/18K/14K from 24K)</button><button type="button" class="'+(rateBookMode==='manual'?'active':'')+'" onclick="setRateBookMode(\'manual\')">✎ Manual Rate Entry</button></div>';
   return header('Enter today’s Retail prices manually or use automatic calculation. Choose entry date and AM/PM slot, then save.')
-   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p id="rateBookModeNote" class="muted">'+(rateBookMode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.')+'</p></div><span class="pill">Retail</span></div>'+modeSwitch+'<form id="rateBookForm" onsubmit="saveRateBook(event)"><div class="grid">'
+   +'<section class="panel"><div class="exchange-heading"><div><h2>Retail Rate Entry</h2><p id="rateBookModeNote" class="muted">'+(rateBookMode==='auto'?'Automatic mode · 22K, 18K and 14K rates are calculated from 24K pure rate.':'Manual mode · enter exact rate values for each metal and purity.')+'</p></div><span class="pill">Retail</span></div>'+modeSwitch+'<form id="rateBookForm" oninput="this.dataset.dirty=\'1\'" onsubmit="saveRateBook(event)"><div class="grid">'
    +'<div class="field"><label>Gold Pure Rate · 24K · ₹/g *</label><input type="number" min="0" step=".01" name="gold24" required value="'+(r.gold24||'')+'" oninput="rateBookAutoCalc(this)"></div>'
    +'<div class="field"><label>Gold Pure Cash Rate · 24K · ₹/g</label><input type="number" min="0" step=".01" name="gold24Cash" value="'+(r.gold24Cash||'')+'"></div>'
    +'<div class="field"><label>Gold Board Rate · 22K · ₹/g *</label><input type="number" min="0" step=".01" name="gold22" required value="'+(r.gold22||'')+'"></div>'
@@ -611,17 +611,57 @@ function goldleafSuperAdminPanel(){
   const rows=goldleafAdminShops.map(shop=>'<form class="panel goldleaf-admin-shop" onsubmit="goldleafSaveAdminShop(event)"><input type="hidden" name="shop_id" value="'+esc(shop.id)+'"><div class="goldleaf-admin-head"><div><b>'+esc(shop.shop_name)+'</b><div class="muted">'+esc(shop.email)+' · GST '+esc(shop.gst_number)+'</div><div class="muted">'+esc(shop.address)+' · '+esc(shop.phone)+'</div><div class="muted">'+Number(shop.owner_count||0)+' / '+Number(shop.owner_seats||1)+' owner · '+Number(shop.member_count||0)+' / '+Number(shop.user_seats||1)+' user seats</div></div><span class="pill">'+esc(shop.subscription_status)+' · '+esc(shop.plan)+'</span></div><div class="grid"><div class="field"><label>Renewal</label><select name="plan"><option value="monthly" '+(shop.plan==='monthly'?'selected':'')+'>Monthly · 1 month</option><option value="yearly" '+(shop.plan==='yearly'?'selected':'')+'>Yearly · 1 year</option><option value="demo" '+(shop.plan==='demo'?'selected':'')+'>Demo · 7 days</option><option value="trial" '+(shop.plan==='trial'?'selected':'')+'>Free trial · 7 days</option></select></div><div class="field"><label>Access status</label><select name="status"><option value="active" '+(shop.subscription_status==='active'?'selected':'')+'>Active</option><option value="trial" '+(shop.subscription_status==='trial'?'selected':'')+'>Trial</option><option value="expired" '+(shop.subscription_status==='expired'?'selected':'')+'>Expired</option><option value="suspended" '+(shop.subscription_status==='suspended'?'selected':'')+'>Suspended</option></select></div><div class="field"><label>User seats</label><input name="user_seats" type="number" min="'+Number(shop.member_count||0)+'" value="'+Number(shop.user_seats||1)+'" required></div><div class="field"><label>Owner seats</label><input name="owner_seats" type="number" min="'+Math.max(1,Number(shop.owner_count||1))+'" value="'+Number(shop.owner_seats||1)+'" required></div></div><div class="right"><button class="primary">Save access</button></div></form>').join('');
   return '<section class="panel goldleaf-admin"><h2>Super Admin</h2><p class="hint">Customer accounts, compulsory shop details, trial status, renewal and seat limits. New shops start with a 7-day trial, one owner seat and one user seat.</p><button type="button" onclick="goldleafLoadAdminShops().then(render)">Refresh shop list</button>'+(rows||'<div class="empty">No shop registrations are available yet.</div>')+'</section>';
 }
+function glApplySharedOrShopRates(sharedRates){
+  const shared=sharedRates||{};
+  const live=goldleafContext?.shared_rates_enabled!==false;
+  if(!live){
+    if(db.shopRates?.enabled){db.rates=Object.assign({},db.shopRates);}
+    else{db.rates=Object.assign({},db.rates,{gold24Cash:0});}
+    return;
+  }
+  const merged=Object.assign({},shared);
+  const ov=db.shopCashRateOverride;
+  if(ov&&ov.active&&String(ov.sharedUpdatedAt||'')===String(shared.updatedAt||'')){
+    merged.gold24Cash=n(ov.gold24Cash);
+  }
+  db.rates=merged;
+}
 const goldleafPreviousRateBookView=window.rateBookView,goldleafPreviousSaveRateBook=window.saveRateBook;
-window.rateBookView=function(){let html=goldleafPreviousRateBookView();if(!session)return html;const isAdmin=!!goldleafContext?.is_super_admin,live=goldleafContext?.shared_rates_enabled!==false;html=html.replace('<h2>Retail Rate Entry</h2>','<h2>'+(isAdmin?'Shared Retail Rate Entry':'Shop Retail Rate Entry')+'</h2>');if(!isAdmin){const status=live?'Live shared rate is ON. Rates are managed by Super Admin.':'Live shared rate is OFF. This shop can maintain its own rates.';html=html.replace('<form id="rateBookForm"','<p class="muted">'+status+'</p><form id="rateBookForm"');html=html.replace('<button class="primary">Save rates</button>',live?'<button class="primary" disabled title="Managed by Super Admin">Managed by Super Admin</button>':'<button class="primary">Save shop rates</button>')}return html;};
+window.rateBookView=function(){
+  let html=goldleafPreviousRateBookView();
+  if(!session)return html;
+  const isAdmin=!!goldleafContext?.is_super_admin,live=goldleafContext?.shared_rates_enabled!==false;
+  html=html.replace('<h2>Retail Rate Entry</h2>','<h2>'+(isAdmin?'Shared Retail Rate Entry':'Shop Retail Rate Entry')+'</h2>');
+  if(isAdmin){
+    html=html.replace('<button class="primary">Save rates</button>','<button class="primary">Save Shared Rates</button>');
+  }else{
+    const status=live?'Live shared rate is ON (managed by Super Admin). You can still edit & Save Cash Rate below.':'Live shared rate is OFF. This shop maintains its own rates & cash rate.';
+    html=html.replace('<form id="rateBookForm"','<p class="muted">'+status+'</p><form id="rateBookForm"');
+    html=html.replace('<button class="primary">Save rates</button>',live?'<button type="button" class="primary" onclick="glSaveShopCashRate()">Save Cash Rate</button> <button class="primary" disabled title="Board rates managed by Super Admin">Managed by Super Admin</button>':'<button class="primary">Save Shop Rates</button>');
+  }
+  return html;
+};
+window.glSaveShopCashRate=async function(){
+  const form=document.getElementById('rateBookForm');if(!form)return;
+  const cashVal=n(form.elements.gold24Cash?.value);
+  db.shopCashRateOverride={active:true,gold24Cash:cashVal,sharedUpdatedAt:String(db.sharedRates?.updatedAt||'')};
+  db.rates=Object.assign({},db.rates,{gold24Cash:cashVal});
+  if(db.shopRates?.enabled)db.shopRates.gold24Cash=cashVal;
+  delete form.dataset.dirty;
+  await save();render();say('Gold Pure Cash Rate saved.');
+};
 window.useSharedRates=function(){say('Live shared rate access is controlled by Super Admin.');};
 window.saveRateBook=async function(event){
   if(!session){event.preventDefault();say('Sign in to save rates.');return}
-  event.preventDefault();const form=event.target,f=new FormData(form),rates={gold24:n(f.get('gold24')),gold22:n(f.get('gold22')),gold18:n(f.get('gold18')),gold14:n(f.get('gold14')),silver:n(f.get('silver')),silverBoard:n(f.get('silverBoard')),diamond:n(f.get('diamond')),oldSilver:n(db.rates.oldSilver),oldGold:n(db.rates.oldGold),entryDate:String(f.get('rateDate')||istDateTime(new Date()).date),entrySlot:String(f.get('rateSlot')||'AM'),updatedAt:new Date().toISOString()};
+  event.preventDefault();const form=event.target,f=new FormData(form),rates={gold24:n(f.get('gold24')),gold24Cash:n(f.get('gold24Cash')),gold22:n(f.get('gold22')),gold18:n(f.get('gold18')),gold14:n(f.get('gold14')),silver:n(f.get('silver')),silverBoard:n(f.get('silverBoard')),diamond:n(f.get('diamond')),oldSilver:n(db.rates.oldSilver),oldGold:n(db.rates.oldGold),entryDate:String(f.get('rateDate')||istDateTime(new Date()).date),entrySlot:String(f.get('rateSlot')||'AM'),updatedAt:new Date().toISOString()};
   if(['gold24','gold22','gold18','gold14','silver','silverBoard'].some(k=>rates[k]<=0))return say('Enter valid gold and silver rates.');
-  if(!goldleafContext?.is_super_admin){if(goldleafContext?.shared_rates_enabled!==false)return say('Live shared rate is managed by Super Admin.');db.shopRates=Object.assign({enabled:true},rates);db.rates=Object.assign({},rates);db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);await save();render();say('Shop rates saved.');return}
+  delete form.dataset.dirty;
+  if(!goldleafContext?.is_super_admin){if(goldleafContext?.shared_rates_enabled!==false){return glSaveShopCashRate();}db.shopRates=Object.assign({enabled:true},rates);db.rates=Object.assign({},rates);db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);await save();render();say('Shop rates saved.');return}
   const {error}=await client.rpc('goldleaf_admin_set_shared_rates',{p_rates:rates});if(error)return say('Could not update shared rates: '+error.message);
-  db.rates=rates;db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);localStorage.setItem(dbkey,JSON.stringify(db));await pushCloud();render();say('Shared rates updated for all shops.');
+  db.sharedRates=Object.assign({},rates);db.rates=rates;db.rateHistory.unshift({id:crypto.randomUUID(),date:rates.entryDate,time:rates.entrySlot==='AM'?'11:00':'18:00',slot:rates.entrySlot,rates:Object.assign({},rates)});db.rateHistory=db.rateHistory.slice(0,100);localStorage.setItem(dbkey,JSON.stringify(db));await pushCloud();render();say('Shared rates (including Cash Rate) updated for all shops.');
 };
+const glPrevFocusedEdit=window.v2HasFocusedEdit;
+window.v2HasFocusedEdit=function(){return (typeof glPrevFocusedEdit==='function'&&glPrevFocusedEdit())||!!document.getElementById('rateBookForm')?.dataset?.dirty;};
 window.pullCloud=async function(){
   if(!session||!client)return;
   if(v2CloudBusy)return;
@@ -636,7 +676,7 @@ window.pullCloud=async function(){
     const {data,error}=await client.from('goldleaf_shop_ledgers').select('payload,updated_at').eq('shop_id',goldleafContext.shop_id).maybeSingle();if(error)throw error;
     if(data?.payload){const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(data.payload,db,pending);ensureExtendedData();needsPush=JSON.stringify(db)!==JSON.stringify(data.payload);v2LastCloudUpdatedAt=data.updated_at||''}
     else needsPush=true;
-    db.sharedRates=sharedRates;if(goldleafContext.shared_rates_enabled!==false){db.shopRates=Object.assign({},db.shopRates,{enabled:false});db.rates=sharedRates}else if(db.shopRates?.enabled){db.rates=Object.assign({},db.shopRates)}localStorage.setItem(dbkey,JSON.stringify(db));
+    db.sharedRates=sharedRates;if(goldleafContext.shared_rates_enabled!==false){db.shopRates=Object.assign({},db.shopRates,{enabled:false});}glApplySharedOrShopRates(sharedRates);localStorage.setItem(dbkey,JSON.stringify(db));
     setCloudStatus('Cloud sync · '+(goldleafContext.shop_name||session.user.email));if(window.setupGoldleafRealtimeSync)setupGoldleafRealtimeSync();if(!v2HasFocusedEdit())render();
     if(needsPush){v2CloudBusy=false;setTimeout(()=>window.pushCloud(),0)}
   }catch(error){setCloudStatus('Cloud setup needed');const message=document.getElementById('cloudMsg');if(message)message.textContent='Cloud account could not load: '+error.message}
@@ -649,7 +689,7 @@ window.pushCloud=async function(){
   try{do{v2CloudQueuedPush=false;let written=false;for(let attempt=0;attempt<5&&!written;attempt++){
     const {data:remote,error:readError}=await client.from('goldleaf_shop_ledgers').select('payload,updated_at').eq('shop_id',goldleafContext.shop_id).maybeSingle();if(readError)throw readError;
     if(remote?.payload)db=v2MergeCloudLedgers(remote.payload,db,true);
-    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;db.sharedRates=shared.data||db.sharedRates;if(goldleafContext.shared_rates_enabled!==false)db.rates=db.sharedRates;else if(db.shopRates?.enabled)db.rates=Object.assign({},db.shopRates);
+    const shared=await client.rpc('goldleaf_get_shared_rates');if(shared.error)throw shared.error;db.sharedRates=shared.data||db.sharedRates;glApplySharedOrShopRates(db.sharedRates);
     const updated=new Date(Math.max(Date.now(),(Date.parse(remote?.updated_at||'')||0)+1)).toISOString(),payload={shop_id:goldleafContext.shop_id,payload:db,updated_at:updated};
     if(remote){let request=client.from('goldleaf_shop_ledgers').update({payload:db,updated_at:updated}).eq('shop_id',goldleafContext.shop_id);if(remote.updated_at)request=request.eq('updated_at',remote.updated_at);const {data,error}=await request.select('updated_at').maybeSingle();if(error)throw error;if(!data)continue}
     else{const {error}=await client.from('goldleaf_shop_ledgers').insert(payload);if(error){if(error.code==='23505')continue;throw error}}
