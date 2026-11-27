@@ -767,6 +767,23 @@ html body[data-erp] #rcEstimateForm #rcQuoteManualCard select {
 }
 
 @media screen and (max-width:760px){
+  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax {
+    align-self: end !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+  }
+  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax::before {
+    margin: 0 !important;
+  }
+}
+
+@media screen and (max-width:760px){
   #rcEstimateForm .rc-pos-payment-head{gap:1px!important;margin-bottom:2px!important}
   #rcEstimateForm .rc-pos-payment-title{line-height:1!important;margin:0!important}
   #rcEstimateForm .rc-pos-payment-total-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px!important;align-items:start!important;gap:5px!important}
