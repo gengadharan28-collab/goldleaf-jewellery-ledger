@@ -855,8 +855,8 @@ window.rbOpenReturnPanel=function(button){
         picker.focus();
       });
       const grid=form.querySelector('.rb-record-grid');
-      const reason=form.elements.namedItem('reason')?.closest('label');
-      const notes=form.elements.namedItem('notes')?.closest('label');
+      const reason=form.querySelector('[name="reason"]')?.closest('label');
+      const notes=form.querySelector('[name="notes"]')?.closest('label');
       if(reason&&notes){
         const pair=document.createElement('div');
         pair.style.cssText='grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;min-width:0';
