@@ -89,7 +89,7 @@
         method:'POST',
         headers:{'Content-Type':'application/json'},
         cache:'no-store',
-        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:72,cut:true})
+        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:80,cut:true})
       });
       const body=await res.text();
       if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
