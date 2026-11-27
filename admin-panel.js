@@ -90,7 +90,7 @@ window.platformSetLoanAccess=async function(input){
   if(!client||!goldleafContext?.is_super_admin||!shopId){input.checked=!enabled;return;}
   input.disabled=true;
   try{
-    const {error}=await client.from('goldleaf_jewel_loan_access').upsert({shop_id:shopId,enabled});
+    const {error}=await client.from('goldleaf_jewel_loan_access').upsert({shop_id:shopId,enabled,updated_at:new Date().toISOString()},{onConflict:'shop_id'});
     if(error)throw error;
     platformLoanEntitlements.set(shopId,enabled);
     say('Jewel Loan & Auction access '+(enabled?'enabled':'disabled')+'.');
@@ -103,7 +103,7 @@ window.platformSetLoanAccess=async function(input){
 };
 function platformAccessFields(shop = {}) {
   const toggle=(name,label,checked,help)=>`<label class="platform-access-toggle"><input type="checkbox" name="${name}" ${checked?'checked':''}><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>${label}</b><small>${help}</small></span></label>`;
-  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}${shop.id?`<label class="platform-access-toggle"><input type="checkbox" data-shop-id="${esc(shop.id)}" ${platformLoanEntitlements.get(shop.id)?'checked':''} onchange="platformSetLoanAccess(this)"><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>Jewel Loan &amp; Auction</b><small>Allow loan draft intake</small></span></label>`:''}</div>`;
+  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}${shop.id?`<label class="platform-access-toggle"><input type="checkbox" name="jewel_loan" data-shop-id="${esc(shop.id)}" ${platformLoanEntitlements.get(shop.id)?'checked':''} onchange="platformSetLoanAccess(this)"><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>Jewel Loan &amp; Auction</b><small>Allow Jewel Loan &amp; Auction module</small></span></label>`:''}</div>`;
 }
 function platformDashboard() {
   const shops = goldleafAdminShops, paid = shops.filter(s => s.payment_count > 0), active = shops.filter(s => ['active','trial'].includes(s.subscription_status) && Date.parse(s.expires_at) > Date.now());
@@ -158,6 +158,11 @@ window.platformSaveAccess = async function(event) {
   if (willExtend) {
     const renew = await client.rpc('goldleaf_admin_renew', { p_shop_id: shopId, p_plan: extendPlan });
     if (renew.error) { say(renew.error.message); return; }
+  }
+  if (shopId) {
+    const loanEnabled = f.has('jewel_loan');
+    const loanRes = await client.from('goldleaf_jewel_loan_access').upsert({ shop_id: shopId, enabled: loanEnabled, updated_at: new Date().toISOString() }, { onConflict: 'shop_id' });
+    if (!loanRes.error) platformLoanEntitlements.set(shopId, loanEnabled);
   }
   await platformMutation('goldleaf_admin_save_access_v2',{p_shop_id:shopId,p_retail:f.has('retail'),p_wholesale:f.has('wholesale'),p_shared_rates:f.has('shared_rates'),p_status:status,p_users:n(f.get('user_seats')),p_owners:n(f.get('owner_seats'))}, willExtend ? 'Shop access saved and validity extended.' : 'Shop access saved.');
 };

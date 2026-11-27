@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.4';
-  const CURRENT_BUILD = 'goldleaf-shell-v2418';
+  const CURRENT_VERSION = '2.13.5';
+  const CURRENT_BUILD = 'goldleaf-shell-v2419';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,15 +11,15 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.4',
+      version: '2.13.5',
       date: '28 Nov 2026',
       tag: 'Current',
-      category: 'Sales & POS Print',
-      title: 'Sales Return Button Fix & Clean Workspace',
+      category: 'Chit & Jewel Loan',
+      title: 'Jewel Loan & Auction Cloud Access & Sidebar Navigation Fix',
       notes: [
-        'Fixed the + Sales Return button inside Estimation / Quotation and Sales Bill so the Sales Return panel opens, auto-calculates return weight/credit from the original bill, and saves cleanly.',
-        'Removed top-of-page theme/rate clutter across all pages while keeping Angular v22.3 engine & Ctrl+K Quick Jump active.',
-        'Preserved Gold Pure Cash Rate · 24K sync, Direct WhatsApp PDF sharing, and 72mm Citizen Thermal Printing.'
+        'Provisioned cloud Jewel Loan access & drafts tables with Shop Admin / Staff RLS policies so enabling Jewel Loan & Auction in Super Admin immediately unlocks the module.',
+        'Styled and anchored Jewel Loan & Auction cleanly inside the Retail sidebar (right below Chit) with instant focus-sync and Save Access persistence.',
+        'Fixed the + Sales Return button inside Estimation / Quotation and Sales Bill.'
       ]
     },
     {

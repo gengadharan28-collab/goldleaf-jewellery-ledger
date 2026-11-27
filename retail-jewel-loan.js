@@ -19,11 +19,14 @@
   function field(label,name,type='text',attrs=''){
     return '<label class="rb-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" '+attrs+'></label>';
   }
+  const isDemoShop=t=>t==='demo-shop-1'||(typeof platformIsDemo==='function'&&platformIsDemo());
   async function checkAccess(force=false){
     const target=currentShop();
     if(target!==shop){shop=target;allowed=false;drafts=[];checkedAt=0;creating=false;filters=emptyFilters();selectedDraft=null;shown=new Set(defaultLoanColumns);subTab='Drafts';editTxId='';}
-    if(!target||!client||target==='demo-shop-1'||(typeof platformIsDemo==='function'&&platformIsDemo()))return false;
-    if(!force&&(checking||Date.now()-checkedAt<30000))return allowed;
+    if(!target)return false;
+    if(isDemoShop(target)){allowed=true;checkedAt=Date.now();return true;}
+    if(!client)return false;
+    if(!force&&(checking||Date.now()-checkedAt<10000))return allowed;
     checking=true;
     try{
       const {data,error}=await client.from('goldleaf_jewel_loan_access').select('enabled').eq('shop_id',target).maybeSingle();
@@ -37,7 +40,7 @@
   }
   async function loadCloudDrafts(){
     const target=currentShop();
-    if(!target||!client||!allowed)return;
+    if(!target||isDemoShop(target)||!client||!allowed)return;
     const {data,error}=await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
     if(target!==currentShop()||!allowed)return;
     if(!error)drafts=data||[];
@@ -45,11 +48,22 @@
   async function openLoanIntake(){
     if(!rbCanLeave()||!await checkAccess(true))return say('Jewel Loan & Auction access is off or could not be verified.');
     const target=currentShop();
-    const {data,error}=await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
-    if(target!==currentShop()||!allowed)return;
-    if(error)return say(error.message);
-    drafts=data||[];
+    if(!isDemoShop(target)&&client){
+      const {data,error}=await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
+      if(target!==currentShop()||!allowed)return;
+      if(error)return say(error.message);
+      drafts=data||[];
+    }
     page=title;edit=null;render();
+  }
+  window.glOpenJewelLoan=openLoanIntake;
+  window.glIsJewelLoanAllowed=()=>!!allowed;
+  const prevGo=window.go;
+  if(typeof prevGo==='function'){
+    window.go=function(target){
+      if(target==='Jewel Loan'||target===title){openLoanIntake();return;}
+      return prevGo.apply(this,arguments);
+    };
   }
   window.glAllJewelLoans=function(){
     const cloud=drafts.map(row=>Object.assign({id:row.id,createdAt:row.created_at},row.payload||{}));
@@ -69,12 +83,34 @@
   function navigation(){
     document.querySelectorAll('[data-retail-loan-nav]').forEach(button=>button.remove());
     if(!allowed||!currentShop()||shop!==currentShop())return;
-    for(const parent of [document.getElementById('nav'),document.getElementById('moreMenu')]){
-      if(!parent)continue;
+    const nav=document.getElementById('nav');
+    if(nav){
       const button=document.createElement('button');
-      button.type='button';button.dataset.retailLoanNav='1';button.textContent=title;
-      button.classList.toggle('active',page===title);button.onclick=openLoanIntake;
-      parent.append(button);
+      button.type='button';
+      button.dataset.retailLoanNav='1';
+      button.setAttribute('aria-label',title);
+      button.title=title;
+      button.classList.toggle('active',page===title);
+      if(page===title)button.setAttribute('aria-current','page');
+      const ico=typeof erpIcon==='function'?erpIcon('chit'):'🔐';
+      button.innerHTML='<span class="nav-icon">'+ico+'</span><span class="erp-nav-label">'+esc(title)+'</span>';
+      button.onclick=openLoanIntake;
+      const chitBtn=nav.querySelector('button[data-rc-sidebar="Chit"],button[aria-label="Chit"]');
+      const settingsBtn=nav.querySelector('button[aria-label="Settings"]');
+      if(chitBtn)chitBtn.after(button);
+      else if(settingsBtn)settingsBtn.before(button);
+      else nav.append(button);
+      if(typeof erpFilterNavigation==='function'&&typeof erpNavQuery!=='undefined')erpFilterNavigation(erpNavQuery);
+    }
+    const more=document.getElementById('moreMenu');
+    if(more){
+      const mBtn=document.createElement('button');
+      mBtn.type='button';
+      mBtn.dataset.retailLoanNav='1';
+      mBtn.textContent=title;
+      mBtn.classList.toggle('active',page===title);
+      mBtn.onclick=()=>{more.classList.remove('open');openLoanIntake();};
+      more.append(mBtn);
     }
   }
 
@@ -544,6 +580,10 @@
     saving=true;
     try{
       if(!await checkAccess(true)||target!==currentShop()){navigation();return say('Loan access is unavailable.');}
+      if(isDemoShop(target)){
+        saveLocalDoc('retail-jewel-loan-draft',data);
+        creating=false;render();say('Jewel loan draft saved.');return;
+      }
       const {data:row,error}=await client.from('goldleaf_jewel_loan_drafts').insert({shop_id:target,payload:data}).select('id,payload,created_at').single();
       if(error)throw error;
       if(target!==currentShop()||!allowed)return;
@@ -568,6 +608,12 @@
     if(document.visibilityState==='visible'&&currentShop()&&!checking)checkAccess().then(()=>{
       if(page===title&&!allowed){page='Dashboard';render();}else navigation();
     });
-  },30000);
+  },15000);
+  window.addEventListener('focus',()=>{
+    if(currentShop()&&!checking)checkAccess(true).then(()=>{
+      if(allowed&&!drafts.length)loadCloudDrafts();
+      if(page===title&&!allowed){page='Dashboard';render();}else navigation();
+    });
+  });
   render();
 })();

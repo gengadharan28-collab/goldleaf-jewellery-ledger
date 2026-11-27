@@ -1,8 +1,8 @@
 {
-  "version": "2.13.4",
-  "build": "goldleaf-shell-v2418",
+  "version": "2.13.5",
+  "build": "goldleaf-shell-v2419",
   "releasedAt": "2026-11-28",
-  "title": "Sales Return Button Fix & Clean Workspace",
+  "title": "Jewel Loan & Auction Access + Sidebar Navigation Fix",
   "highlights": [
     "Removed cluttered top theme/rate bar across all pages while keeping Angular v22.3 engine & Ctrl+K Quick Jump active",
     "Gold Pure Cash Rate · 24K sync & Sales Return calculation inside Quotation & Sales Entry",
