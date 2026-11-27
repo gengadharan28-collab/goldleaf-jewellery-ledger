@@ -781,6 +781,56 @@ html body[data-erp] #rcEstimateForm #rcQuoteManualCard select {
   html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax::before {
     margin: 0 !important;
   }
+  html body[data-erp] #rcEstimateForm .rc-actions {
+    grid-template-columns: 0.82fr 0.82fr 1.4fr 0.96fr !important;
+    gap: 5px !important;
+  }
+}
+
+/* v2.12.37: Net Total/Paid/Remaining (13.5px), Action Buttons (13.5px), Quotation History & All Pages uniformly 13px */
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-lbl,
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-item b,
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-balance-title,
+html body[data-erp] #rcEstimateForm .rc-notes-wrap,
+html body[data-erp] #rcEstimateForm .rc-notes-wrap label,
+html body[data-erp] #rcEstimateForm .rc-notes-wrap span,
+html body[data-erp] #rcEstimateForm .rc-notes-wrap input {
+  font-size: 13.5px !important;
+  line-height: 1.25 !important;
+}
+
+html body[data-erp] #rcEstimateForm .rc-actions button,
+html body[data-erp] #rcEstimateForm .rc-actions button span,
+html body[data-erp] .rb-bill-actions button,
+html body[data-erp] .rc-actions button {
+  font-size: 13.5px !important;
+  min-height: 40px !important;
+  padding: 6px 6px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+html body[data-erp] .rc-quotation-history,
+html body[data-erp] .rc-quotation-history table th,
+html body[data-erp] .rc-quotation-history table td,
+html body[data-erp] .rc-quotation-history button,
+html body[data-erp] .rc-quotation-history .pill,
+html body[data-erp] #app .panel label,
+html body[data-erp] #app .panel .rb-field > span,
+html body[data-erp] #app .panel .field > label,
+html body[data-erp] #app .panel input:not([type="checkbox"]):not([type="radio"]),
+html body[data-erp] #app .panel select,
+html body[data-erp] #app .panel textarea,
+html body[data-erp] #app .panel table th,
+html body[data-erp] #app .panel table td,
+html body[data-erp] #app .panel button:not(.rc-pos-pill):not(.rb-adjustment-grid > button):not(.rc-pos-split-btn):not(.rc-actions button):not(.rb-bill-actions button) {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+html body[data-erp] .rc-quotation-history h2,
+html body[data-erp] #app .panel h2 {
+  font-size: 15px !important;
 }
 
 @media screen and (max-width:760px){
