@@ -2617,7 +2617,7 @@ window.rcOldGoldFieldChanged = function(source){
   }
 
   let pureRate = n(form.elements.exchangePureRate?.value);
-  if(pureRate <= 0){
+  if(pureRate <= 0 && source !== 'pure' && document.activeElement !== form.elements.exchangePureRate){
     pureRate = rcGetPureRateFromRateBook(fType, form);
     if(pureRate > 0 && form.elements.exchangePureRate){
       form.elements.exchangePureRate.value = pureRate;
@@ -2625,7 +2625,7 @@ window.rcOldGoldFieldChanged = function(source){
   }
   const touch = n(form.elements.exchangeTesting?.value || 91.6);
   const keepManualRate = (source !== 'pure' && source !== 'touch') && form.elements.exchangeRate?.dataset?.manualRate === '1' && n(form.elements.exchangeRate?.value) > 0;
-  const calcRate = keepManualRate ? n(form.elements.exchangeRate.value) : (pureRate > 0 ? rbRound(pureRate * touch / 100) : n(form.elements.exchangeRate?.value));
+  const calcRate = keepManualRate ? n(form.elements.exchangeRate.value) : (pureRate > 0 ? rbRound(pureRate * touch / 100) : (source === 'pure' ? 0 : n(form.elements.exchangeRate?.value)));
 
   if(form.elements.exchangeRate && !keepManualRate){
     form.elements.exchangeRate.dataset.manualRate = '0';
