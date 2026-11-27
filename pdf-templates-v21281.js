@@ -170,6 +170,7 @@ function pdfSettingsPanel(){
     +'<label class="pdf-checkbox"><input type="checkbox" name="remotePrintStation" '+(c.remotePrintStation?'checked':'')+'> Laptop Print Station (Receive &amp; auto-print mobile jobs on this laptop)</label>'
     +'<label class="pdf-checkbox"><input type="checkbox" name="remotePrintFromMobile" '+(c.remotePrintFromMobile?'checked':'')+'> Send Mobile Prints to Laptop Printer (Use when local USB printer is not attached)</label>'
     +'</div>'
+    +'<div style="margin-top:8px"><button type="button" onclick="window.goldleafDirectPrint?.pollRemote?.(true)">↻ Check Mobile Print Queue Now</button></div>'
     +'</fieldset>';
 
   // Bank & UPI QR Settings

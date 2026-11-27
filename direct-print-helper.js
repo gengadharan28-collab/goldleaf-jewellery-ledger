@@ -139,23 +139,37 @@
     }
   }
   let stationBusy=false;
-  async function pollRemotePrintJobs(){
+  async function pollRemotePrintJobs(manual){
     if(stationBusy) return;
     const cfgR=typeof pdfConfig==='function'?pdfConfig('retail'):{};
     const cfgW=typeof pdfConfig==='function'?pdfConfig('wholesale'):{};
-    if(!cfgR.remotePrintStation&&!cfgW.remotePrintStation) return;
+    const enabled=!!(cfgR.remotePrintStation||cfgW.remotePrintStation||cfgR.remotePrintFromMobile||cfgW.remotePrintFromMobile);
+    if(!enabled&&!manual) return;
     const shopId=(typeof goldleafContext!=='undefined'?goldleafContext?.shop_id:window.goldleafContext?.shop_id)||(typeof session!=='undefined'?session?.user?.id:null);
-    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!shopId) return;
+    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!shopId){
+      if(manual) notify('Sign in to check mobile print queue.');
+      return;
+    }
     stationBusy=true;
     try{
-      if(!(await helperReady())) return;
+      if(!(await helperReady())){
+        if(manual) notify('Citizen print helper is not running on this laptop.');
+        return;
+      }
       const {data,error}=await client.from('goldleaf_print_jobs')
         .select('id,printer,image_data_url,width_mm')
         .eq('shop_id',shopId)
         .eq('status','pending')
         .order('created_at',{ascending:true})
         .limit(5);
-      if(error||!Array.isArray(data)||!data.length) return;
+      if(error){
+        if(manual) notify('Print queue error: '+error.message,'error');
+        return;
+      }
+      if(!Array.isArray(data)||!data.length){
+        if(manual) notify('No pending mobile print jobs.');
+        return;
+      }
       for(const job of data){
         try{
           await sendToLocalHelper(job.printer||'CITIZEN CT-D150',job.image_data_url,job.width_mm||80);
@@ -169,9 +183,11 @@
     }catch(_){}
     finally{stationBusy=false;}
   }
-  setInterval(pollRemotePrintJobs,3000);
-  window.addEventListener('load',()=>setTimeout(pollRemotePrintJobs,2000));
+  setInterval(()=>pollRemotePrintJobs(false),3000);
+  window.addEventListener('load',()=>setTimeout(()=>pollRemotePrintJobs(false),1500));
+  window.addEventListener('goldleaf-v2-ready',()=>setTimeout(()=>pollRemotePrintJobs(false),800));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pollRemotePrintJobs(false);});
   // pdf-templates.js owns the single print entry point. Wrapping the global
   // function here can dispatch the Citizen job and Chrome's 279 mm dialog.
-  window.goldleafDirectPrint={health:helperReady,print:directPrint,helperUrl:HELPER};
+  window.goldleafDirectPrint={health:helperReady,print:directPrint,pollRemote:pollRemotePrintJobs,helperUrl:HELPER};
 })();
