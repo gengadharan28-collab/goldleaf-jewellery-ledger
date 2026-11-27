@@ -1433,23 +1433,10 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const c=pdfConfig(mode);
   const isEstimate=model.kind==='estimate'||String(model.title||'').includes('ESTIMATION')||String(model.title||'').includes('QUOTATION');
   const template=forcedTemplate||(isEstimate?(c.estimateTemplate||'detailed-estimate'):(c.template||'classic'));
-  if(phone){
-    const waWin=window.open('about:blank','_blank');if(waWin)waWin.opener=null;
-    try{
-      say('Creating secure estimate link…');
-      const shareLink=await pdfCreateSecureEstimateLink(model,mode,template,c);
-      const waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent('View your secure jewellery estimate: '+shareLink);
-      if(waWin)waWin.location.href=waUrl;else window.open(waUrl,'_blank','noopener');
-      say('WhatsApp opened with the secure estimate link.');
-    }catch(error){if(waWin)waWin.close();say(error?.message||'Secure estimate link could not be created.');}
-    return;
-  }
-  const waUrl='';
-  const canNativeFileShare=!!(navigator.share&&navigator.canShare);
-  // Pre-open WhatsApp tab only on desktop/browsers without native file share
-  const waWin=(waUrl&&!canNativeFileShare)?window.open('about:blank','_blank','noopener'):null;
+  const waWin=phone?window.open('about:blank','_blank'):null;
+  if(waWin)waWin.opener=null;
   await pdfLoadProfile();
-  say('Generating PDF…');
+  say(phone?'Generating direct PDF link…':'Generating PDF…');
   if(!window.html2pdf){
     await new Promise((res,rej)=>{
       const s=document.createElement('script');
@@ -1460,8 +1447,7 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
     }).catch(()=>null);
   }
   if(!window.html2pdf){
-    if(waWin)waWin.location.href=waUrl;
-    else if(waUrl)window.open(waUrl,'_blank','noopener');
+    if(waWin&&!waWin.closed)waWin.close();
     pdfPrintModel(model,mode,template);
     return;
   }
@@ -1471,10 +1457,10 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const hostW=is80?265:is58?182:(isLand?(isA5?750:1040):(isA5?515:750));
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:0;top:0;width:'+hostW+'px;background:#fff;z-index:2147483640;pointer-events:none;overflow:visible;';
-  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'70mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1.5mm 2mm':'14px')+'!important}.gl-pdf:not(.pdf-modern),.gl-pdf:not(.pdf-modern) *{color:#000!important;-webkit-text-fill-color:#000!important}'+(isEstimate?'.gl-pdf,.gl-pdf *{-webkit-text-stroke:0.55px #000!important}':'')+'</style>'+pdfDocument(model,c,template);
+  host.innerHTML='<style>'+PDF_DOCUMENT_CSS+' .gl-pdf{width:'+(is80?'72mm':is58?'48mm':hostW+'px')+'!important;max-width:'+(is80?'72mm':is58?'48mm':hostW+'px')+'!important;box-sizing:border-box!important;box-shadow:none!important;margin:0 auto!important;padding:'+(is80||is58?'1mm 0':'14px')+'!important}.gl-pdf:not(.pdf-modern),.gl-pdf:not(.pdf-modern) *{color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important}</style>'+pdfDocument(model,c,template);
   const mask=document.createElement('div');
   mask.style.cssText='position:fixed;inset:0;z-index:2147483645;background:rgba(246,242,232,0.92);display:grid;place-items:center;font:700 14px Inter,sans-serif;color:#143d2b;';
-  mask.textContent='Preparing PDF…';
+  mask.textContent=phone?'Preparing direct PDF link…':'Preparing PDF…';
   document.body.append(host,mask);
   const target=host.querySelector('.gl-pdf')||host;
   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,60)));
@@ -1483,33 +1469,42 @@ window.pdfShareOrDownload=async function(model,mode,forcedTemplate=null,phone=''
   const format = is80 ? [80, targetMmH] : is58 ? [58, targetMmH] : (isA5 ? 'a5' : 'a4');
   try{
     const blob=await window.html2pdf().set({
-      margin:(is80||is58)?[1, 5, 1, 5]:5,
+      margin:(is80||is58)?[1, 4, 1, 4]:5,
       filename,
       image:{type:'jpeg',quality:0.98},
       html2canvas:{scale:3,useCORS:true,backgroundColor:'#ffffff',width:hostW,windowWidth:hostW,scrollX:0,scrollY:0},
       jsPDF:{unit:'mm',format,orientation:isLand?'landscape':'portrait'}
     }).from(target).outputPdf('blob');
+    if(phone){
+      if(!client||!session||!goldleafContext?.shop_id)throw new Error('Sign in to send a direct PDF link.');
+      const cleanName=String(filename||'Estimate.pdf').replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'Estimate.pdf';
+      const pdfName=cleanName.toLowerCase().endsWith('.pdf')?cleanName:(cleanName+'.pdf');
+      const objectPath=goldleafContext.shop_id+'/'+Date.now()+'-'+pdfName;
+      const {error:upErr}=await client.storage.from('shared-pdfs').upload(objectPath,blob,{contentType:'application/pdf',upsert:true});
+      if(upErr)throw new Error(upErr.message||'Could not upload PDF link.');
+      const {data:pubData}=client.storage.from('shared-pdfs').getPublicUrl(objectPath);
+      const directPdfUrl=pubData?.publicUrl;
+      if(!directPdfUrl)throw new Error('Direct PDF URL unavailable.');
+      const waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent('View your jewellery '+(isEstimate?'estimate':'bill')+' PDF: '+directPdfUrl);
+      if(waWin&&!waWin.closed)waWin.location.href=waUrl;else window.open(waUrl,'_blank','noopener');
+      say('WhatsApp opened with direct PDF link.');
+      return;
+    }
     const file=new File([blob],filename,{type:'application/pdf'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-      if(phone){
-        navigator.clipboard?.writeText(phone).catch(()=>{});
-        say('Copied +'+phone+' — choose WhatsApp to send PDF.');
-      }
       await navigator.share({files:[file],title:filename,text:'Quotation '+filename.replace(/\.pdf$/i,'')});
     }else{
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
       a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),4000);
-      say('PDF downloaded — attach it in WhatsApp.');
-      if(waWin&&!waWin.closed)waWin.location.href=waUrl;
-      else if(waUrl)window.open(waUrl,'_blank','noopener');
+      say('PDF downloaded.');
     }
   }catch(err){
     if(waWin&&!waWin.closed)waWin.close();
     if(err&&err.name==='AbortError')return;
+    if(phone){say(err?.message||'Could not create direct PDF link.');return;}
     pdfPrintModel(model,mode,template);
-    if(waUrl)window.open(waUrl,'_blank','noopener');
   }finally{
     host.remove();
     mask.remove();

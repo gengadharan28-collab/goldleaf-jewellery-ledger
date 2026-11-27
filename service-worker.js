@@ -1,4 +1,4 @@
-const CACHE='goldleaf-shell-v2399';
+const CACHE='goldleaf-shell-v2400';
 self.addEventListener('install',event=>{
   event.waitUntil(self.skipWaiting());
 });
