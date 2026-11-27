@@ -77,25 +77,59 @@
       frame.remove();
     }
   }
+  async function sendToLocalHelper(printer,imageDataUrl,widthMm){
+    const res=await fetch(HELPER+'/print',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      cache:'no-store',
+      body:JSON.stringify({printer:printer||'CITIZEN CT-D150',imageDataUrl,widthMm:widthMm||80,cut:true})
+    });
+    const body=await res.text();
+    if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
+    let result={};
+    try{result=JSON.parse(body||'{}');}catch(_){}
+    if(result.ok===false) throw new Error(result.error||'Citizen print failed');
+    return true;
+  }
+  async function queueRemotePrint(imageDataUrl){
+    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!window.goldleafContext?.shop_id){
+      throw new Error('Sign in to send print jobs to your Laptop Print Station.');
+    }
+    const {error}=await client.from('goldleaf_print_jobs').insert({
+      shop_id:window.goldleafContext.shop_id,
+      printer:'CITIZEN CT-D150',
+      image_data_url:imageDataUrl,
+      width_mm:80,
+      status:'pending'
+    });
+    if(error) throw new Error(error.message||'Could not queue remote print job.');
+    return true;
+  }
   async function directPrint(model,mode,template){
     if(!THERMAL.has(template)) return false;
     const now=Date.now();
     if(now-lastPrintAt<4000) return true;
     lastPrintAt=now;
+    const cfg=typeof pdfConfig==='function'?pdfConfig(mode):{};
     try{
+      const localUp=await helperReady();
+      if(localUp){
+        notify('Sending receipt to Citizen printer…');
+        const imageDataUrl=await renderReceipt(model,mode,template);
+        await sendToLocalHelper('CITIZEN CT-D150',imageDataUrl,80);
+        notify('Printed successfully');
+        return true;
+      }
+      if(cfg.remotePrintFromMobile){
+        notify('Sending receipt to Laptop Citizen printer…');
+        const imageDataUrl=await renderReceipt(model,mode,template);
+        await queueRemotePrint(imageDataUrl);
+        notify('Sent to Laptop Citizen Print Station!');
+        return true;
+      }
       notify('Sending receipt to Citizen printer…');
       const imageDataUrl=await renderReceipt(model,mode,template);
-      const res=await fetch(HELPER+'/print',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        cache:'no-store',
-        body:JSON.stringify({printer:'CITIZEN CT-D150',imageDataUrl,widthMm:80,cut:true})
-      });
-      const body=await res.text();
-      if(!res.ok) throw new Error(body||'Citizen helper rejected the print job');
-      let result={};
-      try{result=JSON.parse(body||'{}');}catch(_){}
-      if(result.ok===false) throw new Error(result.error||'Citizen print failed');
+      await sendToLocalHelper('CITIZEN CT-D150',imageDataUrl,80);
       notify('Printed successfully');
       return true;
     }catch(err){
@@ -103,6 +137,36 @@
       throw err;
     }
   }
+  let stationBusy=false;
+  async function pollRemotePrintJobs(){
+    if(stationBusy) return;
+    const cfg=typeof pdfConfig==='function'?pdfConfig('retail'):{};
+    if(!cfg.remotePrintStation) return;
+    if(typeof client==='undefined'||!client||typeof session==='undefined'||!session||!window.goldleafContext?.shop_id) return;
+    stationBusy=true;
+    try{
+      if(!(await helperReady())) return;
+      const {data,error}=await client.from('goldleaf_print_jobs')
+        .select('id,printer,image_data_url,width_mm')
+        .eq('shop_id',window.goldleafContext.shop_id)
+        .eq('status','pending')
+        .order('created_at',{ascending:true})
+        .limit(5);
+      if(error||!Array.isArray(data)||!data.length) return;
+      for(const job of data){
+        try{
+          await sendToLocalHelper(job.printer||'CITIZEN CT-D150',job.image_data_url,job.width_mm||80);
+          await client.from('goldleaf_print_jobs').update({status:'printed',printed_at:new Date().toISOString()}).eq('id',job.id);
+          notify('Printed mobile job on Citizen CT-D150');
+        }catch(jobErr){
+          await client.from('goldleaf_print_jobs').update({status:'error',error_message:String(jobErr?.message||jobErr)}).eq('id',job.id);
+        }
+      }
+    }catch(_){}
+    finally{stationBusy=false;}
+  }
+  setInterval(pollRemotePrintJobs,3000);
+  window.addEventListener('load',()=>setTimeout(pollRemotePrintJobs,2000));
   // pdf-templates.js owns the single print entry point. Wrapping the global
   // function here can dispatch the Citizen job and Chrome's 279 mm dialog.
   window.goldleafDirectPrint={health:helperReady,print:directPrint,helperUrl:HELPER};

@@ -112,7 +112,7 @@ window.dash=function(){const source=erpPreviousDashboard(),start=source.indexOf(
 function erpDecorate(){
   if(!session){document.body.classList.add('gl-auth-active');document.getElementById('erpSideSearch')?.remove();document.getElementById('erpSideCaption')?.remove();document.getElementById('erpSideMode')?.remove();document.getElementById('erpWorkbar')?.remove();document.getElementById('nav')?.querySelectorAll(':scope>button:not(.active)')?.forEach(b=>b.remove());return;}document.body.classList.remove('gl-auth-active');document.body.dataset.erp='true';document.body.dataset.erpPage=page;document.body.dataset.erpMode=workspaceMode;const brand=document.querySelector('.brand');const crestSvg=window.glBrandLogoSvg||'<svg class="gl-brand-crest-svg" width="34" height="34" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="glRoyalGold" x1="15" y1="10" x2="105" y2="110" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#FCE79C"/><stop offset="45%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#9A711C"/></linearGradient></defs><circle cx="60" cy="60" r="54" stroke="url(#glRoyalGold)" stroke-width="2.2" stroke-dasharray="4 2" opacity="0.55"/><polygon points="60,8 96,23 111,60 96,97 60,112 24,97 9,60 24,23" stroke="url(#glRoyalGold)" stroke-width="2.5" fill="none"/><path d="M60 20L78 35L60 66L42 35L60 20Z" fill="url(#glRoyalGold)"/><path d="M42 35H78M60 20L51 35L60 66L69 35L60 20Z" stroke="#10231B" stroke-width="1.6"/><path d="M58 72C42 72 26 60 24 42C39 43 52 54 58 72Z" fill="url(#glRoyalGold)"/><path d="M62 72C78 72 94 60 96 42C81 43 68 54 62 72Z" fill="url(#glRoyalGold)"/><path d="M58 88C43 87 31 79 27 65C40 67 51 75 58 88Z" fill="url(#glRoyalGold)" opacity="0.88"/><path d="M62 88C77 87 89 79 93 65C80 67 69 75 62 88Z" fill="url(#glRoyalGold)" opacity="0.88"/><path d="M60 66V98" stroke="url(#glRoyalGold)" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="101" r="3" fill="#FCE79C"/></svg>';if(brand&&!brand.querySelector('.gl-brand-crest-svg'))brand.innerHTML='<span class="erp-brand-mark" aria-hidden="true">'+crestSvg+'</span><span class="erp-brand-name">Goldleaf<small>JEWELLERY ERP</small></span><button type="button" class="erp-drawer-close" onclick="erpToggleSidebar(false)" aria-label="Close menu">✕</button>';const name=brand?.querySelector('.erp-brand-mark')?.nextElementSibling;name?.classList.add('erp-brand-name');erpBuildShell();erpRefreshDialogState();erpSyncGSTButton();}
 const erpPreviousRender=window.render;
-window.render=function(){const result=erpPreviousRender();erpDecorate();return result;};
+window.render=function(){const result=erpPreviousRender();erpDecorate();if(typeof window.glTranslateApp==='function')window.glTranslateApp();return result;};
 const erpApplyWorkspaceMode=window.setWorkspaceMode;
 window.setWorkspaceMode=function(mode){
   const target=mode==='retail'?'retail':'wholesale';
@@ -131,4 +131,107 @@ erpThemeLink.addEventListener('load',()=>{if(page==='Sales Entry'&&workspaceMode
 const erpHistoryBase=window.updateHistoryView;
 window.updateHistoryView=function(){return erpHistoryBase().replace('Goldleaf v2.4.0','Goldleaf v2.6.0').replace('v2.4.4 · 6 Nov 2026 · Current','v2.4.4 · 6 Nov 2026').replace('<h2>Update history</h2>','<h2>Update history</h2><article class="release-note"><h3>v2.6.0 · 7 Nov 2026 · Current</h3><ul><li>Restored the previous cream, gold and charcoal colours across all workspaces.</li><li>Added a reference-inspired ERP sidebar with page search and collapse, a compact shortcut toolbar, and grouped financial/activity dashboards.</li><li>Dashboard cards open the matching register, entry or report page. Gold grams and cash amounts remain separate.</li></ul></article><article class="release-note"><h3>v2.5.0 · 6 Nov 2026</h3><ul><li>Applied a shared ERP theme to all workspaces.</li><li>Changed optional GST to a compact button beside Old Gold Exchange and protected unsaved invoice entries from background refresh and theme changes.</li></ul></article>');};
 render();
+
+(function(){
+  const LANG_KEY='goldleaf-lang';
+  const TA_DICT={
+    'Dashboard':'முகப்பு','Sales Entry':'விற்பனை பதிவு','Estimation / Quotation':'மதிப்பீடு / கொட்டேஷன்',
+    'Register':'பதிவு','Customer Register':'வாடிக்கையாளர் பதிவு','Party Register':'பார்ட்டி பதிவு',
+    'Payments':'கட்டணங்கள்','Ledger':'பேரேடு','Party Ledger':'பார்ட்டி பேரேடு','Customer Ledger':'வாடிக்கையாளர் பேரேடு',
+    'Summary':'சுருக்கம்','Reports':'அறிக்கைகள்','Stock & Tagging':'இருப்பு & டேக்கிங்','Tagging':'டேக்கிங்',
+    'Products':'பொருட்கள்','Purchases':'கொள்முதல்','Chit':'சீட்டு','Jewel Loan':'நகை கடன்',
+    'Accounts':'கணக்குகள்','Rate Book':'விலை பட்டியல்','Settings':'அமைப்புகள்','Update History':'புதுப்பிப்பு மையம்',
+    'Update Center':'புதுப்பிப்பு மையம்','CRM & Orders':'ஆர்டர்கள் & CRM','Cost Structure':'செலவு அமைப்பு',
+    'Menu':'பட்டியல்','Sign out':'வெளியேறு','Retail':'சில்லறை','Wholesale':'மொத்தம்',
+    'Business balances':'வணிக நிலுவைகள்','Gold & hallmark balances':'தங்கம் & ஹால்மார்க் நிலுவைகள்',
+    'Sales & receipts':'விற்பனை & வரவுகள்','Workspace actions':'விரைவு செயல்கள்',
+    'Recent transactions':'சமீபத்திய பரிவர்த்தனைகள்','All records':'அனைத்து பதிவுகள்',
+    'View summary':'சுருக்கம் காண்க','Balance guide':'நிலுவை வழிகாட்டி',
+    'Customer register':'வாடிக்கையாளர் பதிவு','Party register':'பார்ட்டி பதிவு',
+    'Sales entry':'விற்பனை பதிவு','Customer payment':'வாடிக்கையாளர் கட்டணம்','Party payment':'பார்ட்டி கட்டணம்',
+    'Ledger & reports':'பேரேடு & அறிக்கைகள்','Old Gold Exchange':'பழைய தங்கம் மாற்றம்',
+    'Old Gold Exchange Details':'பழைய தங்கம் மாற்ற விவரம்','Weight':'எடை','Less Type':'கழிவு வகை',
+    'Less':'கழிவு','Net Wt':'நிகர எடை','Pure Rate':'சுத்த விலை','Touch(%)':'டச்(%)',
+    'Rate':'விலை','Amount':'தொகை','Remarks':'குறிப்பு','Save':'சேமி','Edit':'திருத்து',
+    'Clear':'அழி','Add Item':'பொருள் சேர்','Clear All':'அனைத்தையும் அழி','Delete':'நீக்கு',
+    'Print / Save PDF':'பிரிண்ட் / PDF சேமி','WhatsApp Customer':'வாட்ஸ்அப் வாடிக்கையாளர்',
+    'New Quotation':'புதிய கொட்டேஷன்','Save Quotation':'கொட்டேஷன் சேமி','Update Quotation':'கொட்டேஷன் புதுப்பி',
+    'Convert to Bill':'பில் ஆக மாற்று','Customer':'வாடிக்கையாளர்','Date':'தேதி','Actions':'செயல்கள்',
+    'Total':'மொத்தம்','Discount':'தள்ளுபடி','Grand Total':'மொத்தத் தொகை','Balance':'நிலுவை',
+    'Search':'தேடு','Close':'மூடு','Cancel':'ரத்து செய்','Update':'புதுப்பி','Check for Updates':'புதுப்பிப்பு சரிபார்',
+    'Force Refresh Cache':'முழு ரீஃப்ரெஷ்','Install Update Now':'இப்போது புதுப்பி'
+  };
+  const origText=new WeakMap();
+  function getLang(){try{return localStorage.getItem(LANG_KEY)==='ta'?'ta':'en';}catch(_){return 'en';}}
+  function translateNode(node,lang){
+    if(node.nodeType===3){
+      const cur=node.nodeValue;
+      if(!cur||!cur.trim())return;
+      if(!origText.has(node))origText.set(node,cur);
+      const base=origText.get(node);
+      if(lang==='en'){if(cur!==base)node.nodeValue=base;return;}
+      const trimmed=base.trim();
+      const hit=TA_DICT[trimmed];
+      if(hit){
+        const lead=base.match(/^\s*/)[0],trail=base.match(/\s*$/)[0];
+        const next=lead+hit+trail;
+        if(node.nodeValue!==next)node.nodeValue=next;
+      }
+    }else if(node.nodeType===1){
+      const tag=node.tagName;
+      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||node.id==='glLangSwitcher')return;
+      for(let c=node.firstChild;c;c=c.nextSibling)translateNode(c,lang);
+    }
+  }
+  function ensureLangSwitcher(){
+    const side=document.querySelector('.side');
+    if(!side)return;
+    let box=document.getElementById('glLangSwitcher');
+    const lang=getLang();
+    if(!box){
+      box=document.createElement('div');
+      box.id='glLangSwitcher';
+      box.style.cssText='margin:10px 8px 6px;padding:4px;border-radius:10px;border:1px solid rgba(189,151,97,.32);background:rgba(0,0,0,.08);display:grid;grid-template-columns:1fr 1fr;gap:4px';
+      box.innerHTML='<button type="button" data-gl-lang="en" style="min-height:30px;padding:4px 6px;font-size:11px;font-weight:700;border-radius:7px;border:0;cursor:pointer">EN</button><button type="button" data-gl-lang="ta" style="min-height:30px;padding:4px 6px;font-size:11px;font-weight:700;border-radius:7px;border:0;cursor:pointer">தமிழ்</button>';
+      box.addEventListener('click',e=>{
+        const btn=e.target.closest('[data-gl-lang]');
+        if(!btn)return;
+        window.glSetLanguage(btn.dataset.glLang);
+      });
+      const foot=side.querySelector('.foot');
+      if(foot)side.insertBefore(box,foot);else side.appendChild(box);
+    }
+    box.querySelectorAll('[data-gl-lang]').forEach(btn=>{
+      const active=btn.dataset.glLang===lang;
+      btn.style.background=active?'#194735':'transparent';
+      btn.style.color=active?'#fff':'inherit';
+    });
+  }
+  let translating=false;
+  window.glTranslateApp=function(){
+    if(translating)return;
+    translating=true;
+    try{
+      ensureLangSwitcher();
+      const lang=getLang();
+      document.documentElement.lang=lang==='ta'?'ta':'en';
+      if(document.body)translateNode(document.body,lang);
+    }finally{translating=false;}
+  };
+  window.glSetLanguage=function(lang){
+    const next=lang==='ta'?'ta':'en';
+    try{localStorage.setItem(LANG_KEY,next);}catch(_){}
+    window.glTranslateApp();
+  };
+  let timer=null;
+  const obs=new MutationObserver(()=>{
+    if(translating)return;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{if(getLang()==='ta'||!document.getElementById('glLangSwitcher'))window.glTranslateApp();},60);
+  });
+  window.addEventListener('DOMContentLoaded',()=>{
+    window.glTranslateApp();
+    if(document.body)obs.observe(document.body,{childList:true,subtree:true});
+  });
+})();
 

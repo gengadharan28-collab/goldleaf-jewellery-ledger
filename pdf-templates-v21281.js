@@ -60,6 +60,8 @@ function pdfConfig(mode=pdfMode()){
     showBankQR: true,
     showTerms: true,
     showExpiry: true,
+    remotePrintStation: false,
+    remotePrintFromMobile: false,
     // Bank & Payment QR details
     bankName: '',
     bankBranch: '',
@@ -160,6 +162,14 @@ function pdfSettingsPanel(){
     +pdfSettingField('Feed blank lines at end','thermalFeed',c.thermalFeed,'number','min="0" max="10" step="1"')
     +'</div>'
     +'<label class="field wide">Default Estimation Bottom Margin / Disclaimer Text<textarea name="estimateBottomMargin" rows="2" maxlength="300">'+esc(c.estimateBottomMargin||'')+'</textarea></label>'
+    +'</fieldset>'
+    +'<fieldset class="pdf-thermal-settings">'
+    +'<legend>Mobile to Laptop Thermal Print Bridge</legend>'
+    +'<p class="hint">Print from your phone to the USB Citizen thermal printer connected to your laptop (both signed into the same Goldleaf account).</p>'
+    +'<div class="pdf-toggle-grid">'
+    +'<label class="pdf-checkbox"><input type="checkbox" name="remotePrintStation" '+(c.remotePrintStation?'checked':'')+'> Laptop Print Station (Receive &amp; auto-print mobile jobs on this laptop)</label>'
+    +'<label class="pdf-checkbox"><input type="checkbox" name="remotePrintFromMobile" '+(c.remotePrintFromMobile?'checked':'')+'> Send Mobile Prints to Laptop Printer (Use when local USB printer is not attached)</label>'
+    +'</div>'
     +'</fieldset>';
 
   // Bank & UPI QR Settings
@@ -235,6 +245,8 @@ function pdfReadSettingsForm(){
     showBankQR: f.has('showBankQR'),
     showTerms: f.has('showTerms'),
     showExpiry: f.has('showExpiry'),
+    remotePrintStation: f.has('remotePrintStation'),
+    remotePrintFromMobile: f.has('remotePrintFromMobile'),
     bankName: String(f.get('bankName')||'').trim(),
     bankBranch: String(f.get('bankBranch')||'').trim(),
     accountNo: String(f.get('accountNo')||'').trim(),
