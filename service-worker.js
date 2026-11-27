@@ -1,4 +1,4 @@
-const CACHE='goldleaf-shell-v2412';
+const CACHE='goldleaf-shell-v2413';
 self.addEventListener('install',event=>{
   event.waitUntil(self.skipWaiting());
 });
@@ -30,6 +30,7 @@ self.addEventListener('message',event=>{
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;
   const reqUrl=new URL(event.request.url);
+  if(reqUrl.pathname.includes('/v3/'))return;
   if(reqUrl.pathname.endsWith('/version.json')||reqUrl.pathname.endsWith('/service-worker.js')){
     event.respondWith(fetch(event.request,{cache:'no-store'}));
     return;
