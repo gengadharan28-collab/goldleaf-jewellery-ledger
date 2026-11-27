@@ -352,7 +352,7 @@ function rbRecordView(returnPanel=false,returnId=''){
   return '<div class="retail-sale-screen rb-screen rb-record-screen">'+rbHeader(title)+'<div class="rb-record-columns"><section class="panel"><div class="rb-section-head"><h2>'+(record?'Edit entry':'New entry')+'</h2><span class="erp-period-tag">'+(metal?'Pure grams':'Rupees')+'</span></div>'+recordForm+'</section><section class="panel rb-record-history"><div class="rb-section-head"><h2>Saved '+title.toLowerCase()+' entries</h2><button type="button" onclick="rbPrintRecordList(\''+kind+'\')">View PDF</button></div>'+(rows.length?'<div class="rb-total-history">'+table(['Entry','Date','Customer',ret?'Product':metal?'Pure weight':'Method',metal?'Available':'Amount','Actions'],[...rows,totalRow])+'</div>':'<div class="empty">No entries yet.</div>')+'</section></div></div>';
 }
 window.rbRecordCustomer=function(el){const scope=rbScope(el);if(!scope)return;const select=rbField(scope,'invoiceId'),partyEl=rbField(scope,'partyId');if(select&&partyEl){select.innerHTML=rbInvoiceOptions(partyEl.value,'',scope.dataset.kind==='return'?'Select original bill':'Customer account · no bill link');rbReturnItems(scope);}};
-window.rbReturnItems=function(el){const scope=rbScope(el);if(!scope||scope.dataset.kind!=='return')return;const invEl=rbField(scope,'invoiceId'),srcEl=rbField(scope,'sourceItemId'),wtEl=rbField(scope,'returnWeight'),amtEl=rbField(scope,'amount'),sale=rbCustomerSales().find(x=>x.id===invEl?.value);if(srcEl)srcEl.innerHTML=sale?rbInvoiceItems(sale).map(x=>'<option value="'+x.id+'">'+esc(x.product)+' · '+fmt(x.netWeight)+' g</option>').join(''):'<option value="">Select a bill first</option>';if(wtEl)wtEl.value='';if(amtEl)amtEl.value='';rbReturnCalc(scope,false);};
+window.rbReturnItems=function(el){const scope=rbScope(el);if(!scope||scope.dataset.kind!=='return')return;const invEl=rbField(scope,'invoiceId'),srcEl=rbField(scope,'sourceItemId'),wtEl=rbField(scope,'returnWeight'),pcsEl=rbField(scope,'returnPieces'),amtEl=rbField(scope,'amount'),sale=rbCustomerSales().find(x=>x.id===invEl?.value);if(srcEl)srcEl.innerHTML=sale?rbInvoiceItems(sale).map(x=>'<option value="'+x.id+'">'+esc(x.product)+' · '+fmt(x.netWeight)+' g</option>').join(''):'<option value="">Select a bill first</option>';if(sale&&srcEl?.value){const lim=rbReturnLimit(sale,srcEl.value,rbField(scope,'id')?.value||'');if(wtEl)wtEl.value=lim.weight>0?lim.weight:'';if(pcsEl)pcsEl.value=lim.pieces>0?lim.pieces:0;rbReturnCalc(scope,true);}else{if(wtEl)wtEl.value='';if(pcsEl)pcsEl.value=0;if(amtEl)amtEl.value='';rbReturnCalc(scope,false);}};
 window.rbReturnCalc=function(el,fill=false){const scope=rbScope(el);if(!scope||scope.dataset.kind!=='return')return;const invEl=rbField(scope,'invoiceId'),srcEl=rbField(scope,'sourceItemId'),idEl=rbField(scope,'id'),wtEl=rbField(scope,'returnWeight'),pcsEl=rbField(scope,'returnPieces'),amtEl=rbField(scope,'amount'),node=scope.querySelector('#rbReturnLimit'),sale=rbCustomerSales().find(x=>x.id===invEl?.value);if(!sale){if(node)node.textContent='';return;}const limit=rbReturnLimit(sale,srcEl?.value,idEl?.value||''),weight=n(wtEl?.value),pieces=n(pcsEl?.value),max=limit.item?(n(limit.item.netWeight)>0?rbRound(limit.lineValue*weight/n(limit.item.netWeight)):(n(limit.item.pieces)>0?rbRound(limit.lineValue*pieces/n(limit.item.pieces)):limit.amount)):0;if(node)node.textContent='Available to return: '+fmt(limit.weight)+' g · '+limit.pieces+' pcs · Remaining original value '+rateMoney(limit.amount);if(fill&&amtEl)amtEl.value=(weight>0?Math.min(limit.amount,max):0).toFixed(2);};
 window.rbMetalCalc=function(el){const scope=rbScope(el);if(!scope)return;const wt=n(rbField(scope,'weight')?.value),less=n(rbField(scope,'lessWeight')?.value),pur=n(rbField(scope,'purity')?.value),net=rbGrams(wt-less),pure=rbGrams(net*pur/100),node=scope.querySelector('#rbMetalValue');if(node)node.textContent='Net weight '+fmt(net)+' g · Pure weight '+fmt(pure)+' g';};
 window.rbSaveRecord=function(event){event.preventDefault();event.stopPropagation();const scope=rbScope(event.target);if(!scope)return;const get=name=>String(rbField(scope,name)?.value??''),kind=scope.dataset.kind,id=get('id'),old=db.payments.find(x=>x.id===id),partyId=get('partyId'),now=new Date().toISOString();if(!account(partyId,'customer'))return say('Select a registered customer.');let item=Object.assign({},old||{},{id:id||crypto.randomUUID(),accountType:'customer',retailKind:kind,partyId,when:get('when')||rbNow(),documentNo:get('documentNo').trim()||kind.toUpperCase()+'-'+Date.now().toString(36).toUpperCase(),notes:get('notes'),createdAt:old?.createdAt||now,updatedAt:now});
@@ -807,12 +807,15 @@ window.rbOpenReturnPanel=function(button){
     @media(max-width:340px){#glSalesReturnPanel .rb-record-grid{grid-template-columns:minmax(0,1fr)}}
   </style><label class="rb-field"><span>Edit saved sales return</span><select data-return-edit><option value="">New sales return</option></select></label><div data-return-fields></div>`;
   if(quoteStyle){
-    section.insertAdjacentHTML('afterbegin','<div class="rc-old-gold-dropdown-head"><strong>Sales Return Details</strong><span class="rc-old-gold-credit-pill">Account credit</span></div>');
+    section.insertAdjacentHTML('afterbegin','<div class="rc-old-gold-dropdown-head"><strong>Sales Return Details</strong><div style="display:flex;align-items:center;gap:6px"><span class="rc-old-gold-credit-pill">Account credit</span><button type="button" data-close-return style="min-height:22px;height:22px;padding:0 6px;font-size:11px;border-radius:5px;cursor:pointer" aria-label="Close Sales Return">✕</button></div></div>');
     const label=section.querySelector('label');
     label.classList.add('rc-og-field');
     label.querySelector('span').classList.add('rc-og-label-text');
     label.querySelector('select').classList.add('rc-og-input');
+  }else{
+    section.insertAdjacentHTML('afterbegin','<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px"><b style="font-size:13px">Sales Return</b><button type="button" data-close-return style="min-height:26px;height:26px;padding:0 8px;font-size:11px;border-radius:6px;cursor:pointer" aria-label="Close Sales Return">✕ Close</button></div>');
   }
+  section.querySelector('[data-close-return]')?.addEventListener('click',()=>section.close());
   if(quoteStyle)section.insertAdjacentHTML('beforeend',`<style>
     #glSalesReturnPanel.rc-sales-return-dropdown{padding:5px!important;margin:3px 0!important;max-width:480px!important}
     #glSalesReturnPanel.rc-sales-return-dropdown .rc-old-gold-dropdown-head{margin:0 0 3px!important;padding:0!important}
@@ -840,8 +843,10 @@ window.rbOpenReturnPanel=function(button){
       fields.querySelectorAll('.rb-field>span').forEach(label=>label.classList.add('rc-og-label-text'));
       fields.querySelectorAll('input:not([type=hidden]),select').forEach(control=>control.classList.add('rc-og-input'));
     }
-    const form=fields.querySelector('form');
-    form.addEventListener('submit',event=>event.stopPropagation());
+    const form=fields.querySelector('#rbRecordForm,[data-rb-record-form],form');
+    if(!form)return;
+    if(form.tagName==='FORM')form.addEventListener('submit',event=>event.stopPropagation());
+    rbReturnCalc(form,false);
     if(quoteStyle){
       const actions=form.querySelector('.right');
       const saveButton=actions.querySelector('button');

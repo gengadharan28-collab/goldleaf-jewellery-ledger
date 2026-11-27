@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.3';
-  const CURRENT_BUILD = 'goldleaf-shell-v2417';
+  const CURRENT_VERSION = '2.13.4';
+  const CURRENT_BUILD = 'goldleaf-shell-v2418';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,15 +11,15 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.3',
+      version: '2.13.4',
       date: '28 Nov 2026',
       tag: 'Current',
-      category: 'Platform & Security',
-      title: 'Clean Unified Angular 22 Single-App Workspace',
+      category: 'Sales & POS Print',
+      title: 'Sales Return Button Fix & Clean Workspace',
       notes: [
-        'Removed top-of-page Atelier / SaaS / Obsidian switcher ribbon and duplicate rate bar across all pages for a clean, distraction-free workspace.',
-        'Retained compiled Angular v22.3 Zoneless Signals engine (<gl-angular-shell>) with Ctrl+K Quick Jump and unified Royal Emerald sidebar design.',
-        'Preserved Gold Pure Cash Rate · 24K sync, Sales Return calculation, Direct WhatsApp PDF sharing, and 72mm Citizen Thermal Printing.'
+        'Fixed the + Sales Return button inside Estimation / Quotation and Sales Bill so the Sales Return panel opens, auto-calculates return weight/credit from the original bill, and saves cleanly.',
+        'Removed top-of-page theme/rate clutter across all pages while keeping Angular v22.3 engine & Ctrl+K Quick Jump active.',
+        'Preserved Gold Pure Cash Rate · 24K sync, Direct WhatsApp PDF sharing, and 72mm Citizen Thermal Printing.'
       ]
     },
     {

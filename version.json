@@ -1,8 +1,8 @@
 {
-  "version": "2.13.3",
-  "build": "goldleaf-shell-v2417",
+  "version": "2.13.4",
+  "build": "goldleaf-shell-v2418",
   "releasedAt": "2026-11-28",
-  "title": "Clean Unified Angular 22 Single-App Workspace",
+  "title": "Sales Return Button Fix & Clean Workspace",
   "highlights": [
     "Removed cluttered top theme/rate bar across all pages while keeping Angular v22.3 engine & Ctrl+K Quick Jump active",
     "Gold Pure Cash Rate · 24K sync & Sales Return calculation inside Quotation & Sales Entry",
