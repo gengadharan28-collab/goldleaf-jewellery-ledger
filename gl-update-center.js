@@ -1,8 +1,8 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2414';
-  const CURRENT_DATE = '26 Nov 2026';
+  const CURRENT_VERSION = '2.13.1';
+  const CURRENT_BUILD = 'goldleaf-shell-v2415';
+  const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
   window.GL_APP_VERSION = CURRENT_VERSION;
@@ -11,9 +11,21 @@
 
   const GL_RELEASES = [
     {
+      version: '2.13.1',
+      date: '28 Nov 2026',
+      tag: 'Current',
+      category: 'Platform & Security',
+      title: 'Unified Angular 22 Engine & 3 Live Design Themes (Single App)',
+      notes: [
+        'Integrated compiled Angular v22.3 Zoneless Signals runtime (<gl-angular-shell>) directly inside the single Goldleaf app with zero data or workflow separation.',
+        'Added live Angular Command & Design Bar featuring 1-click switching across Royal Atelier, SaaS Pearl, and Obsidian Bullion Pro, plus Ctrl+K Quick Jump.',
+        'Added live 24K + 24K Cash Rate reactive strip, EN | தமிழ் toggle, Sales Return fix, and Direct 80mm / Cloud Print Bridge status indicator.'
+      ]
+    },
+    {
       version: '2.13.0',
       date: '26 Nov 2026',
-      tag: 'Current',
+      tag: 'Major',
       category: 'Platform & Security',
       title: 'Modern Software Update Center & Complete ERP Suite',
       notes: [
@@ -485,7 +497,7 @@
       + '<span style="font-size:11.5px;color:var(--muted)">' + (updateState.lastCheckedAt ? 'Last checked: ' + esc(updateState.lastCheckedAt) : 'Auto-checks on load & focus') + '</span>'
       + '</div>'
       + '<h2 style="margin:0 0 4px">Goldleaf ERP v' + esc(CURRENT_VERSION) + '</h2>'
-      + '<p class="muted" style="margin:0">Build <code>' + esc(CURRENT_BUILD) + '</code> · Released ' + esc(CURRENT_DATE) + ' · Engine: ' + esc(updateState.swState) + '</p>'
+      + '<p class="muted" style="margin:0">Build <code>' + esc(CURRENT_BUILD) + '</code> · Released ' + esc(CURRENT_DATE) + ' · Angular <code>v' + esc(window.glAngularVersion || '22.3') + '</code> · SW: ' + esc(updateState.swState) + '</p>'
       + '</div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">'
       + (updateReady ? '<button type="button" class="primary" onclick="glApplyUpdate()">⚡ Install Update Now</button>' : '')

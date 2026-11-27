@@ -1,76 +1,98 @@
-@if (!sb.authReady()) {
-  <div class="boot-screen">Opening Goldleaf…</div>
-} @else if (!sb.session()) {
-  <app-login />
-} @else {
-  <div class="erp-shell" [class.drawer-open]="drawerOpen()">
-    <aside class="sidebar">
-      <div class="brand">
-        <svg width="34" height="34" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-          <circle cx="60" cy="60" r="54" stroke="#D4AF37" stroke-width="2.5"/>
-          <path d="M60 20L78 35L60 66L42 35L60 20Z" fill="#D4AF37"/>
-          <path d="M60 66V98" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-        <div>
-          <b>Goldleaf</b>
-          <small>JEWELLERY ERP</small>
-        </div>
-        <button type="button" class="mobile-close" (click)="drawerOpen.set(false)" aria-label="Close">✕</button>
-      </div>
+<div class="gl-ng-ribbon" role="region" aria-label="Goldleaf Angular Live Bar">
+  <div class="gl-ng-left">
+    <span class="gl-ng-engine-pill" [title]="'Powered by Angular v' + ngVersion + ' Zoneless Signals'">
+      <span class="gl-ng-dot"></span>
+      <b>Angular {{ ngVersion.split('.')[0] }}</b>
+    </span>
 
-      <nav class="nav-list">
-        <a routerLink="/dashboard" routerLinkActive="active" (click)="drawerOpen.set(false)">⌂ {{ i18n.t('Dashboard') }}</a>
-        <a routerLink="/register" routerLinkActive="active" (click)="drawerOpen.set(false)">♙ {{ i18n.t('Register') }}</a>
-        <a routerLink="/sales-entry" routerLinkActive="active" (click)="drawerOpen.set(false)">＋ {{ i18n.t('Sales Entry') }}</a>
-        <a routerLink="/estimation" routerLinkActive="active" (click)="drawerOpen.set(false)">🧾 {{ i18n.t('Estimation / Quotation') }}</a>
-        <a routerLink="/ledger" routerLinkActive="active" (click)="drawerOpen.set(false)">▤ {{ i18n.t('Ledger') }}</a>
-        <a routerLink="/chit-loan" routerLinkActive="active" (click)="drawerOpen.set(false)">🪙 {{ i18n.t('Chit & Jewel Loan') }}</a>
-        <a routerLink="/stock-reports" routerLinkActive="active" (click)="drawerOpen.set(false)">🏷 {{ i18n.t('Stock & Reports') }}</a>
-        <a routerLink="/rate-book" routerLinkActive="active" (click)="drawerOpen.set(false)">⚖ {{ i18n.t('Rate Book') }}</a>
-        <a routerLink="/settings" routerLinkActive="active" (click)="drawerOpen.set(false)">⚙ {{ i18n.t('Settings') }}</a>
-        @if (sb.context()?.is_super_admin) {
-          <a routerLink="/super-admin" routerLinkActive="active" (click)="drawerOpen.set(false)">◈ Super Admin</a>
-        }
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="lang-switch">
-          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.setLang('en')">EN</button>
-          <button type="button" [class.active]="i18n.lang() === 'ta'" (click)="i18n.setLang('ta')">தமிழ்</button>
-        </div>
-        <div class="cloud-foot">{{ sb.syncStatus() }}</div>
-      </div>
-    </aside>
-
-    @if (drawerOpen()) {
-      <div class="drawer-backdrop" (click)="drawerOpen.set(false)"></div>
-    }
-
-    <div class="main-col">
-      <header class="workbar">
-        <button type="button" class="menu-btn" (click)="drawerOpen.set(!drawerOpen())">☰ {{ i18n.t('Menu') }}</button>
-        <div class="mode-toggle">
-          <button type="button" [class.active]="sb.workspaceMode() === 'retail'" (click)="sb.setWorkspaceMode('retail')">{{ i18n.t('Retail') }}</button>
-          <button type="button" [class.active]="sb.workspaceMode() === 'wholesale'" (click)="sb.setWorkspaceMode('wholesale')">{{ i18n.t('Wholesale') }}</button>
-        </div>
-        <div class="workbar-right">
-          <a routerLink="/rate-book" class="rate-chip">
-            <span>24K <b>{{ (sb.rates().gold24 || 0).toLocaleString('en-IN') }}</b></span>
-            <span>22K <b>{{ (sb.rates().gold22 || 0).toLocaleString('en-IN') }}</b></span>
-            <span>SLV <b>{{ (sb.rates().silver || 0).toLocaleString('en-IN') }}</b></span>
-          </a>
-          <button type="button" (click)="sb.toggleTheme()" aria-label="Toggle theme">{{ sb.theme() === 'dark' ? '☀' : '☾' }}</button>
-          <button type="button" (click)="sb.signOut()">{{ i18n.t('Sign out') }}</button>
-        </div>
-      </header>
-
-      <main class="content">
-        <router-outlet />
-      </main>
+    <div class="gl-ng-theme-group" role="group" aria-label="Design style">
+      <button
+        type="button"
+        class="gl-ng-theme-btn"
+        [class.is-active]="design() === 'atelier'"
+        (click)="pickDesign('atelier')"
+        title="Sample 1: Royal Emerald Atelier">
+        ◆ {{ lang() === 'ta' ? 'அட்டிலியர்' : 'Atelier' }}
+      </button>
+      <button
+        type="button"
+        class="gl-ng-theme-btn"
+        [class.is-active]="design() === 'saas'"
+        (click)="pickDesign('saas')"
+        title="Sample 2: Modern SaaS Pearl">
+        ◇ {{ lang() === 'ta' ? 'சாஸ் பேர்ல்' : 'SaaS Pearl' }}
+      </button>
+      <button
+        type="button"
+        class="gl-ng-theme-btn"
+        [class.is-active]="design() === 'obsidian'"
+        (click)="pickDesign('obsidian')"
+        title="Sample 3: Obsidian Bullion Pro">
+        ● {{ lang() === 'ta' ? 'ஒப்சிடியன்' : 'Obsidian' }}
+      </button>
     </div>
   </div>
-}
 
-@if (sb.toastMessage(); as msg) {
-  <div class="toast" role="status">{{ msg }}</div>
+  <div class="gl-ng-center">
+    <button type="button" class="gl-ng-rates-strip" (click)="openRates()" title="Click to open Rate Book">
+      <span><small>24K</small><b>{{ formatInr(gold24()) }}</b></span>
+      @if (gold24Cash() > 0) {
+        <span class="gl-ng-cash-pill"><small>{{ lang() === 'ta' ? '24K ரொக்கம்' : '24K Cash' }}</small><b>{{ formatInr(gold24Cash()) }}</b></span>
+      }
+      <span><small>22K</small><b>{{ formatInr(gold22()) }}</b></span>
+      <span class="gl-ng-hide-xs"><small>{{ lang() === 'ta' ? 'வெள்ளி' : 'Silver' }}</small><b>{{ formatInr(silver()) }}</b></span>
+    </button>
+  </div>
+
+  <div class="gl-ng-right">
+    <button type="button" class="gl-ng-cmd-trigger" (click)="openCmd()" title="Quick Jump to any module (Ctrl+K)">
+      <span>⌕ {{ lang() === 'ta' ? 'விரைவு தேடல்' : 'Quick Jump' }}</span>
+      <kbd class="gl-ng-hide-sm">Ctrl K</kbd>
+    </button>
+
+    <span class="gl-ng-print-status" [class.is-online]="printerLocal()" [title]="printerLocal() ? 'Direct 80mm Citizen Thermal Printer Online' : 'Cloud Print Bridge Ready'">
+      {{ printerLocal() ? '🖨 80mm Ready' : '☁ Print Bridge' }}
+    </span>
+
+    <div class="gl-ng-lang-group" role="group" aria-label="Language">
+      <button type="button" [class.is-active]="lang() === 'en'" (click)="pickLang('en')">EN</button>
+      <button type="button" [class.is-active]="lang() === 'ta'" (click)="pickLang('ta')">தமிழ்</button>
+    </div>
+  </div>
+</div>
+
+@if (cmdOpen()) {
+  <div class="gl-ng-cmd-backdrop" (click)="closeCmd()">
+    <section class="gl-ng-cmd-modal" role="dialog" aria-modal="true" aria-label="Quick Jump" (click)="$event.stopPropagation()">
+      <div class="gl-ng-cmd-head">
+        <span class="gl-ng-cmd-icon">⌕</span>
+        <input
+          id="glNgCmdInput"
+          type="search"
+          [ngModel]="cmdQuery()"
+          (ngModelChange)="cmdQuery.set($event)"
+          [placeholder]="lang() === 'ta' ? 'பக்கம் தேடுங்கள் (கொட்டேஷன், விற்பனை, சீட்டு, அறிக்கைகள்)…' : 'Jump to Quotation, Sales Entry, Chit, Jewel Loan, 129 Reports…'"
+          autocomplete="off" />
+        <button type="button" class="gl-ng-cmd-esc" (click)="closeCmd()">ESC</button>
+      </div>
+      <div class="gl-ng-cmd-list">
+        @for (mod of filteredModules(); track mod.id) {
+          <button
+            type="button"
+            class="gl-ng-cmd-item"
+            [class.is-current]="activePage() === mod.id"
+            (click)="jumpTo(mod)">
+            <span class="gl-ng-cmd-item-ico">{{ mod.icon }}</span>
+            <span class="gl-ng-cmd-item-txt">
+              <b>{{ lang() === 'ta' ? mod.taLabel : mod.label }}</b>
+              <small>{{ mod.category }}</small>
+            </span>
+            <span class="gl-ng-cmd-go">↵</span>
+          </button>
+        } @empty {
+          <div class="gl-ng-cmd-empty">No matching module found.</div>
+        }
+      </div>
+    </section>
+  </div>
 }

@@ -41,6 +41,7 @@ window.erpToggleSidebar=function(force){
   const collapsed=typeof force==='boolean'?!force:document.body.classList.toggle('erp-sidebar-collapsed');
   if(typeof force==='boolean')document.body.classList.toggle('erp-sidebar-collapsed',collapsed);
   localStorage.setItem('goldleaf-sidebar-collapsed',String(collapsed));
+  localStorage.setItem('goldleaf-sidebar-user-toggled','true');
   document.getElementById('erpSidebarToggle')?.setAttribute('aria-expanded',String(!collapsed));
   if(page==='Sales Entry'&&workspaceMode==='retail')requestAnimationFrame(fitRetailSaleScreen);
 };
@@ -75,7 +76,8 @@ window.erpWorkspaceSwitchHtml=function(extraClass=''){
 function erpBuildShell(){
   const side=document.querySelector('.side'),nav=document.getElementById('nav'),main=document.getElementById('app');if(!side||!nav||!main)return;
   if(!session){document.body.classList.add('gl-auth-active');document.getElementById('erpSideSearch')?.remove();document.getElementById('erpSideCaption')?.remove();document.getElementById('erpSideMode')?.remove();document.getElementById('erpWorkbar')?.remove();nav.querySelectorAll(':scope>button:not(.active)').forEach(b=>b.remove());return;}document.body.classList.remove('gl-auth-active');
-  document.body.classList.toggle('erp-sidebar-collapsed',localStorage.getItem('goldleaf-sidebar-collapsed')!=='false');
+  const shouldCollapse=localStorage.getItem('goldleaf-sidebar-user-toggled')==='true'?localStorage.getItem('goldleaf-sidebar-collapsed')==='true':!window.matchMedia('(min-width:1100px)').matches;
+  document.body.classList.toggle('erp-sidebar-collapsed',shouldCollapse);
   let search=document.getElementById('erpSideSearch');if(!search){search=document.createElement('div');search.id='erpSideSearch';search.className='erp-side-search';search.innerHTML=erpIcon('search')+'<input id="erpNavSearch" type="search" aria-label="Find a page" placeholder="Find a page…" oninput="erpFilterNavigation(this.value)" onkeydown="if(event.key===\'Escape\'){this.value=\'\';erpFilterNavigation(\'\')}"><button type="button" aria-label="Expand navigation" onclick="erpToggleSidebar()">'+erpIcon('search')+'</button>';side.insertBefore(search,nav);const caption=document.createElement('div');caption.id='erpSideCaption';caption.className='erp-side-caption';side.insertBefore(caption,nav);const empty=document.createElement('p');empty.id='erpNavEmpty';empty.className='erp-nav-empty hidden';empty.textContent='No matching page';nav.after(empty);}
   document.getElementById('erpNavSearch').value=erpNavQuery;document.getElementById('erpSideCaption').textContent=erpIsAdmin()?'PLATFORM CONTROL':session?(workspaceMode==='retail'?'RETAIL WORKSPACE':'WHOLESALE WORKSPACE'):'WELCOME';
   const sideCap=document.getElementById('erpSideCaption'),sideModeHtml=erpWorkspaceSwitchHtml('erp-side-mode-nav');
@@ -84,7 +86,7 @@ function erpBuildShell(){
   let sideInstall=document.getElementById('erpSideInstallWrap');if(!sideInstall){sideInstall=document.createElement('div');sideInstall.id='erpSideInstallWrap';sideInstall.className='erp-side-install-wrap';sideInstall.innerHTML='<button type="button" id="erpSideInstallBtn" class="erp-side-install-btn" onclick="installApp()" title="Install Goldleaf on your Desktop"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg><span>Install Desktop App</span></button>';const foot=document.getElementById('cloudState');if(foot)foot.before(sideInstall);else side.append(sideInstall);}sideInstall.hidden=typeof isAppInstalled==='function'&&isAppInstalled();
   nav.querySelectorAll(':scope>button:not(.more-button)').forEach(button=>{const label=button.getAttribute('aria-label')||button.textContent.trim().replace(/^[⌂♙＋↙▤◷◈⚙◇↪]\s*/,''),key=/rate/i.test(label)?'rates':/register|shop|account/i.test(label)?'people':/sale/i.test(label)?'sale':/payment/i.test(label)?'payment':/ledger|summary|history/i.test(label)?'ledger':/setting|access/i.test(label)?'settings':/plan/i.test(label)?'plans':/sign out/i.test(label)?'logout':'home';button.setAttribute('title',label);button.setAttribute('aria-label',label);button.innerHTML='<span class="nav-icon">'+erpIcon(key)+'</span><span class="erp-nav-label">'+esc(label)+'</span>';});erpFilterNavigation(erpNavQuery);
   let backdrop=document.getElementById('erpMobileBackdrop');if(!backdrop){backdrop=document.createElement('div');backdrop.id='erpMobileBackdrop';backdrop.className='erp-mobile-backdrop';backdrop.onclick=()=>erpToggleSidebar(false);side.after(backdrop);}
-  let bar=document.getElementById('erpWorkbar');if(!bar){bar=document.createElement('div');bar.id='erpWorkbar';bar.className='erp-workbar';main.before(bar);}
+  let bar=document.getElementById('erpWorkbar');if(!bar){bar=document.createElement('div');bar.id='erpWorkbar';bar.className='erp-workbar';(document.querySelector('gl-angular-shell')||main).before(bar);}
   const admin=erpIsAdmin(),ready=!!(session&&goldleafContext?.has_access),title=admin?(platformPage==='Dashboard'?'Super Admin':platformPage):session?page:'Sign in',rateAction=admin?"platformOpen('Shared rates')":"go('Rate Book')",r=db.rates||{},g24=n(r.gold24),g22=n(r.gold22)||(g24>0?Math.round(g24*22/24):0);
   const shortcuts=ready?(admin?[["Shops & access",'people'],['Users & seats','plans'],['Payments','payment'],['Shared rates','rates'],['Platform reports','estimate']]:[['Register','people'],['Sales Entry','sale'],...(workspaceMode==='retail'?[['Estimation / Quotation','estimate'],['Products','plans'],['Stock & Tagging','tagging'],['Chit','chit'],['Accounts','ledger']]:[['Payments','payment'],['Ledger','ledger']]),['Settings','settings']]):[];
   const updatePending=typeof window.glIsUpdatePending==='function'?window.glIsUpdatePending():false;
@@ -135,23 +137,64 @@ render();
 (function(){
   const LANG_KEY='goldleaf-lang';
   const DESIGN_KEY='goldleaf-ng-design';
+  window.glGetLiveRatesSnapshot=function(){
+    const r=(typeof db!=='undefined'&&db?.rates)?db.rates:{};
+    const cashOv=(typeof db!=='undefined'&&Number(db?.shopCashRateOverride)>0)?Number(db.shopCashRateOverride):0;
+    return {gold24:Number(r.gold24)||0,gold24Cash:cashOv||(Number(r.gold24Cash)||0),gold22:Number(r.gold22)||0,silver:Number(r.silver)||0};
+  };
   function ensureDesignStyles(){
     if(document.getElementById('glNgDesignStyles'))return;
     const st=document.createElement('style');
     st.id='glNgDesignStyles';
     st.textContent=`
-      html[data-ng-design="saas"]{--paper:#f8fafc!important;--white:#ffffff!important;--line:#e2e8f0!important;--ink:#0f172a!important;--muted:#64748b!important;--green:#059669!important;--gold:#0ea5e9!important;--mint:#ecfdf5!important}
-      html[data-ng-design="saas"] .side{background:#ffffff!important;color:#1e293b!important;border-right:1px solid #e2e8f0!important}
-      html[data-ng-design="saas"] .side .nav button{color:#334155!important}
-      html[data-ng-design="saas"] .side .nav button.active{background:#ecfdf5!important;color:#047857!important;box-shadow:inset 3px 0 0 #059669!important}
-      html[data-ng-design="saas"] .top h1,html[data-ng-design="saas"] .panel h2,html[data-ng-design="saas"] .card b{font-family:Inter,system-ui,sans-serif!important;letter-spacing:-.3px!important}
-      html[data-ng-design="obsidian"]{--paper:#111615!important;--white:#161d1b!important;--line:#26312e!important;--ink:#ecfdf5!important;--muted:#94a3b8!important;--green:#d97706!important;--gold:#fbbf24!important;--mint:#1e2926!important}
-      html[data-ng-design="obsidian"] .side{background:#0b0f0e!important;color:#ecfdf5!important;border-right:1px solid #1f2927!important}
-      html[data-ng-design="obsidian"] .side .nav button{color:#cbd5e1!important}
-      html[data-ng-design="obsidian"] .side .nav button.active{background:rgba(251,191,36,.15)!important;color:#fde68a!important;box-shadow:inset 3px 0 0 #fbbf24!important}
-      html[data-ng-design="obsidian"] input,html[data-ng-design="obsidian"] select,html[data-ng-design="obsidian"] textarea,html[data-ng-design="obsidian"] table{background:#111615!important;color:#ecfdf5!important;border-color:#26312e!important}
-      html[data-ng-design="obsidian"] th{background:#161d1b!important;color:#fbbf24!important}
-      html[data-ng-design="obsidian"] #erpWorkbar{background:#161d1b!important;border-color:#26312e!important}
+      @media screen and (min-width:761px){
+        body[data-erp]:not(.compact-customer-sale) .layout{grid-template-rows:var(--erp-toolbar) auto 1fr!important}
+        body[data-erp]:not(.compact-customer-sale) .side{grid-row:1/4!important}
+        body[data-erp]:not(.compact-customer-sale) gl-angular-shell{grid-column:2;grid-row:2;display:block}
+        body[data-erp]:not(.compact-customer-sale) #app.main{grid-column:2;grid-row:3!important}
+        body.rb-active.compact-customer-sale .layout:has(.rb-bill-screen){grid-template-rows:var(--erp-toolbar,58px) auto minmax(0,1fr)!important}
+        body.rb-active.compact-customer-sale .layout:has(.rb-bill-screen) .side{grid-row:1/4!important}
+        body.rb-active.compact-customer-sale .layout:has(.rb-bill-screen) gl-angular-shell{grid-column:2;grid-row:2;display:block}
+        body.rb-active.compact-customer-sale #app.main:has(.rb-bill-screen){grid-column:2;grid-row:3!important;height:calc(100dvh - var(--erp-toolbar,58px) - 45px)!important;max-height:calc(100dvh - var(--erp-toolbar,58px) - 45px)!important}
+        body.compact-customer-sale:not(.rb-active) gl-angular-shell{display:none!important}
+      }
+      @media screen {
+        html[data-ng-design="atelier"]:not([data-theme="dark"]){--paper:#f6f3eb!important;--white:#fffdf9!important;--line:#e5decb!important;--ink:#1b2a22!important;--muted:#686f68!important;--green:#153b2b!important;--gold:#c9a259!important;--mint:#ebf2ee!important;--erp-soft:#f3efe4!important;--erp-soft-2:#faf7f0!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side{background:linear-gradient(180deg,#123527 0%,#0b2219 100%)!important;color:#f3efe6!important;border-right:1px solid #23493a!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .brand{color:#f8f3e6!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .brand small,html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .erp-side-caption{color:#d8b774!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .erp-side-search{background:rgba(255,255,255,.08)!important;border-color:rgba(212,175,55,.28)!important;color:#fff!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input{color:#fff!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .erp-side-search input::placeholder{color:rgba(243,239,230,.6)!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .nav>button{color:#dce5df!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .nav>button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .nav>button.active{background:rgba(212,175,55,.2)!important;color:#fff8e6!important;box-shadow:inset 3px 0 0 #d4af37!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .nav .nav-icon{color:#e2be78!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .side .foot{color:#b8c7be!important;border-top-color:rgba(255,255,255,.14)!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .primary{background:#153b2b!important;border-color:#153b2b!important;color:#fff!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .panel{border-radius:12px!important;box-shadow:0 4px 16px rgba(18,53,39,.05)!important}
+        html[data-ng-design="atelier"]:not([data-theme="dark"]) body[data-erp] .erp-metric{border-radius:10px!important;border-top:2px solid #d4af37!important;background:#fffdf9!important}
+
+        html[data-ng-design="saas"]{--paper:#f1f5f9!important;--white:#ffffff!important;--line:#cbd5e1!important;--ink:#0f172a!important;--muted:#64748b!important;--green:#059669!important;--gold:#0ea5e9!important;--mint:#ecfdf5!important;--erp-soft:#f8fafc!important;--erp-soft-2:#f1f5f9!important}
+        html[data-ng-design="saas"] body[data-erp] .side{background:#ffffff!important;color:#0f172a!important;border-right:1px solid #e2e8f0!important}
+        html[data-ng-design="saas"] body[data-erp] .side .nav>button{color:#334155!important;border-radius:8px!important}
+        html[data-ng-design="saas"] body[data-erp] .side .nav>button:hover{background:#f1f5f9!important;color:#0f172a!important}
+        html[data-ng-design="saas"] body[data-erp] .side .nav>button.active{background:#ecfdf5!important;color:#047857!important;box-shadow:inset 3px 0 0 #059669!important}
+        html[data-ng-design="saas"] body[data-erp] .side .nav .nav-icon{color:#059669!important}
+        html[data-ng-design="saas"] body[data-erp] .panel{border-radius:12px!important;border-color:#e2e8f0!important;box-shadow:0 1px 3px rgba(15,23,42,.06)!important}
+        html[data-ng-design="saas"] body[data-erp] .erp-metric{border-radius:10px!important;background:#ffffff!important;border:1px solid #e2e8f0!important;border-left:3px solid #059669!important}
+        html[data-ng-design="saas"] body[data-erp] .primary{background:#0f172a!important;border-color:#0f172a!important;color:#fff!important}
+
+        html[data-ng-design="obsidian"]{--paper:#0d1211!important;--white:#151d1b!important;--line:#263330!important;--ink:#ecfdf5!important;--muted:#94a3b8!important;--green:#d97706!important;--gold:#fbbf24!important;--mint:#1e2926!important;--erp-soft:#182220!important;--erp-soft-2:#131b19!important}
+        html[data-ng-design="obsidian"] body[data-erp] .side{background:#090d0c!important;color:#ecfdf5!important;border-right:1px solid #1f2b28!important}
+        html[data-ng-design="obsidian"] body[data-erp] .side .nav>button{color:#cbd5e1!important}
+        html[data-ng-design="obsidian"] body[data-erp] .side .nav>button.active{background:rgba(251,191,36,.15)!important;color:#fde68a!important;box-shadow:inset 3px 0 0 #fbbf24!important}
+        html[data-ng-design="obsidian"] body[data-erp] .panel{background:#151d1b!important;border-color:#263330!important;border-radius:12px!important}
+        html[data-ng-design="obsidian"] body[data-erp] .erp-metric{background:#182220!important;border-color:#283834!important;border-top:2px solid #fbbf24!important;border-radius:10px!important}
+        html[data-ng-design="obsidian"] input,html[data-ng-design="obsidian"] select,html[data-ng-design="obsidian"] textarea,html[data-ng-design="obsidian"] table{background:#111716!important;color:#ecfdf5!important;border-color:#263330!important}
+        html[data-ng-design="obsidian"] th{background:#182220!important;color:#fbbf24!important}
+        html[data-ng-design="obsidian"] #erpWorkbar{background:#121917!important;border-color:#263330!important}
+      }
     `;
     document.head.appendChild(st);
   }
@@ -236,7 +279,7 @@ render();
       }
     }else if(node.nodeType===1){
       const tag=node.tagName;
-      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||node.id==='glLangSwitcher'||node.id==='glDesignSwitcher')return;
+      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||tag==='GL-ANGULAR-SHELL'||node.id==='glLangSwitcher'||node.id==='glDesignSwitcher')return;
       for(let c=node.firstChild;c;c=c.nextSibling)translateNode(c,lang);
     }
   }

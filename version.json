@@ -1,8 +1,8 @@
 {
-  "version": "2.13.0",
-  "build": "goldleaf-shell-v2414",
-  "releasedAt": "2026-11-26",
-  "title": "Unified Live + Angular Design Suite (Atelier · SaaS · Obsidian)",
+  "version": "2.13.1",
+  "build": "goldleaf-shell-v2415",
+  "releasedAt": "2026-11-28",
+  "title": "Unified Angular 22 Engine + 3 Live Design Themes in One App",
   "highlights": [
     "Unified single Goldleaf app combining all live ERP modules with 3 switchable Angular design themes (Atelier, SaaS, Obsidian)",
     "Gold Pure Cash Rate · 24K sync & Sales Return calculation inside Quotation & Sales Entry",
