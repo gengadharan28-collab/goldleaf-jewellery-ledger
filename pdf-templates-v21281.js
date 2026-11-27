@@ -855,8 +855,8 @@ async function pdfTriggerPrint(model,mode,forcedTemplate=null,allowMissingGst=fa
     pageSize = thermalWidth + 'mm auto';
   }
 
-  const printBoxW = isGrid80 ? 62 : (thermalWidth === 80 ? 62 : 48);
-  const printPadCss = isGrid80 ? '0.8mm 1mm' : (thermalWidth === 80 ? '1.2mm 1mm' : '1.5mm 2mm');
+  const printBoxW = isGrid80 ? 74 : (thermalWidth === 80 ? 74 : 52);
+  const printPadCss = isGrid80 ? '0.8mm 0.5mm' : (thermalWidth === 80 ? '1mm 0.5mm' : '1mm 1mm');
 
   // Fallback DOM root
   let root=document.getElementById('goldleafPdfRoot');
@@ -1222,10 +1222,11 @@ const PDF_DOCUMENT_CSS=`
 .thermal-divider.is-double{width:100%;height:0;font-size:0;line-height:0;border-top:3px double #000;margin:5px 0}
 .thermal-item-cols{display:grid;grid-template-columns:1.12fr 0.94fr 1.04fr 0.78fr 1fr 0.92fr;gap:2px;width:100%;box-sizing:border-box;margin-top:4px;padding:4px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
 .thermal-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:hidden}
-.thermal-col-lbl{font-size:11.5px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.45px;white-space:nowrap}
-.thermal-col-val{font-size:11.5px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.45px}
-.thermal-col-sub{font-size:10px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.35px}
+.thermal-col-lbl{font-size:11.5px!important;text-transform:uppercase;line-height:1.2;font-weight:400!important;letter-spacing:-0.35px;white-space:nowrap}
+.thermal-col-val{font-size:13px!important;line-height:1.25;white-space:nowrap;font-weight:400!important;letter-spacing:-0.35px}
+.thermal-col-sub{font-size:11px!important;line-height:1.15;white-space:nowrap;font-weight:400!important;letter-spacing:-0.3px}
 .thermal-item-amt-bottom{display:flex;justify-content:space-between;align-items:baseline;width:100%;padding:3px 0;font-size:13.5px!important;font-weight:400!important}
+.thermal-item-amt-bottom .thermal-right,.thermal-row .thermal-right{font-size:14.5px!important}
 .thermal-row{display:flex;justify-content:space-between;margin:2px 0;color:#000;font-weight:600}
 .thermal-items-head{display:flex;justify-content:space-between;font-weight:800;margin:4px 0 2px;border-bottom:1.5px solid #000;padding-bottom:2px;color:#000}
 .thermal-item-entry{margin:4px 0;color:#000}
@@ -1236,7 +1237,7 @@ const PDF_DOCUMENT_CSS=`
 .thermal-qr img{display:block;margin:0 auto 2px;background:#fff;padding:2px}
 .thermal-qr div{font-size:8.5px;font-weight:bold;color:#000}
 .thermal-footer-text{font-size:9.5px;font-weight:600;margin-top:6px;line-height:1.3;color:#000}
-.pdf-thermal-estimate-grid-80{width:62mm;max-width:62mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.8mm 1mm;font-family:"Consolas","Courier New","Lucida Console",Monaco,monospace!important;font-variant-numeric:tabular-nums;font-size:13px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:500!important;background:#fff!important;overflow:hidden;-webkit-font-smoothing:none;text-rendering:geometricPrecision}
+.pdf-thermal-estimate-grid-80{width:74mm;max-width:74mm;box-sizing:border-box;border:0!important;box-shadow:none!important;padding:.8mm .5mm;font-family:monospace!important;font-variant-numeric:tabular-nums;font-size:13.5px;line-height:1.36;margin:0 auto;color:#000!important;font-weight:400!important;background:#fff!important;overflow:hidden;text-rendering:geometricPrecision}
 .pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}
 .pdf-thermal-estimate-80 .pdf-thermal-80{font-size:13.5px!important;line-height:1.34!important}
 .pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:monospace!important;font-variant-numeric:tabular-nums!important;color:#000!important;-webkit-text-fill-color:#000!important;font-weight:400!important;-webkit-text-stroke:0!important;text-shadow:none!important;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;background:transparent}
