@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
   const CURRENT_VERSION = '2.13.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2386';
+  const CURRENT_BUILD = 'goldleaf-shell-v2387';
   const CURRENT_DATE = '26 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;

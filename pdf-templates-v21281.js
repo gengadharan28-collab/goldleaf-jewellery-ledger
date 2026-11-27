@@ -661,7 +661,7 @@ function pdfEstimatePlainMarkup(model,c){
 
 function pdfBillMarkup(model,c,template){
   const isEstimate = model.kind==='estimate' || String(model.title||'').includes('ESTIMATION') || String(model.title||'').includes('QUOTATION');
-  if(isEstimate) return pdfEstimatePlainMarkup(model, c);
+  if(isEstimate) return pdfThermalMarkup(model, c, '80mm');
 
   const items = model.invoiceItems?.length ? model.invoiceItems : (model.item ? [model.item] : []);
   let heads = [];
@@ -688,73 +688,7 @@ function pdfBillMarkup(model,c,template){
 }
 
 function pdfGrid80Markup(model,c){
-  const items=model.invoiceItems?.length?model.invoiceItems:(model.item?[model.item]:[]);
-  const fields=(c.estimateGridFields||PDF_GRID_DEFAULTS).filter(key=>PDF_GRID_KEYS.includes(key));
-  const showItemTotal=fields.includes('itemTotal');
-  const compactAmount=value=>n(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const productFields={product:'Product',purity:'Purity',huid:'HUID',pieces:'Pcs',gross:'Gross Wt',less:'Less Wt',net:'Net Wt',wastage:'Wastage',making:'Making',hallmark:'Hallmark',stone:'Stone Wt',stoneCharge:'Stone ₹',itemTotal:'Item Total'};
-  const purityText=it=>{const raw=String(it.purity&&it.purity!=='—'?it.purity:it.purityValue||'—');return raw==='—'?'':esc(raw)+(/[K%/]/.test(raw)||n(raw)>100?'':'%');};
-  const metalOf=it=>String(it.metalType||it.product||'').toLowerCase();
-  const gold=items.find(it=>metalOf(it).includes('gold')),silver=items.find(it=>metalOf(it).includes('silver'));
-  const goldRate=n(gold?.rate)||n(db.rates?.gold22)||n(db.rates?.gold24),silverRate=n(silver?.rate)||n(db.rates?.silver);
-  const phone=String(model.entityDetails||'').match(/(?:\+91[\s-]?)?\d{10}/)?.[0]||'';
-  const summary=(model.totals||[]).map(([label,value,highlight])=>'<div class="grid80-summary-row '+(highlight?'grid80-highlight':'')+'"><span>'+esc(label)+'</span><span>'+esc(value)+'</span></div>').join('');
-  const exchange=(c.showExchange&&model.exchange?.length)?'<div class="grid80-exchange"><div class="grid80-sec-label">OLD GOLD EXCHANGE</div>'+model.exchange.map(it=>'<div class="grid80-exchange-row"><span>'+esc(it.product||'Old gold')+' ('+fmt(it.grossWeight??it.weight)+'g · '+esc(it.testingPurity||it.purity||'—')+'%)</span><span>− '+esc(pdfMoney(it.amount))+'</span></div>').join('')+'</div>':'';
-
-  const itemsMarkup='<div class="grid80-plain-items">'+items.map((it,index)=>{
-    const rightBadges=[];
-    if(fields.includes('purity')&&purityText(it))rightBadges.push(purityText(it));
-    if(fields.includes('pieces'))rightBadges.push('Pcs:'+esc(it.pieces||1));
-    const lines=[];
-    if(fields.includes('huid')&&it.huid&&it.huid!=='—'){
-      lines.push('<div class="grid80-plain-row"><span>HUID</span><span>'+esc(it.huid)+'</span></div>');
-    }
-    if(fields.includes('gross')&&fields.includes('less')){
-      lines.push('<div class="grid80-plain-row"><span>Gr: '+fmt(it.grossWeight??it.weight)+'g</span><span>Less: '+fmt(it.lessWeight||0)+'g</span></div>');
-    }else if(fields.includes('gross')){
-      lines.push('<div class="grid80-plain-row"><span>Gross Wt</span><span>'+fmt(it.grossWeight??it.weight)+' g</span></div>');
-    }else if(fields.includes('less')&&n(it.lessWeight)>0){
-      lines.push('<div class="grid80-plain-row"><span>Less Wt</span><span>'+fmt(it.lessWeight||0)+' g</span></div>');
-    }
-    if(fields.includes('net')){
-      lines.push('<div class="grid80-plain-row"><span>Net Wt'+(n(it.rate)>0?' @ '+esc(compactAmount(it.rate)):'')+'</span><span>'+fmt(it.netWeight??it.weight)+' g</span></div>');
-    }
-    if(fields.includes('wastage')){
-      const wLabel='Wastage ('+esc(n(it.wastage))+(it.wastageMode==='grams'?'g':'%')+')';
-      const wVal=n(it.wastageAmount)>0?esc(pdfMoney(it.wastageAmount)):esc(n(it.wastage))+(it.wastageMode==='grams'?' g':'%');
-      lines.push('<div class="grid80-plain-row"><span>'+wLabel+'</span><span>'+wVal+'</span></div>');
-    }
-    if(fields.includes('making')){
-      lines.push('<div class="grid80-plain-row"><span>Making</span><span>'+esc(pdfMoney(it.makingTotal??it.making??0))+'</span></div>');
-    }
-    if(fields.includes('hallmark')&&((it.hallmarkCharge!=null&&n(it.hallmarkCharge)>0)||(it.hallmark!=null&&n(it.hallmark)>0))){
-      lines.push('<div class="grid80-plain-row"><span>'+productFields.hallmark+'</span><span>'+esc(pdfMoney(it.hallmarkCharge??it.hallmark))+'</span></div>');
-    }
-    if(fields.includes('stone')&&n(it.stoneWeight)>0){
-      lines.push('<div class="grid80-plain-row"><span>'+productFields.stone+'</span><span>'+fmt(it.stoneWeight)+' g</span></div>');
-    }
-    if(fields.includes('stoneCharge')&&n(it.stoneAmount||it.stoneCharge)>0){
-      lines.push('<div class="grid80-plain-row"><span>'+productFields.stoneCharge+'</span><span>'+esc(pdfMoney(it.stoneAmount??it.stoneCharge??0))+'</span></div>');
-    }
-    if(showItemTotal){
-      lines.push('<div class="grid80-plain-row grid80-plain-sub"><span>Item Total</span><span>'+esc(pdfMoney(it.subtotal||0))+'</span></div>');
-    }
-    const headTitle=fields.includes('product')?esc(it.product||'Jewellery'):('ITEM '+(index+1));
-    return '<div class="grid80-plain-item">'
-      +'<div class="grid80-plain-head"><span>'+(index+1)+'. '+headTitle+'</span>'+(rightBadges.length?'<span>'+rightBadges.join(' · ')+'</span>':'')+'</div>'
-      +lines.join('')
-      +'</div>';
-  }).join('')+'</div>';
-
-  return '<div class="grid80-ticket">'
-    +'<div class="grid80-top"><small>NOT A TAX INVOICE</small><strong>ESTIMATE</strong></div>'
-    +'<div class="grid80-rates">Gold '+(goldRate?pdfMoney(goldRate)+'/g':'—')+' · Silver '+(silverRate?pdfMoney(silverRate)+'/g':'—')+'</div>'
-    +'<div class="grid80-meta">'+[model.reference,model.date,model.entityName,phone].filter(Boolean).map(esc).join('  |  ')+'</div>'
-    +itemsMarkup
-    +(items.length?'<div class="grid80-product-total"><span>Total product amount</span><span>'+esc(pdfMoney(items.reduce((sum,it)=>sum+n(it.subtotal),0)))+'</span></div>':'')
-    +exchange+'<div class="grid80-sec-label">ESTIMATE SETTLEMENT</div>'+summary
-    +(c.showTerms?'<footer>'+esc(c.estimateBottomMargin||c.footerText||'')+'</footer>':'')
-    +'</div>';
+  return pdfThermalMarkup(model, c, '80mm');
 }
 
 function pdfRupeesWords(num){
@@ -822,7 +756,7 @@ function pdfDocument(model,c,forcedTemplate=null){
   const template = forcedTemplate || (isEstimate ? (c.estimateTemplate || 'detailed-estimate') : (c.template || 'classic'));
   const isThermal = template.startsWith('thermal');
 
-  if(template==='thermal-estimate-grid-80')return '<article class="gl-pdf gl-pdf-thermal pdf-thermal-estimate-grid-80">'+sample+pdfGrid80Markup(model,c)+'</article>';
+  if(template==='thermal-estimate-grid-80' || isEstimate)return '<article class="gl-pdf gl-pdf-thermal pdf-thermal-estimate-'+(template.includes('58')?'58':'80')+'">'+sample+pdfThermalMarkup(model,c,template.includes('58')?'58mm':'80mm')+'</article>';
 
   if(isThermal){
     return '<article class="gl-pdf gl-pdf-thermal pdf-'+template+'">'
