@@ -184,7 +184,8 @@ function rbItemMarkup(item,index){
   return '<tbody class="rb-item" data-item-id="'+esc(x.id)+'" data-metal-type="'+(isSilver?'Silver':'Gold')+'"><tr><td class="rb-index"><span class="rb-index-num">'+(index+1)+'</span><span class="rb-index-badge">Item #'+(index+1)+' · '+(isSilver?'Silver':'Gold')+'</span></td><td class="rb-tag-cell"><div class="rc-scan-wrap"><input data-item="tagCode" value="'+esc(x.tagCode||'')+'" placeholder="Tag / HUID" autocomplete="off" onchange="rbTagRowChanged(this)"><button type="button" class="gl-scan-btn gl-scan-btn-sm" onclick="openQrScannerForTagRow(this)" title="Scan QR / Barcode" aria-label="Scan">'+(window.glScanIconSvg||'<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h4v2H4v4H2V4zm14-2h4a2 2 0 0 1 2 2v4h-2V4h-4V2zM2 16h2v4h4v2H4a2 2 0 0 1-2-2v-4zm18 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zM5 8h4v4H5V8zm2 2h0v0H7v0zm8-2h4v4h-4V8zm2 2h0v0h0V10zm-8 6h4v4H7v-4zm2 2h0v0H9v0zm6-4h4v1h-4v-1zm0 3h2v1h-2v-1zm3-1h1v2h-1v-2z"/></svg>')+'</button></div></td><td class="rb-product">'+select('product',rbOptions(rbAllAvailableProducts(x.product),x.product)).replace('<select ','<select onchange="rcApplyProduct(this)" ')+'</td><td class="rb-huid-cell">'+rbItemInput('huid',x.huid,'text','placeholder="Optional" maxlength="30"')+'</td><td class="rb-pcs-cell">'+num('pieces','1','min="1" required')+'</td><td class="rb-gross-cell">'+num('grossWeight','.001','required')+'</td><td class="rb-less-cell">'+num('lessWeight')+'</td><td class="rb-net-cell"><output data-out="netWeight">'+fmt(x.netWeight)+'</output></td><td class="rb-purity-cell"><span class="rb-purity-na muted" style="display:'+(isSilver?'inline':'none')+'">—</span>'+select('purity',[...new Set([...(db.purities||[]).filter(k=>n(k)>0&&n(k)<=24),x.purity])].map(k=>'<option value="'+k+'" '+(n(k)===x.purity?'selected':'')+'>'+k+'K</option>').join('')).replace('<select ','<select '+(isSilver?'style="display:none" ':'')+'onchange="rbPurityChanged(this)" ')+'</td><td class="rb-wastage-cell">'+select('wastageMode',modes([['percent','%'],['grams','g']],x.wastageMode))+num('wastage','.01')+'</td><td class="rb-rate-cell">'+num('rate','.01','required')+'</td><td class="rb-making-cell">'+select('makingMode',modes([['piece','Per piece'],['gram','Per gram'],['fixed','Fixed']],x.makingMode))+'</td><td class="rb-making-rate-cell">'+num('makingRate','.01')+'</td><td class="rb-line-amount"><output data-out="subtotal">'+rateMoney(x.subtotal)+'</output></td><td class="rb-item-actions"><button type="button" aria-label="More item details" aria-expanded="false" onclick="rbItemDetails(this)">Details</button><button type="button" aria-label="Remove sale item" onclick="rbRemoveItem(this)">×</button></td></tr>'
     +'<tr class="rb-item-details hidden"><td colspan="15"><div class="rb-detail-grid">'+rbInput('Product group','unused',x.productGroup||(isSilver?'Silver jewellery':'Gold jewellery')).replace('name="unused"','data-item="productGroup"')+rbInput('Tag / barcode','unused',x.tagCode||'').replace('name="unused"','data-item="tagCode"')+rbInput('Description','unused',x.description||'').replace('name="unused"','data-item="description"')+rbInput('HSN','unused',x.hsn||'').replace('name="unused"','data-item="hsn"')+rbInput('Stone / diamond pieces','unused',x.stonePieces||0,'number','min="0" step="1"').replace('name="unused"','data-item="stonePieces"')+rbInput('Stone / diamond carats','unused',x.stoneWeight||0,'number','min="0" step=".001"').replace('name="unused"','data-item="stoneWeight"')+rbInput('Stone rate / carat · ₹','unused',x.stoneRate||0,'number','min="0" step=".01"').replace('name="unused"','data-item="stoneRate"')+rbInput('Certificate charge · ₹','unused',x.certificateCharge||0,'number','min="0" step=".01"').replace('name="unused"','data-item="certificateCharge"')+rbInput('Other item charge · ₹','unused',x.otherAmount||0,'number','min="0" step=".01"').replace('name="unused"','data-item="otherAmount"')+rbInput('Item remarks','unused',x.remarks||'').replace('name="unused"','data-item="remarks"')+'</div><p class="hint">Deduct stone or other non-gold weight in Less g. Carats above calculate the stone charge only.</p></td></tr></tbody>';
 }
-function rbReadItems(form){return [...form.querySelectorAll('.rb-item')].map(node=>{const item={id:node.dataset.itemId};node.querySelectorAll('[data-item]').forEach(input=>item[input.dataset.item]=input.value);return rbItemCalc(item);});}
+function rbReadItems(form){return [...form.querySelectorAll('.rb-item')].map(node=>{const item={id:node.dataset.itemId};node.querySelectorAll('[data-item]').forEach(input=>{const key=input.dataset.item,val=input.value;if(item[key]===undefined||String(item[key]).trim()===''||String(val).trim()!=='')item[key]=(String(val).trim()===''&&item[key]!==undefined)?item[key]:val;});return rbItemCalc(item);});}
+document.addEventListener('input',event=>{const el=event.target;if(!el?.matches?.('.rb-item [data-item="tagCode"]'))return;el.closest('.rb-item')?.querySelectorAll('[data-item="tagCode"]').forEach(other=>{if(other!==el)other.value=el.value;});},true);
 window.rbAddItem=function(){const form=document.getElementById('customerSaleForm'),table=form?.querySelector('#rbItemsTable');if(!table)return;table.querySelector('tfoot').insertAdjacentHTML('beforebegin',rbItemMarkup(rbInvoiceItems()[0],form.querySelectorAll('.rb-item').length));rbMarkDirty(form);rbRecalc(form);};
 window.rbRemoveItem=function(button){const form=button.form||button.closest('form'),row=button.closest('.rb-item');if(form.querySelectorAll('.rb-item').length===1){row.insertAdjacentHTML('beforebegin',rbItemMarkup(rbInvoiceItems()[0],0));}row.remove();form.querySelectorAll('.rb-item').forEach((r,i)=>{const idx=r.querySelector('.rb-index');if(idx){const isSil=r.dataset.metalType==='Silver';idx.innerHTML='<span class="rb-index-num">'+(i+1)+'</span><span class="rb-index-badge">Item #'+(i+1)+' · '+(isSil?'Silver':'Gold')+'</span>';}});rbMarkDirty(form);rbRecalc(form);};
 window.rbItemDetails=function(button){const row=button.closest('.rb-item').querySelector('.rb-item-details'),open=row.classList.toggle('hidden')===false;button.setAttribute('aria-expanded',String(open));};
@@ -259,7 +260,8 @@ function rbGiftVoucher(code,billDate,invoiceId,amount,cashAdvance){
 }
 window.glGetContextSalesReturns=function(form){if(!form)return [];try{const arr=JSON.parse(form.querySelector('input[name="salesReturnItemsJson"]')?.value||'[]');return Array.isArray(arr)?arr:[];}catch(_){return [];}};
 window.glSetContextSalesReturns=function(form,items){if(!form)return;let inp=form.querySelector('input[name="salesReturnItemsJson"]');if(!inp){inp=document.createElement('input');inp.type='hidden';inp.name='salesReturnItemsJson';form.appendChild(inp);}inp.value=JSON.stringify(Array.isArray(items)?items:[]);};
-window.glNotifyHostReturnChanged=function(node){const hostForm=node?.closest?.('#customerSaleForm,#rcEstimateForm')||document.getElementById('customerSaleForm')||document.getElementById('rcEstimateForm');if(!hostForm)return;if(hostForm.id==='customerSaleForm'){rbMarkDirty(hostForm);rbRecalc(hostForm);}else if(hostForm.id==='rcEstimateForm'&&typeof window.rcRecalc==='function'){window.rcRecalc();}};
+window.glDetachReturnPanelControls=function(section){if(!section)return;section.querySelectorAll('input,select,textarea,button').forEach(el=>el.setAttribute('form','glSrPanelDetached'));};
+window.glNotifyHostReturnChanged=function(node){const hostForm=node?.closest?.('#customerSaleForm,#rcEstimateForm')||document.getElementById('customerSaleForm')||document.getElementById('rcEstimateForm');if(!hostForm)return;window.glDetachReturnPanelControls(hostForm.querySelector('#glSalesReturnPanel'));const run=()=>{try{if(hostForm.id==='customerSaleForm'){rbMarkDirty(hostForm);window.rbRecalc(hostForm);}else if(hostForm.id==='rcEstimateForm'&&typeof window.rcRecalc==='function'){window.rcRecalc();}}catch(err){console.error('Sales return recalc failed',err);}};run();clearTimeout(hostForm._glSrTimer);hostForm._glSrTimer=setTimeout(run,0);};
 window.glReadDraftReturnInPanel=function(form){
   const panel=document.getElementById('glSalesReturnPanel');
   if(!panel||!form||!form.contains(panel))return null;
@@ -887,7 +889,8 @@ window.rbApplyTagData = function(row, tag) {
   const purity = n(tag.purity ?? product?.purity ?? (metal==='Silver'?92.5:22));
   const liveRate = typeof rcRateForMetal === 'function' ? rcRateForMetal(metal,purity,product?.rateType,product?.manualRate) : v2RateForPurity(purity);
   row.dataset.metalType = metal;
-  set('tagCode',tag.tagCode||'');
+  row.querySelectorAll('[data-item="tagCode"]').forEach(el=>el.value=tag.tagCode||'');
+  row.querySelectorAll('[data-item="huid"]').forEach(el=>el.value=tag.huid??product?.huid??'');
   set('product',tag.product||product?.name||'');
   set('huid',tag.huid??product?.huid??'');
   set('pieces',n(tag.pieces)||1);
@@ -1032,9 +1035,9 @@ window.rbOpenReturnPanel=function(button){
   const section=document.createElement('section');
   section.id='glSalesReturnPanel';
   const quoteStyle=button.hasAttribute('data-quote-return');
-  section.className=quoteStyle?'rc-old-gold-dropdown rc-sales-return-dropdown':'panel rb-screen';
+  section.className=quoteStyle?'rc-old-gold-dropdown rc-sales-return-dropdown':'panel gl-sales-return-box';
   section.setAttribute('aria-label','Sales Return');
-  if(!quoteStyle)section.style.cssText='margin:6px 0;width:min(100%,540px);min-width:0;padding:8px;box-sizing:border-box';
+  if(!quoteStyle)section.style.cssText='margin:8px 0;flex:0 0 100%;width:100%;max-width:620px;min-width:0;height:auto;padding:10px;box-sizing:border-box;display:block';
   section.returnTrigger=button;
   section.close=()=>{
     const host=section.closest('#customerSaleForm,#rcEstimateForm');
@@ -1059,6 +1062,9 @@ window.rbOpenReturnPanel=function(button){
     #glSalesReturnPanel .rb-wide{grid-column:1/-1}
     #glSalesReturnPanel .right{margin-top:6px}
     #glSalesReturnPanel .right button{min-height:34px;padding:4px 10px;font-size:13px}
+    .rb-adjustments:has(#glSalesReturnPanel){display:flex!important;flex-direction:column!important;align-items:stretch!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important}
+    .rb-settlement:has(#glSalesReturnPanel),.rc-pos-strip-container:has(#glSalesReturnPanel){height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important}
+    #glSalesReturnPanel{position:relative;z-index:6;clear:both;display:block!important;height:auto!important;flex:0 0 auto;grid-column:1/-1;background:var(--paper,#fffaf2)}
     #glSalesReturnPanel .gl-applied-sr-box{margin:0 0 6px;padding:6px 8px;border-radius:7px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:11.5px;color:#065f46}
     #glSalesReturnPanel .gl-applied-sr-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 0}
     @media(max-width:340px){#glSalesReturnPanel .rb-record-grid{grid-template-columns:minmax(0,1fr)}}
@@ -1117,6 +1123,7 @@ window.rbOpenReturnPanel=function(button){
       fields.querySelectorAll('.rb-field>span').forEach(label=>label.classList.add('rc-og-label-text'));
       fields.querySelectorAll('input:not([type=hidden]):not([type=checkbox]),select').forEach(control=>control.classList.add('rc-og-input'));
     }
+    window.glDetachReturnPanelControls(section);
     const form=fields.querySelector('#rbRecordForm,[data-rb-record-form],form');
     if(!form)return;
     if(form.tagName==='FORM')form.addEventListener('submit',event=>event.stopPropagation());
@@ -1185,6 +1192,7 @@ window.rbOpenReturnPanel=function(button){
       }
       actions.replaceChildren(editButton,saveButton,addButton,clearButton);
     }
+    window.glDetachReturnPanelControls(section);
     window.glNotifyHostReturnChanged(section);
   };
   picker.addEventListener('change',showForm);

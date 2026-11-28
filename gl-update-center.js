@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.6';
-  const CURRENT_BUILD = 'goldleaf-shell-v2420';
+  const CURRENT_VERSION = '2.13.7';
+  const CURRENT_BUILD = 'goldleaf-shell-v2421';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,7 +11,7 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.6',
+      version: '2.13.7',
       date: '28 Nov 2026',
       tag: 'Current',
       category: 'Sales, Accounts & Reports',

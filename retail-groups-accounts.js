@@ -663,10 +663,9 @@
     if (rgaState.ledIncludeParties) {
       (db.customers || []).forEach(c => {
         const grp = c.parentGroup || 'Sundry Debtors';
-        const sales = (db.sales || []).filter(s => s.partyId === c.id && s.accountType === 'customer').reduce((a, s) => a + n(s.amount) - n(s.collectedAmount), 0);
-        const paid = (db.payments || []).filter(p => p.partyId === c.id && p.accountType === 'customer').reduce((a, p) => a + n(p.amount), 0);
-        const balVal = n(c.opening) + sales - paid;
-        if (!rgaState.ledShowZero && Math.abs(balVal) < 0.005 && n(c.opening) === 0) return;
+        const custOpen = typeof accountOpening === 'function' ? accountOpening(c, 'customer') : n(c.openingAmount ?? c.opening);
+        const balVal = typeof bal === 'function' ? rbRound(bal(c.id, 'customer')) : custOpen;
+        if (!rgaState.ledShowZero && Math.abs(balVal) < 0.005 && custOpen === 0) return;
         if (rgaState.ledFilterGroup && grp !== rgaState.ledFilterGroup) return;
         if (q && !(String(c.name || '').toLowerCase().includes(q) || grp.toLowerCase().includes(q) || String(c.phone || '').includes(q))) return;
         combinedRows.push([
@@ -674,7 +673,7 @@
           esc(c.name),
           '<span class="pill">' + esc(grp) + '</span>',
           esc(c.phone || '—'),
-          rateMoney(Math.abs(n(c.opening))) + ' ' + (n(c.opening) >= 0 ? 'DR' : 'CR'),
+          rateMoney(Math.abs(custOpen)) + ' ' + (custOpen >= 0 ? 'DR' : 'CR'),
           '<b>' + rateMoney(Math.abs(balVal)) + ' ' + (balVal >= 0 ? 'DR' : 'CR') + '</b>',
           '—',
           '<span class="rco-badge rco-badge-open">Customer</span>',
