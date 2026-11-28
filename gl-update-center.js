@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.9';
-  const CURRENT_BUILD = 'goldleaf-shell-v2423';
+  const CURRENT_VERSION = '2.14.0';
+  const CURRENT_BUILD = 'goldleaf-shell-v2424';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,9 +11,21 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.9',
+      version: '2.14.0',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Platform & Security',
+      title: 'Angular v22.3 Dynamic Runtime, Instant Refresh Hydration & Zero-Lag Hot Updates',
+      notes: [
+        'Upgraded Zoneless Angular v22.3 shell with background asset pre-warming, live top edge sync/progress bar, offline/online auto-sync indicator, and instant hot-swap updates without cache-wipe lag.',
+        'Added single-pass boot render coalescing, local Supabase SDK hosting, English i18n fast-path, and instant optimistic shop/admin hydration so refreshes open in < 50ms while syncing cloud changes silently in the background.',
+        'Upgraded Service Worker to Instant App-Shell first with background revalidation across desktop, Android, iOS, and installed PWA.'
+      ]
+    },
+    {
+      version: '2.13.9',
+      date: '28 Nov 2026',
+      tag: 'Feature',
       category: 'Chit & Jewel Loan',
       title: 'Super Admin Jewel Loan & Auction Toggle + Cloud RPC Fix',
       notes: [
@@ -317,48 +329,25 @@
     sessionStorage.setItem('gl_update_success_banner', targetVer);
 
     const waitingWorker = window.glPendingWorker || window.glSwRegistration?.waiting || null;
-    window.glPendingWorker = null;
     window.glUpdateAvailable = false;
     if (typeof window.glUpdatePillVisibility === 'function') window.glUpdatePillVisibility(false);
-    showApplyingOverlay('Updating to v' + targetVer + '…', 'Refreshing app files cleanly without losing any saved data.');
     if (typeof window.glCloseUpdatePrompt === 'function') window.glCloseUpdatePrompt();
 
-    let reloaded = false;
-    const doReload = (bustCache = false) => {
-      if (reloaded) return;
-      reloaded = true;
-      if (bustCache) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('_upd', Date.now().toString());
-        window.location.replace(url.toString());
-      } else {
-        window.location.reload();
-      }
-    };
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => doReload(false), { once: true });
-      try {
-        if (waitingWorker) {
-          waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-        } else if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-        }
-      } catch (e) {}
+    if (typeof window.glNgApplyHotUpdate === 'function') {
+      await window.glNgApplyHotUpdate(targetVer);
+      return;
     }
 
-    if ('caches' in window) {
-      try {
-        const keys = await caches.keys();
-        await Promise.all(
-          keys
-            .filter(k => k.startsWith('goldleaf-shell-'))
-            .map(k => caches.delete(k))
-        );
-      } catch (e) {}
+    showApplyingOverlay('Updating to v' + targetVer + '…', 'Switching to pre-warmed modules cleanly.');
+    if ('serviceWorker' in navigator && waitingWorker) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+      try { waitingWorker.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+      setTimeout(() => window.location.reload(), 200);
+      return;
     }
-
-    setTimeout(() => doReload(!waitingWorker), 650);
+    const url = new URL(window.location.href);
+    url.searchParams.set('gl_fresh', '1');
+    window.location.replace(url.toString());
   };
 
   window.glForceHardRefresh = async function () {
@@ -435,6 +424,7 @@
         if (isRemoteNewer(data) || hasPendingServiceWorker()) {
           window.glUpdateAvailable = true;
           updateState.status = 'update-available';
+          try { window.dispatchEvent(new CustomEvent('gl:update-detected', { detail: { version: data.version || '' } })); } catch (_) {}
         } else {
           updateState.status = 'up-to-date';
         }

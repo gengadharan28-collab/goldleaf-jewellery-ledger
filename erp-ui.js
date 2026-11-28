@@ -1,5 +1,5 @@
 // Shared ERP presentation and reliable Retail entry dialogs.
-const erpThemeLink=document.createElement('link');erpThemeLink.rel='stylesheet';erpThemeLink.href='./erp-theme.css?v=2.13.9';document.head.append(erpThemeLink);
+const erpThemeLink=document.getElementById('glErpThemeLink')||(()=>{const l=document.createElement('link');l.id='glErpThemeLink';l.rel='stylesheet';l.href='./erp-theme.css?v=2.14.0';document.head.append(l);return l;})();
 window.toggleTheme=function(){appTheme=appTheme==='dark'?'light':'dark';document.documentElement.dataset.theme=appTheme;localStorage.setItem('goldleaf-theme',appTheme);document.querySelectorAll('[onclick="toggleTheme()"]') .forEach(button=>{button.textContent=appTheme==='dark'?'☀'+(button.closest('.retail-sale-tools')?'':' Light'):'☾'+(button.closest('.retail-sale-tools')?'':' Dark');button.setAttribute('aria-label',appTheme==='dark'?'Switch to light theme':'Switch to dark theme');});erpSyncToolbarTheme();};
 function erpMarkEntryDirty(form=document.getElementById('customerSaleForm')){if(form?.dataset)form.dataset.entryDirty='1';}
 for(const eventName of ['input','change'])document.addEventListener(eventName,event=>{const form=event.target.closest?.('#customerSaleForm');if(form)erpMarkEntryDirty(form);},true);
@@ -215,7 +215,7 @@ render();
       btn.style.color=active?'#fff':'inherit';
     });
   }
-  let translating=false;
+  let translating=false,hasAppliedTamil=(getLang()==='ta'),lastRouteKey='';
   window.glTranslateApp=function(){
     if(translating)return;
     translating=true;
@@ -223,19 +223,39 @@ render();
       ensureLangSwitcher();
       const lang=getLang();
       document.documentElement.lang=lang==='ta'?'ta':'en';
-      if(document.body)translateNode(document.body,lang);
+      if(lang==='ta'){
+        hasAppliedTamil=true;
+        if(document.body)translateNode(document.body,'ta');
+      }else if(hasAppliedTamil){
+        hasAppliedTamil=false;
+        if(document.body)translateNode(document.body,'en');
+      }
+      const routeKey=(typeof page!=='undefined'?page:'')+':'+(typeof workspaceMode!=='undefined'?workspaceMode:'')+':'+(typeof platformPage!=='undefined'?platformPage:'');
+      if(lastRouteKey&&lastRouteKey!==routeKey){
+        const main=document.getElementById('app');
+        if(main&&!document.body.classList.contains('printing-customer-bill')){
+          main.classList.remove('gl-route-enter');
+          void main.offsetWidth;
+          main.classList.add('gl-route-enter');
+        }
+      }
+      lastRouteKey=routeKey;
     }finally{translating=false;}
   };
   window.glSetLanguage=function(lang){
     const next=lang==='ta'?'ta':'en';
     try{localStorage.setItem(LANG_KEY,next);}catch(_){}
+    if(next==='en')hasAppliedTamil=true;
     window.glTranslateApp();
+    try{window.dispatchEvent(new CustomEvent('gl:lang',{detail:{lang:next}}));}catch(_){}
   };
   let timer=null;
   const obs=new MutationObserver(()=>{
     if(translating)return;
+    const isTa=(getLang()==='ta');
+    if(!isTa&&document.getElementById('glLangSwitcher'))return;
     clearTimeout(timer);
-    timer=setTimeout(()=>{if(getLang()==='ta'||!document.getElementById('glLangSwitcher'))window.glTranslateApp();},60);
+    timer=setTimeout(()=>{window.glTranslateApp();},60);
   });
   window.addEventListener('DOMContentLoaded',()=>{
     window.glTranslateApp();

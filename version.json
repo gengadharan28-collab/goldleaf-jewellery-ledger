@@ -1,12 +1,12 @@
 {
-  "version": "2.13.9",
-  "build": "goldleaf-shell-v2423",
+  "version": "2.14.0",
+  "build": "goldleaf-shell-v2424",
   "releasedAt": "2026-11-28",
-  "title": "Super Admin Jewel Loan & Auction Toggle + Cloud RPC Fix",
+  "title": "Angular v22.3 Dynamic Runtime, Instant Refresh Hydration & Zero-Lag Hot Updates",
   "highlights": [
-    "Fixed Super Admin Jewel Loan & Auction toggle reverting to OFF and added trusted goldleaf_admin_set_loan_access cloud RPC",
-    "Expanded Allowed Workspaces & Modules toggle row to full width with full-card hitboxes on desktop and mobile",
-    "Instant zero-delay Retail sidebar Jewel Loan & Auction navigation via goldleaf_my_context sync",
-    "Complete Sales Return workflow with live balance reduction, stock restoration, accounts & GST reports"
+    "Zoneless Angular v22.3 runtime with background asset pre-warming & instant hot-swap updates without cache-wipe lag",
+    "Instant < 50ms refresh hydration: renders cached shop/admin state on frame 1 while syncing cloud records silently in background",
+    "Single-pass boot render coalescing (eliminating 20x startup DOM rebuilds), English i18n fast-path & local Supabase SDK",
+    "Instant App-Shell Service Worker with top edge GPU activity bar & cross-platform offline/online auto-sync"
   ]
 }

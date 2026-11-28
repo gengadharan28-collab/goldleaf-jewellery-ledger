@@ -8,6 +8,133 @@ gl-angular-shell {
   }
 }
 
+.gl-ng-top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  z-index: 25000;
+  pointer-events: none;
+  overflow: hidden;
+  background: rgba(189, 151, 97, 0.14);
+}
+
+.gl-ng-top-progress-bar {
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 50%;
+  will-change: transform;
+  background: linear-gradient(90deg, #10b981 0%, #d4af37 55%, #059669 100%);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gl-ng-net-pill {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 18000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.gl-ng-net-pill.is-offline {
+  background: #3b2314;
+  color: #fde68a;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.gl-ng-net-pill.is-online {
+  background: #0f3928;
+  color: #d1fae5;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+.gl-ng-net-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.gl-ng-update-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 22000;
+  background: rgba(10, 25, 18, 0.68);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.gl-ng-update-card {
+  width: min(400px, 100%);
+  background: #102a1f;
+  color: #f4ecdc;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.42);
+}
+
+.gl-ng-update-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.gl-ng-update-bolt {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #047857);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.gl-ng-update-head b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 750;
+  color: #f9f3e6;
+}
+
+.gl-ng-update-head small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #c8d5cd;
+  line-height: 1.35;
+}
+
+.gl-ng-update-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.gl-ng-update-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #f5d076);
+  transition: width 0.12s ease-out;
+}
+
 .gl-ng-cmd-backdrop {
   position: fixed;
   inset: 0;

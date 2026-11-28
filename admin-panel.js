@@ -417,6 +417,7 @@ window.pullCloud=async function(){
 window.pushCloud=async function(){
   if(!session||!client||!goldleafContext?.shop_id||!goldleafContext.has_access||platformIsDemo())return;
   if(v2CloudBusy){v2CloudQueuedPush=true;return;}v2CloudBusy=true;localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
+  try{window.dispatchEvent(new CustomEvent('gl:sync-start'));}catch{}
   try{
     do{v2CloudQueuedPush=false;let written=false;
       for(let attempt=0;attempt<4&&!written;attempt++){

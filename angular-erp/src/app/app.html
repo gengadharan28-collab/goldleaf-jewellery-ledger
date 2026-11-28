@@ -1,3 +1,38 @@
+@if (progressVisible()) {
+  <div class="gl-ng-top-progress" aria-hidden="true">
+    <div class="gl-ng-top-progress-bar" [style.transform]="'scaleX(' + progressScale() + ')'"></div>
+  </div>
+}
+
+@if (netBanner() === 'offline') {
+  <div class="gl-ng-net-pill is-offline" role="status" aria-live="polite">
+    <span class="gl-ng-net-dot"></span>
+    <span>{{ lang() === 'ta' ? 'ஆஃப்லைன் பயன்முறை · பதிவுகள் பாதுகாப்பாக சேமிக்கப்படும்' : 'Offline mode · Working locally, auto-sync queued' }}</span>
+  </div>
+} @else if (netBanner() === 'online') {
+  <div class="gl-ng-net-pill is-online" role="status" aria-live="polite">
+    <span class="gl-ng-net-dot"></span>
+    <span>{{ lang() === 'ta' ? 'ஆன்லைன் இணைப்பு திரும்பியது · ஒத்திசைக்கிறது…' : 'Back online · Syncing latest cloud records…' }}</span>
+  </div>
+}
+
+@if (updateOverlayVisible()) {
+  <div class="gl-ng-update-backdrop" role="status" aria-live="polite">
+    <div class="gl-ng-update-card">
+      <div class="gl-ng-update-head">
+        <span class="gl-ng-update-bolt" aria-hidden="true">⚡</span>
+        <div>
+          <b>{{ updateTitle() }}</b>
+          <small>{{ updateSubtitle() }}</small>
+        </div>
+      </div>
+      <div class="gl-ng-update-track">
+        <div class="gl-ng-update-fill" [style.width.%]="updatePercent()"></div>
+      </div>
+    </div>
+  </div>
+}
+
 @if (cmdOpen()) {
   <div class="gl-ng-cmd-backdrop" (click)="closeCmd()">
     <section class="gl-ng-cmd-modal" role="dialog" aria-modal="true" aria-label="Quick Jump" (click)="$event.stopPropagation()">
@@ -7,17 +42,18 @@
           id="glNgCmdInput"
           type="search"
           [ngModel]="cmdQuery()"
-          (ngModelChange)="cmdQuery.set($event)"
+          (ngModelChange)="onQueryChange($event)"
           [placeholder]="lang() === 'ta' ? 'பக்கம் தேடுங்கள் (கொட்டேஷன், விற்பனை, சீட்டு, அறிக்கைகள்)…' : 'Jump to Quotation, Sales Entry, Chit, Jewel Loan, 129 Reports…'"
           autocomplete="off" />
         <button type="button" class="gl-ng-cmd-esc" (click)="closeCmd()">ESC</button>
       </div>
       <div class="gl-ng-cmd-list">
-        @for (mod of filteredModules(); track mod.id) {
+        @for (mod of filteredModules(); track mod.id; let idx = $index) {
           <button
             type="button"
             class="gl-ng-cmd-item"
-            [class.is-current]="activePage() === mod.id"
+            [class.is-current]="activePage() === mod.id || selectedIndex() === idx"
+            (mouseenter)="selectedIndex.set(idx)"
             (click)="jumpTo(mod)">
             <span class="gl-ng-cmd-item-ico">{{ mod.icon }}</span>
             <span class="gl-ng-cmd-item-txt">
