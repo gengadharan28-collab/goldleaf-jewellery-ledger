@@ -1,11 +1,11 @@
 {
-  "version": "2.14.1",
-  "build": "goldleaf-shell-v2425",
+  "version": "2.14.2",
+  "build": "goldleaf-shell-v2426",
   "releasedAt": "2026-11-28",
-  "title": "Jewel Loan Shop Admin RLS Permission Fix & Instant Module Open",
+  "title": "Zero-Flicker Navigation Bar on Refresh & Accurate Update Indicator",
   "highlights": [
-    "Fixed 'permission denied for table goldleaf_shop_members' when opening Jewel Loan & Auction as Shop Admin or Staff",
-    "Added SECURITY DEFINER cloud RPCs for Jewel Loan access, draft listing, and draft creation with instant 0ms screen open",
-    "Zoneless Angular v22.3 runtime with background pre-warming, instant refresh hydration, and zero-lag hot updates"
+    "Locked sidebar state on frame 0 with boot transition suppression so the navigation bar never slides or animates on refresh",
+    "Eliminated background sync bar noise and false-positive ⚡ Update badge after updating or refreshing",
+    "Fixed Shop Admin Jewel Loan RLS permissions & instant module open"
   ]
 }

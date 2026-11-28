@@ -107,8 +107,8 @@ export class App implements OnInit, OnDestroy {
 
     window.addEventListener('gl:rendered', this.boundRendered);
     window.addEventListener('gl:lang', this.boundRendered);
-    window.addEventListener('gl:sync-start', this.boundSyncStart);
-    window.addEventListener('gl:sync-end', this.boundSyncEnd);
+    window.addEventListener('gl:manual-sync-start', this.boundSyncStart);
+    window.addEventListener('gl:manual-sync-end', this.boundSyncEnd);
     window.addEventListener('online', this.boundOnline);
     window.addEventListener('offline', this.boundOffline);
     window.addEventListener('gl:update-detected', this.boundUpdateDetected);
@@ -117,8 +117,8 @@ export class App implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     window.removeEventListener('gl:rendered', this.boundRendered);
     window.removeEventListener('gl:lang', this.boundRendered);
-    window.removeEventListener('gl:sync-start', this.boundSyncStart);
-    window.removeEventListener('gl:sync-end', this.boundSyncEnd);
+    window.removeEventListener('gl:manual-sync-start', this.boundSyncStart);
+    window.removeEventListener('gl:manual-sync-end', this.boundSyncEnd);
     window.removeEventListener('online', this.boundOnline);
     window.removeEventListener('offline', this.boundOffline);
     window.removeEventListener('gl:update-detected', this.boundUpdateDetected);
@@ -344,15 +344,10 @@ export class App implements OnInit, OnDestroy {
       return;
     }
     const w = window as any;
-    this.beginActivity();
-    try {
-      if (mod.standalone && typeof w.rcOpenStandalone === 'function') {
-        w.rcOpenStandalone(mod.id);
-      } else if (typeof w.go === 'function') {
-        w.go(mod.id);
-      }
-    } finally {
-      this.endActivity();
+    if (mod.standalone && typeof w.rcOpenStandalone === 'function') {
+      w.rcOpenStandalone(mod.id);
+    } else if (typeof w.go === 'function') {
+      w.go(mod.id);
     }
   }
 }

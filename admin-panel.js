@@ -54,6 +54,8 @@ window.platformSignOut = async function() {
 function platformQuickSignOut(){return session?'<button type="button" class="platform-sign-out" onclick="platformSignOut()" aria-label="Sign out">↪ Sign out</button>':'';}
 window.platformRefresh = async function(announce = false) {
   if (!session || !client) return;
+  if (announce) { try { window.dispatchEvent(new CustomEvent('gl:manual-sync-start')); } catch {} }
+  try {
   let waited = 0;
   while (v2CloudBusy && waited < 25) {
     await new Promise(r => setTimeout(r, 100));
@@ -65,6 +67,9 @@ window.platformRefresh = async function(announce = false) {
     if (goldleafContext?.has_access && (goldleafContext.retail_enabled || goldleafContext.wholesale_enabled)) say('Workspace access active.');
     else if (goldleafContext && !goldleafContext.has_access) say('Subscription expired (' + platformDateTime(goldleafContext.expires_at) + '). Ask Super Admin to extend validity.');
     else say('Access status refreshed.');
+  }
+  } finally {
+    if (announce) { try { window.dispatchEvent(new CustomEvent('gl:manual-sync-end')); } catch {} }
   }
 };
 
@@ -426,7 +431,6 @@ function platformAdoptCloudReset(payload){
 window.pullCloud=async function(){
   if(!session||!client||v2CloudBusy||platformIsDemo())return;
   v2CloudBusy=true;
-  try{window.dispatchEvent(new CustomEvent('gl:sync-start'));}catch{}
   try{
     const context=await client.rpc('goldleaf_my_context');if(context.error)throw context.error;
     const previous=goldleafContext;goldleafContext=context.data;
@@ -466,12 +470,11 @@ window.pullCloud=async function(){
     ensureExtendedData();db.sharedRates=shared.data||{};db.rates=goldleafContext?.shared_rates_enabled!==false?Object.assign({},db.sharedRates):(db.shopRates?.enabled?Object.assign({},db.shopRates):db.rates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformWriteContextCache();platformError='';
     setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||(!unchangedHydrated&&!v2HasFocusedEdit())||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled||previous.jewel_loan_enabled!==goldleafContext.jewel_loan_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
-  finally{v2CloudBusy=false;try{window.dispatchEvent(new CustomEvent('gl:sync-end'));}catch{}}
+  finally{v2CloudBusy=false;}
 };
 window.pushCloud=async function(){
   if(!session||!client||!goldleafContext?.shop_id||!goldleafContext.has_access||platformIsDemo())return;
   if(v2CloudBusy){v2CloudQueuedPush=true;return;}v2CloudBusy=true;localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
-  try{window.dispatchEvent(new CustomEvent('gl:sync-start'));}catch{}
   try{
     do{v2CloudQueuedPush=false;let written=false;
       for(let attempt=0;attempt<4&&!written;attempt++){
@@ -492,7 +495,7 @@ window.pushCloud=async function(){
       platformStoreLedger();platformWriteContextCache();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
     }while(v2CloudQueuedPush);
   }catch(error){const rawMsg=String(error?.message||'');const needsSql=/Retail supplier is missing/i.test(rawMsg)&&(db.retailDocuments||[]).some(d=>d?.kind==='retail-product-group'||d?.kind==='retail-model');platformError=needsSql?'Cloud Retail schema needs supabase_retail_features.sql update to sync Product Group / Model records.':rawMsg;window.v2LastSyncError=platformError;const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title=platformError;setCloudStatus('Entry saved here · waiting to sync');}
-  finally{v2CloudBusy=false;try{window.dispatchEvent(new CustomEvent('gl:sync-end'));}catch{}}
+  finally{v2CloudBusy=false;}
 };
 window.v2CheckCloudForChanges=async function(){if(!session||!client||platformIsDemo()||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
 // Prevent rate reminders from covering the platform sign-in and control screens.

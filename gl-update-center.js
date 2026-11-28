@@ -1,19 +1,34 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.14.1';
-  const CURRENT_BUILD = 'goldleaf-shell-v2425';
+  const CURRENT_VERSION = '2.14.2';
+  const CURRENT_BUILD = 'goldleaf-shell-v2426';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
   window.GL_APP_VERSION = CURRENT_VERSION;
   window.GL_BUILD_ID = CURRENT_BUILD;
   window.GL_RELEASE_DATE = CURRENT_DATE;
+  window.glPendingWorker = null;
+  window.glUpdateAvailable = false;
+  try { localStorage.setItem('gl_last_promoted_version', CURRENT_VERSION); } catch (_) {}
 
   const GL_RELEASES = [
     {
-      version: '2.14.1',
+      version: '2.14.2',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Platform & Security',
+      title: 'Zero-Flicker Navigation Bar on Refresh & Accurate Update Indicator',
+      notes: [
+        'Locked sidebar collapsed/expanded and theme state on frame 0 with boot transition suppression so the navigation bar never slides or animates during page refresh.',
+        'Removed background refresh progress bar noise and fixed false-positive Update indicator so ⚡ Update only appears when a genuinely newer version exists on the server.',
+        'Included Jewel Loan Shop Admin RLS permission fix & instant module open.'
+      ]
+    },
+    {
+      version: '2.14.1',
+      date: '28 Nov 2026',
+      tag: 'Fix',
       category: 'Chit & Jewel Loan',
       title: 'Jewel Loan Shop Member RLS Permission Fix & Instant Open',
       notes: [
@@ -204,7 +219,8 @@
   }
 
   function hasPendingServiceWorker() {
-    return !!(window.glPendingWorker || window.glSwRegistration?.waiting);
+    const w = window.glPendingWorker || window.glSwRegistration?.waiting;
+    return !!(w && w.state === 'installed');
   }
 
   function isRemoteNewer(remote) {
@@ -215,7 +231,7 @@
   }
 
   window.glIsUpdatePending = function () {
-    return !!(hasPendingServiceWorker() || window.glUpdateAvailable || isRemoteNewer(updateState.remoteRelease));
+    return !!isRemoteNewer(updateState.remoteRelease);
   };
 
   function getActiveReleaseBannerData() {
@@ -432,18 +448,21 @@
       if (res.ok) {
         const data = await res.json();
         updateState.remoteRelease = data;
-        if (isRemoteNewer(data) || hasPendingServiceWorker()) {
+        if (isRemoteNewer(data)) {
           window.glUpdateAvailable = true;
           updateState.status = 'update-available';
           try { window.dispatchEvent(new CustomEvent('gl:update-detected', { detail: { version: data.version || '' } })); } catch (_) {}
         } else {
+          window.glUpdateAvailable = false;
+          window.glPendingWorker = null;
           updateState.status = 'up-to-date';
         }
       } else {
-        updateState.status = hasPendingServiceWorker() ? 'update-available' : 'up-to-date';
+        window.glUpdateAvailable = false;
+        updateState.status = 'up-to-date';
       }
     } catch (e) {
-      updateState.status = hasPendingServiceWorker() ? 'update-available' : 'error';
+      updateState.status = 'error';
     }
 
     await detectSwStatus();
@@ -550,11 +569,14 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', event => {
       if (event.data?.type === 'SW_ACTIVATED') {
+        window.glPendingWorker = null;
         detectSwStatus();
         if (typeof window.erpSyncUpdatePill === 'function') window.erpSyncUpdatePill();
       }
     });
   }
+
+  if (typeof window.erpSyncUpdatePill === 'function') window.erpSyncUpdatePill();
 
   window.addEventListener('load', () => {
     detectSwStatus();

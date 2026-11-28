@@ -1,5 +1,5 @@
 // Shared ERP presentation and reliable Retail entry dialogs.
-const erpThemeLink=document.getElementById('glErpThemeLink')||(()=>{const l=document.createElement('link');l.id='glErpThemeLink';l.rel='stylesheet';l.href='./erp-theme.css?v=2.14.0';document.head.append(l);return l;})();
+const erpThemeLink=document.getElementById('glErpThemeLink')||(()=>{const l=document.createElement('link');l.id='glErpThemeLink';l.rel='stylesheet';l.href='./erp-theme.css?v=2.14.2';document.head.append(l);return l;})();
 window.toggleTheme=function(){appTheme=appTheme==='dark'?'light':'dark';document.documentElement.dataset.theme=appTheme;localStorage.setItem('goldleaf-theme',appTheme);document.querySelectorAll('[onclick="toggleTheme()"]') .forEach(button=>{button.textContent=appTheme==='dark'?'☀'+(button.closest('.retail-sale-tools')?'':' Light'):'☾'+(button.closest('.retail-sale-tools')?'':' Dark');button.setAttribute('aria-label',appTheme==='dark'?'Switch to light theme':'Switch to dark theme');});erpSyncToolbarTheme();};
 function erpMarkEntryDirty(form=document.getElementById('customerSaleForm')){if(form?.dataset)form.dataset.entryDirty='1';}
 for(const eventName of ['input','change'])document.addEventListener(eventName,event=>{const form=event.target.closest?.('#customerSaleForm');if(form)erpMarkEntryDirty(form);},true);

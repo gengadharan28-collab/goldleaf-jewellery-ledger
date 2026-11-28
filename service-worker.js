@@ -1,22 +1,22 @@
-const CACHE = 'goldleaf-shell-v2425';
+const CACHE = 'goldleaf-shell-v2426';
 const CORE_SHELL = [
   './',
   './index.html',
-  './erp-theme.css?v=2.14.0',
+  './erp-theme.css?v=2.14.2',
   './mobile-erp-layout.css?v=2.10.95',
   './supabase.min.js?v=2.119.2',
   './qrcode.min.js?v=2.10.54',
   './app-v2.js?v=2.12.12&delpay=1&sr=1',
-  './admin-panel.js?v=2.14.0&cloudfix=5&loanaccess=5',
-  './erp-ui.js?v=2.14.0&clean=4',
+  './admin-panel.js?v=2.14.2&cloudfix=6&loanaccess=5',
+  './erp-ui.js?v=2.14.2&clean=5',
   './retail-sales.js?v=2.13.8&termsfilter=1&srfull=3',
   './retail-estimate-chit.js?v=2.13.8&chitfull=1&srfull=3',
   './retail-groups-accounts.js?v=2.13.7&compactroof=1&srfull=2',
   './retail-all-reports.js?v=2.13.6&reportsroof=2&srfull=1',
   './retail-jewel-loan.js?v=9&loanfix=3',
-  './gl-update-center.js?v=2.14.1',
-  './ng-engine/main.js?v=2424',
-  './ng-engine/styles.css?v=2424'
+  './gl-update-center.js?v=2.14.2',
+  './ng-engine/main.js?v=2426',
+  './ng-engine/styles.css?v=2426'
 ];
 
 self.addEventListener('install', event => {
@@ -87,7 +87,6 @@ self.addEventListener('fetch', event => {
   }
 
   if (event.request.mode === 'navigate') {
-    const forceFresh = reqUrl.searchParams.has('gl_fresh') || reqUrl.searchParams.has('_upd');
     const revalidate = (async () => {
       const response = await fetch('./index.html', { cache: 'no-cache' });
       if (response.ok) {
@@ -102,14 +101,16 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const cached = (await cache.match('./')) || (await cache.match('./index.html')) || (await caches.match('./'));
-      if (cached && !forceFresh) {
-        // Instant App-Shell first (0ms network wait!) while revalidating in background
-        return cached;
-      }
+      if (!cached) return revalidate;
+      let timer;
       try {
-        return await revalidate;
-      } catch (_) {
-        return cached || fetch(event.request);
+        // Fast 450ms network check so online F5 refreshes ALWAYS land directly on the latest index.html without showing stale Update prompts, while JS/CSS bundles remain 0ms cache hits!
+        return await Promise.race([
+          revalidate.catch(() => cached),
+          new Promise(resolve => { timer = setTimeout(() => resolve(cached), 450); })
+        ]);
+      } finally {
+        clearTimeout(timer);
       }
     })());
     return;

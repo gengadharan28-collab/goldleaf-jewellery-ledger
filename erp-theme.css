@@ -749,6 +749,7 @@ html[data-theme="dark"] .erp-side-mode .erp-side-mode-nav button.active {
 .platform-access-toggle>input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;opacity:0!important;cursor:pointer!important;z-index:2!important}
 .platform-toggle-track{width:39px;height:22px;min-width:39px;border-radius:999px;background:#aaa;padding:3px;transition:.2s}.platform-toggle-track>span{display:block;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:.2s}.platform-access-toggle>input:checked+.platform-toggle-track{background:#218b59}.platform-access-toggle>input:checked+.platform-toggle-track>span{transform:translateX(17px)}
 .platform-access-toggle b,.platform-access-toggle small{display:block}.platform-access-toggle b{font-size:11px}.platform-access-toggle small{font-size:8px;color:var(--muted);margin-top:2px}
+html.gl-no-boot-anim *,html.gl-no-boot-anim *::before,html.gl-no-boot-anim *::after{transition:none!important;animation:none!important}
 @keyframes glRouteEnter{from{opacity:.92;transform:translateY(3px)}to{opacity:1;transform:none}}
 @media screen and (prefers-reduced-motion:no-preference){#app.gl-route-enter{animation:glRouteEnter .11s cubic-bezier(.22,1,.36,1)}}
 @media(max-width:760px){.platform-checks{grid-template-columns:1fr!important}.platform-access-toggle{padding:8px!important}}
