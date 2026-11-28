@@ -29,9 +29,15 @@
     if(!force&&(checking||Date.now()-checkedAt<10000))return allowed;
     checking=true;
     try{
-      const {data,error}=await client.from('goldleaf_jewel_loan_access').select('enabled').eq('shop_id',target).maybeSingle();
+      const rpc=await client.rpc('goldleaf_has_jewel_loan_access',{target_shop:target});
       if(target!==currentShop())return false;
-      allowed=!error?(data?.enabled===true):(goldleafContext?.jewel_loan_enabled===true);
+      if(!rpc.error&&typeof rpc.data==='boolean'){
+        allowed=rpc.data;
+      }else{
+        const {data,error}=await client.from('goldleaf_jewel_loan_access').select('enabled').eq('shop_id',target).maybeSingle();
+        if(target!==currentShop())return false;
+        allowed=!error?(data?.enabled===true):(goldleafContext?.jewel_loan_enabled===true);
+      }
       if(goldleafContext&&goldleafContext.shop_id===target)goldleafContext.jewel_loan_enabled=allowed;
       if(!allowed){drafts=[];selectedDraft=null;}
       checkedAt=Date.now();
@@ -39,18 +45,41 @@
     }catch{if(target===currentShop()){allowed=goldleafContext?.jewel_loan_enabled===true;if(!allowed){drafts=[];selectedDraft=null;}checkedAt=Date.now()}return allowed;}
     finally{checking=false}
   }
+  async function fetchLoanDraftRows(target){
+    const rpc=await client.rpc('goldleaf_list_loan_drafts',{p_shop_id:target});
+    if(!rpc.error&&Array.isArray(rpc.data))return {data:rpc.data,error:null};
+    return await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
+  }
   async function loadCloudDrafts(){
     const target=currentShop();
     if(!target||isDemoShop(target)||!client||!allowed)return;
-    const {data,error}=await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
+    const {data,error}=await fetchLoanDraftRows(target);
     if(target!==currentShop()||!allowed)return;
     if(!error)drafts=data||[];
   }
   async function openLoanIntake(){
-    if(!rbCanLeave()||!await checkAccess(true))return say('Jewel Loan & Auction access is off or could not be verified.');
+    if(!rbCanLeave())return;
     const target=currentShop();
+    if(!target)return say('Jewel Loan & Auction access is off or could not be verified.');
+    if(allowed||goldleafContext?.jewel_loan_enabled===true||isDemoShop(target)){
+      allowed=true;
+      page=title;edit=null;render();
+      if(!isDemoShop(target)&&client){
+        checkAccess(true).then(async ok=>{
+          if(target!==currentShop())return;
+          if(!ok){page='Dashboard';render();say('Jewel Loan & Auction access is off.');return;}
+          const {data,error}=await fetchLoanDraftRows(target);
+          if(target!==currentShop()||!allowed)return;
+          if(error){say(error.message);return;}
+          const next=data||[];
+          if(JSON.stringify(next)!==JSON.stringify(drafts)){drafts=next;if(page===title&&!creating)render();}
+        });
+      }
+      return;
+    }
+    if(!await checkAccess(true))return say('Jewel Loan & Auction access is off or could not be verified.');
     if(!isDemoShop(target)&&client){
-      const {data,error}=await client.from('goldleaf_jewel_loan_drafts').select('id,payload,created_at').eq('shop_id',target).order('created_at',{ascending:false}).limit(100);
+      const {data,error}=await fetchLoanDraftRows(target);
       if(target!==currentShop()||!allowed)return;
       if(error)return say(error.message);
       drafts=data||[];
@@ -585,8 +614,15 @@
         saveLocalDoc('retail-jewel-loan-draft',data);
         creating=false;render();say('Jewel loan draft saved.');return;
       }
-      const {data:row,error}=await client.from('goldleaf_jewel_loan_drafts').insert({shop_id:target,payload:data}).select('id,payload,created_at').single();
-      if(error)throw error;
+      let row=null;
+      const rpcIns=await client.rpc('goldleaf_insert_loan_draft',{p_shop_id:target,p_payload:data});
+      if(!rpcIns.error&&rpcIns.data){
+        row=rpcIns.data;
+      }else{
+        const res=await client.from('goldleaf_jewel_loan_drafts').insert({shop_id:target,payload:data}).select('id,payload,created_at').single();
+        if(res.error)throw res.error;
+        row=res.data;
+      }
       if(target!==currentShop()||!allowed)return;
       drafts.unshift(row);creating=false;render();say('Jewel loan draft saved.');
     }catch(error){say(error.message||'Draft could not be saved.')}

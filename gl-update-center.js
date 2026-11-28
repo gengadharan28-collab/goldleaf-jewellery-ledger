@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.14.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2424';
+  const CURRENT_VERSION = '2.14.1';
+  const CURRENT_BUILD = 'goldleaf-shell-v2425';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,9 +11,20 @@
 
   const GL_RELEASES = [
     {
-      version: '2.14.0',
+      version: '2.14.1',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Chit & Jewel Loan',
+      title: 'Jewel Loan Shop Member RLS Permission Fix & Instant Open',
+      notes: [
+        'Replaced direct goldleaf_shop_members queries inside Jewel Loan RLS policies with SECURITY DEFINER helpers (goldleaf_is_shop_member & goldleaf_has_jewel_loan_access) to eliminate permission denied errors.',
+        'Added SECURITY DEFINER cloud RPCs for Jewel Loan access verification, draft listing, and draft creation with instant zero-delay module opening.'
+      ]
+    },
+    {
+      version: '2.14.0',
+      date: '28 Nov 2026',
+      tag: 'Major',
       category: 'Platform & Security',
       title: 'Angular v22.3 Dynamic Runtime, Instant Refresh Hydration & Zero-Lag Hot Updates',
       notes: [

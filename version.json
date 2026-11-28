@@ -1,12 +1,11 @@
 {
-  "version": "2.14.0",
-  "build": "goldleaf-shell-v2424",
+  "version": "2.14.1",
+  "build": "goldleaf-shell-v2425",
   "releasedAt": "2026-11-28",
-  "title": "Angular v22.3 Dynamic Runtime, Instant Refresh Hydration & Zero-Lag Hot Updates",
+  "title": "Jewel Loan Shop Admin RLS Permission Fix & Instant Module Open",
   "highlights": [
-    "Zoneless Angular v22.3 runtime with background asset pre-warming & instant hot-swap updates without cache-wipe lag",
-    "Instant < 50ms refresh hydration: renders cached shop/admin state on frame 1 while syncing cloud records silently in background",
-    "Single-pass boot render coalescing (eliminating 20x startup DOM rebuilds), English i18n fast-path & local Supabase SDK",
-    "Instant App-Shell Service Worker with top edge GPU activity bar & cross-platform offline/online auto-sync"
+    "Fixed 'permission denied for table goldleaf_shop_members' when opening Jewel Loan & Auction as Shop Admin or Staff",
+    "Added SECURITY DEFINER cloud RPCs for Jewel Loan access, draft listing, and draft creation with instant 0ms screen open",
+    "Zoneless Angular v22.3 runtime with background pre-warming, instant refresh hydration, and zero-lag hot updates"
   ]
 }

@@ -1,4 +1,4 @@
-const CACHE = 'goldleaf-shell-v2424';
+const CACHE = 'goldleaf-shell-v2425';
 const CORE_SHELL = [
   './',
   './index.html',
@@ -13,8 +13,8 @@ const CORE_SHELL = [
   './retail-estimate-chit.js?v=2.13.8&chitfull=1&srfull=3',
   './retail-groups-accounts.js?v=2.13.7&compactroof=1&srfull=2',
   './retail-all-reports.js?v=2.13.6&reportsroof=2&srfull=1',
-  './retail-jewel-loan.js?v=8&loanfix=2',
-  './gl-update-center.js?v=2.14.0',
+  './retail-jewel-loan.js?v=9&loanfix=3',
+  './gl-update-center.js?v=2.14.1',
   './ng-engine/main.js?v=2424',
   './ng-engine/styles.css?v=2424'
 ];
