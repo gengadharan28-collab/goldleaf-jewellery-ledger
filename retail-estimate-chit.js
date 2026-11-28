@@ -1355,6 +1355,7 @@ function rcQuoteForm(){
   const quoteDiscount = n(q?.discount||0),
         quoteGstOn = q?.gstEnabled !== undefined ? !!q.gstEnabled : !!quoteGstDefaults.enabled,
         quoteGstRate = n(q?.gstRate !== undefined ? q.gstRate : quoteGstDefaults.rate) || 3,
+        quoteSalesReturnAmt = n(q?.salesReturnAmount) || rbRound((q?.salesReturnItems||[]).reduce((s,x)=>s+n(x.amount),0)),
         quoteChitId = q?.chitMappingId || '',
         quoteConsiderChit = q?.considerChitWeight,
         quoteChitBonus = q?.chitBonus,
@@ -1365,6 +1366,7 @@ function rcQuoteForm(){
           gstEnabled: quoteGstOn,
           gstRate: quoteGstRate,
           exchangeAmount: oldGoldCredit,
+          salesReturnAmount: quoteSalesReturnAmt,
           chitMappingId: quoteChitId,
           considerChitWeight: quoteConsiderChit,
           chitBonus: quoteChitBonus,
@@ -1388,6 +1390,7 @@ function rcQuoteForm(){
 
   return '<form id="rcEstimateForm" class="rc-form" oninput="rcRecalc()" onchange="rcRecalc()" onsubmit="rcSaveEstimate(event)">'
     +'<input type="hidden" name="id" value="'+esc(q?.id||'')+'">'
+    +'<input type="hidden" name="salesReturnItemsJson" value="'+esc(JSON.stringify(q?.salesReturnItems||[]))+'">'
     
     // Top Card: Quotation Metadata & Customer (Small cards left & right layout)
     +'<section class="panel rc-quote-top-card">'
@@ -1641,6 +1644,7 @@ function rcQuoteForm(){
     +'<span>GST Tax <b id="rcGST" style="display:block;font-size:14px;color:#222">'+rateMoney(quoteGst)+'</b></span>'
     +'<span>Purchase Value <b id="rcPurchaseVal" style="display:block;font-size:14px;color:#1e293b;font-weight:700">'+rateMoney(quotePurchaseValue)+'</b></span>'
     +'<span>Old Gold Credit <b id="rcOldGold" style="display:block;font-size:14px;color:#854d0e">'+(oldGoldCredit>0?'− '+rateMoney(oldGoldCredit):'₹ 0.00')+'</b></span>'
+    +'<span id="rcSalesReturnWrap" class="'+(quoteSalesReturnAmt>0?'':'hidden')+'">Sales Return Credit <b id="rcSalesReturnVal" style="display:block;font-size:14px;color:#0f766e">'+(quoteSalesReturnAmt>0?'− '+rateMoney(quoteSalesReturnAmt):'₹ 0.00')+'</b></span>'
     +'<span id="rcChitCreditWrap" class="'+(initBill.chitAmount>0||initBill.chitUsedWeight>0||n(initBill.chitTotalBenefit)!==0?'':'hidden')+'">Chit Less <b id="rcChitCredit" style="display:block;font-size:14px;color:#15803d">'+(initBill.chitAmount>0?'− '+rateMoney(initBill.chitAmount):'₹ 0.00')+'</b><small id="rcChitSavingsSub" style="font-size:10px;color:'+(n(initBill.chitTotalBenefit)<0?'#b45309':'#166534')+';display:block">'+rcChitSavingsShortText(initBill)+'</small></span>'
     +'<span>Net Estimate Payable <b id="rcFinal" style="display:block;font-size:15px;color:var(--green,#18392a);font-weight:800">'+rateMoney(quoteFinalVal)+'</b></span>'
     +'<span class="rc-advance-total-badge">💵 Collected Amount <b id="rcCollected" style="display:block;font-size:16px;color:#1b5e20;font-weight:800">'+rateMoney(q?.collectedAmount||0)+'</b></span>'
@@ -1776,6 +1780,7 @@ function rcEstimateRead(form){
   const considerChitWeight = f.considerChitWeight ? !!f.considerChitWeight.checked : undefined;
   const chitBonus = f.chitBonus ? f.chitBonus.value : undefined;
   const chitDeduction = f.chitDeduction ? f.chitDeduction.value : undefined;
+  const srData = typeof window.glComputeLiveSalesReturnData === 'function' ? window.glComputeLiveSalesReturnData(form) : { items: [], total: 0 };
 
   const billCalc = rbBillCalc(items, {
     discountValue: discount,
@@ -1783,6 +1788,7 @@ function rcEstimateRead(form){
     gstEnabled: gstOn,
     gstRate: gstRate,
     exchangeAmount: goldCredit,
+    salesReturnAmount: srData.total,
     chitMappingId: chitMappingId,
     considerChitWeight: considerChitWeight,
     chitBonus: chitBonus,
@@ -1836,6 +1842,8 @@ function rcEstimateRead(form){
     exchangePureRate: ogData.items[0]?.pureRate || n(f.exchangePureRate?.value) || n(f.goldRate?.value),
     exchangeTesting: ogData.avgTesting,
     exchangeAmount: goldCredit,
+    salesReturnAmount: srData.total,
+    salesReturnItems: srData.items,
     goldRate: n(f.goldRate.value),
     exchangeRate: ogData.avgRate,
     collections: colRows,
@@ -1890,6 +1898,8 @@ function rcQuoteModel(q){
         ogCreditFromItems = rbRound(ogItems.reduce((s, x) => s + n(x.amount), 0)),
         exchangeCredit = ogCreditFromItems > 0 ? ogCreditFromItems : (n(q.exchangeAmount) > 0 ? n(q.exchangeAmount) : rbRound(n(q.exchangeGross) * n(q.exchangeTesting||91.6) / 100 * n(q.exchangeRate))),
         ogLabel = ogItems.length > 0 ? ogItems.map(x => x.product || 'Old Gold').join(', ') : (q.exchangeProduct || 'Gold'),
+        srAmount = n(q.salesReturnAmount) || rbRound((q.salesReturnItems||[]).reduce((s,x)=>s+n(x.amount),0)),
+        srLabel = (q.salesReturnItems||[]).map(x => x.product || 'Return').filter(Boolean).join(', '),
         bill = rbBillCalc(items, {
           discountValue: n(q.discount),
           discountOnNet: q.discountOnNet === true,
@@ -1897,6 +1907,7 @@ function rcQuoteModel(q){
           gstEnabled: !!q.gstEnabled,
           gstRate: q.gstEnabled ? n(q.gstRate||3) : 0,
           exchangeAmount: exchangeCredit,
+          salesReturnAmount: srAmount,
           chitMappingId: q.chitMappingId || '',
           considerChitWeight: q.considerChitWeight,
           chitBonus: q.chitBonus,
@@ -1913,6 +1924,7 @@ function rcQuoteModel(q){
     ...(bill.gstEnabled ? [['GST ' + (bill.gstRate) + '%', rateMoney(bill.gstAmount)]] : []),
     ['Purchase value', rateMoney(bill.saleWithGST)],
     ...(bill.exchangeAmount > 0 ? [['Old gold exchange (' + ogLabel + ')', '− ' + rateMoney(bill.exchangeAmount)]] : []),
+    ...(bill.salesReturnAmount > 0 ? [['Sales return credit' + (srLabel ? ' (' + srLabel + ')' : ''), '− ' + rateMoney(bill.salesReturnAmount)]] : []),
     ...(bill.chitAmount > 0 ? [['Chit deduction' + (bill.chitNumber ? ' (' + bill.chitNumber + ')' : ''), '− ' + rateMoney(bill.chitAmount)]] : []),
     ['NET ESTIMATE PAYABLE', rateMoney(bill.amount), true],
     ...(bill.collectedAmount > 0 ? [
@@ -2176,6 +2188,9 @@ window.rcConvert = function(id){
       if(dirRef) dirRef.value = q.collectedReference || ('Advance from Quote ' + q.documentNo);
       const totIn = f.querySelector('#rbTotalCollectedInput');
       if(totIn) totIn.value = q.collectedAmount;
+    }
+    if(Array.isArray(q.salesReturnItems) && q.salesReturnItems.length > 0 && typeof window.glSetContextSalesReturns === 'function'){
+      window.glSetContextSalesReturns(f, q.salesReturnItems);
     }
     rbMarkDirty(f);
     rbRecalc(f);
@@ -2849,12 +2864,15 @@ function rcRecalc(){
   if(hidRef) hidRef.value = colRows.map(c => c.reference).filter(Boolean).join(', ');
 
   // Exact Sales Entry Bill calculation engine
+  const srData = typeof window.glComputeLiveSalesReturnData === 'function' ? window.glComputeLiveSalesReturnData(form) : { items: [], total: 0 };
+  const salesReturnCredit = srData.total;
   const bill = rbBillCalc(items, {
     discountValue: discount,
     discountMode: 'amount',
     gstEnabled: gstOn,
     gstRate: gstRate,
     exchangeAmount: goldCredit,
+    salesReturnAmount: salesReturnCredit,
     chitMappingId: form.elements.chitMappingId?.value || '',
     considerChitWeight: form.elements.considerChitWeight ? !!form.elements.considerChitWeight.checked : undefined,
     chitBonus: form.elements.chitBonus ? form.elements.chitBonus.value : undefined,
@@ -2893,6 +2911,15 @@ function rcRecalc(){
   if(elPurchValSummary) elPurchValSummary.textContent = rateMoney(bill.saleWithGST);
   const elGold = document.getElementById('rcOldGold');
   if(elGold) elGold.textContent = bill.exchangeAmount > 0 ? '− ' + rateMoney(bill.exchangeAmount) : rateMoney(0);
+  const elSrWrap = document.getElementById('rcSalesReturnWrap');
+  if(elSrWrap) elSrWrap.classList.toggle('hidden', !(bill.salesReturnAmount > 0));
+  const elSrVal = document.getElementById('rcSalesReturnVal');
+  if(elSrVal) elSrVal.textContent = bill.salesReturnAmount > 0 ? '− ' + rateMoney(bill.salesReturnAmount) : rateMoney(0);
+  form.querySelectorAll('[data-quote-return]').forEach(btn => {
+    const caret = btn.getAttribute('aria-expanded') === 'true' ? ' ▴' : ' ▾';
+    btn.textContent = bill.salesReturnAmount > 0 ? ('↩ Sales Return (−' + rateMoney(bill.salesReturnAmount) + ')' + caret) : ('+ Sales Return' + caret);
+    btn.classList.toggle('has-value', bill.salesReturnAmount > 0);
+  });
   const elChitWrap = document.getElementById('rcChitCreditWrap');
   if(elChitWrap) elChitWrap.classList.toggle('hidden', !(bill.chitAmount > 0 || bill.chitUsedWeight > 0 || n(bill.chitTotalBenefit) !== 0));
   const elChitCredit = document.getElementById('rcChitCredit');

@@ -482,17 +482,37 @@
     const cust = (db.customers || []).find(c => 'cust:' + c.id === targetId || c.id === targetId);
     if (cust) {
       const txRows = [];
-      if (n(cust.opening) !== 0) {
-        txRows.push({ date: 'Opening', ref: 'OB', type: 'Opening Balance', particulars: 'Customer opening balance', dr: n(cust.opening) > 0 ? n(cust.opening) : 0, cr: n(cust.opening) < 0 ? Math.abs(n(cust.opening)) : 0, wt: 0 });
+      const custOpen = typeof accountOpening === 'function' ? accountOpening(cust, 'customer') : n(cust.openingAmount ?? cust.opening);
+      if (custOpen !== 0) {
+        txRows.push({ date: 'Opening', ref: 'OB', type: 'Opening Balance', particulars: 'Customer opening balance', dr: custOpen > 0 ? custOpen : 0, cr: custOpen < 0 ? Math.abs(custOpen) : 0, wt: 0 });
       }
       (db.sales || []).filter(s => s.partyId === cust.id && s.accountType === 'customer').forEach(s => {
-        txRows.push({ date: String(s.when || '').slice(0, 10), ref: s.documentNo || s.id.slice(0, 8), type: 'Sales Bill', particulars: s.product || 'Jewellery Sale', dr: n(s.amount), cr: 0, wt: n(s.weight) });
+        const srNote = n(s.salesReturnAmount) > 0 ? ' (after Sales Return −' + rateMoney(s.salesReturnAmount) + ')' : '';
+        txRows.push({ date: String(s.when || '').slice(0, 10), ref: s.documentNo || s.id.slice(0, 8), type: 'Sales Bill', particulars: (s.product || 'Jewellery Sale') + srNote, dr: n(s.amount), cr: 0, wt: n(s.weight) });
         if (n(s.collectedAmount) > 0) {
           txRows.push({ date: String(s.when || '').slice(0, 10), ref: s.documentNo || s.id.slice(0, 8), type: 'Bill Receipt', particulars: 'Collected · ' + (s.collectedMethod || 'Cash'), dr: 0, cr: n(s.collectedAmount), wt: 0 });
         }
       });
       (db.payments || []).filter(p => p.partyId === cust.id && p.accountType === 'customer').forEach(p => {
-        txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: p.kind || 'Receipt', particulars: [p.method, p.product, p.reference, p.notes].filter(Boolean).join(' · '), dr: 0, cr: n(p.amount), wt: n(p.pureGrams) });
+        if (p.retailKind === 'return') {
+          const unalloc = typeof window.rbReturnUnallocatedCredit === 'function' ? window.rbReturnUnallocatedCredit(p) : Math.max(0, n(p.amount) - n(p.refundAmount));
+          if (p.appliedToSaleId) {
+            txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: 'Sales Return (Bill Adj.)', particulars: [p.product, 'Adjusted in Bill ' + (p.appliedToBillNo || '')].filter(Boolean).join(' · '), dr: n(p.amount), cr: n(p.amount), wt: -n(p.returnWeight) });
+          } else {
+            txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: 'Sales Return', particulars: [p.product, p.tagCode ? '[' + p.tagCode + ']' : '', p.reason, p.notes].filter(Boolean).join(' · '), dr: 0, cr: n(p.amount), wt: -n(p.returnWeight) });
+            if (n(p.refundAmount) > 0) {
+              txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: 'Return Refund Paid', particulars: 'Refund · ' + (p.refundMethod || 'Cash') + (p.refundReference ? ' · ' + p.refundReference : ''), dr: n(p.refundAmount), cr: 0, wt: 0 });
+            }
+            const usedViaAdv = Math.max(0, rbRound(n(p.amount) - n(p.refundAmount) - unalloc));
+            if (usedViaAdv > 0) {
+              txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: 'Return Credit Applied', particulars: 'Applied to Sales Bill', dr: usedViaAdv, cr: 0, wt: 0 });
+            }
+          }
+          return;
+        }
+        if (p.retailKind === 'metal') return;
+        const usedAdv = p.retailKind === 'advance' && typeof rbCashUsed === 'function' ? rbCashUsed(p.id) : 0;
+        txRows.push({ date: String(p.when || p.date || '').slice(0, 10), ref: p.documentNo || p.id.slice(0, 8), type: p.kind || 'Receipt', particulars: [p.method, p.product, p.reference, p.notes].filter(Boolean).join(' · '), dr: usedAdv > 0 ? usedAdv : 0, cr: n(p.amount), wt: n(p.pureGrams) });
       });
       txRows.sort((a, b) => String(a.date).localeCompare(String(b.date)));
       return { name: cust.name, group: cust.parentGroup || 'Sundry Debtors', mobile: cust.phone || '', rows: txRows };
@@ -1101,7 +1121,20 @@
         if (bTab === 'Bankbook' && !isCashMode(c.method)) pushTx(s.when, s.documentNo || s.id.slice(0, 8), 'Bill Receipt', accountName(s.partyId, 'customer'), c.method, c.amount, 0);
       });
     });
-    (db.payments || []).filter(p => p.accountType === 'customer' && p.retailKind !== 'metal' && p.retailKind !== 'return').forEach(p => {
+    (db.payments || []).filter(p => p.accountType === 'customer' && p.retailKind !== 'metal').forEach(p => {
+      if (p.retailKind === 'return') {
+        const custLabel = accountName(p.partyId, 'customer');
+        if (bTab === 'DayBook') {
+          pushTx(p.when || p.date, p.documentNo || p.id.slice(0, 8), 'Sales Return', custLabel + (p.product ? ' · ' + p.product : ''), p.appliedToBillNo ? ('Adj. ' + p.appliedToBillNo) : (p.method || 'Credit Note'), 0, p.amount);
+        }
+        if (n(p.refundAmount) > 0) {
+          const rm = p.refundMethod || 'Cash';
+          if (bTab === 'DayBook' || (bTab === 'Cashbook' && isCashMode(rm)) || (bTab === 'Bankbook' && !isCashMode(rm))) {
+            pushTx(p.when || p.date, p.documentNo || p.id.slice(0, 8), 'Return Refund', custLabel, rm, 0, p.refundAmount);
+          }
+        }
+        return;
+      }
       const m = p.method || p.kind || 'Cash';
       if (bTab === 'DayBook' || (bTab === 'Cashbook' && isCashMode(m)) || (bTab === 'Bankbook' && !isCashMode(m))) {
         pushTx(p.when || p.date, p.documentNo || p.id.slice(0, 8), p.kind || 'Receipt', accountName(p.partyId, 'customer'), m, p.amount, 0);
@@ -1170,29 +1203,93 @@
         if (row.measure === 'Amount') addLine(ledger.name, ledger.parentGroup, entry.debit, entry.credit);
       }
     });
+    const custSales = (db.sales || []).filter(s => s.accountType === 'customer' && String(s.when || s.createdAt || '').slice(0, 10) <= asOf);
+    const custPays = (db.payments || []).filter(p => p.accountType === 'customer' && String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf);
+    const custReturns = custPays.filter(p => p.retailKind === 'return');
+    const custReceiptsAndAdv = custPays.filter(p => p.retailKind !== 'return' && p.retailKind !== 'metal');
+
     (db.customers || []).forEach(c => {
-      const open = n(c.opening);
-      const sales = (db.sales || []).filter(s => s.partyId === c.id && s.accountType === 'customer').reduce((a, s) => a + n(s.amount), 0);
-      const paid = (db.payments || []).filter(p => p.partyId === c.id && p.accountType === 'customer').reduce((a, p) => a + n(p.amount), 0);
-      const bal = open + sales - paid;
-      addLine(c.name, c.parentGroup || 'Sundry Debtors', bal > 0 ? bal : 0, bal < 0 ? Math.abs(bal) : 0);
+      const cBal = typeof bal === 'function' ? rbRound(bal(c.id, 'customer')) : rbRound(n(c.openingAmount ?? c.opening));
+      addLine(c.name, c.parentGroup || 'Sundry Debtors', cBal > 0 ? cBal : 0, cBal < 0 ? Math.abs(cBal) : 0);
     });
+    const allPurDocs = (() => {
+      const a = docs('retail-purchase').filter(p => String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf);
+      const b = docs('purchase').filter(p => String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf);
+      const seen = new Set(a.map(x => x.id));
+      return [...a, ...b.filter(x => !seen.has(x.id))];
+    })();
     (db.retailSuppliers || []).forEach(s => {
       const open = n(s.openingAmount);
-      const pur = docs('retail-purchase').filter(p => p.supplierId === s.id).reduce((a, p) => a + n(p.netAmount || p.amount), 0);
-      const bal = open + pur;
-      addLine(s.name, s.parentGroup || 'Sundry Creditors', bal < 0 ? Math.abs(bal) : 0, bal > 0 ? bal : 0, n(s.openingGold) + n(s.openingSilver), n(s.openingGold) + n(s.openingSilver));
+      const sPur = allPurDocs.filter(p => p.supplierId === s.id);
+      const pur = sPur.reduce((a, p) => a + n(p.totalAmount ?? p.netAmount ?? p.amount), 0);
+      const paid = sPur.reduce((a, p) => a + n(p.paidAmount), 0) + docs('payment').filter(p => p.supplierId === s.id && String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf).reduce((a, p) => a + n(p.amountCredit), 0);
+      const sBal = rbRound(open + pur - paid);
+      addLine(s.name, s.parentGroup || 'Sundry Creditors', sBal < 0 ? Math.abs(sBal) : 0, sBal > 0 ? sBal : 0, n(s.openingGold) + n(s.openingSilver), n(s.openingGold) + n(s.openingSilver));
     });
-    const totalSales = (db.sales || []).filter(s => s.accountType === 'customer').reduce((a, s) => a + n(s.amount), 0);
-    if (totalSales > 0) addLine('Retail Jewellery Sales', 'Sales Accounts', 0, totalSales);
 
-    const totalCollected = (db.payments || []).filter(p => p.accountType === 'customer').reduce((a, p) => a + n(p.amount), 0)
-      + (db.sales || []).filter(s => s.accountType === 'customer').reduce((a, s) => a + n(s.collectedAmount), 0);
-    if (totalCollected > 0) addLine('Retail Cash & Bank Receipts', 'Cash in hand', totalCollected, 0);
+    const grossSalesIncGst = rbRound(custSales.reduce((a, s) => a + n(s.amount) + n(s.salesReturnAmount) + n(s.exchangeAmount) + n(s.metalAdvanceAmount) + n(s.chitAmount) + n(s.giftVoucherCredit), 0));
+    const salesGstOut = rbRound(custSales.reduce((a, s) => a + n(s.gstAmount), 0));
+    const salesNetExGst = rbRound(Math.max(0, grossSalesIncGst - salesGstOut));
+    if (salesNetExGst > 0) addLine('Retail Jewellery Sales', 'Sales Accounts', 0, salesNetExGst);
 
-    const totalPur = docs('retail-purchase').filter(p => String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf).reduce((a, p) => a + n(p.netAmount || p.totalAmount || p.amount), 0)
-      + docs('purchase').filter(p => String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf).reduce((a, p) => a + n(p.totalAmount || p.netAmount || p.amount), 0);
+    const returnsGross = rbRound(custReturns.reduce((a, r) => a + n(r.amount), 0));
+    const returnsGst = rbRound(custReturns.reduce((a, r) => a + (r.gstAmount !== undefined ? n(r.gstAmount) : (r.gstEnabled === false ? 0 : rbRound(n(r.amount) - n(r.amount) / 1.03))), 0));
+    const returnsExGst = rbRound(Math.max(0, returnsGross - returnsGst));
+    if (returnsExGst > 0) addLine('Sales Return A/c', 'Sales Accounts', returnsExGst, 0);
+
+    const netGstPayable = rbRound(salesGstOut - returnsGst);
+    if (netGstPayable !== 0) addLine('GST Output Tax (CGST / SGST)', 'Duties & Taxes', netGstPayable < 0 ? Math.abs(netGstPayable) : 0, netGstPayable > 0 ? netGstPayable : 0);
+
+    const oldGoldStock = rbRound(custSales.reduce((a, s) => a + n(s.exchangeAmount), 0));
+    if (oldGoldStock > 0) addLine('Old Gold Exchange Stock', 'Stock in hand', oldGoldStock, 0);
+
+    const chitRedeemed = rbRound(custSales.reduce((a, s) => a + n(s.chitAmount), 0));
+    if (chitRedeemed > 0) addLine('Chit Scheme Redemption', 'Current Liabilities', chitRedeemed, 0);
+
+    const metalAdvApplied = rbRound(custSales.reduce((a, s) => a + n(s.metalAdvanceAmount), 0));
+    if (metalAdvApplied > 0) addLine('Metal Advance Adjusted', 'Current Liabilities', metalAdvApplied, 0);
+
+    const voucherDisc = rbRound(custSales.reduce((a, s) => a + n(s.giftVoucherCredit), 0));
+    if (voucherDisc > 0) addLine('Gift Voucher Promotional Discount', 'Direct Expenses', voucherDisc, 0);
+
+    const isCashM = m => /^cash$/i.test(String(m || 'Cash').trim());
+    let cashNet = 0, bankNet = 0;
+    custSales.forEach(s => {
+      const cols = s.collections?.length ? s.collections : (n(s.collectedAmount) > 0 ? [{ method: s.collectedMethod || 'Cash', amount: s.collectedAmount }] : []);
+      cols.forEach(col => { if (isCashM(col.method)) cashNet += n(col.amount); else bankNet += n(col.amount); });
+    });
+    custReceiptsAndAdv.forEach(p => {
+      const m = p.method || p.kind || 'Cash';
+      if (isCashM(m)) cashNet += n(p.amount); else bankNet += n(p.amount);
+    });
+    custReturns.forEach(r => {
+      if (n(r.refundAmount) > 0) {
+        if (isCashM(r.refundMethod || 'Cash')) cashNet -= n(r.refundAmount);
+        else bankNet -= n(r.refundAmount);
+      }
+    });
+    allPurDocs.forEach(p => {
+      const bPaid = n(p.paidBank) + n(p.paidCard) + n(p.paidUpi);
+      const cPaid = n(p.paidCash) || Math.max(0, n(p.paidAmount) - bPaid);
+      cashNet -= cPaid; bankNet -= bPaid;
+    });
+    docs('payment').filter(p => String(p.when || p.date || p.createdAt || '').slice(0, 10) <= asOf).forEach(sp => {
+      const cols = sp.collections?.length ? sp.collections : [{ method: sp.method || 'Cash', amount: sp.amountCredit }];
+      cols.forEach(col => { if (isCashM(col.method)) cashNet -= n(col.amount); else bankNet -= n(col.amount); });
+    });
+    cashNet = rbRound(cashNet); bankNet = rbRound(bankNet);
+    if (cashNet !== 0) addLine('Retail Cash Counter', cashGroup, cashNet > 0 ? cashNet : 0, cashNet < 0 ? Math.abs(cashNet) : 0);
+    if (bankNet !== 0) addLine('Retail Bank & UPI Settlements', bankGroup, bankNet > 0 ? bankNet : 0, bankNet < 0 ? Math.abs(bankNet) : 0);
+
+    const totalPur = rbRound(allPurDocs.reduce((a, p) => a + n(p.totalAmount ?? p.netAmount ?? p.amount), 0));
     if (totalPur > 0) addLine('Retail Jewellery Purchases', 'Purchase Accounts', totalPur, 0);
+
+    const sumDr = rbRound(lines.reduce((a, l) => a + n(l.debit), 0));
+    const sumCr = rbRound(lines.reduce((a, l) => a + n(l.credit), 0));
+    const openDiff = rbRound(sumDr - sumCr);
+    if (Math.abs(openDiff) >= 0.01) {
+      addLine('Opening Capital Balance', 'Capital Account', openDiff < 0 ? Math.abs(openDiff) : 0, openDiff > 0 ? openDiff : 0);
+    }
 
     return lines;
   }

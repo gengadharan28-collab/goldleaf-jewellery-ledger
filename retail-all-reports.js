@@ -239,8 +239,8 @@
     });
     returns.forEach(r => {
       const cust = getCust(r.partyId);
-      const val = n(r.amount), tax = rbRound(val - val/1.03), txval = rbRound(val - tax);
-      cdnr.push({ ctin: cust.gst||'URP', nt:[{ ntty:'C', nt_num: r.documentNo||r.reference||r.id.slice(0,8), nt_dt: dayOf(r.when||r.date||r.createdAt), val, itms:[{ num:1, itm_det:{ rt:3, txval, iamt:0, camt:rbRound(tax/2), samt:rbRound(tax/2) } }] }] });
+      const val = n(r.amount), tax = r.gstAmount !== undefined ? n(r.gstAmount) : (r.gstEnabled === false ? 0 : rbRound(val - val/1.03)), txval = r.taxableValue !== undefined ? n(r.taxableValue) : rbRound(val - tax);
+      cdnr.push({ ctin: cust.gst||'URP', nt:[{ ntty:'C', nt_num: r.documentNo||r.reference||r.id.slice(0,8), nt_dt: dayOf(r.when||r.date||r.createdAt), val, itms:[{ num:1, itm_det:{ rt:n(r.gstRate)||3, txval, iamt:n(r.igst), camt:n(r.igst)?0:rbRound(tax/2), samt:n(r.igst)?0:rbRound(tax/2) } }] }] });
     });
     return {
       gstin: cfg.gstNumber||'33AAAAA0000A1Z5',
@@ -343,7 +343,8 @@
         cess: arr.reduce((a,s)=>a+n(s.cessAmount||0),0),
         tot: arr.reduce((a,s)=>a+n(s.amount),0)
       });
-      const retTax = returns.reduce((a,r)=>a+(n(r.amount)-n(r.amount)/1.03),0);
+      const retGstOf = r => r.gstAmount !== undefined ? n(r.gstAmount) : (r.gstEnabled === false ? 0 : rbRound(n(r.amount) - n(r.amount)/1.03));
+      const retTax = returns.reduce((a,r)=>a+retGstOf(r),0);
       const retTot = returns.reduce((a,r)=>a+n(r.amount),0);
       const rows = [
         ['4A, 4B, 4C, 6B, 6C - B2B Invoices', sumBucket(b2b)],
@@ -428,9 +429,9 @@
       const rows = [];
       let totWt=0, totTax=0, totGst=0, totAmt=0;
       returns.forEach(r=>{
-        const c = getCust(r.partyId), amt = n(r.amount), gst = rbRound(amt - amt/1.03), tax = rbRound(amt - gst), wt = n(r.returnWeight||r.weight);
+        const c = getCust(r.partyId), amt = n(r.amount), gst = r.gstAmount !== undefined ? n(r.gstAmount) : (r.gstEnabled === false ? 0 : rbRound(amt - amt/1.03)), tax = r.taxableValue !== undefined ? n(r.taxableValue) : rbRound(amt - gst), wt = n(r.returnWeight||r.weight);
         totWt+=wt; totTax+=tax; totGst+=gst; totAmt+=amt;
-        rows.push(['Credit Note (Sales Return)','<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>',esc(dayOf(r.when||r.date||r.createdAt)),esc(r.invoiceNo||r.invoiceId||'—'),esc(c.name||'Customer'),esc(c.gst||'Unregistered'),esc(r.product||'Jewellery'),fmt(wt)+' g',rateMoney(tax),rateMoney(gst/2),rateMoney(gst/2),'<b>'+rateMoney(amt)+'</b>']);
+        rows.push(['Credit Note (Sales Return)','<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>',esc(dayOf(r.when||r.date||r.createdAt)),esc(r.invoiceNo||r.invoiceId||(r.appliedToBillNo?'Adj: '+r.appliedToBillNo:'—')),esc(c.name||'Customer'),esc(c.gst||'Unregistered'),esc(r.product||'Jewellery'),fmt(wt)+' g',rateMoney(tax),rateMoney(gst/2),rateMoney(gst/2),'<b>'+rateMoney(amt)+'</b>']);
       });
       purchRet.forEach(r=>{
         const s = getSup(r.supplierId), amt = n(r.creditAmount||r.amount), gst = rbRound(amt - amt/1.03), tax = rbRound(amt - gst), wt = n(r.returnWeight||r.weight);
@@ -516,9 +517,9 @@
       const rows = [];
       let totWt=0, totTax=0, totGst=0, totVal=0;
       returns.forEach(r => {
-        const c = getCust(r.partyId), val = n(r.amount), gst = rbRound(val - val/1.03), tax = Math.max(0, val - gst), wt = n(r.returnWeight||r.weight);
+        const c = getCust(r.partyId), val = n(r.amount), gst = r.gstAmount !== undefined ? n(r.gstAmount) : (r.gstEnabled === false ? 0 : rbRound(val - val/1.03)), tax = r.taxableValue !== undefined ? n(r.taxableValue) : Math.max(0, val - gst), wt = n(r.returnWeight||r.weight);
         totWt+=wt; totTax+=tax; totGst+=gst; totVal+=val;
-        rows.push([esc(dayOf(r.when||r.date||r.createdAt)),'<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>','Sales Return',esc(r.invoiceNo||r.invoiceId||'—'),esc(c.name||'Customer'),esc(c.gst||'Unregistered'),esc(r.hsn||'7113'),esc(r.product||'Jewellery'),fmt(wt)+' g',rateMoney(tax),rateMoney(gst/2),rateMoney(gst/2),'<b>'+rateMoney(val)+'</b>']);
+        rows.push([esc(dayOf(r.when||r.date||r.createdAt)),'<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>','Sales Return',esc(r.invoiceNo||r.invoiceId||(r.appliedToBillNo?'Adj: '+r.appliedToBillNo:'—')),esc(c.name||'Customer'),esc(c.gst||'Unregistered'),esc(r.hsn||'7113'),esc(r.product||'Jewellery'),fmt(wt)+' g',rateMoney(tax),rateMoney(gst/2),rateMoney(gst/2),'<b>'+rateMoney(val)+'</b>']);
       });
       purchRet.forEach(r => {
         const s = getSup(r.supplierId), val = n(r.creditAmount||r.amount), gst = rbRound(val - val/1.03), tax = Math.max(0, val - gst), wt = n(r.returnWeight||r.weight);
@@ -541,10 +542,10 @@
         + '<pre style="max-height:380px;overflow:auto;padding:12px;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--paper,#faf8f4);font-size:12px">' + esc(JSON.stringify(payload, null, 2)) + '</pre>';
     }
     else if(name === 'GSTR3B Report'){
-      const outTaxable = sales.reduce((a,s)=>a+Math.max(0,n(s.amount)-n(s.gstAmount)),0);
+      const outTaxable = sales.reduce((a,s)=>a+Math.max(0,n(s.taxableValue ?? (n(s.saleAmount||s.amount)-n(s.gstAmount)))),0);
       const outGst = sales.reduce((a,s)=>a+n(s.gstAmount),0);
-      const retTax = returns.reduce((a,r)=>a+(n(r.amount)-n(r.amount)/1.03),0);
-      const retTaxable = returns.reduce((a,r)=>a+Math.max(0,n(r.amount)-(n(r.amount)-n(r.amount)/1.03)),0);
+      const retTax = returns.reduce((a,r)=>a+(r.gstAmount!==undefined?n(r.gstAmount):(r.gstEnabled===false?0:rbRound(n(r.amount)-n(r.amount)/1.03))),0);
+      const retTaxable = returns.reduce((a,r)=>a+(r.taxableValue!==undefined?n(r.taxableValue):Math.max(0,n(r.amount)-(r.gstEnabled===false?0:rbRound(n(r.amount)-n(r.amount)/1.03)))),0);
       const netOutTaxable = Math.max(0, outTaxable - retTaxable);
       const netOutGst = Math.max(0, outGst - retTax);
       const inTaxable = purch.reduce((a,p)=>a+Math.max(0,n(p.taxableValue||n(p.totalAmount||p.netAmount||p.amount)-n(p.gstAmount||p.taxAmount))),0);
@@ -600,7 +601,8 @@
       }
       for(const row of returns){
         const c = getCust(row.partyId);
-        add(row.when||row.date||row.createdAt, row.documentNo||row.reference||row.id, 'SALES RETURN', c.name||'Customer', c.parentGroup||'Sundry Debtors', row.product||'Sales Return', 0, row.amount, 0, row.returnWeight||row.weight, 'Returns');
+        add(row.when||row.date||row.createdAt, row.documentNo||row.reference||row.id, 'SALES RETURN', c.name||'Customer', c.parentGroup||'Sundry Debtors', (row.product||'Sales Return')+(row.appliedToBillNo?' (Adj. '+row.appliedToBillNo+')':''), 0, row.amount, row.returnWeight||row.weight, 0, 'Returns');
+        if(n(row.refundAmount)>0) add(row.when||row.date||row.createdAt, row.documentNo||row.reference||row.id, 'RETURN REFUND', c.name||'Customer', /cash/i.test(String(row.refundMethod||'Cash'))?'Cash in hand':'Bank Accounts', 'Refund Paid ('+(row.refundMethod||'Cash')+')', row.refundAmount, 0, 0, 0, 'Returns');
       }
       for(const row of pays){
         const c = getCust(row.partyId);
@@ -675,7 +677,7 @@
         const jlIn = allInts.filter(i=>inRange(i.date||i.createdAt)).reduce((a,i)=>a+n(i.netAmount||i.interestAmount),0) + allReds.filter(r=>inRange(r.date||r.createdAt)).reduce((a,r)=>a+n(r.netAmount),0);
         const purOut = purch.reduce((a,p)=>a+n(p.paidAmount),0) + supPays.reduce((a,p)=>a+n(p.amountCredit),0);
         const ogOut = oldPurch.reduce((a,p)=>a+n(p.paidAmount||p.totalAmount||p.amount),0);
-        const retOut = returns.reduce((a,r)=>a+n(r.amount),0);
+        const retOut = returns.reduce((a,r)=>a+n(r.refundAmount),0);
         const jlOut = allLoans.filter(l=>inRange(l.date||l.createdAt)).reduce((a,l)=>a+n(l.principal),0);
         const expOut = postings.filter(p=>p.measure==='Amount'&&/expense/i.test(String(p.voucherType||''))&&inRange(p.date)).reduce((a,p)=>a+n(p.amount),0);
         const totRec = openCashBank + sIn + rIn + chIn + ordIn + jlIn;
@@ -798,6 +800,10 @@
       }
       for(const payment of allPayments){
         if(matches(payment.method||payment.kind||'Cash'))add(payment.when||payment.createdAt,payment.reference||payment.documentNo||payment.id,'Customer receipt',book,getCust(payment.partyId).name||'Customer',payment.amount,0);
+      }
+      for(const ret of (db.payments||[]).filter(row=>row.accountType==='customer'&&row.retailKind==='return'&&n(row.refundAmount)>0)){
+        const rm=ret.refundMethod||'Cash';
+        if(matches(rm))add(ret.when||ret.date||ret.createdAt,ret.documentNo||ret.id,'Sales return refund ('+rm+')',book,getCust(ret.partyId).name||'Customer',0,ret.refundAmount);
       }
       for(const pur of [...allPurchases(), ...docs('old-purchase')]){
         const dt=pur.when||pur.date||pur.createdAt, sName=getSup(pur.supplierId).name||'Supplier';
@@ -966,12 +972,12 @@
       };
       if(rarState.partyType === 'All' || rarState.partyType === 'Customers (Debtors)'){
         custs.forEach(c => {
-          const open = n(c.opening);
+          const open = typeof accountOpening === 'function' ? accountOpening(c, 'customer') : n(c.openingAmount ?? c.opening);
           const cSales = sales.filter(s=>s.partyId===c.id);
-          const totSale = cSales.reduce((a,s)=>a+n(s.amount),0);
-          const totPaid = pays.filter(p=>p.partyId===c.id).reduce((a,p)=>a+n(p.amount),0)
-            + returns.filter(r=>r.partyId===c.id).reduce((a,r)=>a+n(r.amount),0)
-            + cSales.reduce((a,s)=>a+n(s.collectedAmount)+n(s.cashAdvanceAmount),0);
+          const totSale = cSales.reduce((a,s)=>a+n(s.amount)+n(s.salesReturnAmount),0);
+          const totPaid = pays.filter(p=>p.partyId===c.id&&p.retailKind!=='metal').reduce((a,p)=>a+n(p.amount),0)
+            + returns.filter(r=>r.partyId===c.id).reduce((a,r)=>a+Math.max(0,n(r.amount)-n(r.refundAmount)),0)
+            + cSales.reduce((a,s)=>a+n(s.collectedAmount),0);
           const metalAdv = pays.filter(p=>p.partyId===c.id&&p.retailKind==='metal').reduce((a,p)=>a+n(p.pureGrams),0);
           pushParty(c.name, c.parentGroup||'Sundry Debtors', c.phone||c.mobile, c.city, open, totSale, totPaid, metalAdv);
         });
@@ -1033,7 +1039,7 @@
     }
     else if(name === 'Advance Amount Report' || name === 'Advance Amount Report V1'){
       const isV1 = name === 'Advance Amount Report V1';
-      subToolbar = '<select onchange="rarState.advType=this.value;render()">'+opts(['All','Customer Cash Advance','Metal Weight Advance','Chit Scheme Advance','Retail Order Advance','Ledger Advance'], rarState.advType)+'</select>';
+      subToolbar = '<select onchange="rarState.advType=this.value;render()">'+opts(['All','Customer Cash Advance','Sales Return Credit','Metal Weight Advance','Chit Scheme Advance','Retail Order Advance','Ledger Advance'], rarState.advType)+'</select>';
       const rows = [];
       let totOpen=0, totCr=0, totUsed=0, totClose=0, totWt=0;
       const addAdv = (dt, ref, party, mobile, type, openAmt, crAmt, usedAmt, wtG=0) => {
@@ -1053,6 +1059,15 @@
         const beforeFrom = rarState.from && d && d < rarState.from;
         if(!beforeFrom && !inRange(d)) return;
         addAdv(d, p.documentNo||p.reference||p.id.slice(0,8), c.name||'Customer', c.phone||c.mobile, 'Customer Cash Advance', beforeFrom?n(p.amount):0, beforeFrom?0:n(p.amount), used, 0);
+      });
+      // 1b. Unallocated Sales Return Credits
+      (db.payments||[]).filter(p=>p.accountType==='customer'&&p.retailKind==='return'&&!p.createdBySaleId&&Math.max(0,n(p.amount)-n(p.refundAmount))>0).forEach(p=>{
+        const d = dayOf(p.when||p.date||p.createdAt), c = getCust(p.partyId);
+        const creditBase = Math.max(0, rbRound(n(p.amount)-n(p.refundAmount)));
+        const used = typeof window.rbReturnUsed==='function' ? window.rbReturnUsed(p.id) : (p.appliedToSaleId?creditBase:0);
+        const beforeFrom = rarState.from && d && d < rarState.from;
+        if(!beforeFrom && !inRange(d)) return;
+        addAdv(d, p.documentNo||p.id.slice(0,8), c.name||'Customer', c.phone||c.mobile, 'Sales Return Credit', beforeFrom?creditBase:0, beforeFrom?0:creditBase, used, n(p.returnWeight));
       });
       // 2. Metal Weight Advances
       (db.payments||[]).filter(p=>p.accountType==='customer'&&p.retailKind==='metal').forEach(p=>{
@@ -1155,13 +1170,14 @@
       else if(name === 'Profit Loss Report'){
         const expGroups = groups.filter(g=>g.type==='EXPENSE');
         const incGroups = groups.filter(g=>g.type==='INCOME');
-        const retAmt = returns.reduce((a,r)=>a+n(r.amount),0);
         const totExp = expGroups.reduce((s,g)=>s+(g.debit-g.credit),0);
-        const totInc = Math.max(0, incGroups.reduce((s,g)=>s+(g.credit-g.debit),0) - retAmt);
+        const totInc = Math.max(0, incGroups.reduce((s,g)=>s+(g.credit-g.debit),0));
         const net = totInc - totExp;
         const rows = [
-          ...incGroups.map(g=>['Income (Cr)','<b>'+esc(g.name)+'</b>',rateMoney(0),rateMoney(g.credit-g.debit)]),
-          ...(retAmt>0?[['Less: Sales Returns','Sales Return Credits',rateMoney(retAmt),rateMoney(0)]]:[]),
+          ...incGroups.flatMap(g=>[
+            ['Income (Cr)','<b>'+esc(g.name)+' (Net)</b>',rateMoney(0),rateMoney(g.credit-g.debit)],
+            ...g.items.map(it=>['↳ '+esc(it.debit>0?'Less Contra':'Revenue'),esc(it.ledgerName),rateMoney(it.debit),rateMoney(it.credit)])
+          ]),
           ...expGroups.map(g=>['Expense (Dr)','<b>'+esc(g.name)+'</b>',rateMoney(g.debit-g.credit),rateMoney(0)]),
           ['<b>'+(net>=0?'NET PROFIT':'NET LOSS')+'</b>','<b>Period Profit & Loss Result</b>','<b>'+rateMoney(totExp+(net>0?net:0))+'</b>','<b>'+rateMoney(totInc+(net<0?Math.abs(net):0))+'</b>']
         ];
@@ -1171,7 +1187,7 @@
       else {
         const liabGroups = groups.filter(g=>g.type==='LIABILITY'||g.type==='EQUITY');
         const assetGroups = groups.filter(g=>g.type==='ASSET');
-        const incTotal = groups.filter(g=>g.type==='INCOME').reduce((s,g)=>s+(g.credit-g.debit),0) - returns.reduce((a,r)=>a+n(r.amount),0);
+        const incTotal = groups.filter(g=>g.type==='INCOME').reduce((s,g)=>s+(g.credit-g.debit),0);
         const expTotal = groups.filter(g=>g.type==='EXPENSE').reduce((s,g)=>s+(g.debit-g.credit),0);
         const netProfit = incTotal - expTotal;
         const totLiab = liabGroups.reduce((s,g)=>s+(g.credit-g.debit),0) + (netProfit>0?netProfit:0);
@@ -1195,13 +1211,14 @@
       const curMode = name === 'Sale Bill Summary Matrix' && rarState.salesGroup === 'Date' ? 'Summary Matrix' : rarState.salesGroup;
       subToolbar = '<label>Group By <select onchange="rarState.salesGroup=this.value;render()">'+opts(modes, curMode)+'</select></label>';
       if(curMode === 'Summary Matrix'){
-        const grossSales = sales.reduce((a,s)=>a+n(s.amount)+n(s.discount),0);
+        const grossSales = sales.reduce((a,s)=>a+n(s.saleAmount ?? (n(s.amount)+n(s.exchangeAmount)+n(s.salesReturnAmount)+n(s.chitAmount)))+n(s.discount),0);
         const disc = sales.reduce((a,s)=>a+n(s.discount),0);
         const gst = sales.reduce((a,s)=>a+n(s.gstAmount),0);
         const og = sales.reduce((a,s)=>a+n(s.exchangeAmount),0);
         const chit = sales.reduce((a,s)=>a+n(s.chitAmount),0);
         const ret = returns.reduce((a,r)=>a+n(r.amount),0);
-        const net = sales.reduce((a,s)=>a+n(s.amount),0);
+        const unadjRet = returns.filter(r=>!r.appliedToSaleId).reduce((a,r)=>a+n(r.amount),0);
+        const net = sales.reduce((a,s)=>a+n(s.amount),0) - unadjRet;
         const wt = sales.reduce((a,s)=>a+n(s.weight),0);
         content = rarTable(['Particulars','Bills / Vouchers','Weight (g)','Amount ₹'], [
           ['Total Gross Sales', sales.length, fmt(wt)+' g', rateMoney(grossSales)],
@@ -1210,8 +1227,8 @@
           ['SGST @ 1.5%', '—', '—', rateMoney(gst/2)],
           ['Less: Old Jewel Exchange Credit', '—', '—', '− '+rateMoney(og)],
           ['Less: Chit Scheme Applied', '—', '—', '− '+rateMoney(chit)],
-          ['Less: Sales Returns Credit', returns.length, '—', '− '+rateMoney(ret)],
-          ['<b>NET SALES REALIZED</b>', '<b>'+sales.length+'</b>', '<b>'+fmt(wt)+' g</b>', '<b>'+rateMoney(net-og-ret)+'</b>']
+          ['Less: Sales Returns Credit', returns.length, fmt(returns.reduce((a,r)=>a+n(r.returnWeight||r.weight),0))+' g', '− '+rateMoney(ret)],
+          ['<b>NET SALES REALIZED</b>', '<b>'+sales.length+'</b>', '<b>'+fmt(wt)+' g</b>', '<b>'+rateMoney(net)+'</b>']
         ]);
       } else {
         const groups = new Map();
@@ -1311,14 +1328,17 @@
         if(rows.length) rows.push(['<b>Total</b>',returns.length,fmt(list.reduce((a,x)=>a+x.wt,0))+' g','<b>'+rateMoney(list.reduce((a,x)=>a+x.amt,0))+'</b>']);
         content = rows.length ? rarTable(['Product','Return Count','Return Weight g','Return Credit ₹'], rows) : '<p class="empty">No sales returns in this period.</p>';
       } else {
-        let totWt=0, totAmt=0;
+        let totWt=0, totTax=0, totGst=0, totAmt=0;
         const rows = returns.map(r => {
           const c = getCust(r.partyId), wt = n(r.returnWeight||r.weight), amt = n(r.amount);
-          totWt+=wt; totAmt+=amt;
-          return [esc(dayOf(r.when||r.date||r.createdAt)),'<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>',esc(r.invoiceNo||r.invoiceId||'—'),'<b>'+esc(c.name||'Customer')+'</b>',esc(c.phone||c.mobile||'—'),esc(r.product||'Jewellery'),fmt(wt)+' g','<b>'+rateMoney(amt)+'</b>',esc(r.reason||'Exchange / Return'),esc(r.notes||'—')];
+          const gst = r.gstAmount!==undefined ? n(r.gstAmount) : (r.gstEnabled===false ? 0 : rbRound(amt - amt/1.03));
+          const tax = r.taxableValue!==undefined ? n(r.taxableValue) : rbRound(amt - gst);
+          const settle = r.appliedToBillNo ? ('Adjusted in Bill '+r.appliedToBillNo) : (n(r.refundAmount)>0 ? ('Refunded '+rateMoney(r.refundAmount)+' ('+(r.refundMethod||'Cash')+')') : 'Customer Credit');
+          totWt+=wt; totTax+=tax; totGst+=gst; totAmt+=amt;
+          return [esc(dayOf(r.when||r.date||r.createdAt)),'<b>'+esc(r.documentNo||r.reference||r.id.slice(0,8))+'</b>',esc(r.invoiceNo||r.invoiceId||'—'),esc(r.tagCode||'—'),'<b>'+esc(c.name||'Customer')+'</b>',esc(c.phone||c.mobile||'—'),esc(r.product||'Jewellery'),fmt(wt)+' g',rateMoney(tax),rateMoney(gst),'<b>'+rateMoney(amt)+'</b>',esc(settle),esc(r.reason||'Exchange / Return')];
         });
-        if(rows.length) rows.push(['<b>Total ('+rows.length+')</b>','','','','','','<b>'+fmt(totWt)+' g</b>','<b>'+rateMoney(totAmt)+'</b>','','']);
-        content = rows.length ? rarTable(['Date','Return No.','Orig. Bill No.','Customer','Mobile','Product','Return Wt g','Return Credit ₹','Reason','Notes'], rows) : '<p class="empty">No sales returns in this period.</p>';
+        if(rows.length) rows.push(['<b>Total ('+rows.length+')</b>','','','','','','','<b>'+fmt(totWt)+' g</b>','<b>'+rateMoney(totTax)+'</b>','<b>'+rateMoney(totGst)+'</b>','<b>'+rateMoney(totAmt)+'</b>','','']);
+        content = rows.length ? rarTable(['Date','Return No.','Orig. Bill','Tag / HUID','Customer','Mobile','Product','Return Wt g','Taxable ₹','GST ₹','Total Return ₹','Settlement','Reason'], rows) : '<p class="empty">No sales returns in this period.</p>';
       }
     }
     else if(name === 'Sales Purchase'){
@@ -1853,7 +1873,7 @@
       purch.forEach(p => purchItemsOf(p).forEach(it => addTx(p.when||p.date||p.createdAt, p.documentNo||p.id.slice(0,8), 'Purchase', getSup(p.supplierId).name, it.product, it.metal, it.pieces||1, it.netWeight, 0, 0)));
       oldPurch.forEach(p => purchItemsOf(p).forEach(it => addTx(p.when||p.date||p.createdAt, p.documentNo||p.id.slice(0,8), 'Old Gold', getSup(p.supplierId).name||'Customer', it.product||'Old Jewel', it.metal, it.pieces||1, it.netWeight, 0, 0)));
       sales.forEach(s => saleItemsOf(s).forEach(it => addTx(s.when||s.createdAt, s.documentNo||s.id.slice(0,8), 'Sale Bill', getCust(s.partyId).name, it.product, it.metalType, 0, 0, it.pieces||1, it.netWeight||it.weight)));
-      returns.forEach(r => addTx(r.when||r.date||r.createdAt, r.documentNo||r.id.slice(0,8), 'Sales Return', getCust(r.partyId).name, r.product, 'Gold', 1, r.returnWeight||r.weight, 0, 0));
+      returns.forEach(r => addTx(r.when||r.date||r.createdAt, r.documentNo||r.id.slice(0,8), 'Sales Return', getCust(r.partyId).name, r.product, r.metalType||prodMetalOf(r.product), n(r.returnPieces)||1, r.returnWeight||r.weight, 0, 0));
       purchRet.forEach(r => addTx(r.when||r.date||r.createdAt, r.documentNo||r.id.slice(0,8), 'Purchase Return', getSup(r.supplierId).name, r.product, r.metal||'Gold', 0, 0, r.returnQuantity||1, r.returnWeight||r.weight));
       docs('conversion').forEach(c => addTx(c.when||c.date||c.createdAt, c.documentNo||c.id.slice(0,8), 'Conversion', getSup(c.supplierId).name||'Refinery', 'Kacha to Pure', c.metal||'Gold', 1, c.outputWeight, 1, c.weight));
 

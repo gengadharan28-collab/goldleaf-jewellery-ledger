@@ -1,12 +1,12 @@
 {
-  "version": "2.13.5",
-  "build": "goldleaf-shell-v2419",
+  "version": "2.13.6",
+  "build": "goldleaf-shell-v2420",
   "releasedAt": "2026-11-28",
-  "title": "Jewel Loan & Auction Access + Sidebar Navigation Fix",
+  "title": "Complete Sales Return Workflow, Live Balance Reduction, Accounts & GST Reports",
   "highlights": [
-    "Removed cluttered top theme/rate bar across all pages while keeping Angular v22.3 engine & Ctrl+K Quick Jump active",
-    "Gold Pure Cash Rate · 24K sync & Sales Return calculation inside Quotation & Sales Entry",
-    "Direct WhatsApp PDF link sharing, 72mm crisp thermal POS receipts & Mobile-to-Laptop Print Bridge",
-    "Bilingual EN | தமிழ் sidebar toggle & smooth zero-flash software updates"
+    "Real-time Sales Return credit deduction on Net Payable & Remaining Balance in Sales Entry and Quotation",
+    "Lookup returns by Original Bill, Sold Tag / HUID, or Direct Rate Book entry with automatic Stock / Lot restoration",
+    "Full Customer Credit vs Cash/Bank Refund settlement synced across Customer Ledger, DayBook, Cashbook/Bankbook, Trial Balance & P&L",
+    "Complete GSTR-1 9B Credit Notes, HSN Return Summary, Advance Amount & Sales Return Abstract reporting"
   ]
 }

@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.5';
-  const CURRENT_BUILD = 'goldleaf-shell-v2419';
+  const CURRENT_VERSION = '2.13.6';
+  const CURRENT_BUILD = 'goldleaf-shell-v2420';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,9 +11,21 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.5',
+      version: '2.13.6',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Sales, Accounts & Reports',
+      title: 'Complete End-to-End Sales Return Workflow, Ledgers & GST Reports',
+      notes: [
+        'Live real-time Sales Return deduction in Sales Entry & Quotation: selecting an Original Bill, Sold Tag / HUID, or Direct Return immediately reduces Net Payable and Remaining Balance.',
+        'Automatic stock restoration: returned Sold Tags revert to In Stock automatically (or create Lot Stock for untagged returns) and support Customer Credit vs Cash/Bank Refund settlement.',
+        'Full double-entry accounting & GST integration across Customer Ledger, DayBook, Cashbook/Bankbook, Trial Balance, Profit & Loss, Balance Sheet, GSTR1 9B CR/DR, HSN Return Summary, and Sales Return Abstract.'
+      ]
+    },
+    {
+      version: '2.13.5',
+      date: '28 Nov 2026',
+      tag: 'Feature',
       category: 'Chit & Jewel Loan',
       title: 'Jewel Loan & Auction Cloud Access & Sidebar Navigation Fix',
       notes: [

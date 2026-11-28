@@ -197,7 +197,15 @@ window.saveSale=function(event){
 window.toggleCustomerPaymentReference=function(){const method=document.getElementById('customerPaymentMethod')?.value,field=document.getElementById('customerPaymentReferenceField');if(field)field.classList.toggle('hidden',method==='Cash')};
 const v2OriginalPayVal=payVal,v2OriginalTogglePay=window.togglePay;
 window.payVal=function(item){return ownerType(item)==='party'&&item.kind==='Cash'&&item.cashPurpose==='hallmark'?0:v2OriginalPayVal(item)};
-window.accountPaymentValue=function(item){return ownerType(item)==='customer'?n(item.amount):payVal(item)};
+window.accountPaymentValue=function(item){
+  if(ownerType(item)==='customer'){
+    if(item?.retailKind==='return'){
+      return typeof window.rbReturnUnallocatedCredit==='function'?window.rbReturnUnallocatedCredit(item):Math.max(0,n(item.amount)-n(item.refundAmount));
+    }
+    return n(item.amount);
+  }
+  return payVal(item);
+};
 window.togglePay=function(form){if(v2OriginalTogglePay)v2OriginalTogglePay(form);if(!form)return;const customer=form.elements.accountType?.value==='customer',isCash=!customer&&form.elements.kind?.value==='Cash',purpose=form.elements.cashPurpose?.value||'gold';form.querySelectorAll('.cash-purpose').forEach(field=>field.classList.toggle('hidden',!isCash));form.querySelectorAll('.cash-rate').forEach(field=>field.classList.toggle('hidden',!isCash||purpose==='hallmark'));if(form.elements.rate)form.elements.rate.required=isCash&&purpose==='gold';const calc=form.querySelector('#payCalc');if(calc)calc.textContent=customer?'₹ '+n(form.elements.amount.value).toFixed(2):isCash?purpose==='hallmark'?v2Money(form.elements.amount.value):fmt(n(form.elements.amount.value)/n(form.elements.rate.value))+' g':fmt(n(form.elements.weight.value)*n(form.elements.purity.value)/100)+' g'};
 window.paymentsView=function(){
   const type=moduleAccountType(),customer=type==='customer',x=db.payments.find(item=>item.id===edit&&ownerType(item)===type),accounts=customer?db.customers:db.parties;
@@ -298,7 +306,7 @@ window.ledgerPage=function(type){
         ];
       }
       if(row.retailKind==='return'){
-        return [whenShow(row),esc(row.documentNo||'Return'),'<span class="pill">Sales return</span>',esc(row.desc),fmt(-n(row.returnWeight))+' g',fmt(-n(row.returnWeight))+' g',v2Money(row.amount),'—','Account credit','—','—','<b>'+v2Money(closing)+'</b>','—'];
+        const origRec=(db.payments||[]).find(p=>p.id===row.id)||{};const settleNote=origRec.appliedToBillNo?('Adjusted in Bill '+esc(origRec.appliedToBillNo)):(n(origRec.refundAmount)>0?('Refunded '+v2Money(origRec.refundAmount)+' ('+esc(origRec.refundMethod||'Cash')+')'):'Account credit');return [whenShow(row),esc(row.documentNo||'Return'),'<span class="pill">Sales return</span>',esc(origRec.product||row.desc),fmt(-n(origRec.returnWeight||row.returnWeight))+' g',fmt(-n(origRec.returnWeight||row.returnWeight))+' g',v2Money(-n(origRec.amount||Math.abs(row.amount))),'—',settleNote,n(origRec.refundAmount)>0?v2Money(origRec.refundAmount):'—','—','<b>'+v2Money(closing)+'</b>','—'];
       }
       const method=esc(row.method||row.kind||'Cash'),reference=row.reference?' · '+esc(row.reference):'';
       return [
