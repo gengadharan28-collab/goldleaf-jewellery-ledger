@@ -1164,9 +1164,11 @@ window.rcQuoteLoadTag = function(){
   // If the first row is empty, replace it, otherwise append
   if(existing.length === 1 && !existing[0].product && existing[0].grossWeight === 0){
     document.querySelector('#rcQuoteTable tbody').innerHTML = rcQuoteItemRow(tag, 0);
+    rcRecalc();
   } else {
     rcQuoteAddRow(tag);
   }
+  rcQuoteItemsCache = rcQuoteReadRows();
   input.value = '';
   input.focus();
   say('Added tag ' + tag.tagCode + ' (' + tag.product + ') to quotation.');
@@ -1215,9 +1217,11 @@ window.rcQuoteAddManualItem = function(){
   const existing = rcQuoteReadRows();
   if(existing.length === 1 && !existing[0].product && existing[0].grossWeight === 0){
     document.querySelector('#rcQuoteTable tbody').innerHTML = rcQuoteItemRow(item, 0);
+    rcRecalc();
   } else {
     rcQuoteAddRow(item);
   }
+  rcQuoteItemsCache = rcQuoteReadRows();
 
   // Clear manual inputs
   f.querySelector('[name="mProduct"]').value = '';
@@ -1594,6 +1598,13 @@ function rcQuoteForm(){
     +'<button type="button" id="rcOgAddItemBtn" class="rc-og-btn rc-og-btn-add" onclick="rcOldGoldAddItem()">＋ Add Item</button>'
     +'</div>'
     +'<div id="rcOldGoldItemsList" class="rc-og-items-list">'+rcRenderOldGoldItemsMarkup()+'</div>'
+    +'</div>'
+    +'<div id="rcOgAfterSaveSummary" class="rc-og-after-save-summary '+(oldGoldCredit>0?'':'hidden')+'">'
+    +'<span>Purchase Value: <b id="rcOgSumPurch">'+rateMoney(quotePurchaseValue)+'</b></span>'
+    +'<span class="rc-og-sum-op">−</span>'
+    +'<span>Old Gold: <b id="rcOgSumCredit" style="color:#92400e">'+rateMoney(oldGoldCredit)+'</b></span>'
+    +'<span class="rc-og-sum-op">=</span>'
+    +'<span>Total Amount: <b id="rcOgSumNet" style="color:var(--green,#143d2b)">'+rateMoney(quoteFinalVal)+'</b></span>'
     +'</div>'
     +'</div>'
 
@@ -2827,7 +2838,6 @@ window.rcToggleOldGold = function() {
 };
 
 function rcRecalc(){
-window.rcRecalc = rcRecalc;
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
   const items = rcQuoteReadRows();
@@ -2957,6 +2967,14 @@ window.rcRecalc = rcRecalc;
   if(elFormulaTot) elFormulaTot.textContent = rateMoney(bill.amount);
   const ogBanner = document.getElementById('rcPosOldGoldBanner');
   if(ogBanner) ogBanner.classList.toggle('hidden', !(bill.exchangeAmount > 0));
+  const ogAfterSave = document.getElementById('rcOgAfterSaveSummary');
+  if(ogAfterSave) ogAfterSave.classList.toggle('hidden', !(bill.exchangeAmount > 0));
+  const elOgSumPurch = document.getElementById('rcOgSumPurch');
+  if(elOgSumPurch) elOgSumPurch.textContent = rateMoney(bill.saleWithGST);
+  const elOgSumCredit = document.getElementById('rcOgSumCredit');
+  if(elOgSumCredit) elOgSumCredit.textContent = rateMoney(bill.exchangeAmount);
+  const elOgSumNet = document.getElementById('rcOgSumNet');
+  if(elOgSumNet) elOgSumNet.textContent = rateMoney(bill.amount);
 
   const elAdvBill = document.getElementById('rcAdvBillTotal');
   if(elAdvBill) elAdvBill.textContent = rateMoney(bill.amount);
@@ -3030,6 +3048,7 @@ window.rcRecalc = rcRecalc;
   const elCount = document.getElementById('rcQuoteItemCount');
   if(elCount) elCount.textContent = items.length + ' item(s)';
 }
+window.rcRecalc = rcRecalc;
 
 function rcModeOptions(values,current){return values.map(([v,l])=>'<option value="'+v+'" '+(v===(current||values[0][0])?'selected':'')+'>'+l+'</option>').join('')}
 function rcProductsView(){const list=rcDocs('retail-product'),x=list.find(p=>p.id===rcProductEdit);return '<section class="panel"><h2>'+(x?'Edit retail product':'Retail product master')+'</h2><p class="muted">Product defaults flow into tagging, sales and quotations.</p><form class="rc-grid rc-master-form" onsubmit="rcSaveProduct(event)"><input type="hidden" name="id" value="'+esc(x?.id||'')+'"><label>Product group<input name="group" value="'+esc(x?.group||'')+'" placeholder="Gold, Silver"></label><label>Product name *<input name="name" required maxlength="100" value="'+esc(x?.name||'')+'"></label><label>Print name<input name="printName" value="'+esc(x?.printName||'')+'"></label><label>Purity %<input name="purity" type="number" min="1" max="100" step=".01" value="'+(x?.purity||92)+'"></label><label>Wastage type<select name="wastageMode">'+rcModeOptions([['percent','Percentage (%)'],['grams','Weight (g)']],x?.wastageMode)+'</select></label><label>Wastage value<input name="wastage" type="number" min="0" step=".001" value="'+(x?.wastage||0)+'"></label><label>Making charge type<select name="makingMode">'+rcModeOptions([['fixed','Fixed amount'],['piece','Per piece'],['gram','Per gram'],['percent','Percentage'] ],x?.makingMode)+'</select></label><label>Making charge value<input name="makingRate" type="number" min="0" step=".01" value="'+(x?.makingRate||0)+'"></label><label>HSN<input name="hsn" value="'+esc(x?.hsn||'')+'"></label><label>Product size<input name="size" value="'+esc(x?.size||'')+'"></label><label>HUID<input name="huid" value="'+esc(x?.huid||'')+'"></label><label>Stone type<select name="stoneType">'+rcModeOptions([['none','None'],['diamond','Diamond'],['stone','Stone'],['other','Other']],x?.stoneType)+'</select></label><label>Stone pieces<input name="stonePieces" type="number" min="0" step="1" value="'+(x?.stonePieces||0)+'"></label><label>Stone carat<input name="stoneCarat" type="number" min="0" step=".001" value="'+(x?.stoneCarat||0)+'"></label><label>Stone / certificate charge ₹<input name="stoneCharge" type="number" min="0" step=".01" value="'+(x?.stoneCharge||0)+'"></label><label class="rc-wide">Description / remarks<input name="description" value="'+esc(x?.description||'')+'"></label><div class="rc-actions rc-wide"><button class="primary">'+(x?'Update product':'Add product')+'</button><button type="button" onclick="rcProductEdit=\'\';render()">Clear</button></div></form></section><section class="panel"><h2>Products · '+list.length+'</h2>'+ (list.length?table(['Group','Product','Purity','Wastage','MC type','Making','HUID','Stone','HSN',''],list.map(p=>[esc(p.group||'—'),esc(p.name),p.purity+'%',(p.wastageMode==='grams'?'g':'%')+' '+n(p.wastage),esc(p.makingMode||'piece'),rateMoney(p.makingRate),esc(p.huid||'—'),esc(p.stoneType||'none'),esc(p.hsn||'—'),'<button type="button" onclick="rcEditProduct(\''+esc(p.id)+'\')">Edit</button>'])):'<p class="muted">Add the first retail product above.</p>')+'</section>'}

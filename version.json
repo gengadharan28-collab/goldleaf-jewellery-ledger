@@ -1,11 +1,12 @@
 {
-  "version": "2.15.0",
-  "build": "goldleaf-shell-v2428",
+  "version": "2.16.0",
+  "build": "goldleaf-shell-v2429",
   "releasedAt": "2026-11-28",
-  "title": "Angular Universal (@angular/ssr v22.3) Pre-Rendered Shell & Zero-Flicker Hydration",
+  "title": "Angular v22 Universal Icons, Advanced Macro QR Scanner, Estimation & Old Gold Fixes",
   "highlights": [
-    "Configured Angular Universal (@angular/ssr v22.3.0) SSG prerendering with non-destructive Client Hydration & Event Replay",
-    "Pre-rendered ERP App Shell (#erpWorkbar, sidebar & layout grid) and consolidated all stylesheets into <head> for 0.000 CLS & zero FOUC",
-    "Idempotent diff-checked toolbar & sidebar DOM updates so background syncs never blink navigation icons"
+    "Website header board rate display enlarged with crisp medium-thick tabular numerals for instant showroom readability",
+    "Fixed Estimation Manual Mode & Quick Tag first-row calculation so Net Estimate Payable updates immediately on Add to Quotation Table",
+    "Added Purchase Value − Old Gold = Total Amount live breakdown and aligned uniform 13.5px typography across Estimation, Quotation & Sales Entry",
+    "Upgraded Angular v22 engine with contextual small icons across all ERP pages and an advanced multi-lens, batch-mode, glare-filtered QR & Barcode scanner"
   ]
 }

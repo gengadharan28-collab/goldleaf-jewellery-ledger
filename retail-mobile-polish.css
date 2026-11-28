@@ -434,7 +434,6 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
 }
 @media screen and (min-width:761px) and (max-width:1050px){
   body[data-erp] .erp-shortcuts{display:none!important}
-  body[data-erp] .erp-rate-chip{display:none!important}
 }
 
 /* v2.11.1: keep every phone label and action inside its card, including 320px Android screens. */
@@ -683,62 +682,54 @@ html[data-theme="dark"] #rcEstimateForm .rc-totals[style] > span{
   #rcEstimateForm .rc-pos-split-btn{grid-column:3!important;grid-row:1!important;align-self:center!important;justify-self:end!important;width:auto!important;min-width:60px!important;height:36px!important;min-height:36px!important;margin-top:0!important;padding:4px 10px!important;border-radius:7px!important}
 }
 
-/* v2.12.32: ~60% card-fill readable size (normal/medium weight, no heavy bold) across Estimation, Sales Bill & Payment Received. */
-html body[data-erp] #rcEstimateForm .rc-pos-pill,
-html body[data-erp] #rcEstimateForm .rc-pos-pill *,
-html body[data-erp] #rcEstimateForm .rc-old-gold-btn,
-html body[data-erp] #rcEstimateForm .rc-old-gold-title,
-html body[data-erp] #rcEstimateForm .rc-old-gold-badge,
-html body[data-erp] #rcEstimateForm .rc-adj-card-title,
-html body[data-erp] #rcEstimateForm .rc-adj-card-val,
-html body[data-erp] #rcEstimateForm .rc-pos-payment-title,
-html body[data-erp] #rcEstimateForm .rc-pos-header-total,
-html body[data-erp] #rcEstimateForm .rc-pos-header-total b,
-html body[data-erp] #rcEstimateForm .rc-pos-header-paid,
-html body[data-erp] #rcEstimateForm .rc-pos-header-paid b,
-html body[data-erp] #rcEstimateForm .rc-pos-split-btn {
-  font-size: 14.5px !important;
+/* v2.16.0: Uniform 13.5px (font-weight 550) across ALL Estimation, Quotation & Sales Entry sections + Old Gold Purchase-minus-OldGold summary. */
+html body[data-erp] #rcEstimateForm .rc-og-after-save-summary,
+html body[data-erp] #customerSaleForm .rb-og-summary-banner,
+html body[data-erp] #oldGoldPanel .rb-og-modal-formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  width: 100%;
+  margin: 8px 0;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #fffbeb 0%, #f4fbf7 100%);
+  border: 1.5px solid #d9ccb0;
+  font-size: 13.5px !important;
   font-weight: 550 !important;
-  line-height: 1.15 !important;
+  line-height: 1.25 !important;
+  color: var(--ink, #17231d);
 }
-html body[data-erp] #rcEstimateForm .rc-pos-pill {
-  min-height: 36px !important;
-  height: auto !important;
-  padding: 6px 8px !important;
+html body[data-erp] #rcEstimateForm .rc-og-after-save-summary.hidden,
+html body[data-erp] #customerSaleForm .rb-og-summary-banner.hidden {
+  display: none !important;
 }
-html body[data-erp] #rcEstimateForm .rc-pos-summary-grid span,
-html body[data-erp] #rcEstimateForm .rc-pos-summary-grid b,
-html body[data-erp] #rcEstimateForm .rc-totals span,
-html body[data-erp] #rcEstimateForm .rc-totals b,
-html body[data-erp] #rcEstimateForm .rc-adj-label,
-html body[data-erp] #rcEstimateForm .rc-og-label-text {
-  font-size: 15px !important;
+html body[data-erp] #rcEstimateForm .rc-og-after-save-summary span,
+html body[data-erp] #rcEstimateForm .rc-og-after-save-summary b,
+html body[data-erp] #customerSaleForm .rb-og-summary-banner span,
+html body[data-erp] #customerSaleForm .rb-og-summary-banner b,
+html body[data-erp] #oldGoldPanel .rb-og-modal-formula span,
+html body[data-erp] #oldGoldPanel .rb-og-modal-formula b,
+html body[data-erp] #rcEstimateForm #rcPosOldGoldBanner,
+html body[data-erp] #rcEstimateForm #rcPosOldGoldBanner span,
+html body[data-erp] #rcEstimateForm #rcPosOldGoldBanner b {
+  font-size: 13.5px !important;
   font-weight: 550 !important;
-  line-height: 1.2 !important;
+  line-height: 1.25 !important;
+  font-variant-numeric: tabular-nums;
 }
-html body[data-erp] #customerSaleForm .rb-adjustment-grid > button,
-html body[data-erp] #customerSaleForm .rb-adjustment-grid > button span,
-html body[data-erp] #customerSaleForm .rb-adjustment-grid > button b {
-  font-size: 14.5px !important;
-  font-weight: 550 !important;
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  line-height: 1.15 !important;
-}
-html body[data-erp] #customerSaleForm .rb-adjustment-grid > button {
-  padding: 6px 9px !important;
-  min-height: 40px !important;
-  gap: 4px !important;
-}
-html body[data-erp] #customerSaleForm .rb-total-row,
-html body[data-erp] #customerSaleForm .rb-total-row span,
-html body[data-erp] #customerSaleForm .rb-total-row b {
-  font-size: 15px !important;
-  font-weight: 550 !important;
+html[data-theme="dark"] body[data-erp] #rcEstimateForm .rc-og-after-save-summary,
+html[data-theme="dark"] body[data-erp] #customerSaleForm .rb-og-summary-banner,
+html[data-theme="dark"] body[data-erp] #oldGoldPanel .rb-og-modal-formula {
+  background: #232b26 !important;
+  border-color: #5c5038 !important;
+  color: #f2eee5 !important;
 }
 
-/* v2.12.35: Quotation :: New, Item Entry Mode, and Item Quotation Tag Details fields uniformly at 13px */
+/* Uniform 13.5px Typography across ALL Estimation, Quotation & Sales Entry modules (matching previous v2.12.37 standard) */
+html body[data-erp] #rcEstimateForm,
 html body[data-erp] #rcEstimateForm .rc-quote-top-card,
 html body[data-erp] #rcEstimateForm .rc-quote-top-card label,
 html body[data-erp] #rcEstimateForm .rc-quote-top-card input,
@@ -747,10 +738,15 @@ html body[data-erp] #rcEstimateForm .rc-quote-top-card button,
 html body[data-erp] #rcEstimateForm .rc-quote-top-card .muted,
 html body[data-erp] #rcEstimateForm .rc-quote-top-card .pill,
 html body[data-erp] #rcEstimateForm .rc-quote-mode-section,
+html body[data-erp] #rcEstimateForm .rc-quote-mode-title,
 html body[data-erp] #rcEstimateForm .rc-quote-mode-section button,
 html body[data-erp] #rcEstimateForm .rc-quote-mode-section input,
 html body[data-erp] #rcEstimateForm .rc-quote-mode-section select,
 html body[data-erp] #rcEstimateForm .rc-quote-mode-section label,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard div,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard label,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard input,
+html body[data-erp] #rcEstimateForm #rcQuoteManualCard select,
 html body[data-erp] #rcEstimateForm #rcQuoteTable,
 html body[data-erp] #rcEstimateForm #rcQuoteTable th,
 html body[data-erp] #rcEstimateForm #rcQuoteTable td,
@@ -759,62 +755,95 @@ html body[data-erp] #rcEstimateForm #rcQuoteTable input,
 html body[data-erp] #rcEstimateForm #rcQuoteTable select,
 html body[data-erp] #rcEstimateForm #rcQuoteTable .rc-q-ratetax,
 html body[data-erp] #rcEstimateForm #rcQuoteTable .rc-q-lineamount,
-html body[data-erp] #rcEstimateForm #rcQuoteManualCard label,
-html body[data-erp] #rcEstimateForm #rcQuoteManualCard input,
-html body[data-erp] #rcEstimateForm #rcQuoteManualCard select {
-  font-size: 13px !important;
-  line-height: 1.25 !important;
-}
-
-@media screen and (max-width:760px){
-  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax {
-    align-self: end !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    min-height: 36px !important;
-    height: 36px !important;
-    padding: 4px 8px !important;
-    margin: 0 !important;
-  }
-  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax::before {
-    margin: 0 !important;
-  }
-  html body[data-erp] #rcEstimateForm .rc-actions {
-    grid-template-columns: 0.82fr 0.82fr 1.4fr 0.96fr !important;
-    gap: 5px !important;
-  }
-}
-
-/* v2.12.37: Net Total/Paid/Remaining (13.5px), Action Buttons (13.5px), Quotation History & All Pages uniformly 13px */
-html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-lbl,
-html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-item b,
-html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-balance-title,
+html body[data-erp] #rcEstimateForm .rc-quote-items-head button,
+html body[data-erp] #rcEstimateForm .rc-pos-pill,
+html body[data-erp] #rcEstimateForm .rc-pos-pill *,
+html body[data-erp] #rcEstimateForm .rc-old-gold-btn,
+html body[data-erp] #rcEstimateForm .rc-old-gold-title,
+html body[data-erp] #rcEstimateForm .rc-old-gold-badge,
+html body[data-erp] #rcEstimateForm .rc-old-gold-hint,
+html body[data-erp] #rcEstimateForm .rc-og-form-status,
+html body[data-erp] #rcEstimateForm .rc-og-label-text,
+html body[data-erp] #rcEstimateForm .rc-og-input,
+html body[data-erp] #rcEstimateForm .rc-og-btn,
+html body[data-erp] #rcEstimateForm .rc-adj-card-title,
+html body[data-erp] #rcEstimateForm .rc-adj-card-val,
+html body[data-erp] #rcEstimateForm .rc-adj-label,
+html body[data-erp] #rcEstimateForm .rc-adj-input,
+html body[data-erp] #rcEstimateForm .rc-pos-payment-title,
+html body[data-erp] #rcEstimateForm .rc-pos-header-total,
+html body[data-erp] #rcEstimateForm .rc-pos-header-total b,
+html body[data-erp] #rcEstimateForm .rc-pos-header-paid,
+html body[data-erp] #rcEstimateForm .rc-pos-header-paid b,
+html body[data-erp] #rcEstimateForm .rc-pos-split-btn,
+html body[data-erp] #rcEstimateForm .rc-pos-labels-row span,
+html body[data-erp] #rcEstimateForm .rc-pos-row input,
+html body[data-erp] #rcEstimateForm .rc-pos-row select,
+html body[data-erp] #rcEstimateForm .rc-totals span,
+html body[data-erp] #rcEstimateForm .rc-totals b,
 html body[data-erp] #rcEstimateForm .rc-notes-wrap,
 html body[data-erp] #rcEstimateForm .rc-notes-wrap label,
 html body[data-erp] #rcEstimateForm .rc-notes-wrap span,
-html body[data-erp] #rcEstimateForm .rc-notes-wrap input {
+html body[data-erp] #rcEstimateForm .rc-notes-wrap input,
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-balance-title,
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-lbl,
+html body[data-erp] #rcEstimateForm #rcBalanceBox .rc-bal-item b,
+html body[data-erp] #rcEstimateForm .rc-actions button,
+html body[data-erp] #rcEstimateForm .rc-actions button span,
+html body[data-erp] .rc-quotation-history,
+html body[data-erp] .rc-quotation-history .rc-section-title span,
+html body[data-erp] .rc-quotation-history table th,
+html body[data-erp] .rc-quotation-history table td,
+html body[data-erp] .rc-quotation-history table td b,
+html body[data-erp] .rc-quotation-history button,
+html body[data-erp] .rc-quotation-history .pill,
+html body[data-erp] #customerSaleForm .rb-field > span,
+html body[data-erp] #customerSaleForm .rb-field label,
+html body[data-erp] #customerSaleForm .rb-account-grid input,
+html body[data-erp] #customerSaleForm .rb-account-grid select,
+html body[data-erp] #customerSaleForm .rb-contact span,
+html body[data-erp] #customerSaleForm .rb-contact small,
+html body[data-erp] #customerSaleForm .rb-tag-field-unified input,
+html body[data-erp] #customerSaleForm .rb-tag-field-unified .gl-add-tag-btn,
+html body[data-erp] #customerSaleForm #rbItemsTable th,
+html body[data-erp] #customerSaleForm #rbItemsTable td,
+html body[data-erp] #customerSaleForm #rbItemsTable input,
+html body[data-erp] #customerSaleForm #rbItemsTable select,
+html body[data-erp] #customerSaleForm #rbItemsTable output,
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button,
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button span,
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button b,
+html body[data-erp] #customerSaleForm .rb-direct-collection-panel span,
+html body[data-erp] #customerSaleForm .rb-direct-collection-panel b,
+html body[data-erp] #customerSaleForm .rb-direct-collection-panel input,
+html body[data-erp] #customerSaleForm .rb-direct-collection-panel select,
+html body[data-erp] #customerSaleForm .rb-direct-collection-panel button,
+html body[data-erp] #customerSaleForm .rb-discount-controls span,
+html body[data-erp] #customerSaleForm .rb-discount-controls input,
+html body[data-erp] #customerSaleForm .rb-discount-controls select,
+html body[data-erp] #customerSaleForm .rb-total-row,
+html body[data-erp] #customerSaleForm .rb-total-row span,
+html body[data-erp] #customerSaleForm .rb-total-row b,
+html body[data-erp] #customerSaleForm .rb-round,
+html body[data-erp] #customerSaleForm .rb-round span,
+html body[data-erp] #customerSaleForm .rb-round select,
+html body[data-erp] #customerSaleForm .rb-round b,
+html body[data-erp] #customerSaleForm .rb-balance #saleBalanceLabel,
+html body[data-erp] #customerSaleForm .rb-balance-breakdown span,
+html body[data-erp] #customerSaleForm .rb-balance-breakdown b,
+html body[data-erp] .rb-tabs > button,
+html body[data-erp] .rb-bill-actions button,
+html body[data-erp] .rc-actions button,
+html body[data-erp] .rb-sales-history table th,
+html body[data-erp] .rb-sales-history table td,
+html body[data-erp] .rb-sales-history input,
+html body[data-erp] .rb-sales-history select,
+html body[data-erp] .rb-sales-history button {
   font-size: 13.5px !important;
+  font-weight: 550 !important;
   line-height: 1.25 !important;
 }
 
-html body[data-erp] #rcEstimateForm .rc-actions button,
-html body[data-erp] #rcEstimateForm .rc-actions button span,
-html body[data-erp] .rb-bill-actions button,
-html body[data-erp] .rc-actions button {
-  font-size: 13.5px !important;
-  min-height: 40px !important;
-  padding: 6px 6px !important;
-  line-height: 1.2 !important;
-  white-space: nowrap !important;
-}
-
-html body[data-erp] .rc-quotation-history,
-html body[data-erp] .rc-quotation-history table th,
-html body[data-erp] .rc-quotation-history table td,
-html body[data-erp] .rc-quotation-history button,
-html body[data-erp] .rc-quotation-history .pill,
 html body[data-erp] #app .panel label,
 html body[data-erp] #app .panel .rb-field > span,
 html body[data-erp] #app .panel .field > label,
@@ -824,24 +853,82 @@ html body[data-erp] #app .panel textarea,
 html body[data-erp] #app .panel table th,
 html body[data-erp] #app .panel table td,
 html body[data-erp] #app .panel button:not(.rc-pos-pill):not(.rb-adjustment-grid > button):not(.rc-pos-split-btn):not(.rc-actions button):not(.rb-bill-actions button) {
-  font-size: 13px !important;
+  font-size: 13.5px !important;
   line-height: 1.25 !important;
 }
 
+html body[data-erp] #rcEstimateForm h2,
 html body[data-erp] .rc-quotation-history h2,
 html body[data-erp] #app .panel h2 {
   font-size: 15px !important;
+  font-weight: 600 !important;
+}
+
+html body[data-erp] #rcEstimateForm .rc-pos-pill {
+  min-height: 36px !important;
+  height: auto !important;
+  padding: 6px 8px !important;
+}
+
+html body[data-erp] #customerSaleForm .rb-adjustment-grid > button {
+  padding: 6px 9px !important;
+  min-height: 38px !important;
+  gap: 5px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+html body[data-erp] #rcEstimateForm .rc-actions button,
+html body[data-erp] .rb-bill-actions button,
+html body[data-erp] .rc-actions button {
+  min-height: 40px !important;
+  padding: 6px 8px !important;
+  white-space: nowrap !important;
 }
 
 @media screen and (max-width:760px){
-  #rcEstimateForm .rc-pos-payment-head{gap:1px!important;margin-bottom:2px!important}
-  #rcEstimateForm .rc-pos-payment-title{line-height:1!important;margin:0!important}
-  #rcEstimateForm .rc-pos-payment-total-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px!important;align-items:start!important;gap:5px!important}
-  #rcEstimateForm .rc-pos-header-total{grid-column:1!important;grid-row:1!important}
-  #rcEstimateForm .rc-pos-header-paid{grid-column:2!important;grid-row:1!important}
-  #rcEstimateForm .rc-pos-header-total,#rcEstimateForm .rc-pos-header-paid{height:34px!important;min-height:34px!important;padding:4px 6px!important;font-size:8px!important}
-  #rcEstimateForm .rc-pos-header-total b,#rcEstimateForm .rc-pos-header-paid b{font-size:10px!important;line-height:1.15!important}
-  #rcEstimateForm .rc-pos-split-btn{grid-column:3!important;grid-row:1!important;align-self:start!important;justify-self:end!important;width:58px!important;height:25px!important;min-height:25px!important;margin-top:0!important;padding:2px 5px!important;border-radius:7px!important;font-size:8px!important}
+  html body[data-erp] #rcEstimateForm .rc-pos-pills-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax {
+    align-self: end !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 36px !important;
+    height: auto !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+  }
+  html body[data-erp] #rcEstimateForm #rcQuoteTable.rc-quote-table tr.rc-quote-row > td.rc-q-cell-ratetax::before {
+    margin: 0 !important;
+  }
+  html body[data-erp] #rcEstimateForm .rc-pos-payment-total-wrap {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+  html body[data-erp] #rcEstimateForm .rc-pos-header-total,
+  html body[data-erp] #rcEstimateForm .rc-pos-header-paid {
+    height: auto !important;
+    min-height: 42px !important;
+    padding: 5px 8px !important;
+  }
+  html body[data-erp] #rcEstimateForm .rc-pos-split-btn {
+    width: auto !important;
+    min-width: 64px !important;
+    height: auto !important;
+    min-height: 42px !important;
+    padding: 5px 9px !important;
+  }
+  html body[data-erp] #rcEstimateForm .rc-actions {
+    grid-template-columns: 0.82fr 0.82fr 1.4fr 0.96fr !important;
+    gap: 5px !important;
+  }
 }
 
 

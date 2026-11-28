@@ -1,5 +1,5 @@
 // Shared ERP presentation and reliable Retail entry dialogs.
-const erpThemeLink=document.getElementById('glErpThemeLink')||(()=>{const l=document.createElement('link');l.id='glErpThemeLink';l.rel='stylesheet';l.href='./erp-theme.css?v=2.15.0';document.head.append(l);return l;})();
+const erpThemeLink=document.getElementById('glErpThemeLink')||(()=>{const l=document.createElement('link');l.id='glErpThemeLink';l.rel='stylesheet';l.href='./erp-theme.css?v=2.16.0';document.head.append(l);return l;})();
 window.toggleTheme=function(){appTheme=appTheme==='dark'?'light':'dark';document.documentElement.dataset.theme=appTheme;localStorage.setItem('goldleaf-theme',appTheme);document.querySelectorAll('[onclick="toggleTheme()"]') .forEach(button=>{button.textContent=appTheme==='dark'?'☀'+(button.closest('.retail-sale-tools')?'':' Light'):'☾'+(button.closest('.retail-sale-tools')?'':' Dark');button.setAttribute('aria-label',appTheme==='dark'?'Switch to light theme':'Switch to dark theme');});erpSyncToolbarTheme();};
 function erpMarkEntryDirty(form=document.getElementById('customerSaleForm')){if(form?.dataset)form.dataset.entryDirty='1';}
 for(const eventName of ['input','change'])document.addEventListener(eventName,event=>{const form=event.target.closest?.('#customerSaleForm');if(form)erpMarkEntryDirty(form);},true);
@@ -192,7 +192,7 @@ render();
       }
     }else if(node.nodeType===1){
       const tag=node.tagName;
-      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||tag==='GL-ANGULAR-SHELL'||node.id==='glLangSwitcher'||node.id==='glDesignSwitcher')return;
+      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||tag==='CODE'||tag==='GL-ANGULAR-SHELL'||tag==='SVG'||tag==='svg'||node.namespaceURI==='http://www.w3.org/2000/svg'||node.classList?.contains('gl-ng-ico')||node.id==='glLangSwitcher'||node.id==='glDesignSwitcher')return;
       for(let c=node.firstChild;c;c=c.nextSibling)translateNode(c,lang);
     }
   }

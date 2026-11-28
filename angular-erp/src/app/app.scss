@@ -3,11 +3,113 @@ gl-angular-shell {
 }
 
 @media print {
-  gl-angular-shell {
+  gl-angular-shell,
+  .gl-ng-ico,
+  .gl-ng-head-ico,
+  .gl-ng-scan-qr-pill {
     display: none !important;
   }
 }
 
+/* ==========================================================================
+   Angular v22 Universal Contextual Small Icons (All ERP Pages)
+   ========================================================================== */
+@media screen {
+  .gl-ng-ico {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    vertical-align: -2px;
+    flex-shrink: 0;
+    pointer-events: none;
+    opacity: 0.88;
+  }
+
+  button.gl-ng-has-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .gl-ng-head-with-ico {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .gl-ng-head-ico {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: rgba(200, 157, 60, 0.14);
+    color: var(--gold, #b38728);
+    flex-shrink: 0;
+  }
+
+  html[data-theme="dark"] .gl-ng-head-ico {
+    background: rgba(212, 175, 55, 0.18);
+    color: #e2be68;
+  }
+
+  .gl-ng-lbl-with-ico {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+
+  .gl-ng-lbl-with-ico .gl-ng-ico {
+    width: 12.5px;
+    height: 12.5px;
+    min-width: 12.5px;
+    min-height: 12.5px;
+    color: var(--gold, #b38728);
+  }
+
+  .gl-ng-inline-qr-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .gl-ng-inline-qr-wrap > input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .gl-ng-scan-qr-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    min-height: 36px !important;
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    background: #143d2b !important;
+    border: 1px solid #c89d3c !important;
+    color: #f7eed6 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+  }
+
+  .gl-ng-scan-qr-pill:hover {
+    background: #1b4d37 !important;
+    color: #ffffff !important;
+  }
+}
+
+/* ==========================================================================
+   Angular v22 Top Progress, Network Pill & Hot Update Modal
+   ========================================================================== */
 .gl-ng-top-progress {
   position: fixed;
   top: 0;
@@ -135,6 +237,9 @@ gl-angular-shell {
   transition: width 0.12s ease-out;
 }
 
+/* ==========================================================================
+   Angular v22 Command Palette (Ctrl+K)
+   ========================================================================== */
 .gl-ng-cmd-backdrop {
   position: fixed;
   inset: 0;
@@ -253,4 +358,455 @@ gl-angular-shell {
   text-align: center;
   font-size: 12.5px;
   opacity: 0.7;
+}
+
+/* ==========================================================================
+   Advanced Angular v22 Live QR, Barcode & HUID Scanner Modal
+   ========================================================================== */
+.gl-ng-qr-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  background: rgba(8, 15, 11, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.gl-ng-qr-shell {
+  width: 100%;
+  height: 100dvh;
+  max-width: 640px;
+  max-height: 100dvh;
+  background: #0c1510;
+  color: #f4efe4;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+}
+
+@media (min-width: 761px) {
+  .gl-ng-qr-backdrop {
+    padding: 20px;
+  }
+  .gl-ng-qr-shell {
+    height: min(760px, 92dvh);
+    border-radius: 20px;
+    border: 1.5px solid rgba(200, 157, 60, 0.45);
+  }
+}
+
+.gl-ng-qr-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  background: #10241b;
+  border-bottom: 1px solid rgba(200, 157, 60, 0.3);
+  z-index: 5;
+}
+
+.gl-ng-qr-titlewrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.gl-ng-qr-titlewrap b {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8f1df;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gl-ng-qr-titlewrap small {
+  display: block;
+  font-size: 10.5px;
+  color: #d4af37;
+}
+
+.gl-ng-qr-topactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gl-ng-qr-iconbtn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f4efe4 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+.gl-ng-qr-iconbtn.is-active {
+  background: #d4af37 !important;
+  border-color: #f4cf72 !important;
+  color: #0b1611 !important;
+}
+
+.gl-ng-qr-modechip {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  background: rgba(20, 61, 43, 0.7) !important;
+  color: #f4cf72 !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.gl-ng-qr-modechip.is-active {
+  background: #10b981 !important;
+  border-color: #6ee7b7 !important;
+  color: #052e16 !important;
+}
+
+.gl-ng-qr-stage {
+  position: relative;
+  flex: 1;
+  min-height: 260px;
+  background: #050806;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+.gl-ng-qr-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gl-ng-qr-video.is-glare-filtered {
+  filter: contrast(1.4) saturate(0.2) brightness(1.04);
+}
+
+.gl-ng-qr-status {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgba(12, 24, 18, 0.86);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #f8f1df;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: calc(100% - 24px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gl-ng-qr-status.is-locked {
+  background: #10b981;
+  border-color: #6ee7b7;
+  color: #052e16;
+}
+
+.gl-ng-qr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f4cf72;
+  box-shadow: 0 0 8px #f4cf72;
+  flex-shrink: 0;
+}
+
+.gl-ng-qr-camselect {
+  position: absolute;
+  top: 48px;
+  z-index: 4;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(16, 36, 27, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #f4efe4 !important;
+  font-size: 11px !important;
+  max-width: 240px;
+}
+
+.gl-ng-qr-reticle {
+  position: relative;
+  z-index: 3;
+  width: min(244px, 64vw);
+  height: min(244px, 64vw);
+  border-radius: 28px;
+  box-shadow: 0 0 0 3000px rgba(6, 12, 9, 0.56);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gl-ng-qr-reticle.is-locked {
+  transform: scale(0.92);
+  box-shadow: 0 0 0 3000px rgba(6, 22, 14, 0.68), 0 0 28px rgba(16, 185, 129, 0.7);
+}
+
+.gl-ng-qr-corner {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-style: solid;
+  border-color: transparent;
+}
+
+.gl-ng-qr-corner.tl {
+  top: -2px;
+  left: -2px;
+  border-width: 5px 0 0 5px;
+  border-top-color: #f4cf72;
+  border-left-color: #f4cf72;
+  border-top-left-radius: 26px;
+}
+
+.gl-ng-qr-corner.tr {
+  top: -2px;
+  right: -2px;
+  border-width: 5px 5px 0 0;
+  border-top-color: #10b981;
+  border-right-color: #10b981;
+  border-top-right-radius: 26px;
+}
+
+.gl-ng-qr-corner.bl {
+  bottom: -2px;
+  left: -2px;
+  border-width: 0 0 5px 5px;
+  border-bottom-color: #38bdf8;
+  border-left-color: #38bdf8;
+  border-bottom-left-radius: 26px;
+}
+
+.gl-ng-qr-corner.br {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 5px 5px 0;
+  border-bottom-color: #d4af37;
+  border-right-color: #d4af37;
+  border-bottom-right-radius: 26px;
+}
+
+.gl-ng-qr-laser {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #f4cf72, #10b981, #f4cf72, transparent);
+  box-shadow: 0 0 10px #10b981;
+  animation: glNgQrLaser 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes glNgQrLaser {
+  from { top: 10%; }
+  to { top: 90%; }
+}
+
+.gl-ng-qr-focusring {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  margin-left: -26px;
+  margin-top: -26px;
+  border: 2px solid #f4cf72;
+  border-radius: 50%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.gl-ng-qr-hitcard {
+  position: absolute;
+  bottom: 58px;
+  z-index: 5;
+  background: rgba(16, 58, 40, 0.95);
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  padding: 7px 14px;
+  text-align: center;
+  max-width: calc(100% - 28px);
+}
+
+.gl-ng-qr-hitcard b {
+  display: block;
+  font-size: 13px;
+  color: #ecfdf5;
+}
+
+.gl-ng-qr-hitcard small {
+  font-size: 11px;
+  color: #a7f3d0;
+}
+
+.gl-ng-qr-zoombar {
+  position: absolute;
+  bottom: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(12, 22, 17, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  max-width: calc(100% - 16px);
+}
+
+.gl-ng-qr-zbtn {
+  min-height: 27px !important;
+  height: 27px !important;
+  padding: 0 9px !important;
+  border-radius: 999px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.gl-ng-qr-zbtn.is-active {
+  background: linear-gradient(135deg, #d4af37, #b38728) !important;
+  color: #0b1611 !important;
+}
+
+.gl-ng-qr-zslider {
+  width: 72px !important;
+  min-height: 20px !important;
+  height: 5px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  accent-color: #d4af37;
+}
+
+.gl-ng-qr-sheet {
+  background: #10241b;
+  border-top: 1px solid rgba(200, 157, 60, 0.35);
+  padding: 11px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 8px;
+  z-index: 5;
+}
+
+.gl-ng-qr-manualrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.gl-ng-qr-uploadbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 11px;
+  border-radius: 9px;
+  background: rgba(212, 175, 55, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #f4cf72;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gl-ng-qr-manualinput {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 6px 10px !important;
+  border-radius: 9px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: #09140f !important;
+  color: #f8f1df !important;
+  font-size: 13px !important;
+}
+
+.gl-ng-qr-usebtn {
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 13px !important;
+  border-radius: 9px !important;
+  border: 1px solid #d4af37 !important;
+  background: #d4af37 !important;
+  color: #0b1611 !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+}
+
+.gl-ng-qr-suggestions,
+.gl-ng-qr-recent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gl-ng-qr-sugchip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 3px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #d1fae5 !important;
+  font-size: 11.5px !important;
+  white-space: nowrap !important;
+}
+
+.gl-ng-qr-sugchip b {
+  color: #f4cf72;
+}
+
+.gl-ng-qr-recent small {
+  font-size: 11px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.gl-ng-qr-recchip {
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 2px 9px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f4efe4 !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
 }

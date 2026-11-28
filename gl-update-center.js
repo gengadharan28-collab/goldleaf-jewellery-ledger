@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.15.0';
-  const CURRENT_BUILD = 'goldleaf-shell-v2428';
+  const CURRENT_VERSION = '2.16.0';
+  const CURRENT_BUILD = 'goldleaf-shell-v2429';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -14,9 +14,22 @@
 
   const GL_RELEASES = [
     {
-      version: '2.15.0',
+      version: '2.16.0',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Counter & Angular Engine',
+      title: 'Angular v22 Universal Icons, Advanced Macro QR Scanner, Estimation & Old Gold Fixes',
+      notes: [
+        'Enlarged website header board rate display (24K, 22K, Silver) with clean medium-thick tabular numerals (no heavy bold).',
+        'Fixed Estimation Manual Mode & Quick Tag first-item calculation so Items Subtotal, GST, Purchase Value & Net Estimate Payable update immediately.',
+        'Added live Purchase Value − Old Gold = Total Amount breakdown on Old Gold save/done and standardized uniform 13.5px typography across Estimation, Quotation & Sales Entry.',
+        'Added Angular v22 contextual vector icons across all ERP pages and upgraded the QR/Barcode scanner with Batch Mode, lens selector, glare filter, 5-pass photo decode & live Tag/HUID search.'
+      ]
+    },
+    {
+      version: '2.15.0',
+      date: '28 Nov 2026',
+      tag: 'SSR',
       category: 'Platform & Security',
       title: 'Angular Universal (@angular/ssr v22.3) Pre-Rendered Shell & Zero-Flicker Hydration',
       notes: [
