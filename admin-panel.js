@@ -48,7 +48,7 @@ window.platformSignOut = async function() {
     const result = await client.auth.signOut();
     if (result.error) throw result.error;
     session = null; goldleafContext = null; platformLoadedUser = ''; platformLedgerShop = ''; platformPage = 'Dashboard'; platformError = '';
-    localStorage.removeItem(dbkey); localStorage.removeItem(V2_CLOUD_PENDING_KEY); db = init(); ensureExtendedData(); render();
+    localStorage.removeItem(dbkey); localStorage.removeItem(V2_CLOUD_PENDING_KEY); localStorage.removeItem('goldleaf-ctx-v2'); db = init(); ensureExtendedData(); render();
   } catch (error) { say('Could not sign out. '+error.message); }
 };
 function platformQuickSignOut(){return session?'<button type="button" class="platform-sign-out" onclick="platformSignOut()" aria-label="Sign out">↪ Sign out</button>':'';}
@@ -347,9 +347,60 @@ function platformWriteShopCache(){
   localStorage.setItem(key,JSON.stringify({cacheVersion:2,shop_id:goldleafContext.shop_id,user_id:session.user.id,payload:db,saved_at:new Date().toISOString()}));
 }
 let platformLedgerShop='';
+const GL_CTX_CACHE_KEY='goldleaf-ctx-v2';
+function platformWriteContextCache(){
+  if(!session?.user?.id||!goldleafContext||platformIsDemo())return;
+  try{
+    localStorage.setItem(GL_CTX_CACHE_KEY,JSON.stringify({
+      v:2,
+      user_id:session.user.id,
+      context:goldleafContext,
+      updated_at:v2LastCloudUpdatedAt||'',
+      admin:goldleafContext.is_super_admin?{
+        shops:goldleafAdminShops,
+        invites:platformInvites,
+        plans:platformPlans,
+        loans:[...platformLoanEntitlements.entries()]
+      }:null
+    }));
+  }catch{}
+}
+window.glTryInstantHydrate=function(sess){
+  if(!sess?.user?.id||platformIsDemo())return false;
+  try{
+    const raw=JSON.parse(localStorage.getItem(GL_CTX_CACHE_KEY)||'null');
+    if(!raw||raw.v!==2||raw.user_id!==sess.user.id||!raw.context)return false;
+    goldleafContext=raw.context;
+    if(raw.updated_at)v2LastCloudUpdatedAt=raw.updated_at;
+    if(goldleafContext.is_super_admin&&raw.admin){
+      goldleafAdminShops=Array.isArray(raw.admin.shops)?raw.admin.shops:[];
+      platformInvites=Array.isArray(raw.admin.invites)?raw.admin.invites:[];
+      platformPlans=Array.isArray(raw.admin.plans)?raw.admin.plans:[];
+      platformLoanEntitlements.clear();
+      for(const [k,val] of raw.admin.loans||[])platformLoanEntitlements.set(k,!!val);
+    }
+    if(goldleafContext.shop_id){
+      const local=platformReadShopCache(goldleafContext.shop_id);
+      if(local){
+        db=Object.assign(init(),local);
+        ensureExtendedData();
+        platformLedgerShop=goldleafContext.shop_id;
+      }
+      try{
+        const sr=JSON.parse(localStorage.getItem('goldleaf-cached-public-rates')||'null');
+        if(sr&&Number(sr.gold24)>0){
+          db.sharedRates=sr;
+          if(goldleafContext.shared_rates_enabled!==false)db.rates=Object.assign({},sr);
+        }
+      }catch{}
+      setCloudStatus('Cloud · '+(goldleafContext.shop_name||sess.user.email));
+    }
+    return true;
+  }catch{return false;}
+};
 const platformPreviousSave=window.save;
 const platformPreviousAuthForm=window.authForm;
-window.authForm=function(){if(session){goldleafContext=null;platformLoadedUser='';platformLedgerShop='';}return platformPreviousAuthForm();};
+window.authForm=function(){if(session){goldleafContext=null;platformLoadedUser='';platformLedgerShop='';localStorage.removeItem(GL_CTX_CACHE_KEY);}return platformPreviousAuthForm();};
 window.save = function () {
   if (platformIsDemo()) {
     localStorage.setItem(platformStorageKey(), JSON.stringify(db));
@@ -375,6 +426,7 @@ function platformAdoptCloudReset(payload){
 window.pullCloud=async function(){
   if(!session||!client||v2CloudBusy||platformIsDemo())return;
   v2CloudBusy=true;
+  try{window.dispatchEvent(new CustomEvent('gl:sync-start'));}catch{}
   try{
     const context=await client.rpc('goldleaf_my_context');if(context.error)throw context.error;
     const previous=goldleafContext;goldleafContext=context.data;
@@ -396,11 +448,13 @@ window.pullCloud=async function(){
       for(const s of goldleafAdminShops)if(typeof s.jewel_loan_enabled==='boolean')platformLoanEntitlements.set(s.id,s.jewel_loan_enabled);
       if(!loanAccess.error){for(const row of loanAccess.data||[])platformLoanEntitlements.set(row.shop_id,!!row.enabled);}
     }
+    platformWriteContextCache();
     if(shared.error)throw shared.error;
     if(shared.data&&Number(shared.data.gold24)>0)try{localStorage.setItem('goldleaf-cached-public-rates',JSON.stringify(shared.data));}catch{}
     if(!goldleafContext.has_access||!goldleafContext.retail_enabled&&!goldleafContext.wholesale_enabled){db.rates=shared.data||{};platformError='';setCloudStatus((goldleafContext.has_access?'Awaiting workspace · ':'Subscription expired · ')+(goldleafContext.shop_name||session.user.email));render();return;}
     if(response.error)throw response.error;
     const remote=response.data||{},shop=goldleafContext.shop_id;
+    const unchangedHydrated=!!(previous&&platformLedgerShop===shop&&v2LastCloudUpdatedAt&&remote.updated_at&&v2LastCloudUpdatedAt===remote.updated_at&&localStorage.getItem(V2_CLOUD_PENDING_KEY)!=='1'&&previous.retail_enabled===goldleafContext.retail_enabled&&previous.wholesale_enabled===goldleafContext.wholesale_enabled&&previous.jewel_loan_enabled===goldleafContext.jewel_loan_enabled&&JSON.stringify(db.sharedRates||{})===JSON.stringify(shared.data||{}));
     const resetApplied=platformAdoptCloudReset(remote.payload);
     if(platformLedgerShop!==shop){
       localStorage.removeItem('goldleaf-device-backup-before-shop-login');
@@ -408,11 +462,11 @@ window.pullCloud=async function(){
       db=local&&(!remote.payload?.recordsResetToken||local.recordsResetToken===remote.payload.recordsResetToken)?v2MergeCloudLedgers(remote.payload,local,true):Object.assign(init(),remote.payload||{});
       platformLedgerShop=shop;if(JSON.stringify(db)!==JSON.stringify(remote.payload||{}))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
-    else {const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[])||JSON.stringify(db.wholesaleLots||[])!==JSON.stringify(remote.payload?.wholesaleLots||[])||JSON.stringify(db.wholesalePacketSales||[])!==JSON.stringify(remote.payload?.wholesalePacketSales||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
-    ensureExtendedData();db.sharedRates=shared.data||{};db.rates=goldleafContext?.shared_rates_enabled!==false?Object.assign({},db.sharedRates):(db.shopRates?.enabled?Object.assign({},db.shopRates):db.rates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
-    setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled||previous.jewel_loan_enabled!==goldleafContext.jewel_loan_enabled)render();
+    else if(!unchangedHydrated){const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[])||JSON.stringify(db.wholesaleLots||[])!==JSON.stringify(remote.payload?.wholesaleLots||[])||JSON.stringify(db.wholesalePacketSales||[])!==JSON.stringify(remote.payload?.wholesalePacketSales||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
+    ensureExtendedData();db.sharedRates=shared.data||{};db.rates=goldleafContext?.shared_rates_enabled!==false?Object.assign({},db.sharedRates):(db.shopRates?.enabled?Object.assign({},db.shopRates):db.rates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformWriteContextCache();platformError='';
+    setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||(!unchangedHydrated&&!v2HasFocusedEdit())||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled||previous.jewel_loan_enabled!==goldleafContext.jewel_loan_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
-  finally{v2CloudBusy=false;}
+  finally{v2CloudBusy=false;try{window.dispatchEvent(new CustomEvent('gl:sync-end'));}catch{}}
 };
 window.pushCloud=async function(){
   if(!session||!client||!goldleafContext?.shop_id||!goldleafContext.has_access||platformIsDemo())return;
@@ -435,10 +489,10 @@ window.pushCloud=async function(){
         }
       }
       if(!written)throw new Error('Records changed on another device. Your entry is saved here and will retry.');
-      platformStoreLedger();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
+      platformStoreLedger();platformWriteContextCache();localStorage.removeItem(V2_CLOUD_PENDING_KEY);window.v2LastSyncError='';const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title='';setCloudStatus('Cloud · '+goldleafContext.shop_name);
     }while(v2CloudQueuedPush);
   }catch(error){const rawMsg=String(error?.message||'');const needsSql=/Retail supplier is missing/i.test(rawMsg)&&(db.retailDocuments||[]).some(d=>d?.kind==='retail-product-group'||d?.kind==='retail-model');platformError=needsSql?'Cloud Retail schema needs supabase_retail_features.sql update to sync Product Group / Model records.':rawMsg;window.v2LastSyncError=platformError;const cloudEl=document.getElementById('cloudState');if(cloudEl)cloudEl.title=platformError;setCloudStatus('Entry saved here · waiting to sync');}
-  finally{v2CloudBusy=false;}
+  finally{v2CloudBusy=false;try{window.dispatchEvent(new CustomEvent('gl:sync-end'));}catch{}}
 };
 window.v2CheckCloudForChanges=async function(){if(!session||!client||platformIsDemo()||v2CloudBusy||v2CloudCheckBusy||document.visibilityState!=='visible')return;v2CloudCheckBusy=true;try{await pullCloud();if(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1')await pushCloud();}finally{v2CloudCheckBusy=false;}};
 // Prevent rate reminders from covering the platform sign-in and control screens.

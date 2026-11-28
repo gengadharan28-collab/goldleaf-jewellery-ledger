@@ -764,7 +764,7 @@ function dash(){
     +'<section class="panel"><h2>Recent transactions</h2>'+transactionHistory()+'</section>'
     +'<section class="panel hint"><b>Balance guide</b><br>Party sales and metal payments are calculated in pure grams. Customer sales, payments, and opening balances are recorded in rupees. The two ledgers stay separate.</section>';
 }document.getElementById('app').innerHTML='<div class="gl-boot-state" role="status" aria-live="polite"><span class="gl-boot-dot" aria-hidden="true"></span><span>Opening Goldleaf…</span></div>';setTimeout(()=>{if(!window.goldleafAuthReady){window.goldleafAuthReady=true;render();document.getElementById('glBootOverlay')?.remove()}},15000);
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+</script><script src="./supabase.min.js?v=2.119.2"></script><script>
 function glFinishBoot(){render();document.getElementById('glBootOverlay')?.remove();if(typeof window.glRevealSettledBoot==='function')window.glRevealSettledBoot();}
 if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
   client=window.supabase.createClient(db.cloud.url,db.cloud.key);
@@ -773,9 +773,17 @@ if(db.cloud?.url&&db.cloud?.key&&window.supabase?.createClient){
     window.goldleafAuthReady=true;
     setCloudStatus(session?'Cloud sync · '+session.user.email:'Local storage · this device');
     if(!session){glFinishBoot();return}
-    const loadAccount=()=>Promise.resolve(pullCloud()).finally(glFinishBoot);
-    if(window.goldleafV2Ready)loadAccount();
-    else window.addEventListener('goldleaf-v2-ready',loadAccount,{once:true});
+    const startSync=()=>{
+      const hydrated=typeof window.glTryInstantHydrate==='function'&&window.glTryInstantHydrate(session);
+      if(hydrated){
+        glFinishBoot();
+        Promise.resolve(pullCloud()).catch(()=>{});
+      }else{
+        Promise.resolve(pullCloud()).finally(glFinishBoot);
+      }
+    };
+    if(window.goldleafV2Ready)startSync();
+    else window.addEventListener('goldleaf-v2-ready',startSync,{once:true});
   }).catch(()=>{window.goldleafAuthReady=true;glFinishBoot()})
 }else{window.goldleafAuthReady=true;glFinishBoot()}
 </script><script>const GOLDLEAF_VERSION='2.13.0';
@@ -1336,8 +1344,37 @@ window.render=function(){
   checkRateReminder();
 };
 window.setInterval(()=>{if(session)window.checkRateReminder()},30000);window.addEventListener('focus',()=>{if(session)checkRateReminder()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)checkRateReminder()});
+(function(){
+  let _renderImpl=window.render;
+  window.__glBootPhase=true;
+  let _bootDirty=false;
+  const wrapRender=fn=>function(){
+    if(window.__glBootPhase){_bootDirty=true;return;}
+    const out=fn.apply(this,arguments);
+    try{window.dispatchEvent(new CustomEvent('gl:rendered'));}catch(_){}
+    return out;
+  };
+  let _wrapped=wrapRender(_renderImpl);
+  try{
+    Object.defineProperty(window,'render',{
+      configurable:true,
+      enumerable:true,
+      get(){return _wrapped;},
+      set(fn){if(typeof fn==='function'){_renderImpl=fn;_wrapped=wrapRender(fn);}}
+    });
+  }catch(_){}
+  window.__glEndBootPhase=function(){
+    if(!window.__glBootPhase)return;
+    window.__glBootPhase=false;
+    if(_bootDirty||session||localStorage.getItem('goldleaf_demo_active')==='1')window.render();
+    if(session||localStorage.getItem('goldleaf_demo_active')==='1'||window.goldleafAuthReady){
+      document.getElementById('glBootOverlay')?.remove();
+      if(typeof window.glRevealSettledBoot==='function')window.glRevealSettledBoot();
+    }
+  };
+})();
 render();
-</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.12&delpay=1&sr=1"></script><script src="./admin-panel.js?v=2.13.9&cloudfix=4&loanaccess=4"></script><script src="./pdf-templates-v21281.js?v=27&mono=22&notable=1&dark=0"></script><script src="./direct-print-helper.js?v=2.12.94&crisp=8&dark=0"></script><script src="./erp-ui.js?v=2.13.9&clean=3"></script><script src="./retail-sales.js?v=2.13.8&termsfilter=1&srfull=3"></script><script src="./retail-purchases.js?v=2.11.16&rcmhistory=1"></script><script src="./retail-estimate-chit.js?v=2.13.8&chitfull=1&srfull=3"></script><script src="./retail-crm-orders.js?v=2.12.35&repairfull=1"></script><script src="./retail-groups-accounts.js?v=2.13.7&compactroof=1&srfull=2"></script><script src="./retail-cost-structure.js?v=2.12.30&subfix=1"></script><script src="./gl-datatable-drill.js?v=2.13.8"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.12.2&stockroof=2"></script><script src="./retail-lot-entry.js?v=2.12.2&detaillists=1"></script><script src="./retail-chit-reports.js?v=2.10.78&nooverride=1"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.82"></script><script src="./retail-all-reports.js?v=2.13.6&reportsroof=2&srfull=1"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.12.37"><style id="grid80-final-alignment">.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:monospace!important;font-weight:400!important;color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important;text-shadow:none!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}@media print{body,body .main,body .panel,body table,body th,body td,body h1,body h2,body h3,body p,body span,body b,body strong,body small{color:#000!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}body table,body th,body td{border-color:#000!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{-webkit-text-stroke:0!important;font-weight:400!important}}</style><script src="./retail-jewel-loan.js?v=8&loanfix=2"></script><script src="./gl-update-center.js?v=2.13.13"></script><link rel="stylesheet" href="./ng-engine/styles.css?v=2423"><script type="module" src="./ng-engine/main.js?v=2423"></script></body></html>
+</script><script src="./qrcode.min.js?v=2.10.54"></script><!-- Heavy scanner decoder loads only when Scan is opened. --><script src="./app-v2.js?v=2.12.12&delpay=1&sr=1"></script><script src="./admin-panel.js?v=2.14.0&cloudfix=5&loanaccess=5"></script><script src="./pdf-templates-v21281.js?v=27&mono=22&notable=1&dark=0"></script><script src="./direct-print-helper.js?v=2.12.94&crisp=8&dark=0"></script><script src="./erp-ui.js?v=2.14.0&clean=4"></script><script src="./retail-sales.js?v=2.13.8&termsfilter=1&srfull=3"></script><script src="./retail-purchases.js?v=2.11.16&rcmhistory=1"></script><script src="./retail-estimate-chit.js?v=2.13.8&chitfull=1&srfull=3"></script><script src="./retail-crm-orders.js?v=2.12.35&repairfull=1"></script><script src="./retail-groups-accounts.js?v=2.13.7&compactroof=1&srfull=2"></script><script src="./retail-cost-structure.js?v=2.12.30&subfix=1"></script><script src="./gl-datatable-drill.js?v=2.13.8"></script><link rel="stylesheet" href="./retail-crm-orders.css?v=2.12.22"><script src="./retail-product-workflow.js?v=2.10.96"></script><script src="./retail-stock-verification.js?v=2.12.2&stockroof=2"></script><script src="./retail-lot-entry.js?v=2.12.2&detaillists=1"></script><script src="./retail-chit-reports.js?v=2.10.78&nooverride=1"></script><script src="./retail-trade-reports.js?v=2.10.62"></script><script src="./retail-tag-reports.js?v=2.10.82"></script><script src="./retail-all-reports.js?v=2.13.6&reportsroof=2&srfull=1"></script><link rel="stylesheet" href="./retail-chit-reports.css?v=2.10.62"><link rel="stylesheet" href="./retail-tag-reports.css?v=2.10.80"><link rel="stylesheet" href="./retail-stock-verification.css?v=2.10.91"><script src="./qr-scanner.js?v=2.12.8&lazy=1"></script><link rel="stylesheet" href="./retail-estimate-chit.css?v=2.10.56&autocut=2"><link rel="stylesheet" href="./entry-compact.css?v=2.10.76"><link rel="stylesheet" href="./retail-mobile-polish.css?v=2.12.37"><style id="grid80-final-alignment">.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{font-family:monospace!important;font-weight:400!important;color:#000!important;-webkit-text-fill-color:#000!important;-webkit-text-stroke:0!important;text-shadow:none!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-80,.pdf-thermal-estimate-58{border:0!important;box-shadow:none!important;background:#fff!important}@media print{body,body .main,body .panel,body table,body th,body td,body h1,body h2,body h3,body p,body span,body b,body strong,body small{color:#000!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}body table,body th,body td{border-color:#000!important}.pdf-thermal-estimate-grid-80,.pdf-thermal-estimate-grid-80 *,.pdf-thermal-estimate-80,.pdf-thermal-estimate-80 *,.pdf-thermal-estimate-58,.pdf-thermal-estimate-58 *,.gl-pdf.pdf-estimate,.gl-pdf.pdf-estimate *{-webkit-text-stroke:0!important;font-weight:400!important}}</style><script src="./retail-jewel-loan.js?v=8&loanfix=2"></script><script src="./gl-update-center.js?v=2.14.0"></script><script>window.__glEndBootPhase&&window.__glEndBootPhase();</script><link rel="stylesheet" href="./ng-engine/styles.css?v=2424"><script type="module" src="./ng-engine/main.js?v=2424"></script></body></html>
 
 
 
