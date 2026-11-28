@@ -1,11 +1,11 @@
 {
-  "version": "2.14.2",
-  "build": "goldleaf-shell-v2426",
+  "version": "2.14.3",
+  "build": "goldleaf-shell-v2427",
   "releasedAt": "2026-11-28",
-  "title": "Zero-Flicker Navigation Bar on Refresh & Accurate Update Indicator",
+  "title": "Zero-Flicker Cloud Session Boot, Static Navigation Bar & Clean Update State",
   "highlights": [
-    "Locked sidebar state on frame 0 with boot transition suppression so the navigation bar never slides or animates on refresh",
-    "Eliminated background sync bar noise and false-positive ⚡ Update badge after updating or refreshing",
+    "Synchronous 0ms Supabase session & shop hydration before first paint so signed-in cloud refreshes never rebuild or flash the navigation bar",
+    "Locked sidebar state on frame 0 with zero transition flicker and accurate ⚡ Update indicator",
     "Fixed Shop Admin Jewel Loan RLS permissions & instant module open"
   ]
 }

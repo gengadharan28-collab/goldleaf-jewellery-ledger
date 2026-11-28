@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.14.2';
-  const CURRENT_BUILD = 'goldleaf-shell-v2426';
+  const CURRENT_VERSION = '2.14.3';
+  const CURRENT_BUILD = 'goldleaf-shell-v2427';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -14,9 +14,20 @@
 
   const GL_RELEASES = [
     {
-      version: '2.14.2',
+      version: '2.14.3',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Platform & Security',
+      title: 'Zero-Flicker Cloud Session Boot, Static Navigation Bar & Clean Update State',
+      notes: [
+        'Added synchronous 0ms Supabase session + context hydration before first paint so signed-in Shop Admin and Super Admin refreshes never flash gl-auth-active or rebuild the navigation bar.',
+        'Locked sidebar state on frame 0 without slide transitions and restricted ⚡ Update badge strictly to newer server releases.'
+      ]
+    },
+    {
+      version: '2.14.2',
+      date: '28 Nov 2026',
+      tag: 'Fix',
       category: 'Platform & Security',
       title: 'Zero-Flicker Navigation Bar on Refresh & Accurate Update Indicator',
       notes: [

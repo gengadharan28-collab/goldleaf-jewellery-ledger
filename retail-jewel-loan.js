@@ -111,9 +111,19 @@
   window.glSetLoanSubTab=tab=>{subTab=tab;selectedDraft=null;creating=false;editTxId='';render()};
 
   function navigation(){
-    document.querySelectorAll('[data-retail-loan-nav]').forEach(button=>button.remove());
-    if(!allowed||!currentShop()||shop!==currentShop())return;
     const nav=document.getElementById('nav');
+    if(!allowed||!currentShop()||shop!==currentShop()){
+      document.querySelectorAll('[data-retail-loan-nav]').forEach(button=>button.remove());
+      return;
+    }
+    const existingNavBtn=nav?.querySelector('button[data-retail-loan-nav="1"]');
+    if(existingNavBtn){
+      existingNavBtn.classList.toggle('active',page===title);
+      if(page===title)existingNavBtn.setAttribute('aria-current','page');
+      else existingNavBtn.removeAttribute('aria-current');
+      return;
+    }
+    document.querySelectorAll('[data-retail-loan-nav]').forEach(button=>button.remove());
     if(nav){
       const button=document.createElement('button');
       button.type='button';
