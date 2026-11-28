@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.14.3';
-  const CURRENT_BUILD = 'goldleaf-shell-v2427';
+  const CURRENT_VERSION = '2.15.0';
+  const CURRENT_BUILD = 'goldleaf-shell-v2428';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -14,9 +14,21 @@
 
   const GL_RELEASES = [
     {
-      version: '2.14.3',
+      version: '2.15.0',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Platform & Security',
+      title: 'Angular Universal (@angular/ssr v22.3) Pre-Rendered Shell & Zero-Flicker Hydration',
+      notes: [
+        'Enabled Angular Universal (@angular/ssr v22.3.0) static pre-rendering with non-destructive Client Hydration (provideClientHydration + withEventReplay) and critical CSS inlining.',
+        'Pre-rendered the complete ERP App Shell (#erpWorkbar, sidebar search/caption, and layout grid) directly in index.html and consolidated all stylesheets into <head> so page refreshes have 0.000 layout shift and zero FOUC.',
+        'Made workbar and sidebar button updates idempotent (diff-checked) so background cloud syncs never blink or repaint navigation icons.'
+      ]
+    },
+    {
+      version: '2.14.3',
+      date: '28 Nov 2026',
+      tag: 'Performance',
       category: 'Platform & Security',
       title: 'Zero-Flicker Cloud Session Boot, Static Navigation Bar & Clean Update State',
       notes: [

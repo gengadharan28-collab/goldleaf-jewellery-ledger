@@ -1,11 +1,11 @@
 {
-  "version": "2.14.3",
-  "build": "goldleaf-shell-v2427",
+  "version": "2.15.0",
+  "build": "goldleaf-shell-v2428",
   "releasedAt": "2026-11-28",
-  "title": "Zero-Flicker Cloud Session Boot, Static Navigation Bar & Clean Update State",
+  "title": "Angular Universal (@angular/ssr v22.3) Pre-Rendered Shell & Zero-Flicker Hydration",
   "highlights": [
-    "Synchronous 0ms Supabase session & shop hydration before first paint so signed-in cloud refreshes never rebuild or flash the navigation bar",
-    "Locked sidebar state on frame 0 with zero transition flicker and accurate ⚡ Update indicator",
-    "Fixed Shop Admin Jewel Loan RLS permissions & instant module open"
+    "Configured Angular Universal (@angular/ssr v22.3.0) SSG prerendering with non-destructive Client Hydration & Event Replay",
+    "Pre-rendered ERP App Shell (#erpWorkbar, sidebar & layout grid) and consolidated all stylesheets into <head> for 0.000 CLS & zero FOUC",
+    "Idempotent diff-checked toolbar & sidebar DOM updates so background syncs never blink navigation icons"
   ]
 }

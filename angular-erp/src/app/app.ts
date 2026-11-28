@@ -1,6 +1,8 @@
 import {
   Component,
   VERSION,
+  PLATFORM_ID,
+  inject,
   signal,
   computed,
   HostListener,
@@ -8,6 +10,7 @@ import {
   OnDestroy,
   ViewEncapsulation
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 type AppLang = 'en' | 'ta';
@@ -49,14 +52,17 @@ const QUICK_MODULES: QuickModule[] = [
   encapsulation: ViewEncapsulation.None
 })
 export class App implements OnInit, OnDestroy {
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
   readonly ngVersion = VERSION.full;
+  readonly ssrHydrated = signal<boolean>(false);
   readonly lang = signal<AppLang>('en');
   readonly activePage = signal<string>('Dashboard');
   readonly cmdOpen = signal<boolean>(false);
   readonly cmdQuery = signal<string>('');
   readonly selectedIndex = signal<number>(0);
 
-  // Cross-platform dynamic activity, network & pre-warm update signals
+  // Manual sync, connectivity & pre-warm update signals
   readonly progressVisible = signal<boolean>(false);
   readonly progressScale = signal<number>(0);
   readonly netBanner = signal<'' | 'offline' | 'online'>('');
@@ -93,8 +99,12 @@ export class App implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    if (!this.isBrowser) return;
+
+    this.ssrHydrated.set(true);
     const w = window as any;
     w.glAngularEngineActive = true;
+    w.glAngularSsrHydrated = true;
     w.glAngularVersion = this.ngVersion;
     w.glOpenQuickJump = () => this.openCmd();
     w.glNgBeginActivity = () => this.beginActivity();
@@ -115,6 +125,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (!this.isBrowser) return;
     window.removeEventListener('gl:rendered', this.boundRendered);
     window.removeEventListener('gl:lang', this.boundRendered);
     window.removeEventListener('gl:manual-sync-start', this.boundSyncStart);
@@ -129,6 +140,7 @@ export class App implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   onKeydown(ev: KeyboardEvent): void {
+    if (!this.isBrowser) return;
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') {
       ev.preventDefault();
       if (this.cmdOpen()) {
@@ -166,6 +178,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   syncFromHost(): void {
+    if (!this.isBrowser) return;
     try {
       const savedLang = localStorage.getItem('goldleaf-lang') === 'ta' ? 'ta' : 'en';
       if (this.lang() !== savedLang) this.lang.set(savedLang);
@@ -177,6 +190,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   beginActivity(): void {
+    if (!this.isBrowser) return;
     this.activeSyncCount++;
     clearTimeout(this.hideProgressTimer);
     if (!this.progressVisible()) {
@@ -193,6 +207,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   endActivity(): void {
+    if (!this.isBrowser) return;
     this.activeSyncCount = Math.max(0, this.activeSyncCount - 1);
     if (this.activeSyncCount > 0) return;
     clearInterval(this.progressTimer);
@@ -204,6 +219,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private handleConnectivity(isOnline: boolean): void {
+    if (!this.isBrowser) return;
     clearTimeout(this.netBannerTimer);
     if (!isOnline) {
       this.netBanner.set('offline');
@@ -215,6 +231,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   async triggerDynamicSync(announce = true): Promise<void> {
+    if (!this.isBrowser) return;
     const w = window as any;
     this.beginActivity();
     try {
@@ -240,6 +257,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   prewarmReleaseInBackground(versionHint = ''): Promise<string[]> {
+    if (!this.isBrowser) return Promise.resolve([]);
     if (this.warmPromise && (this.warmedVersion === versionHint || !versionHint)) {
       return this.warmPromise;
     }
@@ -255,7 +273,6 @@ export class App implements OnInit, OnDestroy {
           navigator.serviceWorker.controller.postMessage({ type: 'PREWARM_URLS', urls });
         }
 
-        // Pre-fetch in small concurrent batches so main thread & network stay silky-smooth
         const batchSize = 5;
         for (let i = 0; i < urls.length; i += batchSize) {
           const slice = urls.slice(i, i + batchSize);
@@ -272,6 +289,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   async applyHotUpdate(targetVer: string): Promise<void> {
+    if (!this.isBrowser) return;
     const w = window as any;
     const ver = targetVer || w.GOLDLEAF_VERSION || '';
     this.updateTitle.set('Updating Goldleaf ERP' + (ver ? ' to v' + ver : '') + '…');
@@ -285,7 +303,6 @@ export class App implements OnInit, OnDestroy {
         if (cur < 90) this.updatePercent.set(cur + 9);
       }, 90);
 
-      // Ensure new HTML + JS/CSS assets are already warm in cache BEFORE reloading!
       await Promise.race([
         this.prewarmReleaseInBackground(ver),
         new Promise(resolve => setTimeout(resolve, 1800))
@@ -326,6 +343,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   openCmd(): void {
+    if (!this.isBrowser) return;
     this.syncFromHost();
     this.cmdQuery.set('');
     this.selectedIndex.set(0);
@@ -339,6 +357,7 @@ export class App implements OnInit, OnDestroy {
 
   jumpTo(mod: QuickModule): void {
     this.cmdOpen.set(false);
+    if (!this.isBrowser) return;
     if (mod.action === 'sync') {
       this.triggerDynamicSync(true);
       return;

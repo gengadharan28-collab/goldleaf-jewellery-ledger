@@ -1,22 +1,26 @@
-const CACHE = 'goldleaf-shell-v2427';
+const CACHE = 'goldleaf-shell-v2428';
 const CORE_SHELL = [
   './',
   './index.html',
-  './erp-theme.css?v=2.14.2',
-  './mobile-erp-layout.css?v=2.10.95',
+  './erp-theme.css?v=2.15.0',
+  './mobile-erp-layout.css?v=2.11.7',
+  './retail-sales.css?v=2.11.2',
+  './retail-estimate-chit.css?v=2.10.56&autocut=2',
+  './entry-compact.css?v=2.10.76',
+  './retail-mobile-polish.css?v=2.12.37',
   './supabase.min.js?v=2.119.2',
   './qrcode.min.js?v=2.10.54',
   './app-v2.js?v=2.12.12&delpay=1&sr=1',
   './admin-panel.js?v=2.14.2&cloudfix=6&loanaccess=5',
-  './erp-ui.js?v=2.14.2&clean=5',
-  './retail-sales.js?v=2.13.8&termsfilter=1&srfull=3',
-  './retail-estimate-chit.js?v=2.13.8&chitfull=1&srfull=3',
+  './erp-ui.js?v=2.15.0&clean=6',
+  './retail-sales.js?v=2.15.0&termsfilter=1&srfull=3',
+  './retail-estimate-chit.js?v=2.15.0&chitfull=1&srfull=3',
   './retail-groups-accounts.js?v=2.13.7&compactroof=1&srfull=2',
   './retail-all-reports.js?v=2.13.6&reportsroof=2&srfull=1',
   './retail-jewel-loan.js?v=10&loanfix=4',
-  './gl-update-center.js?v=2.14.3',
-  './ng-engine/main.js?v=2426',
-  './ng-engine/styles.css?v=2426'
+  './gl-update-center.js?v=2.15.0',
+  './ng-engine/main.js?v=2428',
+  './ng-engine/styles.css?v=2428'
 ];
 
 self.addEventListener('install', event => {
@@ -104,7 +108,6 @@ self.addEventListener('fetch', event => {
       if (!cached) return revalidate;
       let timer;
       try {
-        // Fast 450ms network check so online F5 refreshes ALWAYS land directly on the latest index.html without showing stale Update prompts, while JS/CSS bundles remain 0ms cache hits!
         return await Promise.race([
           revalidate.catch(() => cached),
           new Promise(resolve => { timer = setTimeout(() => resolve(cached), 450); })
