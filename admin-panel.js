@@ -19,7 +19,8 @@ function platformShopExpiryState(s) {
   const hasWorkspace = !!(s?.retail_enabled || s?.wholesale_enabled);
   return { ms, isExpired, statusActive, hasWorkspace, canEnter: statusActive && !isExpired && hasWorkspace };
 }
-const platformModules = shop => [shop.retail_enabled && 'Retail', shop.wholesale_enabled && 'Wholesale'].filter(Boolean).join(' + ') || 'Awaiting approval';
+const platformShopLoanEnabled = shop => !!(shop && (platformLoanEntitlements.has(shop.id) ? platformLoanEntitlements.get(shop.id) : shop.jewel_loan_enabled));
+const platformModules = shop => [shop.retail_enabled && 'Retail', shop.wholesale_enabled && 'Wholesale', platformShopLoanEnabled(shop) && 'Jewel Loan'].filter(Boolean).join(' + ') || 'Awaiting approval';
 const platformIsDemo = () => session?.user?.id === 'demo-shop-1' && session.access_token === 'demo';
 const platformLink = () => location.origin + location.pathname;
 const platformInput = (label, name, type = 'text', value = '', extra = '') => `<div class="field"><label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label></div>`;
@@ -85,14 +86,23 @@ function platformExtendSelectHtml(shop, isExpired) {
     + `</select></label></div>`;
 }
 const platformLoanEntitlements=new Map();
+window.platformSaveLoanEntitlement=async function(shopId,enabled){
+  const flag=!!enabled;
+  const rpcRes=await client.rpc('goldleaf_admin_set_loan_access',{p_shop_id:shopId,p_enabled:flag});
+  if(!rpcRes.error)return null;
+  const tblRes=await client.from('goldleaf_jewel_loan_access').upsert({shop_id:shopId,enabled:flag},{onConflict:'shop_id'});
+  return tblRes.error||null;
+};
 window.platformSetLoanAccess=async function(input){
   const shopId=input.dataset.shopId,enabled=input.checked;
   if(!client||!goldleafContext?.is_super_admin||!shopId){input.checked=!enabled;return;}
   input.disabled=true;
   try{
-    const {error}=await client.from('goldleaf_jewel_loan_access').upsert({shop_id:shopId,enabled,updated_at:new Date().toISOString()},{onConflict:'shop_id'});
+    const error=await window.platformSaveLoanEntitlement(shopId,enabled);
     if(error)throw error;
     platformLoanEntitlements.set(shopId,enabled);
+    const shop=goldleafAdminShops.find(s=>s.id===shopId);
+    if(shop)shop.jewel_loan_enabled=enabled;
     say('Jewel Loan & Auction access '+(enabled?'enabled':'disabled')+'.');
   }catch(error){
     input.checked=!enabled;
@@ -103,7 +113,8 @@ window.platformSetLoanAccess=async function(input){
 };
 function platformAccessFields(shop = {}) {
   const toggle=(name,label,checked,help)=>`<label class="platform-access-toggle"><input type="checkbox" name="${name}" ${checked?'checked':''}><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>${label}</b><small>${help}</small></span></label>`;
-  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}${shop.id?`<label class="platform-access-toggle"><input type="checkbox" name="jewel_loan" data-shop-id="${esc(shop.id)}" ${platformLoanEntitlements.get(shop.id)?'checked':''} onchange="platformSetLoanAccess(this)"><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>Jewel Loan &amp; Auction</b><small>Allow Jewel Loan &amp; Auction module</small></span></label>`:''}</div>`;
+  const loanChecked=platformShopLoanEnabled(shop);
+  return `<div class="platform-checks">${toggle('retail','Retail',!!shop.retail_enabled,'Customer workspace')}${toggle('wholesale','Wholesale',!!shop.wholesale_enabled,'Party workspace')}${toggle('shared_rates','Live shared rate',shop.shared_rates_enabled!==false,'Auto-update from Super Admin')}${shop.id?`<label class="platform-access-toggle"><input type="checkbox" name="jewel_loan" data-shop-id="${esc(shop.id)}" ${loanChecked?'checked':''} onchange="platformSetLoanAccess(this)"><span class="platform-toggle-track" aria-hidden="true"><span></span></span><span><b>Jewel Loan &amp; Auction</b><small>Allow Jewel Loan &amp; Auction module</small></span></label>`:''}</div>`;
 }
 function platformDashboard() {
   const shops = goldleafAdminShops, paid = shops.filter(s => s.payment_count > 0), active = shops.filter(s => ['active','trial'].includes(s.subscription_status) && Date.parse(s.expires_at) > Date.now());
@@ -138,7 +149,7 @@ function platformShops() {
         : !st.hasWorkspace
           ? `<div class="platform-expiry-alert platform-expiry-warn"><b>Workspace approval needed.</b> Enable Retail, Wholesale, or both below and click <b>Save access &amp; seats</b>.</div>`
           : '';
-    return `<section class="panel platform-shop"><div class="goldleaf-admin-head"><div><h2>${esc(s.shop_name)}</h2><div>${esc(s.email)} · ${esc(s.phone)}</div><div class="muted">GST ${esc(s.gst_number)} · ${esc(s.address)}</div></div><span class="pill ${pillClass}">${esc(pillLabel)}</span></div><p>Registered ${platformDate(s.created_at)} · Expires <b>${platformDateTime(s.expires_at)}</b>${st.isExpired ? ' (EXPIRED)' : ''} · ${platformModules(s)} · ${s.payment_count > 0 ? 'Paid ' + rateMoney(s.total_paid) : 'No payment recorded'}</p>${alertHtml}<form onsubmit="platformSaveAccess(event)"><input type="hidden" name="shop_id" value="${s.id}"><div class="grid"><div class="field"><label>Allowed workspaces</label>${platformAccessFields(s)}</div><div class="field"><label>Account status<select name="status">${['trial','active','expired','suspended'].map(v=>`<option ${v===s.subscription_status?'selected':''}>${v}</option>`).join('')}</select></label></div>${platformExtendSelectHtml(s, st.isExpired)}${platformInput('User seats','user_seats','number',s.user_seats,'min="0" step="1" required')}${platformInput('Owner seats','owner_seats','number',s.owner_seats,'min="1" step="1" required')}</div><div class="right"><button class="primary">Save access &amp; seats</button></div></form><div class="platform-shop-actions"><form onsubmit="platformRenew(event)"><input type="hidden" name="shop_id" value="${s.id}"><label>Quick renew subscription<select name="plan">${platformPlanOptions(s.plan)}</select></label><button>Apply renewal</button></form><form onsubmit="platformRecordPayment(event)"><input type="hidden" name="shop_id" value="${s.id}"><label>Received payment · ₹<input name="amount" type="number" min=".01" step=".01" required></label><label>Receipt / reference<input name="reference" maxlength="160" required></label><button>Record received payment</button></form></div></section>`;
+    return `<section class="panel platform-shop"><div class="goldleaf-admin-head"><div><h2>${esc(s.shop_name)}</h2><div>${esc(s.email)} · ${esc(s.phone)}</div><div class="muted">GST ${esc(s.gst_number)} · ${esc(s.address)}</div></div><span class="pill ${pillClass}">${esc(pillLabel)}</span></div><p>Registered ${platformDate(s.created_at)} · Expires <b>${platformDateTime(s.expires_at)}</b>${st.isExpired ? ' (EXPIRED)' : ''} · ${platformModules(s)} · ${s.payment_count > 0 ? 'Paid ' + rateMoney(s.total_paid) : 'No payment recorded'}</p>${alertHtml}<form onsubmit="platformSaveAccess(event)"><input type="hidden" name="shop_id" value="${s.id}"><div class="grid"><div class="field wide" style="grid-column:1/-1"><label>Allowed workspaces &amp; modules</label>${platformAccessFields(s)}</div><div class="field"><label>Account status<select name="status">${['trial','active','expired','suspended'].map(v=>`<option ${v===s.subscription_status?'selected':''}>${v}</option>`).join('')}</select></label></div>${platformExtendSelectHtml(s, st.isExpired)}${platformInput('User seats','user_seats','number',s.user_seats,'min="0" step="1" required')}${platformInput('Owner seats','owner_seats','number',s.owner_seats,'min="1" step="1" required')}</div><div class="right"><button class="primary">Save access &amp; seats</button></div></form><div class="platform-shop-actions"><form onsubmit="platformRenew(event)"><input type="hidden" name="shop_id" value="${s.id}"><label>Quick renew subscription<select name="plan">${platformPlanOptions(s.plan)}</select></label><button>Apply renewal</button></form><form onsubmit="platformRecordPayment(event)"><input type="hidden" name="shop_id" value="${s.id}"><label>Received payment · ₹<input name="amount" type="number" min=".01" step=".01" required></label><label>Receipt / reference<input name="reference" maxlength="160" required></label><button>Record received payment</button></form></div></section>`;
   }).join('') || '<section class="panel empty">No shop registrations yet. Share the signup link from your Dashboard.</section>');
 }
 async function platformMutation(name, args, message) {
@@ -161,8 +172,10 @@ window.platformSaveAccess = async function(event) {
   }
   if (shopId) {
     const loanEnabled = f.has('jewel_loan');
-    const loanRes = await client.from('goldleaf_jewel_loan_access').upsert({ shop_id: shopId, enabled: loanEnabled, updated_at: new Date().toISOString() }, { onConflict: 'shop_id' });
-    if (!loanRes.error) platformLoanEntitlements.set(shopId, loanEnabled);
+    const loanErr = await window.platformSaveLoanEntitlement(shopId, loanEnabled);
+    if (loanErr) { say(loanErr.message || 'Could not save Jewel Loan access.'); return; }
+    platformLoanEntitlements.set(shopId, loanEnabled);
+    if (shop) shop.jewel_loan_enabled = loanEnabled;
   }
   await platformMutation('goldleaf_admin_save_access_v2',{p_shop_id:shopId,p_retail:f.has('retail'),p_wholesale:f.has('wholesale'),p_shared_rates:f.has('shared_rates'),p_status:status,p_users:n(f.get('user_seats')),p_owners:n(f.get('owner_seats'))}, willExtend ? 'Shop access saved and validity extended.' : 'Shop access saved.');
 };
@@ -175,7 +188,7 @@ window.platformRenew = async function(event) {
 };
 window.platformRecordPayment = async function(event) { event.preventDefault(); const f=new FormData(event.target); if (!confirm('Record ₹'+f.get('amount')+' as already received? This does not collect money or renew the plan.')) return; await platformMutation('goldleaf_admin_record_payment',{p_shop_id:f.get('shop_id'),p_amount:n(f.get('amount')),p_reference:String(f.get('reference')).trim()},'Payment receipt saved.'); };
 function platformCreateShop() {
-  return platformTop('Create shop', 'Prepare the shop details and share a secure signup invitation. The owner chooses their password.') + `<section class="panel"><form onsubmit="platformCreateInvite(event)"><div class="grid">${platformInput('Shop name *','shop_name','text','','required')}${platformInput('Owner email *','email','email','','required')}${platformInput('GST number *','gst','text','','required maxlength="15" pattern="[A-Za-z0-9]{15}"')}${platformInput('Phone *','phone','tel','','required minlength="10"')}<div class="field wide"><label>Shop address *<textarea name="address" required></textarea></label></div><div class="field"><label>Allowed workspaces</label>${platformAccessFields()}</div><div class="field"><label>Starting plan<select name="plan">${platformPlanOptions()}</select></label></div></div><div class="right"><button class="primary">Create invitation link</button></div></form><div id="platformInviteOutput" hidden></div></section><section class="panel"><h2>Pending invitations</h2>${platformInvites.length ? table(['Shop','Owner email','Access','Plan','Link expires'],platformInvites.map(i=>[esc(i.shop_name),esc(i.email),platformModules(i),esc(i.plan),platformDate(i.expires_at)])) : '<div class="empty">No pending shop invitations.</div>'}</section>`;
+  return platformTop('Create shop', 'Prepare the shop details and share a secure signup invitation. The owner chooses their password.') + `<section class="panel"><form onsubmit="platformCreateInvite(event)"><div class="grid">${platformInput('Shop name *','shop_name','text','','required')}${platformInput('Owner email *','email','email','','required')}${platformInput('GST number *','gst','text','','required maxlength="15" pattern="[A-Za-z0-9]{15}"')}${platformInput('Phone *','phone','tel','','required minlength="10"')}<div class="field wide"><label>Shop address *<textarea name="address" required></textarea></label></div><div class="field wide" style="grid-column:1/-1"><label>Allowed workspaces</label>${platformAccessFields()}</div><div class="field"><label>Starting plan<select name="plan">${platformPlanOptions()}</select></label></div></div><div class="right"><button class="primary">Create invitation link</button></div></form><div id="platformInviteOutput" hidden></div></section><section class="panel"><h2>Pending invitations</h2>${platformInvites.length ? table(['Shop','Owner email','Access','Plan','Link expires'],platformInvites.map(i=>[esc(i.shop_name),esc(i.email),platformModules(i),esc(i.plan),platformDate(i.expires_at)])) : '<div class="empty">No pending shop invitations.</div>'}</section>`;
 }
 window.platformCreateInvite = async function(event) {
   event.preventDefault(); const f=new FormData(event.target); const {data,error}=await client.rpc('goldleaf_admin_prepare_shop',{p_details:{shop_name:f.get('shop_name'),email:f.get('email'),gst_number:f.get('gst'),address:f.get('address'),phone:f.get('phone'),plan:f.get('plan'),retail_enabled:f.has('retail'),wholesale_enabled:f.has('wholesale')}});
@@ -379,7 +392,9 @@ window.pullCloud=async function(){
       const [shops,onboarding,plans,loanAccess]=adminResponses;
       for(const result of [shops,onboarding,plans])if(result.error)throw result.error;
       [goldleafAdminShops,platformInvites,platformPlans]=[shops,onboarding,plans].map(result=>result.data||[]);
-      if(!loanAccess.error){platformLoanEntitlements.clear();for(const row of loanAccess.data||[])platformLoanEntitlements.set(row.shop_id,row.enabled);}
+      platformLoanEntitlements.clear();
+      for(const s of goldleafAdminShops)if(typeof s.jewel_loan_enabled==='boolean')platformLoanEntitlements.set(s.id,s.jewel_loan_enabled);
+      if(!loanAccess.error){for(const row of loanAccess.data||[])platformLoanEntitlements.set(row.shop_id,!!row.enabled);}
     }
     if(shared.error)throw shared.error;
     if(shared.data&&Number(shared.data.gold24)>0)try{localStorage.setItem('goldleaf-cached-public-rates',JSON.stringify(shared.data));}catch{}
@@ -395,7 +410,7 @@ window.pullCloud=async function(){
     }else if(previous?.retail_enabled!==goldleafContext.retail_enabled||previous?.wholesale_enabled!==goldleafContext.wholesale_enabled){db=Object.assign(init(),remote.payload||{});localStorage.removeItem(V2_CLOUD_PENDING_KEY);}
     else {const pending=localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1';db=v2MergeCloudLedgers(remote.payload,db,pending);if(JSON.stringify(db.retailDocuments||[])!==JSON.stringify(remote.payload?.retailDocuments||[])||JSON.stringify(db.retailSuppliers||[])!==JSON.stringify(remote.payload?.retailSuppliers||[])||JSON.stringify(db.wholesaleLots||[])!==JSON.stringify(remote.payload?.wholesaleLots||[])||JSON.stringify(db.wholesalePacketSales||[])!==JSON.stringify(remote.payload?.wholesalePacketSales||[]))localStorage.setItem(V2_CLOUD_PENDING_KEY,'1');}
     ensureExtendedData();db.sharedRates=shared.data||{};db.rates=goldleafContext?.shared_rates_enabled!==false?Object.assign({},db.sharedRates):(db.shopRates?.enabled?Object.assign({},db.shopRates):db.rates);v2LastCloudUpdatedAt=remote.updated_at||'';platformStoreLedger();platformError='';
-    setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled)render();
+    setCloudStatus(localStorage.getItem(V2_CLOUD_PENDING_KEY)==='1'?'Entry saved here · waiting to sync':'Cloud · '+goldleafContext.shop_name);if(resetApplied||!v2HasFocusedEdit()||!previous||previous.retail_enabled!==goldleafContext.retail_enabled||previous.wholesale_enabled!==goldleafContext.wholesale_enabled||previous.jewel_loan_enabled!==goldleafContext.jewel_loan_enabled)render();
   }catch(error){platformError=error.message;window.v2LastSyncError=error.message;setCloudStatus('Cloud connection needs attention');if(!v2HasFocusedEdit())render();}
   finally{v2CloudBusy=false;}
 };

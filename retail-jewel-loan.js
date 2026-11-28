@@ -22,20 +22,21 @@
   const isDemoShop=t=>t==='demo-shop-1'||(typeof platformIsDemo==='function'&&platformIsDemo());
   async function checkAccess(force=false){
     const target=currentShop();
-    if(target!==shop){shop=target;allowed=false;drafts=[];checkedAt=0;creating=false;filters=emptyFilters();selectedDraft=null;shown=new Set(defaultLoanColumns);subTab='Drafts';editTxId='';}
+    if(target!==shop){shop=target;allowed=!!goldleafContext?.jewel_loan_enabled;drafts=[];checkedAt=0;creating=false;filters=emptyFilters();selectedDraft=null;shown=new Set(defaultLoanColumns);subTab='Drafts';editTxId='';}
     if(!target)return false;
     if(isDemoShop(target)){allowed=true;checkedAt=Date.now();return true;}
-    if(!client)return false;
+    if(!client)return allowed;
     if(!force&&(checking||Date.now()-checkedAt<10000))return allowed;
     checking=true;
     try{
       const {data,error}=await client.from('goldleaf_jewel_loan_access').select('enabled').eq('shop_id',target).maybeSingle();
       if(target!==currentShop())return false;
-      allowed=!error&&data?.enabled===true;
+      allowed=!error?(data?.enabled===true):(goldleafContext?.jewel_loan_enabled===true);
+      if(goldleafContext&&goldleafContext.shop_id===target)goldleafContext.jewel_loan_enabled=allowed;
       if(!allowed){drafts=[];selectedDraft=null;}
       checkedAt=Date.now();
       return allowed;
-    }catch{if(target===currentShop()){allowed=false;drafts=[];selectedDraft=null;checkedAt=Date.now()}return false;}
+    }catch{if(target===currentShop()){allowed=goldleafContext?.jewel_loan_enabled===true;if(!allowed){drafts=[];selectedDraft=null;}checkedAt=Date.now()}return allowed;}
     finally{checking=false}
   }
   async function loadCloudDrafts(){
@@ -593,12 +594,15 @@
   };
   const previous=window.render;
   window.render=function(){
-    if(page===title&&(!currentShop()||!allowed||shop!==currentShop()))page='Dashboard';
+    const cur=currentShop();
+    if(cur&&cur!==shop){shop=cur;allowed=isDemoShop(cur)||goldleafContext?.jewel_loan_enabled===true;checkedAt=0;}
+    else if(cur&&checkedAt===0&&goldleafContext?.jewel_loan_enabled===true){allowed=true;}
+    if(page===title&&(!cur||!allowed||shop!==cur))page='Dashboard';
     const result=previous.apply(this,arguments);
-    if(page===title&&allowed&&currentShop()){const root=document.getElementById('app');if(root)root.innerHTML=intake();}
+    if(page===title&&allowed&&cur){const root=document.getElementById('app');if(root)root.innerHTML=intake();}
     navigation();
-    if(!currentShop()){shop='';allowed=false;drafts=[];selectedDraft=null;checkedAt=0;}
-    else if(!checking&&(currentShop()!==shop||Date.now()-checkedAt>=30000))checkAccess().then(()=>{
+    if(!cur){shop='';allowed=false;drafts=[];selectedDraft=null;checkedAt=0;}
+    else if(!checking&&(cur!==shop||checkedAt===0||Date.now()-checkedAt>=30000))checkAccess().then(()=>{
       if(allowed&&!drafts.length)loadCloudDrafts();
       if(page===title&&!allowed){page='Dashboard';render();}else navigation();
     });

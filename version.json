@@ -1,12 +1,12 @@
 {
-  "version": "2.13.8",
-  "build": "goldleaf-shell-v2422",
+  "version": "2.13.9",
+  "build": "goldleaf-shell-v2423",
   "releasedAt": "2026-11-28",
-  "title": "Complete Sales Return Workflow, Live Balance Reduction, Accounts & GST Reports",
+  "title": "Super Admin Jewel Loan & Auction Toggle + Cloud RPC Fix",
   "highlights": [
-    "Instant zero-delay Sales Return credit deduction on Net Payable & Remaining Balance in Sales Entry and Quotation",
-    "Lookup returns by Original Bill, Sold Tag / HUID, or Direct Rate Book entry with automatic Stock / Lot restoration",
-    "Full Customer Credit vs Cash/Bank Refund settlement synced across Customer Ledger, DayBook, Cashbook/Bankbook, Trial Balance & P&L",
-    "Complete GSTR-1 9B Credit Notes, HSN Return Summary, Advance Amount & Sales Return Abstract reporting"
+    "Fixed Super Admin Jewel Loan & Auction toggle reverting to OFF and added trusted goldleaf_admin_set_loan_access cloud RPC",
+    "Expanded Allowed Workspaces & Modules toggle row to full width with full-card hitboxes on desktop and mobile",
+    "Instant zero-delay Retail sidebar Jewel Loan & Auction navigation via goldleaf_my_context sync",
+    "Complete Sales Return workflow with live balance reduction, stock restoration, accounts & GST reports"
   ]
 }

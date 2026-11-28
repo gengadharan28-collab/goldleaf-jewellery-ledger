@@ -1,7 +1,7 @@
 // Authoritative Goldleaf Software Update Engine & Release Center (v2.13.0)
 (function () {
-  const CURRENT_VERSION = '2.13.8';
-  const CURRENT_BUILD = 'goldleaf-shell-v2422';
+  const CURRENT_VERSION = '2.13.9';
+  const CURRENT_BUILD = 'goldleaf-shell-v2423';
   const CURRENT_DATE = '28 Nov 2026';
 
   window.GOLDLEAF_VERSION = CURRENT_VERSION;
@@ -11,9 +11,21 @@
 
   const GL_RELEASES = [
     {
-      version: '2.13.8',
+      version: '2.13.9',
       date: '28 Nov 2026',
       tag: 'Current',
+      category: 'Chit & Jewel Loan',
+      title: 'Super Admin Jewel Loan & Auction Toggle + Cloud RPC Fix',
+      notes: [
+        'Fixed Super Admin Jewel Loan & Auction toggle reverting to OFF due to missing updated_at column and added trusted goldleaf_admin_set_loan_access cloud RPC.',
+        'Expanded Super Admin Allowed Workspaces & Modules row to full width with full-card clickable switches so all 4 toggles turn ON/OFF cleanly on desktop & mobile.',
+        'Included jewel_loan_enabled directly in shop context & admin shop list for zero-delay Retail sidebar rendering.'
+      ]
+    },
+    {
+      version: '2.13.8',
+      date: '28 Nov 2026',
+      tag: 'Feature',
       category: 'Sales, Accounts & Reports',
       title: 'Complete End-to-End Sales Return Workflow, Ledgers & GST Reports',
       notes: [
