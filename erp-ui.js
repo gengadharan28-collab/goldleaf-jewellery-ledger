@@ -166,13 +166,15 @@ render();
     'Search':'தேடு','Close':'மூடு','Cancel':'ரத்து செய்','Update':'புதுப்பி','Check for Updates':'புதுப்பிப்பு சரிபார்',
     'Force Refresh Cache':'முழு ரீஃப்ரெஷ்','Install Update Now':'இப்போது புதுப்பி'
   };
-  const origText=new WeakMap();
+  const origText=new WeakMap(),translatedText=new WeakMap();
   function getLang(){try{return localStorage.getItem(LANG_KEY)==='ta'?'ta':'en';}catch(_){return 'en';}}
   function translateNode(node,lang){
     if(node.nodeType===3){
       const cur=node.nodeValue;
       if(!cur||!cur.trim())return;
-      if(!origText.has(node))origText.set(node,cur);
+      if(!origText.has(node)||(cur!==origText.get(node)&&cur!==translatedText.get(node))){
+        origText.set(node,cur);
+      }
       const base=origText.get(node);
       if(lang==='en'){if(cur!==base)node.nodeValue=base;return;}
       const trimmed=base.trim();
@@ -180,6 +182,7 @@ render();
       if(hit){
         const lead=base.match(/^\s*/)[0],trail=base.match(/\s*$/)[0];
         const next=lead+hit+trail;
+        translatedText.set(node,next);
         if(node.nodeValue!==next)node.nodeValue=next;
       }
     }else if(node.nodeType===1){

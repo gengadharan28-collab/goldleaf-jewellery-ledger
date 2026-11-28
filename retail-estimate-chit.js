@@ -2827,6 +2827,7 @@ window.rcToggleOldGold = function() {
 };
 
 function rcRecalc(){
+window.rcRecalc = rcRecalc;
   const form = document.getElementById('rcEstimateForm');
   if(!form) return;
   const items = rcQuoteReadRows();

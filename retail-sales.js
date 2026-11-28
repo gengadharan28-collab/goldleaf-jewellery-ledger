@@ -261,7 +261,7 @@ function rbGiftVoucher(code,billDate,invoiceId,amount,cashAdvance){
 window.glGetContextSalesReturns=function(form){if(!form)return [];try{const arr=JSON.parse(form.querySelector('input[name="salesReturnItemsJson"]')?.value||'[]');return Array.isArray(arr)?arr:[];}catch(_){return [];}};
 window.glSetContextSalesReturns=function(form,items){if(!form)return;let inp=form.querySelector('input[name="salesReturnItemsJson"]');if(!inp){inp=document.createElement('input');inp.type='hidden';inp.name='salesReturnItemsJson';form.appendChild(inp);}inp.value=JSON.stringify(Array.isArray(items)?items:[]);};
 window.glDetachReturnPanelControls=function(section){if(!section)return;section.querySelectorAll('input,select,textarea,button').forEach(el=>el.setAttribute('form','glSrPanelDetached'));};
-window.glNotifyHostReturnChanged=function(node){const hostForm=node?.closest?.('#customerSaleForm,#rcEstimateForm')||document.getElementById('customerSaleForm')||document.getElementById('rcEstimateForm');if(!hostForm)return;window.glDetachReturnPanelControls(hostForm.querySelector('#glSalesReturnPanel'));const run=()=>{try{if(hostForm.id==='customerSaleForm'){rbMarkDirty(hostForm);window.rbRecalc(hostForm);}else if(hostForm.id==='rcEstimateForm'&&typeof window.rcRecalc==='function'){window.rcRecalc();}}catch(err){console.error('Sales return recalc failed',err);}};run();clearTimeout(hostForm._glSrTimer);hostForm._glSrTimer=setTimeout(run,0);};
+window.glNotifyHostReturnChanged=function(node){const hostForm=node?.closest?.('#customerSaleForm,#rcEstimateForm')||document.getElementById('customerSaleForm')||document.getElementById('rcEstimateForm');if(!hostForm)return;const fId=hostForm.getAttribute?.('id')||'';window.glDetachReturnPanelControls(hostForm.querySelector('#glSalesReturnPanel'));const run=()=>{try{if(fId==='customerSaleForm'){rbMarkDirty(hostForm);window.rbRecalc(hostForm);}else if(fId==='rcEstimateForm'){if(typeof window.rcRecalc==='function')window.rcRecalc();else if(typeof rcRecalc==='function')rcRecalc();}}catch(err){console.error('Sales return recalc failed',err);}};run();clearTimeout(hostForm._glSrTimer);hostForm._glSrTimer=setTimeout(run,0);};
 window.glReadDraftReturnInPanel=function(form){
   const panel=document.getElementById('glSalesReturnPanel');
   if(!panel||!form||!form.contains(panel))return null;
@@ -562,7 +562,7 @@ window.rbSaveRecord=function(event){
     scope.dataset.localKey='draft';
     if(typeof panel.refreshAppliedList==='function')panel.refreshAppliedList();
     window.glNotifyHostReturnChanged(hostForm);
-    say('Sales return (−'+rateMoney(savedEntry.amount)+') applied to '+(hostForm.id==='rcEstimateForm'?'quotation':'sales bill')+'.');
+    say('Sales return (−'+rateMoney(savedEntry.amount)+') applied to '+((hostForm.getAttribute?.('id')||'')==='rcEstimateForm'?'quotation':'sales bill')+'.');
     return;
   }
   let item=Object.assign({},old||{},{id:id||crypto.randomUUID(),accountType:'customer',retailKind:kind,partyId:effectivePartyId,when:get('when')||rbNow(),documentNo:get('documentNo').trim()||(kind==='return'?'SR':kind.toUpperCase())+'-'+Date.now().toString(36).toUpperCase(),notes:get('notes'),createdAt:old?.createdAt||now,updatedAt:now});

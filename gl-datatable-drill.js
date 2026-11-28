@@ -241,8 +241,8 @@
       const id = billBtn.dataset.billId;
       const sale = (db.sales||[]).find(s=>s.id===id);
       if(sale){
-        const items = Array.isArray(sale.items) && sale.items.length ? sale.items : [sale];
-        const rows = items.map((it, i) => '<tr><td>'+(i+1)+'</td><td><b>'+esc(it.product||sale.product||'—')+'</b></td><td>'+esc(it.tagCode||it.huid||'—')+'</td><td>'+(it.pieces||1)+'</td><td>'+fmt(it.grossWeight||it.weight||0)+' g</td><td>'+fmt(it.netWeight||it.weight||0)+' g</td><td>'+esc(it.purity||sale.purity||'—')+'</td><td>'+n(it.wastage||sale.wastage)+'%</td><td>'+rateMoney(it.makingTotal||it.making||0)+'</td><td><b>'+rateMoney(it.subtotal||sale.amount||0)+'</b></td></tr>').join('');
+        const items = Array.isArray(sale.invoiceItems) && sale.invoiceItems.length ? sale.invoiceItems : (Array.isArray(sale.items) && sale.items.length ? sale.items : [sale]);
+        const rows = items.map((it, i) => '<tr><td>'+(i+1)+'</td><td><b>'+esc(it.product||sale.product||'—')+'</b></td><td>'+esc(it.tagCode||it.huid||'—')+'</td><td>'+(it.pieces||1)+'</td><td>'+fmt(it.grossWeight||it.weight||0)+' g</td><td>'+fmt(it.netWeight||it.weight||0)+' g</td><td>'+esc(it.purity?(n(it.purity)>24?n(it.purity)+'%':Math.round(n(it.purity))+'K'):(sale.purityLabel||'—'))+'</td><td>'+n(it.wastage||sale.wastage)+'%</td><td>'+rateMoney(it.makingTotal||it.making||0)+'</td><td><b>'+rateMoney(it.subtotal||sale.amount||0)+'</b></td></tr>').join('');
         return '<div class="gl-drill-box"><h4>Bill Breakdown · '+esc(sale.documentNo||id.slice(0,8))+' ('+items.length+' item'+(items.length>1?'s':'')+')</h4><table><thead><tr><th>#</th><th>Product</th><th>Tag / HUID</th><th>Pcs</th><th>Gross g</th><th>Net g</th><th>Purity</th><th>Wastage</th><th>Making</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table>'
           +(sale.exchangeAmount>0?'<p style="margin:6px 0 0;font-size:11px"><b>Old Gold Credit:</b> − '+rateMoney(sale.exchangeAmount)+' | <b>Collected:</b> '+rateMoney(sale.collectedAmount||0)+'</p>':'')+'</div>';
       }
